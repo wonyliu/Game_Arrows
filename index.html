@@ -1,0 +1,188 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%231a1733'/%3E%3Cpath d='M12 32h24' stroke='%23e7d67f' stroke-width='6'/%3E%3Cpath d='M36 22l14 10-14 10' fill='none' stroke='%23e7d67f' stroke-width='6'/%3E%3C/svg%3E">
+    <title>Arrow Clear</title>
+    <meta name="description" content="Tap arrows to clear the board.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=25">
+</head>
+<body>
+    <div class="app-container">
+        <header class="wechat-header">
+            <div class="wechat-left">
+                <span class="icon-wechat-back"></span>
+            </div>
+            <div class="wechat-title">Arrow Clear</div>
+            <div class="wechat-capsule">
+                <span class="capsule-dot"></span>
+                <span class="capsule-divider"></span>
+                <span class="capsule-ring"></span>
+            </div>
+        </header>
+
+        <div class="background-pattern"></div>
+
+        <div id="topResources" class="top-resources">
+            <div class="resource-badge">
+                <img class="pixel-icon resource-icon-img" src="assets/ui/pixel/coin.svg" alt="coin">
+                <span id="coinCount">20</span>
+            </div>
+            <div class="resource-badge">
+                <img class="pixel-icon resource-icon-img" src="assets/ui/pixel/energy.svg" alt="energy">
+                <span id="energyCount">5</span>
+            </div>
+            <div class="energy-timer">Full</div>
+        </div>
+
+        <aside id="sideBar" class="side-bar">
+            <button class="side-btn" type="button" aria-label="settings">
+                <img class="pixel-icon side-icon" src="assets/ui/pixel/settings.svg" alt="settings">
+            </button>
+            <button class="side-btn side-btn-community" type="button">
+                <img class="pixel-icon side-btn-icon" src="assets/ui/pixel/community.svg" alt="community">
+                <span class="side-btn-label">Game Zone</span>
+            </button>
+        </aside>
+
+        <main class="game-container">
+            <div class="canvas-wrapper">
+                <canvas id="gameCanvas"></canvas>
+            </div>
+        </main>
+
+        <div id="hud" class="hidden">
+            <div class="hud-top">
+                <button class="hud-settings" type="button" aria-label="settings">
+                    <img class="pixel-icon side-icon" src="assets/ui/pixel/settings.svg" alt="settings">
+                </button>
+                <div class="hud-center">
+                    <div id="levelInfo" class="hud-level">Level 3</div>
+                    <div id="lives" class="hud-lives"></div>
+                    <div id="timer" class="hud-timer hidden">10m00s</div>
+                </div>
+            </div>
+
+            <div class="hud-bottom">
+                <div class="progress-container">
+                    <div class="progress-btn">&lt;</div>
+                    <div class="progress-bar-wrapper">
+                        <div id="progressBarFill" class="progress-bar-fill"></div>
+                        <div id="progressThumb" class="progress-thumb"></div>
+                    </div>
+                    <div class="progress-btn">&gt;</div>
+                </div>
+
+                <div class="items-container">
+                    <button id="btnUndo" class="item-btn item-btn-eraser" type="button" aria-label="undo">
+                        <img class="pixel-icon item-icon-img" src="assets/ui/pixel/undo.svg" alt="undo">
+                        <span class="badge-plus">+</span>
+                    </button>
+                    <button id="btnHint" class="item-btn item-btn-wand" type="button" aria-label="hint">
+                        <img class="pixel-icon item-icon-img" src="assets/ui/pixel/wand.svg" alt="hint">
+                        <span class="badge-plus">+</span>
+                    </button>
+                    <button id="btnShuffle" class="item-btn item-btn-clock" type="button" aria-label="shuffle">
+                        <img class="pixel-icon item-icon-img" src="assets/ui/pixel/shuffle.svg" alt="shuffle">
+                        <span class="badge-plus">+</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="menuOverlay" class="overlay">
+            <div class="menu-content">
+                <div class="logo-area">
+                    <div class="logo-arrow">ARROW</div>
+                    <div class="logo-line"></div>
+                    <div class="logo-clear">CLEAR</div>
+                </div>
+
+                <div class="banner-stack">
+                    <div class="banner banner-workshop">Creative Hub</div>
+                    <div class="banner banner-snow">
+                        <span>Snow Event</span>
+                        <small>Free x1 today</small>
+                    </div>
+                </div>
+
+                <div class="play-area">
+                    <button id="btnPlay" class="btn-play" type="button">Start</button>
+                    <button id="btnLevels" class="current-level-tag" type="button">Level 3</button>
+                </div>
+                <a class="dev-entry" href="admin.html">Dev Admin</a>
+
+                <button class="float-btn float-left-top" type="button">
+                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/more-games.svg" alt="more games"></span>
+                    <span class="float-label">More Games</span>
+                </button>
+                <button class="float-btn float-left-bottom" type="button">
+                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/gift.svg" alt="gift"></span>
+                    <span class="float-label">Free Gift</span>
+                </button>
+                <button class="float-btn float-right-top" type="button">
+                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/theme.svg" alt="theme"></span>
+                    <span class="float-label">Theme</span>
+                </button>
+                <button class="float-btn float-right-bottom" type="button">
+                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/rank.svg" alt="rank"></span>
+                    <span class="float-label">Rank</span>
+                </button>
+            </div>
+
+            <nav class="bottom-nav">
+                <button class="nav-item" type="button">
+                    <span class="nav-icon"><img class="pixel-icon nav-icon-img" src="assets/ui/pixel/collection.svg" alt="collection"></span>
+                    <span class="nav-label">Collection</span>
+                </button>
+                <button class="nav-item active" type="button">
+                    <span class="nav-icon"><img class="pixel-icon nav-icon-img" src="assets/ui/pixel/home.svg" alt="home"></span>
+                    <span class="nav-label">Home</span>
+                </button>
+                <button class="nav-item" type="button">
+                    <span class="nav-icon"><img class="pixel-icon nav-icon-img" src="assets/ui/pixel/challenge.svg" alt="challenge"></span>
+                    <span class="nav-label">Challenge</span>
+                </button>
+            </nav>
+        </div>
+
+        <div id="levelCompleteOverlay" class="overlay hidden">
+            <div class="popup-box">
+                <h2 class="popup-title">Level Complete</h2>
+                <div id="levelScore" class="popup-score">Score: 0</div>
+                <div class="popup-buttons">
+                    <button id="btnNext" class="btn-popup-primary" type="button">Next</button>
+                    <button id="btnMenuFromComplete" class="btn-popup-secondary" type="button">Back Home</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="gameOverOverlay" class="overlay hidden">
+            <div class="popup-box">
+                <h2 class="popup-title">Game Over</h2>
+                <div id="gameOverReason" class="popup-score">Out of lives</div>
+                <div class="popup-buttons">
+                    <button id="btnRetry" class="btn-popup-primary" type="button">Retry</button>
+                    <button id="btnMenuFromOver" class="btn-popup-secondary" type="button">Back Home</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="levelSelectOverlay" class="overlay hidden">
+            <div class="popup-box popup-box-levels">
+                <h2 class="popup-title">Select Level</h2>
+                <div id="levelGrid" class="level-grid"></div>
+                <button id="btnBackFromSelect" class="btn-popup-secondary" type="button">Back</button>
+            </div>
+        </div>
+
+        <div id="errorVignette" class="error-vignette"></div>
+    </div>
+
+    <script type="module" src="js/main.js?v=33"></script>
+</body>
+</html>

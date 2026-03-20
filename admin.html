@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arrow Clear Admin</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+    <link rel="stylesheet" href="css/admin.css?v=40">
+</head>
+<body>
+    <main class="admin-shell">
+        <section class="controls">
+            <h1>Arrow Clear Admin</h1>
+            <p class="sub">Configure level grid and arrow length, then generate/save.</p>
+
+            <label class="field">
+                <span>Level</span>
+                <select id="levelSelect"></select>
+            </label>
+
+            <label class="field">
+                <span>Dimension mode</span>
+                <select id="dimensionMode">
+                    <option value="rows">Rows fixed</option>
+                    <option value="cols">Cols fixed</option>
+                </select>
+            </label>
+
+            <label class="field">
+                <span>Dimension value</span>
+                <input id="dimensionValue" type="number" min="4" max="40" step="1">
+            </label>
+
+            <label class="field">
+                <span>Min arrow length</span>
+                <input id="minLen" type="number" min="2" max="12" step="1">
+            </label>
+
+            <label class="field">
+                <span>Max arrow length</span>
+                <input id="maxLen" type="number" min="2" max="16" step="1">
+            </label>
+
+            <div class="meta">
+                <div>Grid: <strong id="gridText">-</strong></div>
+                <div>Estimated lines: <strong id="lineText">-</strong></div>
+                <div>Coverage: <strong id="coverageText">-</strong></div>
+            </div>
+
+            <div class="actions">
+                <button id="btnGenerate" class="primary" type="button">Generate</button>
+                <button id="btnGenerate2" class="primary" type="button">Generate 2</button>
+                <button id="btnGenerate3" class="primary" type="button">Generate 3</button>
+                <button id="btnRestPreview" type="button">restpreview</button>
+                <button id="btnHint" type="button">Hint</button>
+                <button id="btnSave" type="button">Save</button>
+                <button id="btnReset" type="button">Reset</button>
+            </div>
+
+            <div class="gen-progress">
+                <div id="genProgressText" class="gen-progress-text">Ready</div>
+                <div class="gen-progress-track">
+                    <div id="genProgressFill" class="gen-progress-fill"></div>
+                </div>
+            </div>
+
+            <div class="links">
+                <a href="index.html">Open game</a>
+            </div>
+
+            <p id="status" class="status">Ready.</p>
+            <ul id="stats"></ul>
+        </section>
+
+        <section class="preview">
+            <div class="preview-header">
+                <h2 id="previewTitle">Preview</h2>
+                <button id="togglePath" class="icon-btn" title="Toggle Hamiltonian Path (Generate2 Mode)">
+                    <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                    <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                </button>
+            </div>
+            <canvas id="previewCanvas" width="430" height="664"></canvas>
+        </section>
+    </main>
+
+    <script type="module" src="js/admin.js?v=45"></script>
+</body>
+</html>

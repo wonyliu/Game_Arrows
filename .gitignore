@@ -1,0 +1,7 @@
+node_modules/
+.codex/
+temp/
+tmp_verify/
+*.log
+*.tmp
+*.bak
