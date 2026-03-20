@@ -1,8 +1,8 @@
 ﻿import { Grid } from './grid.js?v=22';
-import { Line } from './line.js?v=22';
+import { Line } from './line.js?v=23';
 import { canMove, findMovableLines } from './collision.js?v=19';
 import { getLevelConfig } from './levels.js?v=26';
-import { AnimationManager } from './animation.js?v=19';
+import { AnimationManager } from './animation.js?v=20';
 import { buildPlayableLevel } from './level-builder.js?v=45';
 import {
     deserializeLevelData,
@@ -16,7 +16,7 @@ import {
     playLevelCompleteSound,
     resumeAudio
 } from './audio.js?v=19';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=2';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=3';
 
 export class Game {
     constructor(canvas) {
@@ -137,7 +137,7 @@ export class Game {
                 this.updateTimerUI();
 
                 if (this.timeRemaining <= 0) {
-                    this.gameOver('鏃堕棿鍒颁簡');
+                    this.gameOver('Time is up');
                 }
             }, 1000);
         }
@@ -162,6 +162,9 @@ export class Game {
         const y = (event.clientY || event.pageY) - rect.top;
         const clickedLine = this.findTopLineAtPoint(x, y);
         if (!clickedLine) return;
+        if (typeof clickedLine.pokeSoft === 'function') {
+            clickedLine.pokeSoft(0.85);
+        }
 
         const result = canMove(clickedLine, this.lines, this.grid);
         if (result.canMove) {
@@ -228,8 +231,11 @@ export class Game {
         playClearSound(this.combo - 1);
 
         const headPos = this.grid.gridToScreen(line.headCell.col, line.headCell.row);
+        if (typeof line.pokeSoft === 'function') {
+            line.pokeSoft(1.4);
+        }
         this.animations.addFloatingText(headPos.x, headPos.y, `+${points}`, '#ffffff', 22);
-        this.animations.addComboText(this.canvas.width / 2, this.canvas.height / 2, this.combo);
+        this.animations.addComboText(this.canvas.width / 2, this.canvas.height / 2, this.combo, 'Mole Combo');
         this.animations.startRemoveAnimation(line, this.grid, () => this.checkLevelComplete());
 
         this.hintLine = null;
@@ -246,18 +252,21 @@ export class Game {
         }
 
         this.animations.startErrorAnimation(line, distanceCells, this.grid);
+        if (typeof line.pokeSoft === 'function') {
+            line.pokeSoft(1.8);
+        }
 
         const center = this.grid.gridToScreen(this.grid.cols / 2, this.grid.rows * 0.72);
-        this.animations.addFloatingText(center.x, center.y, '鈿?-1', '#3b3650', 18, {
+        this.animations.addFloatingText(center.x, center.y, '-1 Life', '#5a3f33', 18, {
             pill: true,
-            pillColor: '#ffffff',
+            pillColor: '#ffe9dc',
             life: 0.9,
             vy: -30,
             stroke: false
         });
 
         if (this.lives <= 0) {
-            setTimeout(() => this.gameOver('鐢熷懡鑰楀敖'), 450);
+            setTimeout(() => this.gameOver('No lives left'), 450);
         }
 
         this.updateHUD();
@@ -273,9 +282,9 @@ export class Game {
         }
 
         playLevelCompleteSound();
-        this.animations.addConfetti(this.canvas.width * 0.2, this.canvas.height, 80);
-        this.animations.addConfetti(this.canvas.width * 0.5, this.canvas.height + 50, 100);
-        this.animations.addConfetti(this.canvas.width * 0.8, this.canvas.height, 80);
+        this.animations.addConfetti(this.canvas.width * 0.2, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
+        this.animations.addConfetti(this.canvas.width * 0.5, this.canvas.height + 50, 100, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
+        this.animations.addConfetti(this.canvas.width * 0.8, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
 
         if (this.currentLevel >= this.maxUnlockedLevel) {
             this.maxUnlockedLevel = this.currentLevel + 1;
@@ -291,7 +300,7 @@ export class Game {
         }
 
         playGameOverSound();
-        this.animations.addConfetti(this.canvas.width / 2, this.canvas.height / 2, 60, ['#ff0000', '#ffaaaa', '#8b0000'], 'star');
+        this.animations.addConfetti(this.canvas.width / 2, this.canvas.height / 2, 60, ['#ff8ca8', '#ffd5a8', '#fff1d5'], 'star');
         this.showGameOver(reason);
     }
 
@@ -368,10 +377,10 @@ export class Game {
             for (const line of sortedLines) {
                 if (this.hintLine && line.id === this.hintLine.id) {
                     ctx.save();
-                    ctx.shadowColor = '#6a79ff';
+                    ctx.shadowColor = '#ffd68f';
                     ctx.shadowBlur = 20;
                     ctx.globalAlpha = 0.95;
-                    line.removeTint = '#6a79ff';
+                    line.removeTint = '#ffd68f';
                     line.draw(ctx, this.grid, this.pixelTheme);
                     line.removeTint = null;
                     ctx.restore();

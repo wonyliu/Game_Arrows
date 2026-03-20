@@ -4,7 +4,7 @@
     left: { dx: -1, dy: 0 },
     right: { dx: 1, dy: 0 }
 };
-import { drawPixelParticle } from './pixel-art.js?v=2';
+import { drawPixelParticle } from './pixel-art.js?v=3';
 
 export class AnimationManager {
     constructor() {
@@ -66,10 +66,10 @@ export class AnimationManager {
         });
     }
 
-    addComboText(x, y, combo) {
+    addComboText(x, y, combo, label = 'COMBO') {
         if (combo < 2) return;
 
-        this.addFloatingText(x, y - 30, `${combo} COMBO`, '#ffd64d', 26, {
+        this.addFloatingText(x, y - 30, `${combo} ${label}`, '#ffd180', 26, {
             life: 1.1,
             vy: -36,
             scale: 1.35,

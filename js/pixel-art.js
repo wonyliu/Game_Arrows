@@ -1,151 +1,146 @@
 ﻿const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const THEMES = {
-    arcadeFantasy: {
-        name: 'arcadeFantasy',
+    moleFamily: {
+        name: 'moleFamily',
         palette: [
             'rgba(0,0,0,0)',
-            '#140f2e',
-            '#2a1e59',
-            '#3f2b87',
-            '#6347c5',
-            '#56b8ff',
-            '#76ffe2',
-            '#ffe26d',
-            '#ff7a8e',
-            '#ffffff',
-            '#2f1c12',
-            '#70452b',
-            '#c08a53',
-            '#88ff7a'
+            '#3a2b20',
+            '#5a422f',
+            '#7a593f',
+            '#9d7350',
+            '#c9966a',
+            '#e8bf8f',
+            '#f7e8ca',
+            '#ffd07d',
+            '#fff7ec',
+            '#5a7c39',
+            '#79a84f',
+            '#a6cf6f',
+            '#ff8ca8',
+            '#8ad6ff',
+            '#ffd15f'
         ],
-        boardBg: '#120f2a',
-        boardFrame: '#2d2370'
+        boardBg: '#6b4c32',
+        boardFrame: '#4a3524'
     }
 };
 
 const MATRICES = {
-    lineBodyH: [
-        [0,0,1,1,1,1,1,1,1,1,1,1,0,0],
-        [0,1,3,3,3,3,3,3,3,3,3,3,1,0],
-        [1,3,4,5,5,5,5,5,5,5,5,4,3,1],
-        [1,3,5,6,6,5,6,6,5,6,6,5,3,1],
-        [1,3,4,5,5,5,5,5,5,5,5,4,3,1],
-        [0,1,3,3,3,3,3,3,3,3,3,3,1,0],
-        [0,0,1,1,1,1,1,1,1,1,1,1,0,0]
-    ],
-    lineBodyV: [
-        [0,0,1,1,1,1,0],
-        [0,1,3,3,3,3,1],
-        [1,3,4,5,4,3,1],
-        [1,3,5,6,5,3,1],
-        [1,3,4,5,4,3,1],
-        [1,3,5,6,5,3,1],
-        [1,3,4,5,4,3,1],
-        [1,3,5,6,5,3,1],
-        [1,3,4,5,4,3,1],
-        [0,1,3,3,3,3,1],
-        [0,0,1,1,1,1,0]
-    ],
-    flowMarkRight: [
-        [0,0,0,7,0,0],
-        [0,0,7,9,7,0],
-        [0,7,9,9,9,7],
-        [0,0,7,9,7,0],
-        [0,0,0,7,0,0]
-    ],
-    headRight: [
-        [0,0,0,0,7,7,0,0,0,0],
-        [0,0,0,7,9,9,7,0,0,0],
-        [0,0,7,9,5,9,9,7,0,0],
-        [0,7,9,6,9,5,9,9,7,0],
-        [7,9,6,9,9,9,5,9,9,7],
-        [7,9,6,9,9,9,5,9,9,7],
-        [0,7,9,6,9,5,9,9,7,0],
-        [0,0,7,9,5,9,9,7,0,0],
-        [0,0,0,7,9,9,7,0,0,0],
-        [0,0,0,0,7,7,0,0,0,0]
-    ],
-    tailRing: [
-        [0,0,1,1,1,0,0],
-        [0,1,5,5,5,1,0],
-        [1,5,0,0,0,5,1],
-        [1,5,0,9,0,5,1],
-        [1,5,0,0,0,5,1],
-        [0,1,5,5,5,1,0],
-        [0,0,1,1,1,0,0]
-    ],
     gridDot: [
         [0,1,1,1,0],
-        [1,3,3,3,1],
-        [1,3,5,3,1],
-        [1,3,3,3,1],
+        [1,2,3,2,1],
+        [1,3,7,3,1],
+        [1,2,3,2,1],
         [0,1,1,1,0]
     ],
     tileBase: [
-        [2,2,2,1,2,2,2,2],
-        [2,2,3,2,2,2,3,2],
-        [2,3,2,2,2,1,2,2],
-        [2,2,2,3,2,2,2,2],
-        [1,2,2,2,3,2,2,2],
-        [2,2,3,2,2,2,2,1],
-        [2,2,2,2,2,3,2,2],
-        [2,1,2,2,2,2,2,2]
+        [3,3,3,2,3,3,3,3],
+        [3,2,3,3,3,2,3,3],
+        [3,3,10,3,3,3,10,3],
+        [2,3,3,3,2,3,3,3],
+        [3,3,3,2,3,3,3,3],
+        [3,11,3,3,3,12,3,3],
+        [3,3,3,3,2,3,3,2],
+        [3,3,2,3,3,3,3,3]
     ],
     tileVar1: [
-        [2,2,1,2,2,2,3,2],
-        [2,3,2,2,1,2,2,2],
-        [2,2,2,3,2,2,2,1],
-        [1,2,2,2,2,3,2,2],
-        [2,2,3,2,2,2,2,2],
-        [2,1,2,2,3,2,2,2],
-        [2,2,2,1,2,2,3,2],
-        [3,2,2,2,2,1,2,2]
+        [3,3,2,3,3,3,3,2],
+        [2,3,3,3,10,3,3,3],
+        [3,3,3,2,3,3,3,3],
+        [3,10,3,3,3,11,3,3],
+        [3,3,3,3,2,3,3,2],
+        [3,3,2,3,3,3,12,3],
+        [3,3,3,3,3,2,3,3],
+        [2,3,3,10,3,3,3,3]
     ],
     tileVar2: [
-        [2,3,2,2,2,2,1,2],
-        [2,2,2,1,2,3,2,2],
-        [1,2,3,2,2,2,2,2],
-        [2,2,2,2,1,2,2,3],
-        [2,1,2,2,2,2,3,2],
-        [2,2,2,3,2,1,2,2],
-        [3,2,2,2,2,2,1,2],
-        [2,2,1,2,3,2,2,2]
+        [3,2,3,3,3,3,10,3],
+        [3,3,3,11,3,3,3,2],
+        [2,3,3,3,3,12,3,3],
+        [3,3,10,3,2,3,3,3],
+        [3,3,3,3,3,3,2,3],
+        [3,2,3,3,10,3,3,3],
+        [3,3,3,2,3,3,3,11],
+        [3,3,3,3,3,2,3,3]
     ],
-    decoRune: [
-        [0,1,1,1,1,0],
-        [1,11,11,11,11,1],
-        [1,11,9,9,11,1],
-        [1,11,9,9,11,1],
-        [1,11,11,11,11,1],
-        [0,1,1,1,1,0]
+    decoMushroom: [
+        [0,0,13,13,13,0,0],
+        [0,13,15,13,15,13,0],
+        [13,13,13,13,13,13,13],
+        [0,0,4,4,4,0,0],
+        [0,0,4,7,4,0,0],
+        [0,0,4,4,4,0,0]
     ],
-    decoTorch: [
-        [0,7,7,0],
-        [7,8,8,7],
-        [0,7,7,0],
-        [1,10,10,1],
-        [1,10,10,1],
-        [1,10,10,1],
-        [1,10,10,1],
-        [1,1,1,1]
+    decoFlower: [
+        [0,0,0,14,0,0,0],
+        [0,14,13,9,13,14,0],
+        [0,0,14,13,14,0,0],
+        [0,0,0,11,0,0,0],
+        [0,0,0,10,0,0,0],
+        [0,0,10,10,10,0,0]
     ],
-    particleSquare: [
-        [1,1,1,1],
-        [1,7,7,1],
-        [1,7,7,1],
-        [1,1,1,1]
+    particleLeaf: [
+        [0,0,10,10,0,0],
+        [0,10,11,11,10,0],
+        [10,11,12,12,11,10],
+        [0,10,11,11,10,0],
+        [0,0,10,10,0,0]
     ],
-    particleStar: [
-        [0,0,7,7,0,0],
-        [0,7,9,9,7,0],
-        [7,9,7,7,9,7],
-        [7,9,7,7,9,7],
-        [0,7,9,9,7,0],
-        [0,0,7,7,0,0]
+    particleHeart: [
+        [0,13,13,0,13,13,0],
+        [13,13,13,13,13,13,13],
+        [13,13,13,13,13,13,13],
+        [0,13,13,13,13,13,0],
+        [0,0,13,13,13,0,0],
+        [0,0,0,13,0,0,0]
     ]
 };
 
+const MOLE_FAMILIES = [
+    {
+        fur: '#8f6b49',
+        furDark: '#6b5037',
+        belly: '#f3d6ad',
+        ear: '#f4b5c5',
+        nose: '#ff7da2',
+        eye: '#2c1f19'
+    },
+    {
+        fur: '#b58758',
+        furDark: '#875f3d',
+        belly: '#f7dfbe',
+        ear: '#f2c4d2',
+        nose: '#ff8ab6',
+        eye: '#35261e'
+    },
+    {
+        fur: '#6e737d',
+        furDark: '#4c5159',
+        belly: '#d9dde6',
+        ear: '#edb8c7',
+        nose: '#ff8fb2',
+        eye: '#1e2026'
+    },
+    {
+        fur: '#9a7aa0',
+        furDark: '#6e5873',
+        belly: '#f0d8f3',
+        ear: '#f8bfd8',
+        nose: '#ff86bf',
+        eye: '#2d1f31'
+    },
+    {
+        fur: '#7e8b55',
+        furDark: '#5d6a40',
+        belly: '#d8e2ae',
+        ear: '#f4c6b6',
+        nose: '#ff9d8f',
+        eye: '#23281b'
+    }
+];
+
+const EXPRESSIONS = ['goofy', 'smirk', 'sleepy', 'grin'];
 const SPRITE_CACHE = new Map();
 
 function createSurface(width, height) {
@@ -159,8 +154,8 @@ function spriteCacheKey(name, scale, paletteKey) {
     return `${name}:${scale}:${paletteKey}`;
 }
 
-export function getThemePalette(themeName = 'arcadeFantasy') {
-    return THEMES[themeName] || THEMES.arcadeFantasy;
+export function getThemePalette(themeName = 'moleFamily') {
+    return THEMES[themeName] || THEMES.moleFamily;
 }
 
 export function renderSprite(name, matrix, palette, scale = 3) {
@@ -251,249 +246,371 @@ export function drawSprite(ctx, sprite, x, y, options = {}) {
     ctx.restore();
 }
 
-function rotateMatrix(matrix) {
-    const rows = matrix.length;
-    const cols = matrix[0].length;
-    const output = Array.from({ length: cols }, () => Array(rows).fill(0));
-    for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-            output[c][rows - 1 - r] = matrix[r][c];
-        }
-    }
-    return output;
-}
-
-function buildDirectionMatrices(base) {
-    const right = base;
-    const down = rotateMatrix(right);
-    const left = rotateMatrix(down);
-    const up = rotateMatrix(left);
-    return { right, down, left, up };
-}
-
 function getStyleTint(style) {
     switch (style) {
         case 'highlight':
-            return '#ffe070';
+            return '#ffe79a';
         case 'remove':
-            return '#78a8ff';
+            return '#b7ffcc';
         case 'error':
-            return '#ff5167';
+            return '#ff9caf';
         default:
             return null;
     }
 }
 
-export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'arcadeFantasy') {
-    const theme = getThemePalette(themeName);
-    const scale = clamp(Math.round((cellSize / 16) * Math.min(2, Math.max(1, dpr))), 2, 5);
-    const heads = buildDirectionMatrices(MATRICES.headRight);
-    const flows = buildDirectionMatrices(MATRICES.flowMarkRight);
-
-    return {
-        scale,
-        theme,
-        sprites: {
-            lineBodyH: renderSprite('line-body-h', MATRICES.lineBodyH, theme.palette, scale),
-            lineBodyV: renderSprite('line-body-v', MATRICES.lineBodyV, theme.palette, scale),
-            headRight: renderSprite('line-head-right', heads.right, theme.palette, scale),
-            headDown: renderSprite('line-head-down', heads.down, theme.palette, scale),
-            headLeft: renderSprite('line-head-left', heads.left, theme.palette, scale),
-            headUp: renderSprite('line-head-up', heads.up, theme.palette, scale),
-            flowRight: renderSprite('flow-right', flows.right, theme.palette, clamp(scale - 1, 1, 4)),
-            flowDown: renderSprite('flow-down', flows.down, theme.palette, clamp(scale - 1, 1, 4)),
-            flowLeft: renderSprite('flow-left', flows.left, theme.palette, clamp(scale - 1, 1, 4)),
-            flowUp: renderSprite('flow-up', flows.up, theme.palette, clamp(scale - 1, 1, 4)),
-            tailRing: renderSprite('tail-ring', MATRICES.tailRing, theme.palette, scale),
-            gridDot: renderSprite('grid-dot', MATRICES.gridDot, theme.palette, clamp(scale - 1, 1, 4)),
-            tileBase: renderSprite('tile-base', MATRICES.tileBase, theme.palette, clamp(scale - 1, 1, 4)),
-            tileVar1: renderSprite('tile-var-1', MATRICES.tileVar1, theme.palette, clamp(scale - 1, 1, 4)),
-            tileVar2: renderSprite('tile-var-2', MATRICES.tileVar2, theme.palette, clamp(scale - 1, 1, 4)),
-            decoRune: renderSprite('deco-rune', MATRICES.decoRune, theme.palette, clamp(scale - 1, 1, 4)),
-            decoTorch: renderSprite('deco-torch', MATRICES.decoTorch, theme.palette, clamp(scale - 1, 1, 4)),
-            particleSquare: renderSprite('particle-square', MATRICES.particleSquare, theme.palette, clamp(scale - 1, 1, 4)),
-            particleStar: renderSprite('particle-star', MATRICES.particleStar, theme.palette, clamp(scale - 1, 1, 4))
-        }
-    };
+function lineMood(style, baseExpression) {
+    if (style === 'error') return 'dizzy';
+    if (style === 'highlight') return 'surprised';
+    if (style === 'remove') return 'excited';
+    return baseExpression;
 }
 
-export function drawArrowPathPixels(ctx, pathPoints, direction, styleState = {}) {
-    const { atlas, alpha = 1, style = 'normal', lineId = 0 } = styleState;
-    if (!atlas || !pathPoints || pathPoints.length < 2) return;
-
-    const palette = linePalette(lineId);
-    const styleTint = getStyleTint(style);
-    const base = styleTint || palette.base;
-    const headColor = styleTint || palette.head;
-    const glow = styleTint || palette.glow;
-    const tailColor = styleTint ? '#252850' : palette.tail;
-
-    const tail = pathPoints[0];
-    const head = pathPoints[pathPoints.length - 1];
-    const lineWidth = 8 + clamp(atlas.scale * 1.5, 2, 8);
-
-    const bodyGradient = ctx.createLinearGradient(tail.x, tail.y, head.x, head.y);
-    bodyGradient.addColorStop(0, tailColor);
-    bodyGradient.addColorStop(0.65, base);
-    bodyGradient.addColorStop(1, glow);
-
-    ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-
-    ctx.strokeStyle = 'rgba(10, 8, 28, 0.95)';
-    ctx.lineWidth = lineWidth + 5;
-    strokePolyline(ctx, pathPoints);
-
-    ctx.strokeStyle = bodyGradient;
-    ctx.lineWidth = lineWidth;
-    strokePolyline(ctx, pathPoints);
-
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = Math.max(2, lineWidth * 0.28);
-    strokePolyline(ctx, pathPoints, 0.35, 0.97);
-    ctx.restore();
-
-    drawTailCap(ctx, tail, direction, tailColor, alpha);
-    drawDirectionalHead(ctx, head, direction, headColor, glow, alpha);
+function lineFamily(lineId) {
+    return MOLE_FAMILIES[Math.abs(lineId) % MOLE_FAMILIES.length];
 }
 
-function strokePolyline(ctx, points, tStart = 0, tEnd = 1) {
-    if (!points.length) return;
-    const clipped = trimPolyline(points, tStart, tEnd);
-    if (clipped.length < 2) return;
-    ctx.beginPath();
-    ctx.moveTo(clipped[0].x, clipped[0].y);
-    for (let i = 1; i < clipped.length; i++) {
-        ctx.lineTo(clipped[i].x, clipped[i].y);
-    }
-    ctx.stroke();
+function lineExpression(lineId, turns, bodyCount) {
+    const shift = (lineId + turns * 3 + bodyCount) % EXPRESSIONS.length;
+    return EXPRESSIONS[Math.abs(shift)];
 }
 
-function trimPolyline(points, tStart, tEnd) {
-    if (tStart <= 0 && tEnd >= 1) return points;
+function preprocessPolyline(points) {
     const segments = [];
     let total = 0;
     for (let i = 0; i < points.length - 1; i++) {
         const p1 = points[i];
         const p2 = points[i + 1];
-        const len = Math.hypot(p2.x - p1.x, p2.y - p1.y);
-        segments.push({ p1, p2, len });
+        const dx = p2.x - p1.x;
+        const dy = p2.y - p1.y;
+        const len = Math.hypot(dx, dy);
+        if (len <= 0.001) continue;
+        const dirX = dx / len;
+        const dirY = dy / len;
+        segments.push({ p1, p2, len, dirX, dirY, start: total, end: total + len });
         total += len;
     }
-    if (total <= 0) return points;
+    return { segments, total };
+}
 
-    const startDist = total * clamp(tStart, 0, 1);
-    const endDist = total * clamp(tEnd, 0, 1);
-    const out = [];
-    let cursor = 0;
-
-    for (const seg of segments) {
-        const segStart = cursor;
-        const segEnd = cursor + seg.len;
-        if (segEnd < startDist || segStart > endDist) {
-            cursor = segEnd;
-            continue;
+function samplePoint(pre, distance) {
+    const d = clamp(distance, 0, pre.total);
+    for (const seg of pre.segments) {
+        if (d >= seg.start && d <= seg.end) {
+            const t = (d - seg.start) / seg.len;
+            return {
+                x: seg.p1.x + (seg.p2.x - seg.p1.x) * t,
+                y: seg.p1.y + (seg.p2.y - seg.p1.y) * t,
+                dirX: seg.dirX,
+                dirY: seg.dirY,
+                t: pre.total === 0 ? 0 : d / pre.total
+            };
         }
-        const a = clamp((startDist - segStart) / seg.len, 0, 1);
-        const b = clamp((endDist - segStart) / seg.len, 0, 1);
-        const pA = lerpPoint(seg.p1, seg.p2, a);
-        const pB = lerpPoint(seg.p1, seg.p2, b);
-        if (!out.length) out.push(pA);
-        out.push(pB);
-        cursor = segEnd;
+    }
+
+    const last = pre.segments[pre.segments.length - 1];
+    return {
+        x: last.p2.x,
+        y: last.p2.y,
+        dirX: last.dirX,
+        dirY: last.dirY,
+        t: 1
+    };
+}
+
+function samplePolyline(points, spacing) {
+    const pre = preprocessPolyline(points);
+    if (!pre.segments.length || pre.total <= 0) {
+        return [];
+    }
+
+    const out = [];
+    const count = Math.max(2, Math.floor(pre.total / spacing) + 1);
+    for (let i = 0; i <= count; i++) {
+        const d = (i / count) * pre.total;
+        out.push(samplePoint(pre, d));
     }
     return out;
 }
 
-function lerpPoint(a, b, t) {
-    return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
+function countTurns(points) {
+    let turns = 0;
+    for (let i = 2; i < points.length; i++) {
+        const dx1 = points[i - 1].x - points[i - 2].x;
+        const dy1 = points[i - 1].y - points[i - 2].y;
+        const dx2 = points[i].x - points[i - 1].x;
+        const dy2 = points[i].y - points[i - 1].y;
+        if (Math.abs(dx1 * dy2 - dy1 * dx2) > 0.001) turns++;
+    }
+    return turns;
 }
 
-function drawDirectionalHead(ctx, head, direction, fillColor, glowColor, alpha) {
-    const angle = directionToAngle(direction);
-    const len = 13;
-    const w = 9;
+function postureByPath(points, bodyCount) {
+    const turns = countTurns(points);
+    if (turns > 0) return 'bent';
+    if (bodyCount <= 4) return 'short';
+    return 'long';
+}
+
+function drawBodySegment(ctx, x, y, angle, rx, ry, family, shade, alpha = 1) {
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(head.x, head.y);
+    ctx.translate(x, y);
     ctx.rotate(angle);
 
-    // A dart/fish hybrid silhouette with a notch at the rear gives one unique forward direction.
+    ctx.fillStyle = shade > 0.5 ? family.fur : family.furDark;
     ctx.beginPath();
-    ctx.moveTo(len, 0);
-    ctx.lineTo(-len * 0.25, -w * 0.95);
-    ctx.lineTo(-len * 0.75, -w * 0.5);
-    ctx.lineTo(-len, 0);
-    ctx.lineTo(-len * 0.75, w * 0.5);
-    ctx.lineTo(-len * 0.25, w * 0.95);
-    ctx.closePath();
-    ctx.fillStyle = fillColor;
+    ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.strokeStyle = 'rgba(12, 10, 30, 0.95)';
+    ctx.fillStyle = family.belly;
+    ctx.beginPath();
+    ctx.ellipse(rx * 0.15, ry * 0.2, rx * 0.55, ry * 0.45, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+}
+
+function drawTail(ctx, point, dirX, dirY, family, alpha) {
+    const tailAngle = Math.atan2(dirY, dirX) + Math.PI;
+    const tailLen = 7;
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.95;
+    ctx.translate(point.x, point.y);
+    ctx.rotate(tailAngle);
+
+    ctx.strokeStyle = family.furDark;
     ctx.lineWidth = 2.2;
+    ctx.beginPath();
+    ctx.moveTo(-1, 0);
+    ctx.quadraticCurveTo(-tailLen * 0.5, -4, -tailLen, 0);
     ctx.stroke();
 
-    ctx.fillStyle = glowColor;
+    ctx.fillStyle = family.nose;
     ctx.beginPath();
-    ctx.arc(len * 0.18, 0, 3.1, 0, Math.PI * 2);
+    ctx.arc(-tailLen - 1.4, 0, 1.6, 0, Math.PI * 2);
     ctx.fill();
 
-    // Eye at the nose side: head identity only appears here.
+    ctx.restore();
+}
+
+function drawWhiskers(ctx, len, spread) {
+    ctx.beginPath();
+    ctx.moveTo(len * 0.3, 0);
+    ctx.lineTo(len * 0.9, -spread);
+    ctx.moveTo(len * 0.32, 1.4);
+    ctx.lineTo(len * 0.92, 0.1);
+    ctx.moveTo(len * 0.3, 2.8);
+    ctx.lineTo(len * 0.88, spread + 1.8);
+    ctx.stroke();
+}
+
+function drawEyes(ctx, mood, family, len) {
+    ctx.fillStyle = family.eye;
+    if (mood === 'sleepy') {
+        ctx.strokeStyle = family.eye;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(len * 0.14, -1.8);
+        ctx.lineTo(len * 0.3, -1.8);
+        ctx.moveTo(len * 0.14, 2.2);
+        ctx.lineTo(len * 0.3, 2.2);
+        ctx.stroke();
+        return;
+    }
+
+    if (mood === 'dizzy') {
+        ctx.strokeStyle = family.eye;
+        ctx.lineWidth = 1.5;
+        for (const y of [-2.1, 2.1]) {
+            ctx.beginPath();
+            ctx.moveTo(len * 0.15, y - 1);
+            ctx.lineTo(len * 0.28, y + 1);
+            ctx.moveTo(len * 0.28, y - 1);
+            ctx.lineTo(len * 0.15, y + 1);
+            ctx.stroke();
+        }
+        return;
+    }
+
+    const leftEye = mood === 'goofy' ? { x: len * 0.18, y: -2.3, r: 1.5 } : { x: len * 0.2, y: -2, r: 1.25 };
+    const rightEye = mood === 'goofy' ? { x: len * 0.28, y: 2.5, r: 0.95 } : { x: len * 0.2, y: 2, r: 1.25 };
+
+    ctx.beginPath();
+    ctx.arc(leftEye.x, leftEye.y, leftEye.r, 0, Math.PI * 2);
+    ctx.arc(rightEye.x, rightEye.y, rightEye.r, 0, Math.PI * 2);
+    ctx.fill();
+
     ctx.fillStyle = '#ffffff';
     ctx.beginPath();
-    ctx.arc(len * 0.47, -1.7, 1.5, 0, Math.PI * 2);
+    ctx.arc(leftEye.x + 0.3, leftEye.y - 0.2, 0.35, 0, Math.PI * 2);
+    ctx.arc(rightEye.x + 0.25, rightEye.y - 0.2, 0.25, 0, Math.PI * 2);
     ctx.fill();
-    ctx.restore();
 }
 
-function drawTailCap(ctx, tail, direction, tailColor, alpha) {
-    const angle = directionToAngle(direction);
+function drawMouth(ctx, mood, len) {
+    ctx.strokeStyle = '#5f3729';
+    ctx.lineWidth = 1.3;
+    ctx.beginPath();
+    if (mood === 'grin' || mood === 'excited') {
+        ctx.arc(len * 0.08, 0.8, 2.4, 0.15, Math.PI - 0.15);
+    } else if (mood === 'smirk') {
+        ctx.moveTo(len * 0.02, 1.2);
+        ctx.quadraticCurveTo(len * 0.18, 2.4, len * 0.32, 1.1);
+    } else if (mood === 'surprised') {
+        ctx.arc(len * 0.12, 1.1, 1.1, 0, Math.PI * 2);
+    } else if (mood === 'dizzy') {
+        ctx.moveTo(len * 0.03, 0.7);
+        ctx.lineTo(len * 0.28, 0.7);
+    } else {
+        ctx.moveTo(len * 0.04, 1.1);
+        ctx.quadraticCurveTo(len * 0.17, 2, len * 0.28, 1.1);
+    }
+    ctx.stroke();
+}
+
+function drawMoleHead(ctx, point, dirX, dirY, family, mood, alpha, squish, styleTint) {
+    const angle = Math.atan2(dirY, dirX);
+    const len = 11 + squish * 3;
+    const width = 8.5 - squish * 1.1;
     ctx.save();
-    ctx.globalAlpha = alpha * 0.92;
-    ctx.translate(tail.x, tail.y);
+    ctx.globalAlpha = alpha;
+    ctx.translate(point.x, point.y);
     ctx.rotate(angle);
 
-    ctx.fillStyle = tailColor;
+    const fur = styleTint || family.fur;
+
+    ctx.fillStyle = family.furDark;
     ctx.beginPath();
-    ctx.arc(-4, 0, 5, 0, Math.PI * 2);
+    ctx.ellipse(-2.2, 0, len * 0.9, width * 0.9, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-    ctx.lineWidth = 1.4;
-    ctx.stroke();
+
+    ctx.fillStyle = fur;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, len, width, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = family.ear;
+    ctx.beginPath();
+    ctx.arc(-len * 0.35, -width * 0.72, 2.5, 0, Math.PI * 2);
+    ctx.arc(-len * 0.35, width * 0.72, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = family.belly;
+    ctx.beginPath();
+    ctx.ellipse(len * 0.22, 0, len * 0.56, width * 0.68, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = family.nose;
+    ctx.beginPath();
+    ctx.ellipse(len * 0.82, 0, 2.1, 1.8, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    drawEyes(ctx, mood, family, len);
+    drawMouth(ctx, mood, len);
+
+    ctx.strokeStyle = '#fff2eb';
+    ctx.lineWidth = 1.1;
+    drawWhiskers(ctx, len, 3.4);
+
     ctx.restore();
 }
 
-function directionToAngle(direction) {
-    if (direction === 'up') return -Math.PI / 2;
-    if (direction === 'down') return Math.PI / 2;
-    if (direction === 'left') return Math.PI;
-    return 0;
+export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily') {
+    const theme = getThemePalette(themeName);
+    const scale = clamp(Math.round((cellSize / 18) * Math.min(2, Math.max(1, dpr))), 2, 5);
+
+    return {
+        scale,
+        theme,
+        sprites: {
+            gridDot: renderSprite('grid-dot-mole', MATRICES.gridDot, theme.palette, clamp(scale - 1, 1, 4)),
+            tileBase: renderSprite('tile-base-mole', MATRICES.tileBase, theme.palette, clamp(scale - 1, 1, 4)),
+            tileVar1: renderSprite('tile-var1-mole', MATRICES.tileVar1, theme.palette, clamp(scale - 1, 1, 4)),
+            tileVar2: renderSprite('tile-var2-mole', MATRICES.tileVar2, theme.palette, clamp(scale - 1, 1, 4)),
+            decoRune: renderSprite('deco-mushroom', MATRICES.decoMushroom, theme.palette, clamp(scale - 1, 1, 4)),
+            decoTorch: renderSprite('deco-flower', MATRICES.decoFlower, theme.palette, clamp(scale - 1, 1, 4)),
+            particleSquare: renderSprite('particle-leaf', MATRICES.particleLeaf, theme.palette, clamp(scale - 1, 1, 4)),
+            particleStar: renderSprite('particle-heart', MATRICES.particleHeart, theme.palette, clamp(scale - 1, 1, 4))
+        }
+    };
 }
 
-function linePalette(lineId) {
-    const hue = (lineId * 47) % 360;
-    return {
-        tail: `hsl(${(hue + 300) % 360} 42% 30%)`,
-        base: `hsl(${hue} 80% 54%)`,
-        head: `hsl(${(hue + 25) % 360} 96% 58%)`,
-        glow: `hsl(${(hue + 60) % 360} 96% 70%)`
-    };
+export function drawArrowPathPixels(ctx, pathPoints, direction, styleState = {}) {
+    const {
+        atlas,
+        alpha = 1,
+        style = 'normal',
+        lineId = 0,
+        wiggleTime = 0,
+        softPulse = 0
+    } = styleState;
+
+    if (!atlas || !pathPoints || pathPoints.length < 2) return;
+
+    const spacing = clamp(11 - atlas.scale, 7, 12);
+    const sampled = samplePolyline(pathPoints, spacing);
+    if (sampled.length < 2) return;
+
+    const family = lineFamily(lineId);
+    const posture = postureByPath(pathPoints, sampled.length);
+    const turns = countTurns(pathPoints);
+    const mood = lineMood(style, lineExpression(lineId, turns, sampled.length));
+    const styleTint = getStyleTint(style);
+
+    const wiggleStrength = (style === 'remove' ? 4.2 : 1.7) + softPulse * 4;
+    const bodyBase = posture === 'short' ? 7.4 : (posture === 'bent' ? 6.6 : 6.2);
+
+    const bodyPoints = [];
+    for (const p of sampled) {
+        const envelope = Math.sin(Math.PI * p.t);
+        const wiggle = Math.sin(wiggleTime * 8 + p.t * 18 + lineId * 0.7) * wiggleStrength * envelope;
+        const nx = -p.dirY;
+        const ny = p.dirX;
+        bodyPoints.push({
+            ...p,
+            x: p.x + nx * wiggle,
+            y: p.y + ny * wiggle
+        });
+    }
+
+    for (let i = 0; i < bodyPoints.length - 1; i++) {
+        const p = bodyPoints[i];
+        const next = bodyPoints[i + 1];
+        const angle = Math.atan2(next.y - p.y, next.x - p.x);
+        const t = i / Math.max(1, bodyPoints.length - 1);
+        const radiusX = bodyBase * (0.82 + Math.sin(t * Math.PI) * 0.34);
+        const radiusY = radiusX * (0.72 + softPulse * 0.12);
+        drawBodySegment(ctx, p.x, p.y, angle, radiusX, radiusY, family, 0.3 + t * 0.7, alpha * (0.87 + t * 0.13));
+    }
+
+    const tail = bodyPoints[0];
+    drawTail(ctx, tail, tail.dirX, tail.dirY, family, alpha);
+
+    const head = bodyPoints[bodyPoints.length - 1];
+    drawMoleHead(
+        ctx,
+        head,
+        head.dirX,
+        head.dirY,
+        family,
+        mood,
+        alpha,
+        clamp(softPulse, 0, 1),
+        styleTint
+    );
 }
 
 export function drawPixelParticle(ctx, particle, pixelTheme) {
     if (!pixelTheme?.atlas) return;
 
-    const sprite = particle.type === 'star'
-        ? pixelTheme.atlas.sprites.particleStar
-        : pixelTheme.atlas.sprites.particleSquare;
+    const isHeart = particle.type === 'star';
+    const sprite = isHeart ? pixelTheme.atlas.sprites.particleStar : pixelTheme.atlas.sprites.particleSquare;
 
     drawSprite(ctx, sprite, particle.x, particle.y, {
-        alpha: Math.min(1, particle.life / 0.6),
+        alpha: Math.min(1, particle.life / 0.5),
         rotation: particle.rotation,
-        scale: Math.max(0.7, particle.size / 10),
+        scale: Math.max(0.75, particle.size / 11),
         tint: particle.color
     });
 }

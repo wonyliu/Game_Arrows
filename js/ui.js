@@ -134,12 +134,12 @@ export class UI {
 
     refreshMenuLevelTag() {
         if (this.levelTag) {
-            this.levelTag.textContent = `Level ${this.game.currentLevel}`;
+            this.levelTag.textContent = `洞穴 ${this.game.currentLevel}`;
         }
     }
 
     updateHUD() {
-        this.levelInfoEl.textContent = `Level ${this.game.currentLevel}`;
+        this.levelInfoEl.textContent = `洞穴 ${this.game.currentLevel}`;
 
         this.livesEl.innerHTML = '';
         for (let i = 0; i < this.game.maxLives; i++) {
@@ -189,7 +189,7 @@ export class UI {
     showGameOverPopup(reason) {
         this.gameOverOverlay.classList.remove('hidden');
         if (this.gameOverReason) {
-            this.gameOverReason.textContent = reason || 'Out of lives';
+            this.gameOverReason.textContent = reason || '田鼠体力耗尽';
         }
     }
 

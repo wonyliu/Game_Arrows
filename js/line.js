@@ -1,5 +1,5 @@
 ﻿import { DIR_VECTORS } from './grid.js?v=40';
-import { drawArrowPathPixels } from './pixel-art.js?v=2';
+import { drawArrowPathPixels } from './pixel-art.js?v=3';
 
 export class Line {
     constructor(id, cells, direction, color = '#1a1c3d') {
@@ -18,9 +18,15 @@ export class Line {
         this.maxTrails = 5;
         this.currentRenderPts = [];
         this.isHighlighted = false;
+        this.wiggleTime = Math.random() * Math.PI * 2;
+        this.softPulse = 0;
     }
 
     update(dt) {
+        const removeBoost = this.state === 'removing' ? 2 : 0;
+        this.wiggleTime += dt * (2.6 + removeBoost + this.softPulse * 5);
+        this.softPulse = Math.max(0, this.softPulse - dt * 2.4);
+
         if (this.state === 'removing' && this.currentRenderPts.length > 1) {
             this.trails.push({
                 pts: this.currentRenderPts.map((point) => ({ ...point })),
@@ -68,7 +74,9 @@ export class Line {
                 atlas: pixelTheme.atlas,
                 alpha: this.opacity,
                 style: pickPixelStyle(this, strokeColor),
-                lineId: this.id
+                lineId: this.id,
+                wiggleTime: this.wiggleTime,
+                softPulse: this.softPulse
             });
         } else if (renderPts.length > 0) {
             ctx.lineCap = 'round';
@@ -189,7 +197,9 @@ export class Line {
                     atlas: pixelTheme.atlas,
                     alpha: trail.opacity * 0.22,
                     style: 'remove',
-                    lineId: this.id
+                    lineId: this.id,
+                    wiggleTime: this.wiggleTime + 0.5,
+                    softPulse: this.softPulse * 0.5
                 });
                 continue;
             }
@@ -208,6 +218,10 @@ export class Line {
             ctx.stroke();
             ctx.restore();
         }
+    }
+
+    pokeSoft(strength = 1) {
+        this.softPulse = Math.max(this.softPulse, strength);
     }
 }
 
