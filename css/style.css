@@ -31,6 +31,8 @@
     --asset-button: url('../assets/design-v3/clean/ui_button.png');
     --asset-card: url('../assets/design-v3/clean/ui_item_button.png');
     --asset-home-concept: url('../assets/design-v5/concepts/home_concept_b.png');
+    --asset-home-start-button: url('../assets/design-v5/concepts/home_start_button.png');
+    --asset-home-feature-panel: url('../assets/design-v5/concepts/home_feature_panel.png');
     --asset-settings-concept: url('../assets/design-v5/concepts/settings_panel_a.png');
 }
 
@@ -1000,11 +1002,8 @@ body {
 
 #menuOverlay .menu-home-hero {
     position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    height: 540px;
-    pointer-events: auto;
+    inset: 0;
+    pointer-events: none;
     z-index: 3;
 }
 
@@ -1014,9 +1013,10 @@ body {
 
 #menuOverlay .play-area-v2 {
     position: absolute;
-    left: 99px;
-    top: 410px;
-    width: 232px;
+    left: 96px;
+    top: 333px;
+    width: 238px;
+    height: 107px;
     margin: 0;
     padding: 0;
     gap: 0;
@@ -1027,10 +1027,11 @@ body {
 #menuOverlay .btn-play {
     position: relative;
     z-index: 6;
-    width: 232px;
-    height: 112px;
+    width: 238px;
+    height: 107px;
     border: 0;
-    background: transparent;
+    border-radius: 999px;
+    background: var(--asset-home-start-button) center / 100% 100% no-repeat;
     box-shadow: none;
     color: transparent;
     text-shadow: none;
@@ -1038,6 +1039,12 @@ body {
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
+    transition: filter 90ms ease, transform 90ms ease;
+}
+
+#menuOverlay .btn-play:active {
+    filter: brightness(0.92) saturate(0.95);
+    transform: translateY(1px);
 }
 
 #menuOverlay .current-level-tag {
@@ -1046,29 +1053,76 @@ body {
 
 #menuOverlay .menu-bottom-zone-v2 {
     position: absolute;
-    left: 18px;
-    top: 542px;
-    width: 394px;
-    height: 365px;
+    left: 15px;
+    top: 574px;
+    width: 400px;
+    height: 358px;
     border: 0;
     border-radius: 0;
-    background: transparent;
+    background: var(--asset-home-feature-panel) center / 100% 100% no-repeat;
     box-shadow: none;
-    padding: 50px 12px 12px;
+    padding: 0;
     z-index: 2;
 }
 
 #menuOverlay .menu-feature-grid-v2 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 11px 17px;
+    position: relative;
+    width: 100%;
+    height: 100%;
 }
 
 #menuOverlay .feature-card {
-    height: 146px;
+    position: absolute;
+    width: 111px;
+    height: 132px;
     border: 0;
-    border-radius: 20px;
+    border-radius: 18px;
     background: transparent;
     box-shadow: none;
+    outline: 0;
+}
+
+#menuOverlay .feature-card[data-feature-id='settings'] {
+    left: 20px;
+    top: 22px;
+}
+
+#menuOverlay .feature-card[data-feature-id='leaderboard'] {
+    left: 145px;
+    top: 22px;
+}
+
+#menuOverlay .feature-card[data-feature-id='skins'] {
+    left: 269px;
+    top: 22px;
+}
+
+#menuOverlay .feature-card[data-feature-id='checkin'] {
+    left: 20px;
+    top: 183px;
+}
+
+#menuOverlay .feature-card[data-feature-id='exit'] {
+    left: 145px;
+    top: 183px;
+}
+
+#menuOverlay .feature-card-placeholder {
+    left: 269px;
+    top: 183px;
+}
+
+#menuOverlay .feature-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 18px;
+    background: transparent;
+    transition: background 90ms ease;
+}
+
+#menuOverlay .feature-card:active::after {
+    background: rgba(71, 45, 25, 0.1);
 }
 
 #menuOverlay .feature-icon,
@@ -1081,7 +1135,7 @@ body {
 }
 
 #menuOverlay .feature-card-placeholder {
-    opacity: 1;
+    opacity: 0;
     filter: none;
 }
 
