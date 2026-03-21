@@ -102,7 +102,14 @@ export class UI {
         const element = document.getElementById(id);
         if (!element) return;
 
-        element.addEventListener('click', () => {
+        let lastTriggerAt = 0;
+        const invoke = () => {
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            if (now - lastTriggerAt < 220) {
+                return;
+            }
+            lastTriggerAt = now;
+
             try {
                 resumeAudio();
                 playClickSound();
@@ -111,6 +118,13 @@ export class UI {
             }
 
             handler();
+        };
+
+        element.addEventListener('click', invoke);
+        element.addEventListener('pointerup', (event) => {
+            if (event.pointerType === 'touch') {
+                invoke();
+            }
         });
     }
 
