@@ -1013,10 +1013,10 @@ body {
 
 #menuOverlay .play-area-v2 {
     position: absolute;
-    left: 96px;
-    top: 333px;
-    width: 238px;
-    height: 107px;
+    left: 92.5px;
+    top: 342.5px;
+    width: 245px;
+    height: 93.75px;
     margin: 0;
     padding: 0;
     gap: 0;
@@ -1027,8 +1027,8 @@ body {
 #menuOverlay .btn-play {
     position: relative;
     z-index: 6;
-    width: 238px;
-    height: 107px;
+    width: 245px;
+    height: 93.75px;
     border: 0;
     border-radius: 999px;
     background: var(--asset-home-start-button) center / 100% 100% no-repeat;
@@ -1036,6 +1036,7 @@ body {
     color: transparent;
     text-shadow: none;
     font-size: 0;
+    line-height: 0;
     cursor: pointer;
     pointer-events: auto;
     touch-action: manipulation;
@@ -1053,13 +1054,13 @@ body {
 
 #menuOverlay .menu-bottom-zone-v2 {
     position: absolute;
-    left: 15px;
-    top: 574px;
-    width: 400px;
-    height: 358px;
+    left: 14px;
+    top: 584px;
+    width: 402px;
+    height: 349px;
     border: 0;
     border-radius: 0;
-    background: var(--asset-home-feature-panel) center / 100% 100% no-repeat;
+    background: transparent;
     box-shadow: none;
     padding: 0;
     z-index: 2;
@@ -1073,8 +1074,8 @@ body {
 
 #menuOverlay .feature-card {
     position: absolute;
-    width: 111px;
-    height: 132px;
+    width: 103.3px;
+    height: 125.8px;
     border: 0;
     border-radius: 18px;
     background: transparent;
@@ -1083,33 +1084,33 @@ body {
 }
 
 #menuOverlay .feature-card[data-feature-id='settings'] {
-    left: 20px;
-    top: 22px;
+    left: 26.9px;
+    top: 25px;
 }
 
 #menuOverlay .feature-card[data-feature-id='leaderboard'] {
-    left: 145px;
-    top: 22px;
+    left: 147.8px;
+    top: 25px;
 }
 
 #menuOverlay .feature-card[data-feature-id='skins'] {
-    left: 269px;
-    top: 22px;
+    left: 270.3px;
+    top: 25px;
 }
 
 #menuOverlay .feature-card[data-feature-id='checkin'] {
-    left: 20px;
-    top: 183px;
+    left: 26.9px;
+    top: 170.9px;
 }
 
 #menuOverlay .feature-card[data-feature-id='exit'] {
-    left: 145px;
-    top: 183px;
+    left: 147.8px;
+    top: 170.9px;
 }
 
 #menuOverlay .feature-card-placeholder {
-    left: 269px;
-    top: 183px;
+    left: 270.3px;
+    top: 170.9px;
 }
 
 #menuOverlay .feature-card::after {
