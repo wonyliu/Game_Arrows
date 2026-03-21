@@ -2,7 +2,7 @@
  * Main - game entry
  */
 import { Game } from './game.js?v=52';
-import { UI } from './ui.js?v=36';
+import { UI } from './ui.js?v=38';
 import { initLevelStorage } from './level-storage.js?v=41';
 import { initUiTheme } from './ui-theme.js?v=1';
 
@@ -10,6 +10,7 @@ const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 
 let gameRef = null;
+let uiRef = null;
 let resizePollTimer = null;
 let lastViewportWidth = -1;
 let lastViewportHeight = -1;
@@ -73,13 +74,30 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
             return;
         }
 
-        await initLevelStorage();
-        await initUiTheme('design-v5');
+        // Do not block menu interactivity on async storage/theme hydration.
+        const storageInitTask = initLevelStorage().catch((error) => {
+            console.warn('[main] level storage init failed', error);
+        });
+        const themeInitTask = initUiTheme('design-v5').catch((error) => {
+            console.warn('[main] ui theme init failed', error);
+        });
 
         gameRef = new Game(canvas);
-        new UI(gameRef);
+        uiRef = new UI(gameRef);
         gameRef.start();
         applyAdaptiveLayout(true);
+
+        // Re-apply assets after manifest is ready.
+        themeInitTask.then(() => {
+            if (!uiRef) return;
+            uiRef.applyThemeAssets();
+            uiRef.renderFeatureCards();
+        });
+        storageInitTask.then(() => {
+            if (!uiRef || !gameRef) return;
+            uiRef.refreshMenuLevelTag();
+            uiRef.updateHUD();
+        });
 
         // Fallback for browsers that delay resize/orientation events.
         resizePollTimer = setInterval(() => applyAdaptiveLayout(false), 300);

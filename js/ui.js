@@ -20,11 +20,19 @@ const FEATURE_CONFIG = Object.freeze([
     { id: 'exit', buttonId: 'btnExit', panelId: MENU_PANEL.EXIT_CONFIRM, labelKey: 'feature.exit', iconSlot: 'icon.exit', badge: null, enabled: true }
 ]);
 
+const HOME_START_VISUAL_HITBOX = Object.freeze({
+    x: 92.5,
+    y: 332.5,
+    width: 245,
+    height: 91.1
+});
+
 export class UI {
     constructor(game) {
         this.game = game;
         this.locale = detectInitialLocale();
         this.menuState = MENU_PANEL.HOME;
+        this.lastStartTriggerAt = Number.NEGATIVE_INFINITY;
         this.menuBadges = Object.fromEntries(
             FEATURE_CONFIG.map((feature) => [feature.id, feature.badge ?? null])
         );
@@ -67,7 +75,7 @@ export class UI {
     }
 
     bindEvents() {
-        this.bindButton('btnPlay', () => this.startGame());
+        this.bindButton('btnPlay', () => this.triggerStartGame());
         this.bindButton('btnLevels', () => this.showLevelSelect());
         this.bindButton('btnHint', () => this.game.useHint());
         this.bindButton('btnUndo', () => this.game.useUndo());
@@ -96,13 +104,15 @@ export class UI {
 
         this.bindButton('btnLocaleZh', () => this.setLocale('zh-CN'));
         this.bindButton('btnLocaleEn', () => this.setLocale('en-US'));
+
+        this.bindHomeStartVisualFallback();
     }
 
     bindButton(id, handler) {
         const element = document.getElementById(id);
         if (!element) return;
 
-        let lastTriggerAt = 0;
+        let lastTriggerAt = Number.NEGATIVE_INFINITY;
         const invoke = () => {
             const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
             if (now - lastTriggerAt < 220) {
@@ -126,6 +136,46 @@ export class UI {
                 invoke();
             }
         });
+    }
+
+    bindHomeStartVisualFallback() {
+        if (!this.menuOverlay) return;
+
+        this.menuOverlay.addEventListener('pointerup', (event) => {
+            if (this.menuState !== MENU_PANEL.HOME) return;
+
+            const target = event.target;
+            if (target instanceof Element && target.closest('button, a, input, select, textarea, label')) {
+                return;
+            }
+
+            if (!this.isPointInsideHomeStartVisual(event.clientX, event.clientY)) {
+                return;
+            }
+
+            this.triggerStartGame();
+        }, true);
+    }
+
+    isPointInsideHomeStartVisual(clientX, clientY) {
+        const appRect = document.querySelector('.app-container')?.getBoundingClientRect();
+        if (!appRect || appRect.width <= 0 || appRect.height <= 0) {
+            return false;
+        }
+
+        const x = ((clientX - appRect.left) / appRect.width) * 430;
+        const y = ((clientY - appRect.top) / appRect.height) * 932;
+        const hit = HOME_START_VISUAL_HITBOX;
+        return x >= hit.x && x <= (hit.x + hit.width) && y >= hit.y && y <= (hit.y + hit.height);
+    }
+
+    triggerStartGame() {
+        const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+        if (now - this.lastStartTriggerAt < 220) {
+            return;
+        }
+        this.lastStartTriggerAt = now;
+        this.startGame();
     }
 
     bindGameCallbacks() {
