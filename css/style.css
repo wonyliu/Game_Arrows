@@ -1000,6 +1000,7 @@ body {
 #menuOverlay .menu-home-hero {
     position: absolute;
     inset: 0;
+    pointer-events: none;
 }
 
 #menuOverlay .menu-home-title {
@@ -1014,6 +1015,8 @@ body {
     margin: 0;
     padding: 0;
     gap: 0;
+    z-index: 4;
+    pointer-events: auto;
 }
 
 #menuOverlay .btn-play {
@@ -1025,6 +1028,9 @@ body {
     color: transparent;
     text-shadow: none;
     font-size: 0;
+    cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 #menuOverlay .current-level-tag {
@@ -1042,6 +1048,7 @@ body {
     background: transparent;
     box-shadow: none;
     padding: 50px 12px 12px;
+    z-index: 2;
 }
 
 #menuOverlay .menu-feature-grid-v2 {
@@ -1078,19 +1085,8 @@ body {
     height: 552px;
     border: 0;
     border-radius: 24px;
-    background: var(--asset-settings-concept) 52% 50% / 103% 103% no-repeat;
+    background: var(--asset-settings-concept) center / 100% 100% no-repeat;
     box-shadow: none;
-}
-
-#settingsOverlay .panel-shell::after {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background: #f4e8ce;
-    pointer-events: none;
 }
 
 #settingsOverlay .panel-head {

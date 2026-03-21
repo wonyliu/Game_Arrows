@@ -103,8 +103,13 @@ export class UI {
         if (!element) return;
 
         element.addEventListener('click', () => {
-            resumeAudio();
-            playClickSound();
+            try {
+                resumeAudio();
+                playClickSound();
+            } catch (error) {
+                console.warn(`Audio click failed for #${id}:`, error);
+            }
+
             handler();
         });
     }
@@ -401,8 +406,12 @@ export class UI {
                 }
                 button.textContent = i;
                 button.addEventListener('click', () => {
-                    resumeAudio();
-                    playClickSound();
+                    try {
+                        resumeAudio();
+                        playClickSound();
+                    } catch (error) {
+                        console.warn('Audio click failed for level button:', error);
+                    }
                     this.startSpecificLevel(i);
                 });
             } else {

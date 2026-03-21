@@ -2,7 +2,7 @@
  * Main - game entry
  */
 import { Game } from './game.js?v=52';
-import { UI } from './ui.js?v=34';
+import { UI } from './ui.js?v=35';
 import { initLevelStorage } from './level-storage.js?v=41';
 import { initUiTheme } from './ui-theme.js?v=1';
 
