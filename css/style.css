@@ -1014,9 +1014,9 @@ body {
 #menuOverlay .play-area-v2 {
     position: absolute;
     left: 92.5px;
-    top: 342.5px;
+    top: 332.8px;
     width: 245px;
-    height: 93.75px;
+    height: 91.1px;
     margin: 0;
     padding: 0;
     gap: 0;
@@ -1028,7 +1028,7 @@ body {
     position: relative;
     z-index: 6;
     width: 245px;
-    height: 93.75px;
+    height: 91.1px;
     border: 0;
     border-radius: 999px;
     background: var(--asset-home-start-button) center / 100% 100% no-repeat;
@@ -1054,10 +1054,10 @@ body {
 
 #menuOverlay .menu-bottom-zone-v2 {
     position: absolute;
-    left: 14px;
-    top: 584px;
-    width: 402px;
-    height: 349px;
+    left: 13.75px;
+    top: 567.2px;
+    width: 402.5px;
+    height: 338.9px;
     border: 0;
     border-radius: 0;
     background: transparent;
