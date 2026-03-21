@@ -3,7 +3,7 @@
  */
 import { Game } from './game.js?v=52';
 import { UI } from './ui.js?v=38';
-import { initLevelStorage } from './level-storage.js?v=41';
+import { initLevelStorage } from './level-storage.js?v=42';
 import { initUiTheme } from './ui-theme.js?v=1';
 
 const DESIGN_WIDTH = 430;

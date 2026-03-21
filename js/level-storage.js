@@ -5,6 +5,7 @@ const PREVIEW_LEVELS_KEY = 'arrowClear_previewLevels_v1';
 const SAVED_LEVELS_FILE = 'saved-levels-v1';
 const PREVIEW_LEVELS_FILE = 'preview-levels-v1';
 const STORAGE_API_BASE = '/api/storage';
+const STORAGE_STATIC_BASE = './.local-data';
 
 const DEFAULT_PLAYFIELD = {
     width: 430,
@@ -186,22 +187,18 @@ async function fetchMapFromServer(name) {
         return null;
     }
 
-    try {
-        const response = await fetch(`${STORAGE_API_BASE}/${name}`, {
-            method: 'GET',
-            cache: 'no-store'
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        const data = await response.json();
-        return isPlainObject(data) ? data : {};
-    } catch (error) {
-        warnServerUnavailable(error);
-        return null;
+    const serverData = await tryFetchMap(`${STORAGE_API_BASE}/${name}`);
+    if (serverData) {
+        return serverData;
     }
+
+    const staticData = await tryFetchMap(`${STORAGE_STATIC_BASE}/${name}.json`);
+    if (staticData) {
+        return staticData;
+    }
+
+    warnServerUnavailable(new Error(`storage fetch failed for ${name}`));
+    return null;
 }
 
 async function persistMapToServer(name, mapValue) {
@@ -235,6 +232,24 @@ function warnServerUnavailable(error) {
     }
     serverSyncWarned = true;
     console.warn('[level-storage] server sync unavailable, fallback to browser storage only', error);
+}
+
+async function tryFetchMap(url) {
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            return null;
+        }
+
+        const data = await response.json();
+        return isPlainObject(data) ? data : {};
+    } catch {
+        return null;
+    }
 }
 
 function readMap(key) {

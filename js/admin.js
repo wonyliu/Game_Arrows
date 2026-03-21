@@ -14,7 +14,7 @@ import {
     initLevelStorage,
     savePreviewLevelRecord,
     saveSavedLevelRecord
-} from './level-storage.js?v=41';
+} from './level-storage.js?v=42';
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),
@@ -364,7 +364,7 @@ function onHint() {
     console.log('Hint button clicked'); // 仅供调试
     try {
         if (!previewPlayState) {
-            setStatus('❌ No preview data. Click "Generate" first.');
+            setStatus('�?No preview data. Click "Generate" first.');
             return;
         }
 
@@ -387,7 +387,7 @@ function onHint() {
         }
         console.log("Movable Arrow IDs:", movableLines.map(l => l.id));
         drawPreviewState();
-        setStatus(`✨ Highlighted ${movableLines.length} movable arrow(s). It will last 4s.`);
+        setStatus(`�?Highlighted ${movableLines.length} movable arrow(s). It will last 4s.`);
 
         // Clear highlight after 4 seconds
         if (window._hintTimeout) clearTimeout(window._hintTimeout);
@@ -400,7 +400,7 @@ function onHint() {
         }, 4000);
     } catch (err) {
         console.error('Hint error:', err);
-        setStatus(`❌ Hint failed: ${err.message}`);
+        setStatus(`�?Hint failed: ${err.message}`);
     }
 }
 

@@ -1,7 +1,7 @@
 import { Grid } from './grid.js?v=40';
 import { Line } from './line.js?v=40';
 import { canMove } from './collision.js?v=40';
-import { serializeLevelData, estimateLineCount } from './level-storage.js?v=41';
+import { serializeLevelData, estimateLineCount } from './level-storage.js?v=42';
 
 export const DIRS = ['up', 'down', 'left', 'right'];
 export const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
