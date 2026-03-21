@@ -2,6 +2,8 @@ node_modules/
 .codex/
 temp/
 tmp_verify/
+.local-data/
 *.log
 *.tmp
 *.bak
+__pycache__/

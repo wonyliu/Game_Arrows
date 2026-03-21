@@ -1,5 +1,5 @@
-/**
- * Grid System - 管理2D网格坐标系统
+﻿/**
+ * Grid System - 绠＄悊2D缃戞牸鍧愭爣绯荤粺
  */
 export class Grid {
     constructor(cols, rows) {
@@ -12,16 +12,11 @@ export class Grid {
     }
 
     resize(canvasWidth, canvasHeight) {
-        // Since the canvas is now inside an absolute wrapper that avoids HUDs,
-        // we only need a small consistent margin on all sides.
         const margin = 10;
         const availW = canvasWidth - margin * 2;
         const availH = canvasHeight - margin * 2;
 
-        // 格子大小必须正好可以容纳，不损失太多空间
-        this.cellSize = Math.floor(Math.min(availW / this.cols, availH / this.rows));
-
-        // 居中放置网络
+        this.cellSize = Math.max(1, Math.floor(Math.min(availW / this.cols, availH / this.rows)));
         this.offsetX = Math.floor((canvasWidth - this.cols * this.cellSize) / 2);
         this.offsetY = Math.floor((canvasHeight - this.rows * this.cellSize) / 2);
     }

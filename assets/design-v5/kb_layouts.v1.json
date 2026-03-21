@@ -1,0 +1,604 @@
+{
+  "schema": "KbLayoutTemplateV1",
+  "version": "1.0.0",
+  "theme": "design-v5",
+  "baseFrame": {
+    "width": 430,
+    "height": 932
+  },
+  "fallback": {
+    "themeChain": [
+      "design-v5",
+      "design-v3",
+      "design-v2"
+    ],
+    "useManifestSlots": true
+  },
+  "compat": {
+    "featureConfigIds": [
+      "settings",
+      "leaderboard",
+      "skins",
+      "checkin",
+      "exit"
+    ],
+    "menuPanels": [
+      "HOME",
+      "SETTINGS",
+      "LEADERBOARD",
+      "SKINS",
+      "CHECKIN",
+      "EXIT_CONFIRM"
+    ]
+  },
+  "globalRules": {
+    "tokenRefs": [
+      "interaction.minTapArea",
+      "interaction.safeAreaTop",
+      "interaction.safeAreaBottom",
+      "interaction.safeAreaHorizontal",
+      "density.maxPrimaryCtaPerScreen",
+      "density.maxFeatureEntriesSameLayer",
+      "density.maxVisibleBadgesPerScreen"
+    ],
+    "safeArea": {
+      "top": 24,
+      "bottom": 24,
+      "left": 16,
+      "right": 16
+    },
+    "minTapArea": {
+      "width": 44,
+      "height": 44
+    }
+  },
+  "screens": [
+    {
+      "screenId": "HOME",
+      "tokenRefs": [
+        "color.bgSky",
+        "color.panelCream",
+        "color.ctaFill",
+        "typography.titleLg"
+      ],
+      "zones": [
+        {
+          "id": "top_zone",
+          "x": 16,
+          "y": 24,
+          "width": 398,
+          "height": 178
+        },
+        {
+          "id": "middle_zone",
+          "x": 16,
+          "y": 214,
+          "width": 398,
+          "height": 346
+        },
+        {
+          "id": "bottom_zone",
+          "x": 16,
+          "y": 576,
+          "width": 398,
+          "height": 316
+        }
+      ],
+      "layerEntryLimits": [
+        {
+          "layer": "feature-grid",
+          "maxEntries": 6
+        }
+      ],
+      "badgePolicy": {
+        "maxVisible": 2,
+        "defaultVisibleBadges": [
+          {
+            "featureId": "checkin",
+            "value": "1"
+          }
+        ]
+      },
+      "components": [
+        {
+          "instanceId": "home_surface_top",
+          "componentId": "panel_surface",
+          "zoneId": "top_zone",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "home_surface_middle",
+          "componentId": "panel_surface",
+          "zoneId": "middle_zone",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "home_surface_bottom",
+          "componentId": "panel_surface",
+          "zoneId": "bottom_zone",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "home_header",
+          "componentId": "panel_header",
+          "zoneId": "top_zone",
+          "layer": "content",
+          "role": "header"
+        },
+        {
+          "instanceId": "home_resource_coin",
+          "componentId": "resource_capsule",
+          "zoneId": "top_zone",
+          "layer": "content",
+          "role": "resource",
+          "iconSlot": "icon.coin"
+        },
+        {
+          "instanceId": "home_resource_energy",
+          "componentId": "resource_capsule",
+          "zoneId": "top_zone",
+          "layer": "content",
+          "role": "resource",
+          "iconSlot": "icon.energy"
+        },
+        {
+          "instanceId": "home_primary_cta",
+          "componentId": "primary_cta_button",
+          "zoneId": "middle_zone",
+          "layer": "hero-actions",
+          "role": "primaryCta",
+          "interactive": true,
+          "tapArea": {
+            "width": 250,
+            "height": 76
+          },
+          "labelKey": "home.start"
+        },
+        {
+          "instanceId": "home_level_tag",
+          "componentId": "secondary_button",
+          "zoneId": "middle_zone",
+          "layer": "hero-actions",
+          "role": "secondaryAction",
+          "interactive": true,
+          "tapArea": {
+            "width": 176,
+            "height": 56
+          },
+          "labelKey": "common.levelTag"
+        },
+        {
+          "instanceId": "home_feature_settings",
+          "componentId": "feature_card",
+          "zoneId": "bottom_zone",
+          "layer": "feature-grid",
+          "role": "featureEntry",
+          "featureId": "settings",
+          "panelId": "SETTINGS",
+          "interactive": true,
+          "tapArea": {
+            "width": 118,
+            "height": 102
+          },
+          "labelKey": "feature.settings",
+          "iconSlot": "icon.settings"
+        },
+        {
+          "instanceId": "home_feature_leaderboard",
+          "componentId": "feature_card",
+          "zoneId": "bottom_zone",
+          "layer": "feature-grid",
+          "role": "featureEntry",
+          "featureId": "leaderboard",
+          "panelId": "LEADERBOARD",
+          "interactive": true,
+          "tapArea": {
+            "width": 118,
+            "height": 102
+          },
+          "labelKey": "feature.leaderboard",
+          "iconSlot": "icon.leaderboard"
+        },
+        {
+          "instanceId": "home_feature_skins",
+          "componentId": "feature_card",
+          "zoneId": "bottom_zone",
+          "layer": "feature-grid",
+          "role": "featureEntry",
+          "featureId": "skins",
+          "panelId": "SKINS",
+          "interactive": true,
+          "tapArea": {
+            "width": 118,
+            "height": 102
+          },
+          "labelKey": "feature.skins",
+          "iconSlot": "icon.skins"
+        },
+        {
+          "instanceId": "home_feature_checkin",
+          "componentId": "feature_card",
+          "zoneId": "bottom_zone",
+          "layer": "feature-grid",
+          "role": "featureEntry",
+          "featureId": "checkin",
+          "panelId": "CHECKIN",
+          "interactive": true,
+          "tapArea": {
+            "width": 118,
+            "height": 102
+          },
+          "labelKey": "feature.checkin",
+          "iconSlot": "icon.checkin",
+          "badgeComponentId": "badge_indicator"
+        },
+        {
+          "instanceId": "home_feature_exit",
+          "componentId": "feature_card",
+          "zoneId": "bottom_zone",
+          "layer": "feature-grid",
+          "role": "featureEntry",
+          "featureId": "exit",
+          "panelId": "EXIT_CONFIRM",
+          "interactive": true,
+          "tapArea": {
+            "width": 118,
+            "height": 102
+          },
+          "labelKey": "feature.exit",
+          "iconSlot": "icon.exit"
+        }
+      ],
+      "actions": [
+        {
+          "trigger": "home_primary_cta.click",
+          "type": "start_game",
+          "target": "MAX_UNLOCKED_LEVEL"
+        },
+        {
+          "trigger": "home_level_tag.click",
+          "type": "open_panel",
+          "target": "LEVEL_SELECT"
+        },
+        {
+          "trigger": "home_feature_settings.click",
+          "type": "open_panel",
+          "target": "SETTINGS"
+        },
+        {
+          "trigger": "home_feature_leaderboard.click",
+          "type": "open_panel",
+          "target": "LEADERBOARD"
+        },
+        {
+          "trigger": "home_feature_skins.click",
+          "type": "open_panel",
+          "target": "SKINS"
+        },
+        {
+          "trigger": "home_feature_checkin.click",
+          "type": "open_panel",
+          "target": "CHECKIN"
+        },
+        {
+          "trigger": "home_feature_exit.click",
+          "type": "open_panel",
+          "target": "EXIT_CONFIRM"
+        }
+      ]
+    },
+    {
+      "screenId": "SETTINGS",
+      "tokenRefs": [
+        "color.panelCream",
+        "typography.titleMd"
+      ],
+      "zones": [
+        {
+          "id": "panel_root",
+          "x": 24,
+          "y": 96,
+          "width": 382,
+          "height": 740
+        }
+      ],
+      "badgePolicy": {
+        "maxVisible": 0,
+        "defaultVisibleBadges": []
+      },
+      "components": [
+        {
+          "instanceId": "settings_surface",
+          "componentId": "panel_surface",
+          "zoneId": "panel_root",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "settings_header",
+          "componentId": "panel_header",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "header",
+          "interactive": true,
+          "tapArea": {
+            "width": 88,
+            "height": 44
+          },
+          "labelKey": "panel.settings.title"
+        },
+        {
+          "instanceId": "settings_locale_zh",
+          "componentId": "secondary_button",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "settingAction",
+          "interactive": true,
+          "tapArea": {
+            "width": 176,
+            "height": 56
+          },
+          "labelKey": "settings.locale.zh"
+        },
+        {
+          "instanceId": "settings_locale_en",
+          "componentId": "secondary_button",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "settingAction",
+          "interactive": true,
+          "tapArea": {
+            "width": 176,
+            "height": 56
+          },
+          "labelKey": "settings.locale.en"
+        }
+      ],
+      "actions": [
+        {
+          "trigger": "settings_header.back.click",
+          "type": "open_panel",
+          "target": "HOME"
+        },
+        {
+          "trigger": "settings_locale_zh.click",
+          "type": "set_locale",
+          "target": "zh-CN"
+        },
+        {
+          "trigger": "settings_locale_en.click",
+          "type": "set_locale",
+          "target": "en-US"
+        }
+      ]
+    },
+    {
+      "screenId": "LEADERBOARD",
+      "tokenRefs": [
+        "color.panelCream",
+        "typography.titleMd"
+      ],
+      "zones": [
+        {
+          "id": "panel_root",
+          "x": 24,
+          "y": 96,
+          "width": 382,
+          "height": 740
+        }
+      ],
+      "badgePolicy": {
+        "maxVisible": 0,
+        "defaultVisibleBadges": []
+      },
+      "components": [
+        {
+          "instanceId": "leaderboard_surface",
+          "componentId": "panel_surface",
+          "zoneId": "panel_root",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "leaderboard_header",
+          "componentId": "panel_header",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "header",
+          "interactive": true,
+          "tapArea": {
+            "width": 88,
+            "height": 44
+          },
+          "labelKey": "panel.leaderboard.title"
+        }
+      ],
+      "actions": [
+        {
+          "trigger": "leaderboard_header.back.click",
+          "type": "open_panel",
+          "target": "HOME"
+        }
+      ]
+    },
+    {
+      "screenId": "SKINS",
+      "tokenRefs": [
+        "color.panelCream",
+        "typography.titleMd"
+      ],
+      "zones": [
+        {
+          "id": "panel_root",
+          "x": 24,
+          "y": 96,
+          "width": 382,
+          "height": 740
+        }
+      ],
+      "badgePolicy": {
+        "maxVisible": 0,
+        "defaultVisibleBadges": []
+      },
+      "components": [
+        {
+          "instanceId": "skins_surface",
+          "componentId": "panel_surface",
+          "zoneId": "panel_root",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "skins_header",
+          "componentId": "panel_header",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "header",
+          "interactive": true,
+          "tapArea": {
+            "width": 88,
+            "height": 44
+          },
+          "labelKey": "panel.skins.title"
+        }
+      ],
+      "actions": [
+        {
+          "trigger": "skins_header.back.click",
+          "type": "open_panel",
+          "target": "HOME"
+        }
+      ]
+    },
+    {
+      "screenId": "CHECKIN",
+      "tokenRefs": [
+        "color.panelCream",
+        "typography.titleMd"
+      ],
+      "zones": [
+        {
+          "id": "panel_root",
+          "x": 24,
+          "y": 96,
+          "width": 382,
+          "height": 740
+        }
+      ],
+      "badgePolicy": {
+        "maxVisible": 0,
+        "defaultVisibleBadges": []
+      },
+      "components": [
+        {
+          "instanceId": "checkin_surface",
+          "componentId": "panel_surface",
+          "zoneId": "panel_root",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "checkin_header",
+          "componentId": "panel_header",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "header",
+          "interactive": true,
+          "tapArea": {
+            "width": 88,
+            "height": 44
+          },
+          "labelKey": "panel.checkin.title"
+        }
+      ],
+      "actions": [
+        {
+          "trigger": "checkin_header.back.click",
+          "type": "open_panel",
+          "target": "HOME"
+        }
+      ]
+    },
+    {
+      "screenId": "EXIT_CONFIRM",
+      "tokenRefs": [
+        "color.panelCream",
+        "color.ctaFill",
+        "typography.titleMd"
+      ],
+      "zones": [
+        {
+          "id": "panel_root",
+          "x": 36,
+          "y": 220,
+          "width": 358,
+          "height": 430
+        }
+      ],
+      "badgePolicy": {
+        "maxVisible": 0,
+        "defaultVisibleBadges": []
+      },
+      "components": [
+        {
+          "instanceId": "exit_surface",
+          "componentId": "panel_surface",
+          "zoneId": "panel_root",
+          "layer": "surface"
+        },
+        {
+          "instanceId": "exit_header",
+          "componentId": "panel_header",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "header",
+          "interactive": true,
+          "tapArea": {
+            "width": 88,
+            "height": 44
+          },
+          "labelKey": "panel.exit.title"
+        },
+        {
+          "instanceId": "exit_confirm_cta",
+          "componentId": "primary_cta_button",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "primaryCta",
+          "interactive": true,
+          "tapArea": {
+            "width": 250,
+            "height": 76
+          },
+          "labelKey": "panel.exit.confirm"
+        },
+        {
+          "instanceId": "exit_cancel_btn",
+          "componentId": "secondary_button",
+          "zoneId": "panel_root",
+          "layer": "content",
+          "role": "secondaryAction",
+          "interactive": true,
+          "tapArea": {
+            "width": 176,
+            "height": 56
+          },
+          "labelKey": "panel.exit.cancel"
+        }
+      ],
+      "actions": [
+        {
+          "trigger": "exit_header.back.click",
+          "type": "open_panel",
+          "target": "HOME"
+        },
+        {
+          "trigger": "exit_confirm_cta.click",
+          "type": "confirm_exit",
+          "target": "window.close-or-feedback"
+        },
+        {
+          "trigger": "exit_cancel_btn.click",
+          "type": "open_panel",
+          "target": "HOME"
+        }
+      ]
+    }
+  ]
+}

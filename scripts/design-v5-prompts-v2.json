@@ -1,0 +1,219 @@
+{
+  "theme": "design-v5",
+  "promptVersion": "v2",
+  "basedOn": "ui-kb-v1",
+  "styleGuide": {
+    "visualDirection": "Cute snake-burrow mobile UI, hybrid style: clean playful homepage + structured functional panel system.",
+    "coreTheme": [
+      "snake burrow",
+      "cartoon friendly",
+      "warm earth + fresh sky/grass",
+      "mobile first readability"
+    ],
+    "mustHave": [
+      "low noise texture",
+      "clean silhouette edges",
+      "clear center text safe zone for buttons",
+      "consistent light direction across assets"
+    ],
+    "mustNot": [
+      "watermarks",
+      "baked text on icons",
+      "busy patterns over text area",
+      "overly ornate button decoration",
+      "sharp photographic noise"
+    ],
+    "languageSupportHint": "Leave enough flat area for both short Chinese labels and medium-length English labels."
+  },
+  "generationPolicy": {
+    "outputFormat": "PNG",
+    "alphaRequiredFor": [
+      "button.primary",
+      "card.feature",
+      "icon.home",
+      "icon.settings",
+      "icon.leaderboard",
+      "icon.skins",
+      "icon.checkin",
+      "icon.exit",
+      "icon.coin",
+      "icon.energy",
+      "surface.panel"
+    ],
+    "safeAreaPercent": {
+      "top": 8,
+      "bottom": 10,
+      "left": 8,
+      "right": 8
+    },
+    "readabilityTargets": {
+      "buttonTextContrastMin": 4.5,
+      "iconShapeRecognizableAtPx": 28
+    }
+  },
+  "sampleSlotsForQA": [
+    "home.background",
+    "surface.panel",
+    "button.primary",
+    "card.feature",
+    "icon.settings"
+  ],
+  "assets": [
+    {
+      "slot": "home.background",
+      "fileName": "ui_app_bg.png",
+      "usage": "main menu backdrop",
+      "width": 430,
+      "height": 932,
+      "transparent": false,
+      "cropMode": "cover",
+      "prompt": "Create a single plain background scene plate for a cute snake-burrow puzzle game at 430x932 portrait ratio. Keep top and center regions visually calm for overlays, with soft grass and soil depth only.",
+      "negativePrompt": "no text, no letters, no logos, no UI elements, no buttons, no icons, no labels, no watermark, no photorealism, no high-frequency noise, no dark horror mood, no foreground characters",
+      "safeAreaHint": "Reserve clean top 22% and middle 30% for UI overlays.",
+      "readabilityHint": "Background contrast should not overpower white or dark title text."
+    },
+    {
+      "slot": "surface.panel",
+      "fileName": "ui_panel.png",
+      "usage": "panel shell for overlays",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create one solid filled popup panel background only (not a hollow frame), rounded corners, cute snake-burrow style, subtle wood-and-cream texture, calm center for text blocks.",
+      "negativePrompt": "no holes, no cutout window, no hollow frame, no embossed text, no heavy grain, no metallic industrial style",
+      "safeAreaHint": "Inner 80% area should be low-noise and readable.",
+      "readabilityHint": "Panel center must support body text and list rows."
+    },
+    {
+      "slot": "button.primary",
+      "fileName": "ui_button.png",
+      "usage": "primary CTA skin",
+      "width": 760,
+      "height": 220,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create one isolated blank primary button skin only: wide rounded shape, warm cheerful tone, strong center highlight, clean border, transparent background.",
+      "negativePrompt": "no text, no letters, no mascot, no character, no extra objects, no tiny ornaments near center, no harsh gradients, no over-detailed pattern",
+      "safeAreaHint": "Keep center 60% flat and clean for localization text.",
+      "readabilityHint": "Designed for high contrast dark label text."
+    },
+    {
+      "slot": "card.feature",
+      "fileName": "ui_card_button.png",
+      "usage": "feature entry card background",
+      "width": 320,
+      "height": 320,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create one isolated blank feature card background only: solid filled compact rounded card, clear top icon zone and bottom label zone, transparent outside the card only, consistent with primary button style.",
+      "negativePrompt": "no holes, no cutout circles, no cutout bars, no text, no letters, no icon, no mascot, no random decals, no noisy center texture, no extra floating objects",
+      "safeAreaHint": "Leave top 45% for icon and bottom 35% for label.",
+      "readabilityHint": "Card should remain legible at ~118x102 rendered size."
+    },
+    {
+      "slot": "icon.home",
+      "fileName": "icon_home.png",
+      "usage": "home icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute home icon for snake-burrow game UI, bold silhouette and simple shading, high recognition at small size.",
+      "negativePrompt": "no text, no watermark, no thin fragile lines",
+      "safeAreaHint": "Icon must fit comfortably inside a circular button.",
+      "readabilityHint": "Recognizable when rendered at 28-34 px."
+    },
+    {
+      "slot": "icon.settings",
+      "fileName": "icon_settings.png",
+      "usage": "settings icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute gear settings icon with clear silhouette and warm cartoon shading, matching snake-burrow visual style.",
+      "negativePrompt": "no text, no tiny details that disappear when scaled",
+      "safeAreaHint": "Keep shape centered and balanced.",
+      "readabilityHint": "Must remain clear in feature card icon area."
+    },
+    {
+      "slot": "icon.leaderboard",
+      "fileName": "icon_leaderboard.png",
+      "usage": "leaderboard icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a trophy or ranking badge icon in cute cartoon style, bold and friendly, for snake puzzle game menu.",
+      "negativePrompt": "no text ribbon, no realistic metal texture",
+      "safeAreaHint": "Single dominant silhouette.",
+      "readabilityHint": "Distinguishable from settings and check-in at glance."
+    },
+    {
+      "slot": "icon.skins",
+      "fileName": "icon_skins.png",
+      "usage": "skins icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a skins/customization icon (palette, swatch, or costume marker) in playful snake-burrow style.",
+      "negativePrompt": "no text, no cluttered multi-object composition",
+      "safeAreaHint": "Keep visual center compact.",
+      "readabilityHint": "Clear category meaning at small size."
+    },
+    {
+      "slot": "icon.checkin",
+      "fileName": "icon_checkin.png",
+      "usage": "check-in icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a daily check-in icon using calendar + reward cue in cute mobile game style.",
+      "negativePrompt": "no text digits, no dense background pattern",
+      "safeAreaHint": "Leave edge padding for circular masking.",
+      "readabilityHint": "Should support red numeric badge without visual collision."
+    },
+    {
+      "slot": "icon.exit",
+      "fileName": "icon_exit.png",
+      "usage": "exit icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a simple exit icon (door or outbound arrow) in friendly cartoon style for game menu use.",
+      "negativePrompt": "no danger symbols, no harsh warning styling",
+      "safeAreaHint": "Single icon, no extra decorative side objects.",
+      "readabilityHint": "Distinct from home icon and settings icon."
+    },
+    {
+      "slot": "icon.coin",
+      "fileName": "icon_coin.png",
+      "usage": "currency icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a coin icon with warm gold tone and clean outline, matching cute snake puzzle theme.",
+      "negativePrompt": "no embossed words, no realistic glare",
+      "safeAreaHint": "Circular silhouette preferred.",
+      "readabilityHint": "Readable next to numeric values."
+    },
+    {
+      "slot": "icon.energy",
+      "fileName": "icon_energy.png",
+      "usage": "energy icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create an energy icon (leaf, drop, or spark) in soft cartoon style consistent with coin icon family.",
+      "negativePrompt": "no text, no electric realistic effects",
+      "safeAreaHint": "Center-aligned icon with clear outer contour.",
+      "readabilityHint": "Maintain clarity at 24-30 px."
+    }
+  ]
+}

@@ -3,51 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%236f4f35'/%3E%3Ccircle cx='20' cy='28' r='8' fill='%23f5dcb6'/%3E%3Ccircle cx='44' cy='28' r='8' fill='%23f5dcb6'/%3E%3Cellipse cx='32' cy='40' rx='14' ry='11' fill='%23c79567'/%3E%3Ccircle cx='36' cy='39' r='3' fill='%23ff84a7'/%3E%3C/svg%3E">
-    <title>田鼠家族大逃脱</title>
-    <meta name="description" content="点击释放呆萌田鼠，清空洞穴迷宫。">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%235a7e3e'/%3E%3Cpath d='M10 42 C20 20, 44 20, 54 40' stroke='%23d5e48e' stroke-width='8' fill='none'/%3E%3Ccircle cx='50' cy='39' r='7' fill='%23d5e48e'/%3E%3Ccircle cx='52' cy='38' r='2' fill='%230f1515'/%3E%3C/svg%3E">
+    <title>Snake Burrow Escape</title>
+    <meta name="description" content="Tap snakes, clear the burrow maze, and escape.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=26">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=37">
 </head>
 <body>
     <div class="app-container">
         <header class="wechat-header">
-            <div class="wechat-left">
-                <span class="icon-wechat-back"></span>
-            </div>
-            <div class="wechat-title">田鼠家族大逃脱</div>
-            <div class="wechat-capsule">
-                <span class="capsule-dot"></span>
-                <span class="capsule-divider"></span>
-                <span class="capsule-ring"></span>
-            </div>
+            <div class="wechat-title" data-i18n="app.title">Snake Burrow Escape</div>
         </header>
 
         <div class="background-pattern"></div>
-
-        <div id="topResources" class="top-resources">
-            <div class="resource-badge">
-                <img class="pixel-icon resource-icon-img" src="assets/ui/pixel/coin.svg" alt="acorn">
-                <span id="coinCount">20</span>
-            </div>
-            <div class="resource-badge">
-                <img class="pixel-icon resource-icon-img" src="assets/ui/pixel/energy.svg" alt="clover">
-                <span id="energyCount">5</span>
-            </div>
-            <div class="energy-timer">恢复中</div>
-        </div>
-
-        <aside id="sideBar" class="side-bar">
-            <button class="side-btn" type="button" aria-label="settings">
-                <img class="pixel-icon side-icon" src="assets/ui/pixel/settings.svg" alt="settings">
-            </button>
-            <button class="side-btn side-btn-community" type="button">
-                <img class="pixel-icon side-btn-icon" src="assets/ui/pixel/community.svg" alt="family">
-                <span class="side-btn-label">家族</span>
-            </button>
-        </aside>
 
         <main class="game-container">
             <div class="canvas-wrapper">
@@ -57,37 +27,25 @@
 
         <div id="hud" class="hidden">
             <div class="hud-top">
-                <button class="hud-settings" type="button" aria-label="settings">
-                    <img class="pixel-icon side-icon" src="assets/ui/pixel/settings.svg" alt="settings">
-                </button>
                 <div class="hud-center">
-                    <div id="levelInfo" class="hud-level">洞穴 3</div>
+                    <div id="levelInfo" class="hud-level">Burrow 1</div>
                     <div id="lives" class="hud-lives"></div>
                     <div id="timer" class="hud-timer hidden">10m00s</div>
                 </div>
             </div>
 
             <div class="hud-bottom">
-                <div class="progress-container">
-                    <div class="progress-btn">&lt;</div>
-                    <div class="progress-bar-wrapper">
-                        <div id="progressBarFill" class="progress-bar-fill"></div>
-                        <div id="progressThumb" class="progress-thumb"></div>
-                    </div>
-                    <div class="progress-btn">&gt;</div>
-                </div>
-
                 <div class="items-container">
-                    <button id="btnUndo" class="item-btn item-btn-eraser" type="button" aria-label="undo">
-                        <img class="pixel-icon item-icon-img" src="assets/ui/pixel/undo.svg" alt="undo">
+                    <button id="btnUndo" class="item-btn" type="button" aria-label="undo">
+                        <img class="pixel-icon item-icon-img" src="assets/design-v2/clean/icon_undo.png" alt="undo">
                         <span class="badge-plus">+</span>
                     </button>
-                    <button id="btnHint" class="item-btn item-btn-wand" type="button" aria-label="hint">
-                        <img class="pixel-icon item-icon-img" src="assets/ui/pixel/wand.svg" alt="hint">
+                    <button id="btnHint" class="item-btn" type="button" aria-label="hint">
+                        <img class="pixel-icon item-icon-img" src="assets/design-v2/clean/icon_hint.png" alt="hint">
                         <span class="badge-plus">+</span>
                     </button>
-                    <button id="btnShuffle" class="item-btn item-btn-clock" type="button" aria-label="shuffle">
-                        <img class="pixel-icon item-icon-img" src="assets/ui/pixel/shuffle.svg" alt="shuffle">
+                    <button id="btnShuffle" class="item-btn" type="button" aria-label="shuffle">
+                        <img class="pixel-icon item-icon-img" src="assets/design-v2/clean/icon_shuffle.png" alt="shuffle">
                         <span class="badge-plus">+</span>
                     </button>
                 </div>
@@ -95,94 +53,194 @@
         </div>
 
         <div id="menuOverlay" class="overlay">
-            <div class="menu-content">
-                <div class="logo-area">
-                    <div class="logo-arrow">田鼠</div>
-                    <div class="logo-line"></div>
-                    <div class="logo-clear">出洞</div>
-                </div>
+            <div class="menu-content menu-content-v2">
+                <section class="menu-home-hero">
+                    <h1 class="menu-home-title" data-i18n="home.menuTitle">蛇蛇大冒险</h1>
+                    <div class="play-area play-area-v2">
+                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">开始冒险</button>
+                        <button id="btnLevels" class="current-level-tag" type="button">洞穴 1</button>
+                    </div>
+                </section>
 
-                <div class="banner-stack">
-                    <div class="banner banner-workshop">家族训练营</div>
-                    <div class="banner banner-snow">
-                        <span>田野派对</span>
-                        <small>今日免费 x1</small>
+                <section class="menu-bottom-zone menu-bottom-zone-v2">
+                    <div class="menu-feature-grid menu-feature-grid-v2">
+                        <button id="btnSettings" class="feature-card" type="button" data-feature-id="settings">
+                            <span class="feature-badge hidden" data-badge-for="settings"></span>
+                            <img class="feature-icon" data-icon-slot="icon.settings" src="assets/design-v2/clean/icon_settings.png" alt="settings">
+                            <span class="feature-label" data-i18n="feature.settings">Settings</span>
+                        </button>
+                        <button id="btnLeaderboard" class="feature-card" type="button" data-feature-id="leaderboard">
+                            <span class="feature-badge hidden" data-badge-for="leaderboard"></span>
+                            <img class="feature-icon" data-icon-slot="icon.leaderboard" src="assets/design-v2/clean/icon_rank.png" alt="leaderboard">
+                            <span class="feature-label" data-i18n="feature.leaderboard">Leaderboard</span>
+                        </button>
+                        <button id="btnSkins" class="feature-card" type="button" data-feature-id="skins">
+                            <span class="feature-badge hidden" data-badge-for="skins"></span>
+                            <img class="feature-icon" data-icon-slot="icon.skins" src="assets/design-v2/clean/icon_theme.png" alt="skins">
+                            <span class="feature-label" data-i18n="feature.skins">Skins</span>
+                        </button>
+                        <button id="btnCheckin" class="feature-card" type="button" data-feature-id="checkin">
+                            <span class="feature-badge hidden" data-badge-for="checkin"></span>
+                            <img class="feature-icon" data-icon-slot="icon.checkin" src="assets/design-v2/clean/icon_gift.png" alt="checkin">
+                            <span class="feature-label" data-i18n="feature.checkin">Check-In</span>
+                        </button>
+                        <button id="btnExit" class="feature-card" type="button" data-feature-id="exit">
+                            <span class="feature-badge hidden" data-badge-for="exit"></span>
+                            <img class="feature-icon" data-icon-slot="icon.exit" src="assets/design-v2/clean/icon_lock.png" alt="exit">
+                            <span class="feature-label" data-i18n="feature.exit">Exit</span>
+                        </button>
+                        <button id="btnMore" class="feature-card feature-card-placeholder" type="button" disabled>
+                            <img class="feature-icon" data-icon-slot="icon.home" src="assets/design-v2/clean/icon_home.png" alt="more">
+                            <span class="feature-label" data-i18n="feature.more">功能入口</span>
+                        </button>
+                    </div>
+                </section>
+            </div>
+        </div>
+
+        <div id="settingsOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.settings.title">Settings</h2>
+                    <button id="btnBackFromSettings" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                </div>
+                <div class="panel-body">
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-title" data-i18n="panel.settings.language">Language</div>
+                            <div class="setting-desc" data-i18n="panel.settings.languageDesc">Switch UI language without affecting save data.</div>
+                        </div>
+                        <div class="locale-switch">
+                            <button id="btnLocaleZh" class="locale-chip" type="button" data-i18n="settings.locale.zh">简体中文</button>
+                            <button id="btnLocaleEn" class="locale-chip" type="button" data-i18n="settings.locale.en">English</button>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-title" data-i18n="panel.settings.audio">Audio</div>
+                        <div class="setting-desc" data-i18n="panel.settings.audioDesc">Detailed controls will be available in a future update.</div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-title" data-i18n="panel.settings.graphics">Graphics</div>
+                        <div class="setting-desc" data-i18n="panel.settings.graphicsDesc">Performance presets will be available in a future update.</div>
                     </div>
                 </div>
-
-                <div class="play-area">
-                    <button id="btnPlay" class="btn-play" type="button">开始蠕动</button>
-                    <button id="btnLevels" class="current-level-tag" type="button">洞穴 3</button>
-                </div>
-                <a class="dev-entry" href="admin.html">关卡工坊</a>
-
-                <button class="float-btn float-left-top" type="button">
-                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/more-games.svg" alt="home"></span>
-                    <span class="float-label">田鼠窝</span>
-                </button>
-                <button class="float-btn float-left-bottom" type="button">
-                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/gift.svg" alt="gift"></span>
-                    <span class="float-label">胡萝卜箱</span>
-                </button>
-                <button class="float-btn float-right-top" type="button">
-                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/theme.svg" alt="theme"></span>
-                    <span class="float-label">家族皮肤</span>
-                </button>
-                <button class="float-btn float-right-bottom" type="button">
-                    <span class="float-icon"><img class="pixel-icon float-icon-img" src="assets/ui/pixel/rank.svg" alt="rank"></span>
-                    <span class="float-label">洞穴榜</span>
-                </button>
             </div>
+        </div>
 
-            <nav class="bottom-nav">
-                <button class="nav-item" type="button">
-                    <span class="nav-icon"><img class="pixel-icon nav-icon-img" src="assets/ui/pixel/collection.svg" alt="collection"></span>
-                    <span class="nav-label">收藏</span>
-                </button>
-                <button class="nav-item active" type="button">
-                    <span class="nav-icon"><img class="pixel-icon nav-icon-img" src="assets/ui/pixel/home.svg" alt="home"></span>
-                    <span class="nav-label">洞穴</span>
-                </button>
-                <button class="nav-item" type="button">
-                    <span class="nav-icon"><img class="pixel-icon nav-icon-img" src="assets/ui/pixel/challenge.svg" alt="challenge"></span>
-                    <span class="nav-label">挑战</span>
-                </button>
-            </nav>
+        <div id="leaderboardOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.leaderboard.title">Leaderboard</h2>
+                    <button id="btnBackFromLeaderboard" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                </div>
+                <div class="panel-body">
+                    <ul class="rank-list">
+                        <li><span>#1</span><span>---</span><span>---</span></li>
+                        <li><span>#2</span><span>---</span><span>---</span></li>
+                        <li><span>#3</span><span>---</span><span>---</span></li>
+                        <li><span>#4</span><span>---</span><span>---</span></li>
+                        <li><span>#5</span><span>---</span><span>---</span></li>
+                    </ul>
+                    <p class="empty-state" data-i18n="panel.leaderboard.empty">Leaderboard is under development.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="skinsOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.skins.title">Skin Center</h2>
+                    <button id="btnBackFromSkins" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                </div>
+                <div class="panel-body">
+                    <div class="skin-grid">
+                        <div class="skin-card">A</div>
+                        <div class="skin-card">B</div>
+                        <div class="skin-card">C</div>
+                        <div class="skin-card">D</div>
+                        <div class="skin-card">E</div>
+                        <div class="skin-card">F</div>
+                    </div>
+                    <p class="empty-state" data-i18n="panel.skins.empty">Skin system is under development. Cards are placeholders.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="checkinOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.checkin.title">Daily Check-In</h2>
+                    <button id="btnBackFromCheckin" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                </div>
+                <div class="panel-body">
+                    <div class="checkin-grid">
+                        <div class="checkin-day">1</div>
+                        <div class="checkin-day">2</div>
+                        <div class="checkin-day">3</div>
+                        <div class="checkin-day">4</div>
+                        <div class="checkin-day">5</div>
+                        <div class="checkin-day">6</div>
+                        <div class="checkin-day">7</div>
+                    </div>
+                    <p class="empty-state" data-i18n="panel.checkin.empty">Reward flow is under development and will connect to backend later.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="exitOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell panel-shell-sm">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.exit.title">Exit Game</h2>
+                    <button id="btnExitCancelTop" class="panel-back-btn" type="button" data-i18n="common.close">Close</button>
+                </div>
+                <div class="panel-body">
+                    <p class="exit-desc" data-i18n="panel.exit.desc">Do you want to exit now? Progress is saved locally.</p>
+                    <div class="exit-actions">
+                        <button id="btnExitConfirm" class="btn-popup-primary" type="button" data-i18n="panel.exit.confirm">Exit Now</button>
+                        <button id="btnExitCancel" class="btn-popup-secondary" type="button" data-i18n="panel.exit.cancel">Cancel</button>
+                    </div>
+                    <p id="exitFeedback" class="empty-state hidden" data-i18n="panel.exit.feedback">Most browsers cannot be closed directly by page script.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="levelSelectOverlay" class="overlay hidden menu-panel-overlay">
+            <div class="panel-shell panel-shell-levels">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.levelSelect.title">Select Level</h2>
+                    <button id="btnBackFromSelect" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                </div>
+                <div class="panel-body">
+                    <div id="levelGrid" class="level-grid"></div>
+                </div>
+            </div>
         </div>
 
         <div id="levelCompleteOverlay" class="overlay hidden">
             <div class="popup-box">
-                <h2 class="popup-title">全员出洞</h2>
+                <h2 class="popup-title" data-i18n="panel.complete.title">All Cleared</h2>
                 <div id="levelScore" class="popup-score">Score: 0</div>
                 <div class="popup-buttons">
-                    <button id="btnNext" class="btn-popup-primary" type="button">下一洞穴</button>
-                    <button id="btnMenuFromComplete" class="btn-popup-secondary" type="button">返回窝点</button>
+                    <button id="btnNext" class="btn-popup-primary" type="button" data-i18n="common.next">Next</button>
+                    <button id="btnMenuFromComplete" class="btn-popup-secondary" type="button" data-i18n="common.menu">Back to Menu</button>
                 </div>
             </div>
         </div>
 
         <div id="gameOverOverlay" class="overlay hidden">
             <div class="popup-box">
-                <h2 class="popup-title">田鼠累趴了</h2>
+                <h2 class="popup-title" data-i18n="panel.over.title">Snake Is Tired</h2>
                 <div id="gameOverReason" class="popup-score">Out of lives</div>
                 <div class="popup-buttons">
-                    <button id="btnRetry" class="btn-popup-primary" type="button">再来一窝</button>
-                    <button id="btnMenuFromOver" class="btn-popup-secondary" type="button">返回窝点</button>
+                    <button id="btnRetry" class="btn-popup-primary" type="button" data-i18n="common.retry">Retry</button>
+                    <button id="btnMenuFromOver" class="btn-popup-secondary" type="button" data-i18n="common.menu">Back to Menu</button>
                 </div>
-            </div>
-        </div>
-
-        <div id="levelSelectOverlay" class="overlay hidden">
-            <div class="popup-box popup-box-levels">
-                <h2 class="popup-title">选择洞穴</h2>
-                <div id="levelGrid" class="level-grid"></div>
-                <button id="btnBackFromSelect" class="btn-popup-secondary" type="button">返回</button>
             </div>
         </div>
 
         <div id="errorVignette" class="error-vignette"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=34"></script>
+    <script type="module" src="js/main.js?v=65"></script>
 </body>
 </html>

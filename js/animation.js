@@ -1,10 +1,11 @@
-﻿const DIR_VEC = {
+import { drawPixelParticle } from './pixel-art.js?v=16';
+
+const DIR_VEC = {
     up: { dx: 0, dy: -1 },
     down: { dx: 0, dy: 1 },
     left: { dx: -1, dy: 0 },
     right: { dx: 1, dy: 0 }
 };
-import { drawPixelParticle } from './pixel-art.js?v=3';
 
 export class AnimationManager {
     constructor() {
@@ -16,7 +17,9 @@ export class AnimationManager {
 
     startRemoveAnimation(line, grid, onComplete) {
         line.state = 'removing';
-        line.removeTint = '#6078ff';
+        // Keep removal motion clean: no extra blue tint/trail overlay.
+        line.removeTint = null;
+        line.trails = [];
 
         const cellSize = grid.cellSize;
         line._removeAnim = {
@@ -77,14 +80,14 @@ export class AnimationManager {
         });
     }
 
-    update(dt, lines) {
+    update(dt, lines, globalIdleSeconds = 0) {
         if (this.screenShake > 0) {
             this.screenShake -= this.screenShakeDecay * dt * 5;
             if (this.screenShake < 0) this.screenShake = 0;
         }
 
         for (const line of lines) {
-            line.update(dt);
+            line.update(dt, globalIdleSeconds);
 
             if (line._removeAnim) {
                 const animation = line._removeAnim;

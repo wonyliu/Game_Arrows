@@ -1,0 +1,168 @@
+{
+  "theme": "design-v5",
+  "version": "1.0.0",
+  "generatedAt": "2026-03-21T15:33:39.992978+00:00",
+  "promptVersion": "v3-concept-implement",
+  "slots": {
+    "home.background": "assets/design-v5/clean/ui_app_bg.png",
+    "surface.panel": "assets/design-v5/clean/ui_panel.png",
+    "button.primary": "assets/design-v5/clean/ui_button.png",
+    "card.feature": "assets/design-v5/clean/ui_card_button.png",
+    "icon.home": "assets/design-v5/clean/icon_home.png",
+    "icon.settings": "assets/design-v5/clean/icon_settings.png",
+    "icon.leaderboard": "assets/design-v5/clean/icon_leaderboard.png",
+    "icon.skins": "assets/design-v5/clean/icon_skins.png",
+    "icon.checkin": "assets/design-v5/clean/icon_checkin.png",
+    "icon.exit": "assets/design-v5/clean/icon_exit.png",
+    "icon.coin": "assets/design-v5/clean/icon_coin.png",
+    "icon.energy": "assets/design-v5/clean/icon_energy.png"
+  },
+  "fallbackSlots": {
+    "home.background": "assets/design-v3/clean/ui_app_bg.png",
+    "surface.panel": "assets/design-v3/clean/ui_panel.png",
+    "button.primary": "assets/design-v3/clean/ui_button.png",
+    "card.feature": "assets/design-v3/clean/ui_item_button.png",
+    "icon.home": "assets/design-v2/clean/icon_home.png",
+    "icon.settings": "assets/design-v2/clean/icon_settings.png",
+    "icon.leaderboard": "assets/design-v2/clean/icon_rank.png",
+    "icon.skins": "assets/design-v2/clean/icon_theme.png",
+    "icon.checkin": "assets/design-v2/clean/icon_gift.png",
+    "icon.exit": "assets/design-v2/clean/icon_lock.png",
+    "icon.coin": "assets/design-v2/clean/icon_coin.png",
+    "icon.energy": "assets/design-v2/clean/icon_energy.png"
+  },
+  "entries": [
+    {
+      "slot": "home.background",
+      "file": "ui_app_bg.png",
+      "usage": "main menu backdrop",
+      "size": {
+        "width": 430,
+        "height": 932
+      },
+      "prompt": "Create only one clean lobby background plate at 430x932 inspired by selected concepts: earthy cave depth, soft plants, clear upper and middle visual space. No UI controls inside.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "surface.panel",
+      "file": "ui_panel.png",
+      "usage": "panel shell for overlays",
+      "size": {
+        "width": 1024,
+        "height": 1024
+      },
+      "prompt": "Create one filled rounded panel shell based on selected settings concept style: cream center, warm border, subtle depth, no holes.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "button.primary",
+      "file": "ui_button.png",
+      "usage": "primary CTA skin",
+      "size": {
+        "width": 760,
+        "height": 220
+      },
+      "prompt": "Create one isolated blank primary button skin matching selected home concept: rounded yellow-orange, clear border, strong center highlight, no text.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "card.feature",
+      "file": "ui_card_button.png",
+      "usage": "feature entry card background",
+      "size": {
+        "width": 320,
+        "height": 320
+      },
+      "prompt": "Create one isolated feature card background following selected concept: solid rounded rectangle tile, gentle cream fill, subtle shadow, perfectly smooth anti-aliased border, no holes.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.home",
+      "file": "icon_home.png",
+      "usage": "home icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create a clean home icon in the same line weight and warm palette as selected concept controls.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.settings",
+      "file": "icon_settings.png",
+      "usage": "settings icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create a gear settings icon in warm line style matching selected concepts and existing icon family.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.leaderboard",
+      "file": "icon_leaderboard.png",
+      "usage": "leaderboard icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create a simple trophy/rank icon with consistent stroke and warm palette from selected concepts.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.skins",
+      "file": "icon_skins.png",
+      "usage": "skins icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create a skins/customization icon in same visual family (palette/swatch style, simple geometry).",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.checkin",
+      "file": "icon_checkin.png",
+      "usage": "check-in icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create a check-in icon (calendar + check marker) in warm cartoon line style from selected concepts.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.exit",
+      "file": "icon_exit.png",
+      "usage": "exit icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create an exit icon (door + outward arrow) in same simple warm icon style.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.coin",
+      "file": "icon_coin.png",
+      "usage": "currency icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create a coin icon in warm yellow with simple outline and small highlight, aligned to selected concept style.",
+      "promptVersion": "v3-concept-implement"
+    },
+    {
+      "slot": "icon.energy",
+      "file": "icon_energy.png",
+      "usage": "energy icon",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create an energy icon (lightning symbol) in warm style consistent with coin icon and selected controls.",
+      "promptVersion": "v3-concept-implement"
+    }
+  ]
+}

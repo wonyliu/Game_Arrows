@@ -1,22 +1,22 @@
-﻿import { Grid } from './grid.js?v=22';
-import { Line } from './line.js?v=23';
+import { Grid } from './grid.js?v=24';
+import { Line } from './line.js?v=35';
 import { canMove, findMovableLines } from './collision.js?v=19';
-import { getLevelConfig } from './levels.js?v=26';
-import { AnimationManager } from './animation.js?v=20';
-import { buildPlayableLevel } from './level-builder.js?v=45';
+import { getLevelConfig } from './levels.js?v=27';
+import { AnimationManager } from './animation.js?v=25';
+import { buildPlayableLevel } from './level-builder.js?v=46';
 import {
     deserializeLevelData,
     getPreviewLevelRecord,
     getSavedLevelRecord
-} from './level-storage.js?v=26';
+} from './level-storage.js?v=41';
 import {
     playClearSound,
     playErrorSound,
     playGameOverSound,
     playLevelCompleteSound,
     resumeAudio
-} from './audio.js?v=19';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=3';
+} from './audio.js?v=20';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=16';
 
 export class Game {
     constructor(canvas) {
@@ -39,6 +39,7 @@ export class Game {
         this.timerInterval = null;
         this.animations = new AnimationManager();
         this.lastTime = 0;
+        this.lastSnakeInteractionTime = performance.now();
         this.hintLine = null;
         this.undoStack = [];
         this.pixelTheme = null;
@@ -124,6 +125,7 @@ export class Game {
         this.hintLine = null;
         this.undoStack = [];
         this.state = 'PLAYING';
+        this.lastSnakeInteractionTime = performance.now();
 
         if (this.timerInterval) {
             clearInterval(this.timerInterval);
@@ -158,12 +160,18 @@ export class Game {
 
         resumeAudio();
         const rect = this.canvas.getBoundingClientRect();
-        const x = (event.clientX || event.pageX) - rect.left;
-        const y = (event.clientY || event.pageY) - rect.top;
+        const scaleX = rect.width > 0 ? this.canvas.width / rect.width : 1;
+        const scaleY = rect.height > 0 ? this.canvas.height / rect.height : 1;
+        const x = ((event.clientX || event.pageX) - rect.left) * scaleX;
+        const y = ((event.clientY || event.pageY) - rect.top) * scaleY;
         const clickedLine = this.findTopLineAtPoint(x, y);
         if (!clickedLine) return;
+        this.lastSnakeInteractionTime = performance.now();
         if (typeof clickedLine.pokeSoft === 'function') {
             clickedLine.pokeSoft(0.85);
+        }
+        if (typeof clickedLine.onClicked === 'function') {
+            clickedLine.onClicked();
         }
 
         const result = canMove(clickedLine, this.lines, this.grid);
@@ -235,7 +243,7 @@ export class Game {
             line.pokeSoft(1.4);
         }
         this.animations.addFloatingText(headPos.x, headPos.y, `+${points}`, '#ffffff', 22);
-        this.animations.addComboText(this.canvas.width / 2, this.canvas.height / 2, this.combo, 'Mole Combo');
+        this.animations.addComboText(this.canvas.width / 2, this.canvas.height / 2, this.combo, 'Snake Combo');
         this.animations.startRemoveAnimation(line, this.grid, () => this.checkLevelComplete());
 
         this.hintLine = null;
@@ -350,7 +358,10 @@ export class Game {
     render(timestamp) {
         const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
         this.lastTime = timestamp;
-        this.animations.update(dt, Array.isArray(this.lines) ? this.lines : []);
+        const globalIdleSeconds = this.state === 'PLAYING'
+            ? Math.max(0, (timestamp - this.lastSnakeInteractionTime) / 1000)
+            : 0;
+        this.animations.update(dt, Array.isArray(this.lines) ? this.lines : [], globalIdleSeconds);
 
         const ctx = this.ctx;
         const width = this.canvas.width;

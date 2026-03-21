@@ -1,0 +1,220 @@
+{
+  "theme": "design-v5",
+  "promptVersion": "v3-concept-implement",
+  "basedOn": "ui-kb-v1 + selected concepts",
+  "styleGuide": {
+    "visualDirection": "Cute snake-burrow mobile UI, directly aligned to selected concept style: strong earthy cave scene + clean card grid + one central primary CTA.",
+    "referenceImages": [
+      "temp/design-v5/concepts-ref/home_concept_b.png",
+      "temp/design-v5/concepts-ref/settings_concept_a.png"
+    ],
+    "mustHave": [
+      "low noise texture",
+      "clean silhouette edges",
+      "clear center text safe zone for buttons",
+      "consistent warm earth palette",
+      "simple icon geometry with readable outlines"
+    ],
+    "mustNot": [
+      "watermarks",
+      "baked text on icons",
+      "checkerboard fake transparency",
+      "hollow frames unless explicitly required",
+      "busy patterns over text area",
+      "unrelated characters in utility icons"
+    ],
+    "languageSupportHint": "Leave enough flat area for short Chinese labels and medium English labels."
+  },
+  "generationPolicy": {
+    "outputFormat": "PNG",
+    "alphaRequiredFor": [
+      "button.primary",
+      "card.feature",
+      "icon.home",
+      "icon.settings",
+      "icon.leaderboard",
+      "icon.skins",
+      "icon.checkin",
+      "icon.exit",
+      "icon.coin",
+      "icon.energy",
+      "surface.panel"
+    ],
+    "safeAreaPercent": {
+      "top": 8,
+      "bottom": 10,
+      "left": 8,
+      "right": 8
+    },
+    "readabilityTargets": {
+      "buttonTextContrastMin": 4.5,
+      "iconShapeRecognizableAtPx": 28
+    }
+  },
+  "sampleSlotsForQA": [
+    "home.background",
+    "surface.panel",
+    "button.primary",
+    "card.feature",
+    "icon.settings"
+  ],
+  "assets": [
+    {
+      "slot": "home.background",
+      "fileName": "ui_app_bg.png",
+      "usage": "main menu backdrop",
+      "width": 430,
+      "height": 932,
+      "transparent": false,
+      "cropMode": "cover",
+      "prompt": "Create only one clean lobby background plate at 430x932 inspired by selected concepts: earthy cave depth, soft plants, clear upper and middle visual space. No UI controls inside.",
+      "negativePrompt": "no text, no buttons, no icons, no labels, no watermark, no checkerboard, no foreground characters blocking center",
+      "safeAreaHint": "Reserve clean top 20% and middle 35% for title and CTA overlays.",
+      "readabilityHint": "Background should support dark brown title text and yellow CTA."
+    },
+    {
+      "slot": "surface.panel",
+      "fileName": "ui_panel.png",
+      "usage": "panel shell for overlays",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create one filled rounded panel shell based on selected settings concept style: cream center, warm border, subtle depth, no holes.",
+      "negativePrompt": "no hollow frame, no cutout window, no checkerboard texture, no text",
+      "safeAreaHint": "Keep center 80% calm and readable.",
+      "readabilityHint": "Panel center must be suitable for body text and row items."
+    },
+    {
+      "slot": "button.primary",
+      "fileName": "ui_button.png",
+      "usage": "primary CTA skin",
+      "width": 760,
+      "height": 220,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create one isolated blank primary button skin matching selected home concept: rounded yellow-orange, clear border, strong center highlight, no text.",
+      "negativePrompt": "no text, no icons, no mascot, no checkerboard background, no extra objects",
+      "safeAreaHint": "Center 60% must be flat for button label.",
+      "readabilityHint": "Designed for high-contrast dark label text."
+    },
+    {
+      "slot": "card.feature",
+      "fileName": "ui_card_button.png",
+      "usage": "feature entry card background",
+      "width": 320,
+      "height": 320,
+      "transparent": true,
+      "skipBgFloodFill": true,
+      "cropMode": "contain",
+      "prompt": "Create one isolated feature card background following selected concept: solid rounded rectangle tile, gentle cream fill, subtle shadow, perfectly smooth anti-aliased border, no holes.",
+      "negativePrompt": "no text, no icon, no cutout circles, no cutout slots, no checkerboard fake transparency, no rough distressed edges, no jagged border",
+      "safeAreaHint": "Top half for icon, bottom half for short label.",
+      "readabilityHint": "Readable at approximately 118x102 display size."
+    },
+    {
+      "slot": "icon.home",
+      "fileName": "icon_home.png",
+      "usage": "home icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a clean home icon in the same line weight and warm palette as selected concept controls.",
+      "negativePrompt": "no text, no mascot, no background tile, no checkerboard",
+      "safeAreaHint": "Centered icon with padding for circular/square button host.",
+      "readabilityHint": "Recognizable at 28-34 px."
+    },
+    {
+      "slot": "icon.settings",
+      "fileName": "icon_settings.png",
+      "usage": "settings icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a gear settings icon in warm line style matching selected concepts and existing icon family.",
+      "negativePrompt": "no text, no extra character, no checkerboard, no heavy detail",
+      "safeAreaHint": "Centered and balanced silhouette.",
+      "readabilityHint": "Must remain crisp in feature card icon area."
+    },
+    {
+      "slot": "icon.leaderboard",
+      "fileName": "icon_leaderboard.png",
+      "usage": "leaderboard icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a simple trophy/rank icon with consistent stroke and warm palette from selected concepts.",
+      "negativePrompt": "no text, no snake character face, no checkerboard background",
+      "safeAreaHint": "Single dominant silhouette.",
+      "readabilityHint": "Distinct from settings and check-in icons."
+    },
+    {
+      "slot": "icon.skins",
+      "fileName": "icon_skins.png",
+      "usage": "skins icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a skins/customization icon in same visual family (palette/swatch style, simple geometry).",
+      "negativePrompt": "no text, no checkerboard, no cluttered multi-object scene",
+      "safeAreaHint": "Compact central composition.",
+      "readabilityHint": "Clear semantic at small size."
+    },
+    {
+      "slot": "icon.checkin",
+      "fileName": "icon_checkin.png",
+      "usage": "check-in icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a check-in icon (calendar + check marker) in warm cartoon line style from selected concepts.",
+      "negativePrompt": "no text digits, no snake mascot body, no checkerboard",
+      "safeAreaHint": "Leave edge padding for badge overlay.",
+      "readabilityHint": "Readable and simple at 28-34 px."
+    },
+    {
+      "slot": "icon.exit",
+      "fileName": "icon_exit.png",
+      "usage": "exit icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create an exit icon (door + outward arrow) in same simple warm icon style.",
+      "negativePrompt": "no warning signs, no text, no checkerboard",
+      "safeAreaHint": "Center icon, clean boundary.",
+      "readabilityHint": "Distinct from home icon."
+    },
+    {
+      "slot": "icon.coin",
+      "fileName": "icon_coin.png",
+      "usage": "currency icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a coin icon in warm yellow with simple outline and small highlight, aligned to selected concept style.",
+      "negativePrompt": "no text, no checkerboard, no realistic glare",
+      "safeAreaHint": "Circular compact silhouette.",
+      "readabilityHint": "Readable next to numbers in small capsules."
+    },
+    {
+      "slot": "icon.energy",
+      "fileName": "icon_energy.png",
+      "usage": "energy icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create an energy icon (lightning symbol) in warm style consistent with coin icon and selected controls.",
+      "negativePrompt": "no text, no checkerboard, no realistic electric effects",
+      "safeAreaHint": "Single shape centered.",
+      "readabilityHint": "Clear at 24-30 px."
+    }
+  ]
+}

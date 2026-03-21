@@ -1,4 +1,14 @@
-﻿const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+
+const DESIGN_V2 = {
+    snakeHead: 'assets/design-v4/clean/snake_head.png',
+    snakeHeadCurious: 'assets/design-v4/clean/snake_head_curious.png',
+    snakeHeadSleepy: 'assets/design-v4/clean/snake_head_sleepy.png',
+    snakeSegA: 'assets/design-v4/clean/snake_seg_a.png',
+    snakeSegB: 'assets/design-v4/clean/snake_seg_b.png',
+    snakeTailBase: 'assets/design-v4/clean/snake_tail_base.png',
+    snakeTailTip: 'assets/design-v4/clean/snake_tail_tip.png'
+};
 
 const THEMES = {
     moleFamily: {
@@ -142,6 +152,7 @@ const MOLE_FAMILIES = [
 
 const EXPRESSIONS = ['goofy', 'smirk', 'sleepy', 'grin'];
 const SPRITE_CACHE = new Map();
+const RASTER_SPRITE_CACHE = new Map();
 
 function createSurface(width, height) {
     const canvas = document.createElement('canvas');
@@ -152,6 +163,70 @@ function createSurface(width, height) {
 
 function spriteCacheKey(name, scale, paletteKey) {
     return `${name}:${scale}:${paletteKey}`;
+}
+
+function rasterCacheKey(name, path) {
+    return `${name}:${path}`;
+}
+
+function loadRasterSprite(name, path) {
+    const key = rasterCacheKey(name, path);
+    const cached = RASTER_SPRITE_CACHE.get(key);
+
+    if (cached?.status === 'ready') {
+        return cached.sprite;
+    }
+
+    if (!cached) {
+        const record = { status: 'loading', sprite: null };
+        const image = new Image();
+        image.decoding = 'async';
+
+        image.onload = () => {
+            const canvas = createSurface(image.naturalWidth, image.naturalHeight);
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.drawImage(image, 0, 0);
+            record.status = 'ready';
+            record.sprite = {
+                name,
+                canvas,
+                width: canvas.width,
+                height: canvas.height
+            };
+        };
+
+        image.onerror = () => {
+            record.status = 'error';
+        };
+
+        image.src = path;
+        RASTER_SPRITE_CACHE.set(key, record);
+    }
+
+    return null;
+}
+
+function ensureSnakeImageSprites(atlas) {
+    if (!atlas?.sprites) return false;
+
+    atlas.sprites.snakeHead = atlas.sprites.snakeHead || loadRasterSprite('snake-head', DESIGN_V2.snakeHead);
+    atlas.sprites.snakeHeadCurious = atlas.sprites.snakeHeadCurious || loadRasterSprite('snake-head-curious', DESIGN_V2.snakeHeadCurious);
+    atlas.sprites.snakeHeadSleepy = atlas.sprites.snakeHeadSleepy || loadRasterSprite('snake-head-sleepy', DESIGN_V2.snakeHeadSleepy);
+    atlas.sprites.snakeSegA = atlas.sprites.snakeSegA || loadRasterSprite('snake-seg-a', DESIGN_V2.snakeSegA);
+    atlas.sprites.snakeSegB = atlas.sprites.snakeSegB || loadRasterSprite('snake-seg-b', DESIGN_V2.snakeSegB);
+    atlas.sprites.snakeTailBase = atlas.sprites.snakeTailBase || loadRasterSprite('snake-tail-base', DESIGN_V2.snakeTailBase);
+    atlas.sprites.snakeTailTip = atlas.sprites.snakeTailTip || loadRasterSprite('snake-tail-tip', DESIGN_V2.snakeTailTip);
+
+    return Boolean(
+        atlas.sprites.snakeHead &&
+        atlas.sprites.snakeHeadCurious &&
+        atlas.sprites.snakeHeadSleepy &&
+        atlas.sprites.snakeSegA &&
+        atlas.sprites.snakeSegB &&
+        atlas.sprites.snakeTailBase &&
+        atlas.sprites.snakeTailTip
+    );
 }
 
 export function getThemePalette(themeName = 'moleFamily') {
@@ -216,10 +291,12 @@ export function drawSprite(ctx, sprite, x, y, options = {}) {
         scale = 1,
         rotation = 0,
         centered = true,
-        tint = null
+        tint = null,
+        smooth = false,
+        stretchX = 1
     } = options;
 
-    const width = sprite.width * scale;
+    const width = sprite.width * scale * stretchX;
     const height = sprite.height * scale;
     const drawX = centered ? x - width / 2 : x;
     const drawY = centered ? y - height / 2 : y;
@@ -233,7 +310,10 @@ export function drawSprite(ctx, sprite, x, y, options = {}) {
         ctx.translate(-x, -y);
     }
 
-    ctx.imageSmoothingEnabled = false;
+    ctx.imageSmoothingEnabled = smooth;
+    if (smooth) {
+        ctx.imageSmoothingQuality = 'high';
+    }
     ctx.drawImage(sprite.canvas, drawX, drawY, width, height);
 
     if (tint) {
@@ -246,12 +326,171 @@ export function drawSprite(ctx, sprite, x, y, options = {}) {
     ctx.restore();
 }
 
+function drawSnakeTongue(ctx, x, y, angle, thickness, alpha, style, expression = 'default', anchorAngle = angle) {
+    const length = thickness * 0.46;
+    const spread = thickness * 0.16;
+    const color = style === 'error' ? '#ff4f6f' : '#ff8cab';
+    const visibility = expression === 'sleepy' ? 0.24 : 1;
+    const frontOffset = thickness * 0.92;
+
+    ctx.save();
+    ctx.globalAlpha = alpha * 0.82 * visibility;
+    ctx.translate(
+        x + Math.cos(anchorAngle) * frontOffset,
+        y + Math.sin(anchorAngle) * frontOffset
+    );
+    ctx.rotate(angle);
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(length, -spread);
+    ctx.lineTo(length, spread);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+}
+
+function normalizeHeadUpright(angle) {
+    const full = Math.PI * 2;
+    let a = ((angle + Math.PI) % full + full) % full - Math.PI;
+    if (a > Math.PI / 2) a -= Math.PI;
+    if (a < -Math.PI / 2) a += Math.PI;
+    return a;
+}
+
+function pickSnakeHeadSprite(atlas, expression = 'default') {
+    if (expression === 'sleepy' && atlas?.sprites?.snakeHeadSleepy) {
+        return atlas.sprites.snakeHeadSleepy;
+    }
+    if (expression === 'curious' && atlas?.sprites?.snakeHeadCurious) {
+        return atlas.sprites.snakeHeadCurious;
+    }
+    return atlas?.sprites?.snakeHead || null;
+}
+
+function drawSnakePathWithSprites(ctx, pathPoints, styleState) {
+    const {
+        atlas,
+        alpha = 1,
+        style = 'normal',
+        lineId = 0,
+        wiggleTime = 0,
+        softPulse = 0,
+        headExpression = 'default'
+    } = styleState;
+
+    if (!atlas || !ensureSnakeImageSprites(atlas)) return false;
+
+    const spacing = clamp(atlas.cellSize * 0.88, 12, 22);
+    const sampled = samplePolyline(pathPoints, spacing);
+    if (sampled.length < 4) return false;
+
+    const styleTint = getStyleTint(style);
+    const wiggleStrength = (style === 'remove' ? 2.2 : 0.78) + softPulse * 1.5;
+    const thickness = clamp(atlas.cellSize * 0.9, 18, 34);
+
+    const bodyPoints = [];
+    for (const point of sampled) {
+        const envelope = Math.sin(Math.PI * point.t);
+        const wiggle = Math.sin(wiggleTime * 7 + point.t * 14 + lineId * 0.73) * wiggleStrength * envelope;
+        bodyPoints.push({
+            ...point,
+            x: point.x - point.dirY * wiggle,
+            y: point.y + point.dirX * wiggle
+        });
+    }
+
+    const tail = bodyPoints[0];
+    const tailNext = bodyPoints[1];
+    const tailAngle = Math.atan2(tailNext.y - tail.y, tailNext.x - tail.x) + Math.PI;
+
+    const tailTipScale = (thickness * 0.95) / atlas.sprites.snakeTailTip.height;
+    drawSprite(ctx, atlas.sprites.snakeTailTip, tail.x, tail.y, {
+        alpha: alpha * 0.96,
+        rotation: tailAngle,
+        scale: tailTipScale,
+        tint: styleTint,
+        smooth: true
+    });
+
+    for (let i = 1; i < bodyPoints.length - 1; i++) {
+        const point = bodyPoints[i];
+        const prev = bodyPoints[Math.max(0, i - 1)];
+        const next = bodyPoints[Math.min(bodyPoints.length - 1, i + 1)];
+        const angle = Math.atan2(next.y - prev.y, next.x - prev.x);
+        const t = i / Math.max(1, bodyPoints.length - 1);
+
+        const sprite = i % 2 === 0 ? atlas.sprites.snakeSegA : atlas.sprites.snakeSegB;
+        const sizeTier = t > 0.76 ? 1.12 : (t > 0.5 ? 1.0 : 0.9);
+        const pulse = 1 + Math.sin(i * 0.6 + wiggleTime * 2.1) * 0.03 + softPulse * 0.04;
+        const scale = (thickness * sizeTier * pulse) / sprite.height;
+
+        drawSprite(ctx, sprite, point.x, point.y, {
+            alpha: alpha * (0.84 + t * 0.12),
+            rotation: angle,
+            scale,
+            tint: styleTint,
+            smooth: true
+        });
+    }
+
+    const sampledHead = sampled[sampled.length - 1];
+    const sampledNeck = sampled[Math.max(1, sampled.length - 2)];
+    const rawTravelAngle = Math.atan2(sampledHead.y - sampledNeck.y, sampledHead.x - sampledNeck.x);
+    const travelAngle = Number.isFinite(rawTravelAngle) ? rawTravelAngle : 0;
+    const headAngle = normalizeHeadUpright(travelAngle + Math.PI);
+    const bobAmplitude = thickness * (0.06 + softPulse * 0.03);
+    const headBob = Math.sin(wiggleTime * 7 + lineId * 0.73 + Math.PI * 0.25) * bobAmplitude;
+    const neckBob = headBob * 0.58;
+    const isVerticalByPath = Math.abs(Math.sin(travelAngle)) > Math.abs(Math.cos(travelAngle));
+    const headRender = {
+        x: sampledHead.x + (isVerticalByPath ? 0 : headBob),
+        y: sampledHead.y + (isVerticalByPath ? headBob : 0)
+    };
+    const neckRender = {
+        x: sampledNeck.x + (isVerticalByPath ? 0 : neckBob),
+        y: sampledNeck.y + (isVerticalByPath ? neckBob : 0)
+    };
+
+    const neckScale = (thickness * 1.05) / atlas.sprites.snakeSegA.height;
+    drawSprite(ctx, atlas.sprites.snakeSegA, neckRender.x, neckRender.y, {
+        alpha: alpha * 0.96,
+        rotation: headAngle,
+        scale: neckScale,
+        tint: styleTint,
+        smooth: true
+    });
+
+    const headSprite = pickSnakeHeadSprite(atlas, headExpression);
+    const headScale = (thickness * 1.1) / headSprite.height;
+    drawSprite(ctx, headSprite, headRender.x, headRender.y, {
+        alpha,
+        rotation: headAngle,
+        scale: headScale,
+        tint: styleTint,
+        smooth: true
+    });
+
+    drawSnakeTongue(
+        ctx,
+        headRender.x,
+        headRender.y,
+        travelAngle + Math.PI,
+        thickness,
+        alpha,
+        style,
+        headExpression,
+        travelAngle
+    );
+    return true;
+}
+
 function getStyleTint(style) {
     switch (style) {
         case 'highlight':
             return '#ffe79a';
         case 'remove':
-            return '#b7ffcc';
+            return 'rgba(183, 255, 204, 0.28)';
         case 'error':
             return '#ff9caf';
         default:
@@ -521,6 +760,7 @@ export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily'
     const scale = clamp(Math.round((cellSize / 18) * Math.min(2, Math.max(1, dpr))), 2, 5);
 
     return {
+        cellSize,
         scale,
         theme,
         sprites: {
@@ -531,12 +771,23 @@ export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily'
             decoRune: renderSprite('deco-mushroom', MATRICES.decoMushroom, theme.palette, clamp(scale - 1, 1, 4)),
             decoTorch: renderSprite('deco-flower', MATRICES.decoFlower, theme.palette, clamp(scale - 1, 1, 4)),
             particleSquare: renderSprite('particle-leaf', MATRICES.particleLeaf, theme.palette, clamp(scale - 1, 1, 4)),
-            particleStar: renderSprite('particle-heart', MATRICES.particleHeart, theme.palette, clamp(scale - 1, 1, 4))
+            particleStar: renderSprite('particle-heart', MATRICES.particleHeart, theme.palette, clamp(scale - 1, 1, 4)),
+            snakeHead: loadRasterSprite('snake-head', DESIGN_V2.snakeHead),
+            snakeHeadCurious: loadRasterSprite('snake-head-curious', DESIGN_V2.snakeHeadCurious),
+            snakeHeadSleepy: loadRasterSprite('snake-head-sleepy', DESIGN_V2.snakeHeadSleepy),
+            snakeSegA: loadRasterSprite('snake-seg-a', DESIGN_V2.snakeSegA),
+            snakeSegB: loadRasterSprite('snake-seg-b', DESIGN_V2.snakeSegB),
+            snakeTailBase: loadRasterSprite('snake-tail-base', DESIGN_V2.snakeTailBase),
+            snakeTailTip: loadRasterSprite('snake-tail-tip', DESIGN_V2.snakeTailTip)
         }
     };
 }
 
 export function drawArrowPathPixels(ctx, pathPoints, direction, styleState = {}) {
+    if (drawSnakePathWithSprites(ctx, pathPoints, styleState)) {
+        return;
+    }
+
     const {
         atlas,
         alpha = 1,

@@ -1,5 +1,5 @@
-﻿import { DIR_VECTORS } from './grid.js?v=40';
-import { drawArrowPathPixels } from './pixel-art.js?v=3';
+import { DIR_VECTORS } from './grid.js?v=40';
+import { drawArrowPathPixels } from './pixel-art.js?v=16';
 
 export class Line {
     constructor(id, cells, direction, color = '#1a1c3d') {
@@ -20,27 +20,28 @@ export class Line {
         this.isHighlighted = false;
         this.wiggleTime = Math.random() * Math.PI * 2;
         this.softPulse = 0;
+        this.curiousRemaining = 0;
+        this.headExpression = 'default';
     }
 
-    update(dt) {
+    update(dt, globalIdleSeconds = Infinity) {
+        if (this.curiousRemaining > 0) {
+            this.curiousRemaining = Math.max(0, this.curiousRemaining - dt);
+        }
+        if (this.curiousRemaining > 0) {
+            this.headExpression = 'curious';
+        } else if (globalIdleSeconds >= 10) {
+            this.headExpression = 'sleepy';
+        } else {
+            this.headExpression = 'default';
+        }
+
         const removeBoost = this.state === 'removing' ? 2 : 0;
         this.wiggleTime += dt * (2.6 + removeBoost + this.softPulse * 5);
         this.softPulse = Math.max(0, this.softPulse - dt * 2.4);
 
-        if (this.state === 'removing' && this.currentRenderPts.length > 1) {
-            this.trails.push({
-                pts: this.currentRenderPts.map((point) => ({ ...point })),
-                opacity: 1
-            });
-            if (this.trails.length > this.maxTrails) {
-                this.trails.shift();
-            }
-        }
-
-        for (const trail of this.trails) {
-            trail.opacity -= dt * 5;
-        }
-        this.trails = this.trails.filter((trail) => trail.opacity > 0);
+        // Removed trail afterimage layer to avoid square translucent overlay artifacts.
+        this.trails = [];
     }
 
     draw(ctx, grid, pixelTheme = null) {
@@ -76,7 +77,8 @@ export class Line {
                 style: pickPixelStyle(this, strokeColor),
                 lineId: this.id,
                 wiggleTime: this.wiggleTime,
-                softPulse: this.softPulse
+                softPulse: this.softPulse,
+                headExpression: this.headExpression
             });
         } else if (renderPts.length > 0) {
             ctx.lineCap = 'round';
@@ -222,6 +224,11 @@ export class Line {
 
     pokeSoft(strength = 1) {
         this.softPulse = Math.max(this.softPulse, strength);
+    }
+
+    onClicked() {
+        this.curiousRemaining = Math.max(this.curiousRemaining, 0.75);
+        this.headExpression = 'curious';
     }
 }
 

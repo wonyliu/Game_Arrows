@@ -1,7 +1,7 @@
 import { Grid } from './grid.js?v=40';
 import { canMove } from './collision.js?v=40';
 import { getBaseLevelConfig } from './levels.js?v=40';
-import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=45';
+import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=46';
 import {
     applyStoredSettings,
     buildStoredSettings,
@@ -11,9 +11,10 @@ import {
     estimateLineCount,
     getPreviewLevelRecord,
     getSavedLevelRecord,
+    initLevelStorage,
     savePreviewLevelRecord,
     saveSavedLevelRecord
-} from './level-storage.js?v=40';
+} from './level-storage.js?v=41';
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),
@@ -56,9 +57,14 @@ let rightMouseDownTime = 0;
 let rightMouseDownPos = null;
 let isPathVisible = true; // NEW: Toggle for Hamiltonian Path visibility
 
-init();
+init().catch((error) => {
+    console.error(error);
+    setStatus(`Admin init failed: ${error?.message || 'unknown error'}`);
+});
 
-function init() {
+async function init() {
+    await initLevelStorage();
+
     for (let i = 1; i <= 30; i++) {
         const option = document.createElement('option');
         option.value = String(i);
@@ -201,15 +207,21 @@ async function onGenerate(mode = 1) {
         await nextFrame();
 
         setGenerateProgress(92, 'Saving local records...');
-        savePreviewLevelRecord(level, previewRecord);
-        saveSavedLevelRecord(level, previewRecord);
+        const [previewOk, savedOk] = await Promise.all([
+            savePreviewLevelRecord(level, previewRecord),
+            saveSavedLevelRecord(level, previewRecord)
+        ]);
 
         drawPreviewState();
         drawStats(previewRecord);
         updateDerived();
         setGenerateProgress(100, 'Done');
         const modeLabel = mode === 3 ? 'bent' : 'straight';
-        setStatus(`Level ${level} generated and saved locally. Mode=${mode} (${modeLabel}).`);
+        if (previewOk && savedOk) {
+            setStatus(`Level ${level} generated and persisted to local files. Mode=${mode} (${modeLabel}).`);
+        } else {
+            setStatus(`Level ${level} generated, but disk sync is unavailable. Saved to browser cache only. Mode=${mode} (${modeLabel}).`);
+        }
     } catch (error) {
         setGenerateProgress(0, 'Generation failed');
         setStatus(`Generate failed: ${error?.message || 'unknown error'}`);
@@ -392,24 +404,37 @@ function onHint() {
     }
 }
 
-function onSave() {
+async function onSave() {
     const level = getLevel();
     if (!previewRecord) {
-        onGenerate();
+        await onGenerate();
+        if (!previewRecord) {
+            return;
+        }
     }
-    saveSavedLevelRecord(level, previewRecord);
-    setStatus(`Level ${level} saved. Game will load this record first.`);
+    const savedOk = await saveSavedLevelRecord(level, previewRecord);
+    if (savedOk) {
+        setStatus(`Level ${level} saved permanently to local file. Game will load this record first.`);
+    } else {
+        setStatus(`Level ${level} saved to browser cache only (disk sync unavailable).`);
+    }
 }
 
-function onReset() {
+async function onReset() {
     const level = getLevel();
-    deletePreviewLevelRecord(level);
-    deleteSavedLevelRecord(level);
+    const [previewDeleted, savedDeleted] = await Promise.all([
+        deletePreviewLevelRecord(level),
+        deleteSavedLevelRecord(level)
+    ]);
     previewRecord = null;
     renderedLevelData = null;
     previewPlayState = null;
     loadLevelState();
-    setStatus(`Level ${level} reset.`);
+    if (previewDeleted && savedDeleted) {
+        setStatus(`Level ${level} reset and removed from local files.`);
+    } else {
+        setStatus(`Level ${level} reset in browser cache only (disk sync unavailable).`);
+    }
 }
 
 function onCanvasMouseDown(event) {

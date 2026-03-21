@@ -1,0 +1,435 @@
+{
+  "schema": "KbComponentRecipeV1",
+  "version": "1.0.0",
+  "theme": "design-v5",
+  "components": [
+    {
+      "id": "panel_surface",
+      "category": "surface",
+      "interactive": false,
+      "states": {
+        "default": {
+          "fillToken": "color.panelCream",
+          "strokeToken": "color.panelStroke",
+          "shadowToken": "shadow.panel"
+        }
+      },
+      "layout": {
+        "cornerRadiusToken": "radius.panel",
+        "paddingToken": "spacing.lg"
+      },
+      "text": {
+        "enabled": false
+      },
+      "icon": {
+        "required": false
+      },
+      "badge": {
+        "allowed": false
+      },
+      "constraints": {
+        "noiseLevel": "low",
+        "texturePriority": "below-content"
+      },
+      "tokenRefs": [
+        "color.panelCream",
+        "color.panelStroke",
+        "shadow.panel",
+        "radius.panel",
+        "spacing.lg"
+      ]
+    },
+    {
+      "id": "panel_header",
+      "category": "header",
+      "interactive": true,
+      "states": {
+        "default": {
+          "titleColorToken": "color.textPrimary",
+          "backButtonFillToken": "color.panelWood",
+          "backButtonTextToken": "color.textInverse"
+        }
+      },
+      "layout": {
+        "height": 72,
+        "backButton": {
+          "width": 88,
+          "height": 44
+        },
+        "hitArea": {
+          "width": 88,
+          "height": 44
+        }
+      },
+      "text": {
+        "titleFontToken": "typography.titleMd",
+        "titleMaxChars": {
+          "zh-CN": 8,
+          "en-US": 18
+        }
+      },
+      "icon": {
+        "required": false
+      },
+      "badge": {
+        "allowed": false
+      },
+      "constraints": {
+        "singlePerScreen": true
+      },
+      "tokenRefs": [
+        "color.textPrimary",
+        "color.panelWood",
+        "color.textInverse",
+        "typography.titleMd"
+      ]
+    },
+    {
+      "id": "primary_cta_button",
+      "category": "button",
+      "interactive": true,
+      "states": {
+        "default": {
+          "fillToken": "color.ctaFill",
+          "textToken": "color.ctaText",
+          "shadowToken": "shadow.buttonRaised"
+        },
+        "pressed": {
+          "fillToken": "color.ctaFillPressed",
+          "textToken": "color.ctaText"
+        },
+        "disabled": {
+          "fillToken": "color.disabledFill",
+          "textToken": "color.disabledText"
+        }
+      },
+      "layout": {
+        "width": 250,
+        "height": 76,
+        "minWidth": 220,
+        "minHeight": 64,
+        "cornerRadiusToken": "radius.buttonLg",
+        "hitArea": {
+          "width": 250,
+          "height": 76
+        }
+      },
+      "text": {
+        "fontToken": "typography.buttonLg",
+        "maxChars": {
+          "zh-CN": 6,
+          "en-US": 18
+        }
+      },
+      "icon": {
+        "required": false
+      },
+      "badge": {
+        "allowed": false
+      },
+      "constraints": {
+        "onePerScreen": true,
+        "contrastRatioMin": 4.5
+      },
+      "tokenRefs": [
+        "color.ctaFill",
+        "color.ctaFillPressed",
+        "color.ctaText",
+        "color.disabledFill",
+        "color.disabledText",
+        "shadow.buttonRaised",
+        "radius.buttonLg",
+        "typography.buttonLg"
+      ]
+    },
+    {
+      "id": "secondary_button",
+      "category": "button",
+      "interactive": true,
+      "states": {
+        "default": {
+          "fillToken": "color.secondaryFill",
+          "textToken": "color.secondaryText"
+        },
+        "pressed": {
+          "fillToken": "color.panelWood",
+          "textToken": "color.textPrimary"
+        },
+        "disabled": {
+          "fillToken": "color.disabledFill",
+          "textToken": "color.disabledText"
+        }
+      },
+      "layout": {
+        "width": 176,
+        "height": 56,
+        "cornerRadiusToken": "radius.buttonSm",
+        "hitArea": {
+          "width": 176,
+          "height": 56
+        }
+      },
+      "text": {
+        "fontToken": "typography.buttonMd",
+        "maxChars": {
+          "zh-CN": 8,
+          "en-US": 18
+        }
+      },
+      "icon": {
+        "required": false
+      },
+      "badge": {
+        "allowed": false
+      },
+      "constraints": {
+        "contrastRatioMin": 4
+      },
+      "tokenRefs": [
+        "color.secondaryFill",
+        "color.secondaryText",
+        "color.panelWood",
+        "color.textPrimary",
+        "color.disabledFill",
+        "color.disabledText",
+        "radius.buttonSm",
+        "typography.buttonMd"
+      ]
+    },
+    {
+      "id": "feature_card",
+      "category": "entry",
+      "interactive": true,
+      "states": {
+        "default": {
+          "fillToken": "color.panelCream",
+          "textToken": "color.textPrimary",
+          "shadowToken": "shadow.card"
+        },
+        "pressed": {
+          "fillToken": "color.panelWood",
+          "textToken": "color.textInverse"
+        },
+        "disabled": {
+          "fillToken": "color.disabledFill",
+          "textToken": "color.disabledText"
+        }
+      },
+      "layout": {
+        "width": 118,
+        "height": 102,
+        "cornerRadiusToken": "radius.card",
+        "iconMaxSize": 34,
+        "hitArea": {
+          "width": 118,
+          "height": 102
+        }
+      },
+      "text": {
+        "fontToken": "typography.bodySm",
+        "maxChars": {
+          "zh-CN": 4,
+          "en-US": 12
+        }
+      },
+      "icon": {
+        "required": true,
+        "slotField": "iconSlot"
+      },
+      "badge": {
+        "allowed": true,
+        "maxPerCard": 1,
+        "defaultVisible": false
+      },
+      "constraints": {
+        "maxSiblingsInLayer": 6,
+        "disabledStyle": "desaturate-and-dim"
+      },
+      "featureBindings": [
+        {
+          "id": "settings",
+          "labelKey": "feature.settings",
+          "panelId": "SETTINGS",
+          "priority": "high",
+          "defaultBadge": null
+        },
+        {
+          "id": "leaderboard",
+          "labelKey": "feature.leaderboard",
+          "panelId": "LEADERBOARD",
+          "priority": "high",
+          "defaultBadge": null
+        },
+        {
+          "id": "skins",
+          "labelKey": "feature.skins",
+          "panelId": "SKINS",
+          "priority": "medium",
+          "defaultBadge": null
+        },
+        {
+          "id": "checkin",
+          "labelKey": "feature.checkin",
+          "panelId": "CHECKIN",
+          "priority": "high",
+          "defaultBadge": "1"
+        },
+        {
+          "id": "exit",
+          "labelKey": "feature.exit",
+          "panelId": "EXIT_CONFIRM",
+          "priority": "low",
+          "defaultBadge": null
+        }
+      ],
+      "tokenRefs": [
+        "color.panelCream",
+        "color.textPrimary",
+        "shadow.card",
+        "color.panelWood",
+        "color.textInverse",
+        "color.disabledFill",
+        "color.disabledText",
+        "radius.card",
+        "typography.bodySm"
+      ]
+    },
+    {
+      "id": "resource_capsule",
+      "category": "info",
+      "interactive": false,
+      "states": {
+        "default": {
+          "fillToken": "color.panelWood",
+          "textToken": "color.textInverse"
+        }
+      },
+      "layout": {
+        "width": 104,
+        "height": 72,
+        "cornerRadiusToken": "radius.chip"
+      },
+      "text": {
+        "fontToken": "typography.bodyMd",
+        "maxChars": {
+          "zh-CN": 6,
+          "en-US": 10
+        }
+      },
+      "icon": {
+        "required": true,
+        "slotField": "iconSlot"
+      },
+      "badge": {
+        "allowed": false
+      },
+      "constraints": {
+        "numericOnlyPrimaryValue": true
+      },
+      "tokenRefs": [
+        "color.panelWood",
+        "color.textInverse",
+        "radius.chip",
+        "typography.bodyMd"
+      ]
+    },
+    {
+      "id": "badge_indicator",
+      "category": "badge",
+      "interactive": false,
+      "states": {
+        "default": {
+          "fillToken": "color.badgeFill",
+          "textToken": "color.badgeText",
+          "shadowToken": "shadow.badge"
+        }
+      },
+      "layout": {
+        "width": 24,
+        "height": 24,
+        "cornerRadiusToken": "radius.pill"
+      },
+      "text": {
+        "fontToken": "typography.labelSm",
+        "maxChars": {
+          "zh-CN": 3,
+          "en-US": 3
+        },
+        "overflowText": "99+"
+      },
+      "icon": {
+        "required": false
+      },
+      "badge": {
+        "allowed": false
+      },
+      "constraints": {
+        "maxVisiblePerScreen": 2
+      },
+      "tokenRefs": [
+        "color.badgeFill",
+        "color.badgeText",
+        "shadow.badge",
+        "radius.pill",
+        "typography.labelSm"
+      ]
+    },
+    {
+      "id": "bottom_nav_item",
+      "category": "navigation",
+      "interactive": true,
+      "states": {
+        "default": {
+          "fillToken": "color.panelWood",
+          "textToken": "color.textInverse"
+        },
+        "active": {
+          "fillToken": "color.secondaryFill",
+          "textToken": "color.secondaryText"
+        },
+        "disabled": {
+          "fillToken": "color.disabledFill",
+          "textToken": "color.disabledText"
+        }
+      },
+      "layout": {
+        "width": 120,
+        "height": 56,
+        "cornerRadiusToken": "radius.buttonSm",
+        "hitArea": {
+          "width": 120,
+          "height": 56
+        }
+      },
+      "text": {
+        "fontToken": "typography.bodySm",
+        "maxChars": {
+          "zh-CN": 4,
+          "en-US": 10
+        }
+      },
+      "icon": {
+        "required": true,
+        "slotField": "iconSlot"
+      },
+      "badge": {
+        "allowed": true,
+        "maxPerCard": 1,
+        "defaultVisible": false
+      },
+      "constraints": {
+        "reservedForFutureTabs": true
+      },
+      "tokenRefs": [
+        "color.panelWood",
+        "color.textInverse",
+        "color.secondaryFill",
+        "color.secondaryText",
+        "color.disabledFill",
+        "color.disabledText",
+        "radius.buttonSm",
+        "typography.bodySm"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,135 @@
+﻿{
+  "theme": "design-v5",
+  "promptVersion": "v1",
+  "styleGuide": {
+    "visualDirection": "Cute snake-burrow mobile game UI with clean cutout edges, high readability, warm earthy palette, no noisy texture.",
+    "constraints": [
+      "PNG output",
+      "Readable button labels area",
+      "Safe margins for 430x932 portrait frame",
+      "No watermark or text baked into icon assets"
+    ]
+  },
+  "assets": [
+    {
+      "slot": "home.background",
+      "fileName": "ui_app_bg.png",
+      "usage": "main menu backdrop",
+      "width": 430,
+      "height": 932,
+      "transparent": false,
+      "cropMode": "cover",
+      "prompt": "Create a portrait mobile game lobby background for a cute snake burrow puzzle game, 430x932 ratio, warm green and soil tones, subtle depth, no text, no characters in foreground."
+    },
+    {
+      "slot": "surface.panel",
+      "fileName": "ui_panel.png",
+      "usage": "panel shell",
+      "width": 1024,
+      "height": 1024,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a soft rounded UI panel texture, transparent background, warm wood/grass style, clean edge, suitable for popups."
+    },
+    {
+      "slot": "button.primary",
+      "fileName": "ui_button.png",
+      "usage": "primary CTA",
+      "width": 760,
+      "height": 220,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a wide rounded game button skin, transparent background, high contrast center area for text, cute cartoon style."
+    },
+    {
+      "slot": "card.feature",
+      "fileName": "ui_card_button.png",
+      "usage": "feature card background",
+      "width": 320,
+      "height": 320,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a compact rounded feature card badge for mobile game menu, transparent background, bright and readable."
+    },
+    {
+      "slot": "icon.settings",
+      "fileName": "icon_settings.png",
+      "usage": "settings icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute settings icon (gear) for snake-themed game UI, transparent background, bold silhouette."
+    },
+    {
+      "slot": "icon.leaderboard",
+      "fileName": "icon_leaderboard.png",
+      "usage": "leaderboard icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute leaderboard icon (trophy or rank badge), transparent background, game UI style."
+    },
+    {
+      "slot": "icon.skins",
+      "fileName": "icon_skins.png",
+      "usage": "skins icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute skins/customization icon (palette or shirt badge), transparent background, game UI style."
+    },
+    {
+      "slot": "icon.checkin",
+      "fileName": "icon_checkin.png",
+      "usage": "checkin icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute daily check-in icon (calendar + reward), transparent background, game UI style."
+    },
+    {
+      "slot": "icon.exit",
+      "fileName": "icon_exit.png",
+      "usage": "exit icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute exit icon (door or arrow out), transparent background, game UI style."
+    },
+    {
+      "slot": "icon.home",
+      "fileName": "icon_home.png",
+      "usage": "home icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute home icon for mobile puzzle game, transparent background."
+    },
+    {
+      "slot": "icon.coin",
+      "fileName": "icon_coin.png",
+      "usage": "currency icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute coin icon for snake puzzle game UI, transparent background."
+    },
+    {
+      "slot": "icon.energy",
+      "fileName": "icon_energy.png",
+      "usage": "energy icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create a cute energy icon (leaf or lightning), transparent background, game UI style."
+    }
+  ]
+}

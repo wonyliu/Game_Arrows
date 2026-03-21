@@ -2,10 +2,31 @@ import { Line } from './line.js?v=22';
 
 const SAVED_LEVELS_KEY = 'arrowClear_savedLevels_v1';
 const PREVIEW_LEVELS_KEY = 'arrowClear_previewLevels_v1';
+const SAVED_LEVELS_FILE = 'saved-levels-v1';
+const PREVIEW_LEVELS_FILE = 'preview-levels-v1';
+const STORAGE_API_BASE = '/api/storage';
+
 const DEFAULT_PLAYFIELD = {
     width: 430,
     height: 664
 };
+
+let savedLevelsCache = readMap(SAVED_LEVELS_KEY);
+let previewLevelsCache = readMap(PREVIEW_LEVELS_KEY);
+let storageInitPromise = null;
+let serverSyncWarned = false;
+
+export function initLevelStorage() {
+    if (storageInitPromise) {
+        return storageInitPromise;
+    }
+
+    storageInitPromise = hydrateFromServer().catch((error) => {
+        console.warn('[level-storage] init failed, fallback to browser storage', error);
+    });
+
+    return storageInitPromise;
+}
 
 export function deriveGridSize(dimensionMode, dimensionValue) {
     const value = clamp(Math.round(Number(dimensionValue) || 0), 4, 40);
@@ -80,7 +101,7 @@ export function serializeLevelData(config, lines, path = null) {
         minLen: config.minLen,
         maxLen: config.maxLen,
         lineCount: lines.length,
-        path: path, // Added path meta
+        path,
         lines: lines.map((line) => ({
             id: line.id,
             direction: line.direction,
@@ -104,47 +125,149 @@ export function deserializeLevelData(levelData) {
 }
 
 export function getSavedLevelRecord(level) {
-    return readMap(SAVED_LEVELS_KEY)[String(level)] || null;
+    return savedLevelsCache[String(level)] || null;
 }
 
 export function saveSavedLevelRecord(level, record) {
-    const map = readMap(SAVED_LEVELS_KEY);
-    map[String(level)] = record;
-    writeMap(SAVED_LEVELS_KEY, map);
+    savedLevelsCache = {
+        ...savedLevelsCache,
+        [String(level)]: record
+    };
+    writeMap(SAVED_LEVELS_KEY, savedLevelsCache);
+    return persistMapToServer(SAVED_LEVELS_FILE, savedLevelsCache);
 }
 
 export function deleteSavedLevelRecord(level) {
-    const map = readMap(SAVED_LEVELS_KEY);
-    delete map[String(level)];
-    writeMap(SAVED_LEVELS_KEY, map);
+    savedLevelsCache = { ...savedLevelsCache };
+    delete savedLevelsCache[String(level)];
+    writeMap(SAVED_LEVELS_KEY, savedLevelsCache);
+    return persistMapToServer(SAVED_LEVELS_FILE, savedLevelsCache);
 }
 
 export function getPreviewLevelRecord(level) {
-    return readMap(PREVIEW_LEVELS_KEY)[String(level)] || null;
+    return previewLevelsCache[String(level)] || null;
 }
 
 export function savePreviewLevelRecord(level, record) {
-    const map = readMap(PREVIEW_LEVELS_KEY);
-    map[String(level)] = record;
-    writeMap(PREVIEW_LEVELS_KEY, map);
+    previewLevelsCache = {
+        ...previewLevelsCache,
+        [String(level)]: record
+    };
+    writeMap(PREVIEW_LEVELS_KEY, previewLevelsCache);
+    return persistMapToServer(PREVIEW_LEVELS_FILE, previewLevelsCache);
 }
 
 export function deletePreviewLevelRecord(level) {
-    const map = readMap(PREVIEW_LEVELS_KEY);
-    delete map[String(level)];
-    writeMap(PREVIEW_LEVELS_KEY, map);
+    previewLevelsCache = { ...previewLevelsCache };
+    delete previewLevelsCache[String(level)];
+    writeMap(PREVIEW_LEVELS_KEY, previewLevelsCache);
+    return persistMapToServer(PREVIEW_LEVELS_FILE, previewLevelsCache);
+}
+
+async function hydrateFromServer() {
+    const [savedRemote, previewRemote] = await Promise.all([
+        fetchMapFromServer(SAVED_LEVELS_FILE),
+        fetchMapFromServer(PREVIEW_LEVELS_FILE)
+    ]);
+
+    if (savedRemote) {
+        savedLevelsCache = savedRemote;
+        writeMap(SAVED_LEVELS_KEY, savedLevelsCache);
+    }
+
+    if (previewRemote) {
+        previewLevelsCache = previewRemote;
+        writeMap(PREVIEW_LEVELS_KEY, previewLevelsCache);
+    }
+}
+
+async function fetchMapFromServer(name) {
+    if (!canUseServerStorage()) {
+        return null;
+    }
+
+    try {
+        const response = await fetch(`${STORAGE_API_BASE}/${name}`, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+        return isPlainObject(data) ? data : {};
+    } catch (error) {
+        warnServerUnavailable(error);
+        return null;
+    }
+}
+
+async function persistMapToServer(name, mapValue) {
+    if (!canUseServerStorage()) {
+        return false;
+    }
+
+    try {
+        const response = await fetch(`${STORAGE_API_BASE}/${name}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(mapValue)
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+
+        return true;
+    } catch (error) {
+        warnServerUnavailable(error);
+        return false;
+    }
+}
+
+function warnServerUnavailable(error) {
+    if (serverSyncWarned) {
+        return;
+    }
+    serverSyncWarned = true;
+    console.warn('[level-storage] server sync unavailable, fallback to browser storage only', error);
 }
 
 function readMap(key) {
+    if (typeof localStorage === 'undefined') {
+        return {};
+    }
+
     try {
-        return JSON.parse(localStorage.getItem(key) || '{}');
+        const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+        return isPlainObject(parsed) ? parsed : {};
     } catch {
         return {};
     }
 }
 
 function writeMap(key, value) {
-    localStorage.setItem(key, JSON.stringify(value));
+    if (typeof localStorage === 'undefined') {
+        return;
+    }
+
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch (error) {
+        console.warn('[level-storage] failed to write browser storage', error);
+    }
+}
+
+function canUseServerStorage() {
+    return typeof window !== 'undefined' && typeof fetch === 'function';
+}
+
+function isPlainObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
 }
 
 function clamp(value, min, max) {
