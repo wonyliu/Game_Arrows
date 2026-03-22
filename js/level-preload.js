@@ -4,25 +4,31 @@ import { buildStoredSettings, getSavedLevelRecord, saveSavedLevelRecord } from '
 
 const PRELOAD_MODE = 1;
 const MAX_PRELOAD_LEVEL = 60;
-const NEXT_LEVEL_INTERVAL_MS = 3000;
+const NEXT_LEVEL_INTERVAL_MS = 4000;
+const NEXT_LEVEL_INITIAL_DELAY_MS = 1200;
 
 let preloadQueue = Promise.resolve();
 const pendingLevels = new Set();
 let nextLevelTimer = null;
+let nextLevelInitialTimer = null;
 
-export async function preloadPlayableLevels(maxUnlockedLevel) {
-    const maxLevel = normalizeLevel(maxUnlockedLevel);
-    if (maxLevel < 1) return;
-
-    for (let level = 1; level <= maxLevel; level++) {
-        await enqueueEnsureLevel(level);
-    }
+export async function preloadPlayableLevel(maxUnlockedLevel) {
+    const level = normalizeLevel(maxUnlockedLevel);
+    if (level < 1) return;
+    await enqueueEnsureLevel(level);
 }
 
-export function startNextUnlockPreload(getUnlockedLevel) {
+export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
     stopNextUnlockPreload();
+    const canPreload = typeof options.canPreload === 'function'
+        ? options.canPreload
+        : () => true;
 
     const tick = () => {
+        if (!canPreload()) {
+            return;
+        }
+
         const unlockedLevel = normalizeLevel(getUnlockedLevel?.());
         const nextLevel = normalizeLevel(unlockedLevel + 1);
         if (nextLevel >= 1) {
@@ -30,11 +36,15 @@ export function startNextUnlockPreload(getUnlockedLevel) {
         }
     };
 
-    tick();
     nextLevelTimer = setInterval(tick, NEXT_LEVEL_INTERVAL_MS);
+    nextLevelInitialTimer = setTimeout(tick, NEXT_LEVEL_INITIAL_DELAY_MS);
 }
 
 export function stopNextUnlockPreload() {
+    if (nextLevelInitialTimer) {
+        clearTimeout(nextLevelInitialTimer);
+        nextLevelInitialTimer = null;
+    }
     if (!nextLevelTimer) return;
     clearInterval(nextLevelTimer);
     nextLevelTimer = null;

@@ -3,7 +3,7 @@
  */
 import { Game } from './game.js?v=53';
 import { UI } from './ui.js?v=38';
-import { preloadPlayableLevels, startNextUnlockPreload, stopNextUnlockPreload } from './level-preload.js?v=1';
+import { preloadPlayableLevel, startNextUnlockPreload, stopNextUnlockPreload } from './level-preload.js?v=2';
 import { getMaxStoredLevel, initLevelStorage } from './level-storage.js?v=44';
 import { initUiTheme } from './ui-theme.js?v=2';
 
@@ -90,11 +90,14 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
             gameRef.currentLevel = Math.min(gameRef.currentLevel, gameRef.maxUnlockedLevel);
             gameRef.saveProgress();
         }
-        await preloadPlayableLevels(gameRef.maxUnlockedLevel);
+        await preloadPlayableLevel(gameRef.maxUnlockedLevel);
         uiRef = new UI(gameRef);
         gameRef.start();
         applyAdaptiveLayout(true);
-        startNextUnlockPreload(() => gameRef?.maxUnlockedLevel || 1);
+        startNextUnlockPreload(
+            () => gameRef?.maxUnlockedLevel || 1,
+            { canPreload: () => !!gameRef && gameRef.state !== 'PLAYING' }
+        );
 
         // Re-apply assets after manifest is ready.
         themeInitTask.then(() => {
