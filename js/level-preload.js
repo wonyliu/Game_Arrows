@@ -28,14 +28,14 @@ export async function preloadCurrentPlayableLevels(maxUnlockedLevel, options = {
     }
 
     const startedAt = nowMs();
-    console.info(`${LOG_TAG} boot preload start`, { level: targetLevel });
+    console.info(`${LOG_TAG} boot preload start ${toLogJson({ level: targetLevel })}`);
     onProgress?.({ done: 0, total: 1, level: targetLevel, source: 'pending' });
     const source = await enqueueEnsureLevel(targetLevel);
-    console.info(`${LOG_TAG} boot preload done`, {
+    console.info(`${LOG_TAG} boot preload done ${toLogJson({
         level: targetLevel,
         source: source || 'failed',
         durationMs: Math.round(nowMs() - startedAt)
-    });
+    })}`);
     onProgress?.({ done: 1, total: 1, level: targetLevel, source: source || 'failed' });
 }
 
@@ -48,6 +48,7 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
     stopNextUnlockPreload();
     const canPreload = typeof options.canPreload === 'function' ? options.canPreload : () => true;
     const onStatus = typeof options.onStatus === 'function' ? options.onStatus : null;
+    const emitStatus = createStatusEmitter(onStatus);
 
     let running = false;
     let satisfiedUnlockedLevel = -1;
@@ -65,10 +66,10 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
 
             let currentSource = 'cache';
             if (!hasUsableCachedLevel(unlockedLevel)) {
-                onStatus?.({ phase: 'current-start', level: unlockedLevel });
-                console.info(`${LOG_TAG} ensure current level`, { level: unlockedLevel });
+                emitStatus({ phase: 'current-start', level: unlockedLevel });
+                console.info(`${LOG_TAG} ensure current level ${toLogJson({ level: unlockedLevel })}`);
                 currentSource = await enqueueEnsureLevel(unlockedLevel);
-                onStatus?.({
+                emitStatus({
                     phase: currentSource ? 'current-done' : 'current-failed',
                     level: unlockedLevel,
                     source: currentSource || 'failed'
@@ -87,7 +88,7 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
 
             if (hasUsableCachedLevel(nextLevel)) {
                 satisfiedUnlockedLevel = unlockedLevel;
-                onStatus?.({ phase: 'next-ready', level: nextLevel, source: 'cache' });
+                emitStatus({ phase: 'next-ready', level: nextLevel, source: 'cache' });
                 return;
             }
 
@@ -95,14 +96,14 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
                 return;
             }
 
-            onStatus?.({ phase: 'next-start', level: nextLevel, source: currentSource });
-            console.info(`${LOG_TAG} preload next level`, { level: nextLevel });
+            emitStatus({ phase: 'next-start', level: nextLevel, source: currentSource });
+            console.info(`${LOG_TAG} preload next level ${toLogJson({ level: nextLevel })}`);
             const nextSource = await enqueueEnsureLevel(nextLevel);
             if (nextSource) {
                 satisfiedUnlockedLevel = unlockedLevel;
-                onStatus?.({ phase: 'next-done', level: nextLevel, source: nextSource });
+                emitStatus({ phase: 'next-done', level: nextLevel, source: nextSource });
             } else {
-                onStatus?.({ phase: 'next-failed', level: nextLevel, source: 'failed' });
+                emitStatus({ phase: 'next-failed', level: nextLevel, source: 'failed' });
             }
         } finally {
             running = false;
@@ -163,7 +164,7 @@ function ensureLevelCached(level) {
     }
 
     if (hasUsableCachedLevel(targetLevel)) {
-        console.info(`${LOG_TAG} cache hit`, { level: targetLevel });
+        console.info(`${LOG_TAG} cache hit ${toLogJson({ level: targetLevel })}`);
         return Promise.resolve('cache');
     }
 
@@ -178,10 +179,10 @@ function ensureLevelCached(level) {
                 return null;
             }
             await Promise.resolve(saveSavedLevelRecord(targetLevel, record));
-            console.info(`${LOG_TAG} generated level`, {
+            console.info(`${LOG_TAG} generated level ${toLogJson({
                 level: targetLevel,
                 durationMs: Math.round(nowMs() - startedAt)
-            });
+            })}`);
             return 'generated';
         })
         .catch((error) => {
@@ -291,6 +292,29 @@ function nowMs() {
     return typeof performance !== 'undefined' && typeof performance.now === 'function'
         ? performance.now()
         : Date.now();
+}
+
+function createStatusEmitter(onStatus) {
+    if (typeof onStatus !== 'function') {
+        return () => {};
+    }
+    let lastKey = '';
+    return (payload) => {
+        const key = toLogJson(payload);
+        if (key === lastKey) {
+            return;
+        }
+        lastKey = key;
+        onStatus(payload);
+    };
+}
+
+function toLogJson(value) {
+    try {
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
 }
 
 function yieldToUi(source) {

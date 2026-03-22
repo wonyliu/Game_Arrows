@@ -191,7 +191,9 @@ export class UI {
         this.hideAll();
         this.hud.classList.remove('hidden');
         this.setMenuChromeVisible(false);
+        this.forceGameCanvasResize();
         this.game.startLevel(defaultLevel);
+        requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
     }
 
@@ -199,8 +201,16 @@ export class UI {
         this.hideAll();
         this.hud.classList.remove('hidden');
         this.setMenuChromeVisible(false);
+        this.forceGameCanvasResize();
         this.game.startLevel(level);
+        requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
+    }
+
+    forceGameCanvasResize() {
+        if (this.game && typeof this.game.resize === 'function') {
+            this.game.resize();
+        }
     }
 
     nextLevel() {

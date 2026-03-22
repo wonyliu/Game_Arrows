@@ -82,8 +82,18 @@ export class Game {
 
     resize() {
         const wrapper = this.canvas.parentElement;
-        this.canvas.width = wrapper ? wrapper.clientWidth : window.innerWidth;
-        this.canvas.height = wrapper ? wrapper.clientHeight : window.innerHeight;
+        const docEl = document.documentElement;
+        const wrapperWidth = Math.round(wrapper?.clientWidth || 0);
+        const wrapperHeight = Math.round(wrapper?.clientHeight || 0);
+        const canvasWidth = Math.round(this.canvas.clientWidth || 0);
+        const canvasHeight = Math.round(this.canvas.clientHeight || 0);
+        const fallbackWidth = Math.round(window.innerWidth || docEl?.clientWidth || 430);
+        const fallbackHeight = Math.round(window.innerHeight || docEl?.clientHeight || 664);
+        const nextWidth = Math.max(1, wrapperWidth || canvasWidth || fallbackWidth);
+        const nextHeight = Math.max(1, wrapperHeight || canvasHeight || fallbackHeight);
+
+        this.canvas.width = nextWidth;
+        this.canvas.height = nextHeight;
 
         if (this.grid) {
             this.grid.resize(this.canvas.width, this.canvas.height);
@@ -140,12 +150,25 @@ export class Game {
             }, 1000);
         }
 
-        console.info('[game] level ready', {
+        console.info('[game] level ready ' + JSON.stringify({
             level: levelNum,
             source,
             lineCount: Array.isArray(this.lines) ? this.lines.length : 0,
-            durationMs: Math.round(nowMs() - startedAt)
-        });
+            durationMs: Math.round(nowMs() - startedAt),
+            canvasWidth: this.canvas.width,
+            canvasHeight: this.canvas.height
+        }));
+
+        if (this.canvas.width <= 1 || this.canvas.height <= 1) {
+            requestAnimationFrame(() => {
+                this.resize();
+                console.info('[game] deferred resize ' + JSON.stringify({
+                    level: levelNum,
+                    canvasWidth: this.canvas.width,
+                    canvasHeight: this.canvas.height
+                }));
+            });
+        }
         this.updateHUD();
     }
 

@@ -1,14 +1,14 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=54';
-import { UI } from './ui.js?v=38';
+import { Game } from './game.js?v=55';
+import { UI } from './ui.js?v=39';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
     startNextUnlockPreload,
     stopNextUnlockPreload
-} from './level-preload.js?v=5';
+} from './level-preload.js?v=6';
 import { initLevelStorage } from './level-storage.js?v=45';
 import { initUiTheme } from './ui-theme.js?v=2';
 
@@ -26,6 +26,7 @@ let bootPreloadOverlayEl = null;
 let bootPreloadFillEl = null;
 let bootPreloadTextEl = null;
 let bootPreloadTipEl = null;
+let forcedZeroCanvasResizeLogged = false;
 
 function nowMs() {
     return typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -34,15 +35,23 @@ function nowMs() {
 }
 
 function logBoot(step, details = null) {
-    if (details && typeof details === 'object') {
-        console.info(`${BOOT_LOG_TAG} ${step}`, details);
-        return;
-    }
     if (details !== null && details !== undefined) {
-        console.info(`${BOOT_LOG_TAG} ${step}`, details);
+        const detailText = formatLogDetails(details);
+        console.info(`${BOOT_LOG_TAG} ${step} ${detailText}`);
         return;
     }
     console.info(`${BOOT_LOG_TAG} ${step}`);
+}
+
+function formatLogDetails(value) {
+    try {
+        if (typeof value === 'string') {
+            return value;
+        }
+        return JSON.stringify(value);
+    } catch {
+        return String(value);
+    }
 }
 
 function readViewportSize() {
@@ -66,6 +75,16 @@ function readViewportSize() {
 function applyAdaptiveLayout(force = false) {
     const { width, height, dpr } = readViewportSize();
     if (!force && width === lastViewportWidth && height === lastViewportHeight && dpr === lastViewportDpr) {
+        if (gameRef?.canvas && (gameRef.canvas.width <= 1 || gameRef.canvas.height <= 1)) {
+            gameRef.resize();
+            if (!forcedZeroCanvasResizeLogged) {
+                forcedZeroCanvasResizeLogged = true;
+                logBoot('force resize for zero canvas', {
+                    canvasWidth: gameRef.canvas.width,
+                    canvasHeight: gameRef.canvas.height
+                });
+            }
+        }
         return;
     }
 
