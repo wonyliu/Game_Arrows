@@ -1,5 +1,5 @@
 ﻿import { playClickSound, resumeAudio } from './audio.js?v=20';
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=2';
+import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
 
 const MENU_PANEL = Object.freeze({
@@ -59,6 +59,8 @@ export class UI {
         this.levelGrid = document.getElementById('levelGrid');
         this.gameOverReason = document.getElementById('gameOverReason');
         this.levelTag = document.getElementById('btnLevels');
+        this.levelTagValue = document.getElementById('menuLevelTagValue');
+        this.levelSelectCurrent = document.getElementById('levelSelectCurrent');
         this.exitFeedback = document.getElementById('exitFeedback');
         this.localeZhBtn = document.getElementById('btnLocaleZh');
         this.localeEnBtn = document.getElementById('btnLocaleEn');
@@ -347,8 +349,19 @@ export class UI {
     }
 
     refreshMenuLevelTag() {
+        const level = this.getDefaultStartLevel();
+        const valueText = this.formatLevel(level);
+        const chipText = t(this.locale, 'common.levelChip', { level });
         if (this.levelTag) {
-            this.levelTag.textContent = this.formatLevel(this.getDefaultStartLevel());
+            this.levelTag.setAttribute('aria-label', valueText);
+        }
+        if (this.levelTagValue) {
+            this.levelTagValue.textContent = chipText;
+        } else if (this.levelTag) {
+            this.levelTag.textContent = valueText;
+        }
+        if (this.levelSelectCurrent) {
+            this.levelSelectCurrent.textContent = valueText;
         }
     }
 
@@ -480,15 +493,20 @@ export class UI {
         if (!this.levelGrid) return;
 
         this.levelGrid.innerHTML = '';
+        const defaultLevel = this.getDefaultStartLevel();
         for (let i = 1; i <= 30; i++) {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'level-btn';
+            button.setAttribute('aria-label', this.formatLevel(i));
 
             if (i <= this.game.maxUnlockedLevel) {
                 button.classList.add('unlocked');
                 if (i < this.game.maxUnlockedLevel) {
                     button.classList.add('completed');
+                }
+                if (i === defaultLevel) {
+                    button.classList.add('current');
                 }
                 button.textContent = i;
                 button.addEventListener('click', () => {

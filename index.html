@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=50">
+    <link rel="stylesheet" href="css/style.css?v=54">
 </head>
 <body>
     <div class="app-container">
@@ -69,7 +69,11 @@
                     <h1 class="menu-home-title" data-i18n="home.menuTitle">蛇蛇大冒险</h1>
                     <div class="play-area play-area-v2">
                         <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">开始冒险</button>
-                        <button id="btnLevels" class="current-level-tag" type="button">洞穴 1</button>
+                        <button id="btnLevels" class="current-level-tag" type="button" aria-label="洞穴入口">
+                            <span class="level-tag-icon" aria-hidden="true"></span>
+                            <span class="level-tag-label" data-i18n="home.burrowEntry">洞穴入口</span>
+                            <span id="menuLevelTagValue" class="level-tag-value">洞穴 1</span>
+                        </button>
                     </div>
                 </section>
 
@@ -129,10 +133,25 @@
                     <div class="setting-row">
                         <div class="setting-title" data-i18n="panel.settings.audio">Audio</div>
                         <div class="setting-desc" data-i18n="panel.settings.audioDesc">Detailed controls will be available in a future update.</div>
+                        <div class="setting-control audio-stack">
+                            <label class="audio-row">
+                                <span data-i18n="panel.settings.music">音乐</span>
+                                <input type="range" min="0" max="100" value="65" disabled>
+                            </label>
+                            <label class="audio-row">
+                                <span data-i18n="panel.settings.sfx">音效</span>
+                                <input type="range" min="0" max="100" value="55" disabled>
+                            </label>
+                        </div>
                     </div>
                     <div class="setting-row">
                         <div class="setting-title" data-i18n="panel.settings.graphics">Graphics</div>
                         <div class="setting-desc" data-i18n="panel.settings.graphicsDesc">Performance presets will be available in a future update.</div>
+                        <div class="setting-control graphics-switch" role="group" aria-label="graphics-quality">
+                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsLow">低</button>
+                            <button class="graphics-option active" type="button" disabled data-i18n="panel.settings.graphicsMid">中</button>
+                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsHigh">高</button>
+                        </div>
                     </div>
                     <div class="setting-row setting-row-reset">
                         <div class="setting-title" data-i18n="panel.settings.reset">Reset Progress</div>
@@ -243,6 +262,13 @@
                     <button id="btnBackFromSelect" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
                 </div>
                 <div class="panel-body">
+                    <div class="level-select-meta">
+                        <div class="level-select-start">
+                            <span class="level-select-label" data-i18n="panel.levelSelect.startFrom">默认从以下关卡开始</span>
+                            <strong id="levelSelectCurrent" class="level-select-value">洞穴 1</strong>
+                        </div>
+                        <p class="level-select-tip" data-i18n="panel.levelSelect.tip">可点击已解锁关卡直接进入游戏。</p>
+                    </div>
                     <div id="levelGrid" class="level-grid"></div>
                 </div>
             </div>
@@ -273,6 +299,6 @@
         <div id="errorVignette" class="error-vignette"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=82"></script>
+    <script type="module" src="js/main.js?v=84"></script>
 </body>
 </html>
