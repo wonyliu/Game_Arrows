@@ -1,5 +1,5 @@
 import { DIR_VECTORS } from './grid.js?v=40';
-import { drawArrowPathPixels } from './pixel-art.js?v=16';
+import { drawArrowPathPixels } from './pixel-art.js?v=20';
 
 export class Line {
     constructor(id, cells, direction, color = '#1a1c3d') {
@@ -70,8 +70,10 @@ export class Line {
         ctx.globalAlpha = this.opacity;
         ctx.translate(shakeX, shakeY);
 
+        const pathHeadDirection = this.getHeadDirectionFromPoints(renderPts);
+
         if (renderPts.length > 0 && pixelTheme?.atlas) {
-            drawArrowPathPixels(ctx, renderPts, this.getHeadDirectionFromPoints(renderPts), {
+            drawArrowPathPixels(ctx, renderPts, pathHeadDirection, {
                 atlas: pixelTheme.atlas,
                 alpha: this.opacity,
                 style: pickPixelStyle(this, strokeColor),
@@ -85,7 +87,7 @@ export class Line {
             ctx.lineJoin = 'round';
             ctx.lineWidth = this.isHighlighted ? cellSize * 0.35 : cellSize * 0.24;
             ctx.strokeStyle = strokeColor;
-            const headDirection = this.getHeadDirectionFromPoints(renderPts);
+            const headDirection = pathHeadDirection;
             const arrowMetrics = this.getArrowMetrics(cellSize);
             const bodyPts = trimEndForArrow(renderPts, arrowMetrics.length * 0.82);
 
@@ -322,3 +324,4 @@ function getSubPath(points, pixelDistance, headDir) {
     result.reverse();
     return { pts: result };
 }
+

@@ -1,6 +1,6 @@
-import { buildPlayableLevelRecord } from './level-builder.js?v=46';
+import { buildPlayableLevelRecord } from './level-builder.js?v=48';
 import { getBaseLevelConfig } from './levels.js?v=27';
-import { buildStoredSettings } from './level-storage.js?v=45';
+import { buildStoredSettings } from './level-storage.js?v=47';
 
 const DEFAULT_PRELOAD_MODE = 1;
 

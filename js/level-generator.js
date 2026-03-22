@@ -1,4 +1,4 @@
-import { Line } from './line.js?v=19';
+import { Line } from './line.js?v=43';
 
 const OPPOSITE = {
     up: 'down',
@@ -529,3 +529,4 @@ function shuffle(items) {
         [items[i], items[j]] = [items[j], items[i]];
     }
 }
+

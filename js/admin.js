@@ -1,7 +1,7 @@
 import { Grid } from './grid.js?v=40';
 import { canMove } from './collision.js?v=40';
 import { getBaseLevelConfig } from './levels.js?v=40';
-import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=46';
+import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=48';
 import {
     applyStoredSettings,
     buildStoredSettings,
@@ -14,7 +14,7 @@ import {
     initLevelStorage,
     savePreviewLevelRecord,
     saveSavedLevelRecord
-} from './level-storage.js?v=44';
+} from './level-storage.js?v=47';
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),
@@ -364,7 +364,7 @@ function onHint() {
     console.log('Hint button clicked'); // ‰ªÖ‰æõË∞ÉËØï
     try {
         if (!previewPlayState) {
-            setStatus('‚ù?No preview data. Click "Generate" first.');
+            setStatus('ÔøΩ?No preview data. Click "Generate" first.');
             return;
         }
 
@@ -387,7 +387,7 @@ function onHint() {
         }
         console.log("Movable Arrow IDs:", movableLines.map(l => l.id));
         drawPreviewState();
-        setStatus(`‚ú?Highlighted ${movableLines.length} movable arrow(s). It will last 4s.`);
+        setStatus(`ÔøΩ?Highlighted ${movableLines.length} movable arrow(s). It will last 4s.`);
 
         // Clear highlight after 4 seconds
         if (window._hintTimeout) clearTimeout(window._hintTimeout);
@@ -400,7 +400,7 @@ function onHint() {
         }, 4000);
     } catch (err) {
         console.error('Hint error:', err);
-        setStatus(`‚ù?Hint failed: ${err.message}`);
+        setStatus(`ÔøΩ?Hint failed: ${err.message}`);
     }
 }
 

@@ -1,4 +1,4 @@
-import { Line } from './line.js?v=22';
+import { Line } from './line.js?v=43';
 
 const SAVED_LEVELS_KEY = 'arrowClear_savedLevels_v1';
 const PREVIEW_LEVELS_KEY = 'arrowClear_previewLevels_v1';
@@ -412,3 +412,4 @@ function isPlainObject(value) {
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
+

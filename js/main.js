@@ -1,15 +1,15 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=56';
+import { Game } from './game.js?v=59';
 import { UI } from './ui.js?v=42';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
     startNextUnlockPreload,
     stopNextUnlockPreload
-} from './level-preload.js?v=6';
-import { initLevelStorage } from './level-storage.js?v=45';
+} from './level-preload.js?v=8';
+import { initLevelStorage } from './level-storage.js?v=47';
 import { initUiTheme } from './ui-theme.js?v=2';
 
 const DESIGN_WIDTH = 430;
@@ -235,3 +235,4 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
+

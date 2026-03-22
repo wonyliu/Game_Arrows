@@ -1,4 +1,4 @@
-import { drawPixelParticle } from './pixel-art.js?v=16';
+import { drawPixelParticle } from './pixel-art.js?v=20';
 
 const DIR_VEC = {
     up: { dx: 0, dy: -1 },
@@ -277,3 +277,4 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.arcTo(x, y, x + width, y, radius);
     ctx.closePath();
 }
+

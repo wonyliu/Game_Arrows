@@ -1,15 +1,15 @@
 import { Grid } from './grid.js?v=24';
-import { Line } from './line.js?v=35';
+import { Line } from './line.js?v=43';
 import { canMove, findMovableLines } from './collision.js?v=19';
 import { getLevelConfig } from './levels.js?v=27';
-import { AnimationManager } from './animation.js?v=25';
-import { buildPlayableLevel } from './level-builder.js?v=46';
+import { AnimationManager } from './animation.js?v=28';
+import { buildPlayableLevel } from './level-builder.js?v=48';
 import {
     deserializeLevelData,
     getPreviewLevelRecord,
     getSavedLevelRecord,
     isStoredLevelDataUsable
-} from './level-storage.js?v=45';
+} from './level-storage.js?v=47';
 import {
     playClearSound,
     playErrorSound,
@@ -17,7 +17,7 @@ import {
     playLevelCompleteSound,
     resumeAudio
 } from './audio.js?v=20';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=16';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=20';
 
 export class Game {
     constructor(canvas) {
@@ -770,4 +770,5 @@ function distanceToSegment(px, py, start, end) {
     const projY = start.y + t * dy;
     return distance(px, py, projX, projY);
 }
+
 

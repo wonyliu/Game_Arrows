@@ -1,4 +1,4 @@
-﻿import { playClickSound, resumeAudio } from './audio.js?v=20';
+import { playClickSound, resumeAudio } from './audio.js?v=20';
 import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
 

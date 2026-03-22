@@ -1,4 +1,4 @@
-import { applyStoredSettings, getSavedLevelRecord } from './level-storage.js?v=45';
+import { applyStoredSettings, getSavedLevelRecord } from './level-storage.js?v=47';
 
 export function getBaseLevelConfig(levelNum) {
     if (levelNum === 1) {

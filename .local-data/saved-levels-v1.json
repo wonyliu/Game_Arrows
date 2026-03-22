@@ -35762,5 +35762,9660 @@
       }
     },
     "updatedAt": "2026-03-21T11:36:21.300Z"
+  },
+  "7": {
+    "settings": {
+      "level": 7,
+      "dimensionMode": "rows",
+      "dimensionValue": 28,
+      "gridCols": 18,
+      "gridRows": 28,
+      "minLen": 2,
+      "maxLen": 5
+    },
+    "data": {
+      "version": 1,
+      "generatorVersion": 5,
+      "level": 7,
+      "gridCols": 18,
+      "gridRows": 28,
+      "minLen": 2,
+      "maxLen": 5,
+      "lineCount": 151,
+      "path": null,
+      "lines": [
+        {
+          "id": 0,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 0,
+          "cells": [
+            {
+              "col": 0,
+              "row": 0
+            },
+            {
+              "col": 1,
+              "row": 0
+            },
+            {
+              "col": 2,
+              "row": 0
+            },
+            {
+              "col": 3,
+              "row": 0
+            },
+            {
+              "col": 4,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 1,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 1,
+          "cells": [
+            {
+              "col": 5,
+              "row": 0
+            },
+            {
+              "col": 6,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 2,
+          "cells": [
+            {
+              "col": 7,
+              "row": 0
+            },
+            {
+              "col": 8,
+              "row": 0
+            },
+            {
+              "col": 9,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 3,
+          "cells": [
+            {
+              "col": 10,
+              "row": 0
+            },
+            {
+              "col": 11,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 4,
+          "cells": [
+            {
+              "col": 12,
+              "row": 0
+            },
+            {
+              "col": 13,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 5,
+          "cells": [
+            {
+              "col": 14,
+              "row": 0
+            },
+            {
+              "col": 15,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 6,
+          "cells": [
+            {
+              "col": 16,
+              "row": 0
+            },
+            {
+              "col": 17,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 7,
+          "cells": [
+            {
+              "col": 4,
+              "row": 1
+            },
+            {
+              "col": 3,
+              "row": 1
+            },
+            {
+              "col": 2,
+              "row": 1
+            },
+            {
+              "col": 1,
+              "row": 1
+            },
+            {
+              "col": 0,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 8,
+          "cells": [
+            {
+              "col": 6,
+              "row": 1
+            },
+            {
+              "col": 5,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 9,
+          "cells": [
+            {
+              "col": 8,
+              "row": 1
+            },
+            {
+              "col": 7,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 10,
+          "cells": [
+            {
+              "col": 12,
+              "row": 1
+            },
+            {
+              "col": 11,
+              "row": 1
+            },
+            {
+              "col": 10,
+              "row": 1
+            },
+            {
+              "col": 9,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 11,
+          "cells": [
+            {
+              "col": 17,
+              "row": 1
+            },
+            {
+              "col": 16,
+              "row": 1
+            },
+            {
+              "col": 15,
+              "row": 1
+            },
+            {
+              "col": 14,
+              "row": 1
+            },
+            {
+              "col": 13,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 12,
+          "cells": [
+            {
+              "col": 0,
+              "row": 2
+            },
+            {
+              "col": 1,
+              "row": 2
+            },
+            {
+              "col": 2,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 13,
+          "cells": [
+            {
+              "col": 3,
+              "row": 2
+            },
+            {
+              "col": 4,
+              "row": 2
+            },
+            {
+              "col": 5,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 14,
+          "cells": [
+            {
+              "col": 6,
+              "row": 2
+            },
+            {
+              "col": 7,
+              "row": 2
+            },
+            {
+              "col": 8,
+              "row": 2
+            },
+            {
+              "col": 9,
+              "row": 2
+            },
+            {
+              "col": 10,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 15,
+          "cells": [
+            {
+              "col": 11,
+              "row": 2
+            },
+            {
+              "col": 12,
+              "row": 2
+            },
+            {
+              "col": 13,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 16,
+          "cells": [
+            {
+              "col": 14,
+              "row": 2
+            },
+            {
+              "col": 15,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 17,
+          "cells": [
+            {
+              "col": 16,
+              "row": 2
+            },
+            {
+              "col": 17,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 18,
+          "cells": [
+            {
+              "col": 4,
+              "row": 3
+            },
+            {
+              "col": 3,
+              "row": 3
+            },
+            {
+              "col": 2,
+              "row": 3
+            },
+            {
+              "col": 1,
+              "row": 3
+            },
+            {
+              "col": 0,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 19,
+          "cells": [
+            {
+              "col": 8,
+              "row": 3
+            },
+            {
+              "col": 7,
+              "row": 3
+            },
+            {
+              "col": 6,
+              "row": 3
+            },
+            {
+              "col": 5,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 20,
+          "cells": [
+            {
+              "col": 13,
+              "row": 3
+            },
+            {
+              "col": 12,
+              "row": 3
+            },
+            {
+              "col": 11,
+              "row": 3
+            },
+            {
+              "col": 10,
+              "row": 3
+            },
+            {
+              "col": 9,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 21,
+          "cells": [
+            {
+              "col": 17,
+              "row": 3
+            },
+            {
+              "col": 16,
+              "row": 3
+            },
+            {
+              "col": 15,
+              "row": 3
+            },
+            {
+              "col": 14,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 22,
+          "cells": [
+            {
+              "col": 0,
+              "row": 4
+            },
+            {
+              "col": 1,
+              "row": 4
+            },
+            {
+              "col": 2,
+              "row": 4
+            },
+            {
+              "col": 3,
+              "row": 4
+            },
+            {
+              "col": 4,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 23,
+          "cells": [
+            {
+              "col": 5,
+              "row": 4
+            },
+            {
+              "col": 6,
+              "row": 4
+            },
+            {
+              "col": 7,
+              "row": 4
+            },
+            {
+              "col": 8,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 24,
+          "cells": [
+            {
+              "col": 9,
+              "row": 4
+            },
+            {
+              "col": 10,
+              "row": 4
+            },
+            {
+              "col": 11,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 25,
+          "cells": [
+            {
+              "col": 12,
+              "row": 4
+            },
+            {
+              "col": 13,
+              "row": 4
+            },
+            {
+              "col": 14,
+              "row": 4
+            },
+            {
+              "col": 15,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 26,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 26,
+          "cells": [
+            {
+              "col": 16,
+              "row": 4
+            },
+            {
+              "col": 17,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 27,
+          "cells": [
+            {
+              "col": 2,
+              "row": 5
+            },
+            {
+              "col": 1,
+              "row": 5
+            },
+            {
+              "col": 0,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 28,
+          "cells": [
+            {
+              "col": 4,
+              "row": 5
+            },
+            {
+              "col": 3,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 29,
+          "cells": [
+            {
+              "col": 9,
+              "row": 5
+            },
+            {
+              "col": 8,
+              "row": 5
+            },
+            {
+              "col": 7,
+              "row": 5
+            },
+            {
+              "col": 6,
+              "row": 5
+            },
+            {
+              "col": 5,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 30,
+          "cells": [
+            {
+              "col": 11,
+              "row": 5
+            },
+            {
+              "col": 10,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 31,
+          "cells": [
+            {
+              "col": 13,
+              "row": 5
+            },
+            {
+              "col": 12,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 32,
+          "cells": [
+            {
+              "col": 15,
+              "row": 5
+            },
+            {
+              "col": 14,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 33,
+          "cells": [
+            {
+              "col": 17,
+              "row": 5
+            },
+            {
+              "col": 16,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 34,
+          "cells": [
+            {
+              "col": 0,
+              "row": 6
+            },
+            {
+              "col": 1,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 35,
+          "cells": [
+            {
+              "col": 2,
+              "row": 6
+            },
+            {
+              "col": 3,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 36,
+          "cells": [
+            {
+              "col": 4,
+              "row": 6
+            },
+            {
+              "col": 5,
+              "row": 6
+            },
+            {
+              "col": 6,
+              "row": 6
+            },
+            {
+              "col": 7,
+              "row": 6
+            },
+            {
+              "col": 8,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 37,
+          "cells": [
+            {
+              "col": 9,
+              "row": 6
+            },
+            {
+              "col": 10,
+              "row": 6
+            },
+            {
+              "col": 11,
+              "row": 6
+            },
+            {
+              "col": 12,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 38,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 38,
+          "cells": [
+            {
+              "col": 13,
+              "row": 6
+            },
+            {
+              "col": 14,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 39,
+          "cells": [
+            {
+              "col": 15,
+              "row": 6
+            },
+            {
+              "col": 16,
+              "row": 6
+            },
+            {
+              "col": 17,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 40,
+          "cells": [
+            {
+              "col": 4,
+              "row": 7
+            },
+            {
+              "col": 3,
+              "row": 7
+            },
+            {
+              "col": 2,
+              "row": 7
+            },
+            {
+              "col": 1,
+              "row": 7
+            },
+            {
+              "col": 0,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 41,
+          "cells": [
+            {
+              "col": 9,
+              "row": 7
+            },
+            {
+              "col": 8,
+              "row": 7
+            },
+            {
+              "col": 7,
+              "row": 7
+            },
+            {
+              "col": 6,
+              "row": 7
+            },
+            {
+              "col": 5,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 42,
+          "cells": [
+            {
+              "col": 14,
+              "row": 7
+            },
+            {
+              "col": 13,
+              "row": 7
+            },
+            {
+              "col": 12,
+              "row": 7
+            },
+            {
+              "col": 11,
+              "row": 7
+            },
+            {
+              "col": 10,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 43,
+          "cells": [
+            {
+              "col": 17,
+              "row": 7
+            },
+            {
+              "col": 16,
+              "row": 7
+            },
+            {
+              "col": 15,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 44,
+          "cells": [
+            {
+              "col": 0,
+              "row": 8
+            },
+            {
+              "col": 1,
+              "row": 8
+            },
+            {
+              "col": 2,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 45,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 45,
+          "cells": [
+            {
+              "col": 3,
+              "row": 8
+            },
+            {
+              "col": 4,
+              "row": 8
+            },
+            {
+              "col": 5,
+              "row": 8
+            },
+            {
+              "col": 6,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 46,
+          "cells": [
+            {
+              "col": 7,
+              "row": 8
+            },
+            {
+              "col": 8,
+              "row": 8
+            },
+            {
+              "col": 9,
+              "row": 8
+            },
+            {
+              "col": 10,
+              "row": 8
+            },
+            {
+              "col": 11,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 47,
+          "cells": [
+            {
+              "col": 12,
+              "row": 8
+            },
+            {
+              "col": 13,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 48,
+          "cells": [
+            {
+              "col": 14,
+              "row": 8
+            },
+            {
+              "col": 15,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 49,
+          "cells": [
+            {
+              "col": 16,
+              "row": 8
+            },
+            {
+              "col": 17,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 50,
+          "cells": [
+            {
+              "col": 4,
+              "row": 9
+            },
+            {
+              "col": 3,
+              "row": 9
+            },
+            {
+              "col": 2,
+              "row": 9
+            },
+            {
+              "col": 1,
+              "row": 9
+            },
+            {
+              "col": 0,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 51,
+          "cells": [
+            {
+              "col": 7,
+              "row": 9
+            },
+            {
+              "col": 6,
+              "row": 9
+            },
+            {
+              "col": 5,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 52,
+          "cells": [
+            {
+              "col": 9,
+              "row": 9
+            },
+            {
+              "col": 8,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 53,
+          "cells": [
+            {
+              "col": 14,
+              "row": 9
+            },
+            {
+              "col": 13,
+              "row": 9
+            },
+            {
+              "col": 12,
+              "row": 9
+            },
+            {
+              "col": 11,
+              "row": 9
+            },
+            {
+              "col": 10,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 54,
+          "cells": [
+            {
+              "col": 17,
+              "row": 9
+            },
+            {
+              "col": 16,
+              "row": 9
+            },
+            {
+              "col": 15,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 55,
+          "cells": [
+            {
+              "col": 0,
+              "row": 10
+            },
+            {
+              "col": 1,
+              "row": 10
+            },
+            {
+              "col": 2,
+              "row": 10
+            },
+            {
+              "col": 3,
+              "row": 10
+            },
+            {
+              "col": 4,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 56,
+          "cells": [
+            {
+              "col": 5,
+              "row": 10
+            },
+            {
+              "col": 6,
+              "row": 10
+            },
+            {
+              "col": 7,
+              "row": 10
+            },
+            {
+              "col": 8,
+              "row": 10
+            },
+            {
+              "col": 9,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 57,
+          "cells": [
+            {
+              "col": 10,
+              "row": 10
+            },
+            {
+              "col": 11,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 58,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 58,
+          "cells": [
+            {
+              "col": 12,
+              "row": 10
+            },
+            {
+              "col": 13,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 59,
+          "cells": [
+            {
+              "col": 14,
+              "row": 10
+            },
+            {
+              "col": 15,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 60,
+          "cells": [
+            {
+              "col": 16,
+              "row": 10
+            },
+            {
+              "col": 17,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 61,
+          "cells": [
+            {
+              "col": 2,
+              "row": 11
+            },
+            {
+              "col": 1,
+              "row": 11
+            },
+            {
+              "col": 0,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 62,
+          "cells": [
+            {
+              "col": 6,
+              "row": 11
+            },
+            {
+              "col": 5,
+              "row": 11
+            },
+            {
+              "col": 4,
+              "row": 11
+            },
+            {
+              "col": 3,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 63,
+          "cells": [
+            {
+              "col": 8,
+              "row": 11
+            },
+            {
+              "col": 7,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 64,
+          "cells": [
+            {
+              "col": 13,
+              "row": 11
+            },
+            {
+              "col": 12,
+              "row": 11
+            },
+            {
+              "col": 11,
+              "row": 11
+            },
+            {
+              "col": 10,
+              "row": 11
+            },
+            {
+              "col": 9,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 65,
+          "cells": [
+            {
+              "col": 17,
+              "row": 11
+            },
+            {
+              "col": 16,
+              "row": 11
+            },
+            {
+              "col": 15,
+              "row": 11
+            },
+            {
+              "col": 14,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 66,
+          "cells": [
+            {
+              "col": 0,
+              "row": 12
+            },
+            {
+              "col": 1,
+              "row": 12
+            },
+            {
+              "col": 2,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 67,
+          "cells": [
+            {
+              "col": 3,
+              "row": 12
+            },
+            {
+              "col": 4,
+              "row": 12
+            },
+            {
+              "col": 5,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 68,
+          "cells": [
+            {
+              "col": 6,
+              "row": 12
+            },
+            {
+              "col": 7,
+              "row": 12
+            },
+            {
+              "col": 8,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 69,
+          "cells": [
+            {
+              "col": 9,
+              "row": 12
+            },
+            {
+              "col": 10,
+              "row": 12
+            },
+            {
+              "col": 11,
+              "row": 12
+            },
+            {
+              "col": 12,
+              "row": 12
+            },
+            {
+              "col": 13,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 70,
+          "cells": [
+            {
+              "col": 14,
+              "row": 12
+            },
+            {
+              "col": 15,
+              "row": 12
+            },
+            {
+              "col": 16,
+              "row": 12
+            },
+            {
+              "col": 17,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 71,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 71,
+          "cells": [
+            {
+              "col": 3,
+              "row": 13
+            },
+            {
+              "col": 2,
+              "row": 13
+            },
+            {
+              "col": 1,
+              "row": 13
+            },
+            {
+              "col": 0,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 72,
+          "cells": [
+            {
+              "col": 5,
+              "row": 13
+            },
+            {
+              "col": 4,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 73,
+          "cells": [
+            {
+              "col": 8,
+              "row": 13
+            },
+            {
+              "col": 7,
+              "row": 13
+            },
+            {
+              "col": 6,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 74,
+          "cells": [
+            {
+              "col": 13,
+              "row": 13
+            },
+            {
+              "col": 12,
+              "row": 13
+            },
+            {
+              "col": 11,
+              "row": 13
+            },
+            {
+              "col": 10,
+              "row": 13
+            },
+            {
+              "col": 9,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 75,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 75,
+          "cells": [
+            {
+              "col": 15,
+              "row": 13
+            },
+            {
+              "col": 14,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 76,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 76,
+          "cells": [
+            {
+              "col": 17,
+              "row": 13
+            },
+            {
+              "col": 16,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 77,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 77,
+          "cells": [
+            {
+              "col": 0,
+              "row": 14
+            },
+            {
+              "col": 1,
+              "row": 14
+            },
+            {
+              "col": 2,
+              "row": 14
+            },
+            {
+              "col": 3,
+              "row": 14
+            },
+            {
+              "col": 4,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 78,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 78,
+          "cells": [
+            {
+              "col": 5,
+              "row": 14
+            },
+            {
+              "col": 6,
+              "row": 14
+            },
+            {
+              "col": 7,
+              "row": 14
+            },
+            {
+              "col": 8,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 79,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 79,
+          "cells": [
+            {
+              "col": 9,
+              "row": 14
+            },
+            {
+              "col": 10,
+              "row": 14
+            },
+            {
+              "col": 11,
+              "row": 14
+            },
+            {
+              "col": 12,
+              "row": 14
+            },
+            {
+              "col": 13,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 80,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 80,
+          "cells": [
+            {
+              "col": 14,
+              "row": 14
+            },
+            {
+              "col": 15,
+              "row": 14
+            },
+            {
+              "col": 16,
+              "row": 14
+            },
+            {
+              "col": 17,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 81,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 81,
+          "cells": [
+            {
+              "col": 4,
+              "row": 15
+            },
+            {
+              "col": 3,
+              "row": 15
+            },
+            {
+              "col": 2,
+              "row": 15
+            },
+            {
+              "col": 1,
+              "row": 15
+            },
+            {
+              "col": 0,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 82,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 82,
+          "cells": [
+            {
+              "col": 6,
+              "row": 15
+            },
+            {
+              "col": 5,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 83,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 83,
+          "cells": [
+            {
+              "col": 10,
+              "row": 15
+            },
+            {
+              "col": 9,
+              "row": 15
+            },
+            {
+              "col": 8,
+              "row": 15
+            },
+            {
+              "col": 7,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 84,
+          "cells": [
+            {
+              "col": 14,
+              "row": 15
+            },
+            {
+              "col": 13,
+              "row": 15
+            },
+            {
+              "col": 12,
+              "row": 15
+            },
+            {
+              "col": 11,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 85,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 85,
+          "cells": [
+            {
+              "col": 17,
+              "row": 15
+            },
+            {
+              "col": 16,
+              "row": 15
+            },
+            {
+              "col": 15,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 86,
+          "cells": [
+            {
+              "col": 0,
+              "row": 16
+            },
+            {
+              "col": 1,
+              "row": 16
+            },
+            {
+              "col": 2,
+              "row": 16
+            },
+            {
+              "col": 3,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 87,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 87,
+          "cells": [
+            {
+              "col": 4,
+              "row": 16
+            },
+            {
+              "col": 5,
+              "row": 16
+            },
+            {
+              "col": 6,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 88,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 88,
+          "cells": [
+            {
+              "col": 7,
+              "row": 16
+            },
+            {
+              "col": 8,
+              "row": 16
+            },
+            {
+              "col": 9,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 89,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 89,
+          "cells": [
+            {
+              "col": 10,
+              "row": 16
+            },
+            {
+              "col": 11,
+              "row": 16
+            },
+            {
+              "col": 12,
+              "row": 16
+            },
+            {
+              "col": 13,
+              "row": 16
+            },
+            {
+              "col": 14,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 90,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 90,
+          "cells": [
+            {
+              "col": 15,
+              "row": 16
+            },
+            {
+              "col": 16,
+              "row": 16
+            },
+            {
+              "col": 17,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 91,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 91,
+          "cells": [
+            {
+              "col": 4,
+              "row": 17
+            },
+            {
+              "col": 3,
+              "row": 17
+            },
+            {
+              "col": 2,
+              "row": 17
+            },
+            {
+              "col": 1,
+              "row": 17
+            },
+            {
+              "col": 0,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 92,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 92,
+          "cells": [
+            {
+              "col": 8,
+              "row": 17
+            },
+            {
+              "col": 7,
+              "row": 17
+            },
+            {
+              "col": 6,
+              "row": 17
+            },
+            {
+              "col": 5,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 93,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 93,
+          "cells": [
+            {
+              "col": 13,
+              "row": 17
+            },
+            {
+              "col": 12,
+              "row": 17
+            },
+            {
+              "col": 11,
+              "row": 17
+            },
+            {
+              "col": 10,
+              "row": 17
+            },
+            {
+              "col": 9,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 94,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 94,
+          "cells": [
+            {
+              "col": 15,
+              "row": 17
+            },
+            {
+              "col": 14,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 95,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 95,
+          "cells": [
+            {
+              "col": 17,
+              "row": 17
+            },
+            {
+              "col": 16,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 96,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 96,
+          "cells": [
+            {
+              "col": 0,
+              "row": 18
+            },
+            {
+              "col": 1,
+              "row": 18
+            },
+            {
+              "col": 2,
+              "row": 18
+            },
+            {
+              "col": 3,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 97,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 97,
+          "cells": [
+            {
+              "col": 4,
+              "row": 18
+            },
+            {
+              "col": 5,
+              "row": 18
+            },
+            {
+              "col": 6,
+              "row": 18
+            },
+            {
+              "col": 7,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 98,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 98,
+          "cells": [
+            {
+              "col": 8,
+              "row": 18
+            },
+            {
+              "col": 9,
+              "row": 18
+            },
+            {
+              "col": 10,
+              "row": 18
+            },
+            {
+              "col": 11,
+              "row": 18
+            },
+            {
+              "col": 12,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 99,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 99,
+          "cells": [
+            {
+              "col": 13,
+              "row": 18
+            },
+            {
+              "col": 14,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 100,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 100,
+          "cells": [
+            {
+              "col": 15,
+              "row": 18
+            },
+            {
+              "col": 16,
+              "row": 18
+            },
+            {
+              "col": 17,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 101,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 101,
+          "cells": [
+            {
+              "col": 2,
+              "row": 19
+            },
+            {
+              "col": 1,
+              "row": 19
+            },
+            {
+              "col": 0,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 102,
+          "cells": [
+            {
+              "col": 6,
+              "row": 19
+            },
+            {
+              "col": 5,
+              "row": 19
+            },
+            {
+              "col": 4,
+              "row": 19
+            },
+            {
+              "col": 3,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 103,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 103,
+          "cells": [
+            {
+              "col": 11,
+              "row": 19
+            },
+            {
+              "col": 10,
+              "row": 19
+            },
+            {
+              "col": 9,
+              "row": 19
+            },
+            {
+              "col": 8,
+              "row": 19
+            },
+            {
+              "col": 7,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 104,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 104,
+          "cells": [
+            {
+              "col": 14,
+              "row": 19
+            },
+            {
+              "col": 13,
+              "row": 19
+            },
+            {
+              "col": 12,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 105,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 105,
+          "cells": [
+            {
+              "col": 17,
+              "row": 19
+            },
+            {
+              "col": 16,
+              "row": 19
+            },
+            {
+              "col": 15,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 106,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 106,
+          "cells": [
+            {
+              "col": 0,
+              "row": 20
+            },
+            {
+              "col": 1,
+              "row": 20
+            },
+            {
+              "col": 2,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 107,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 107,
+          "cells": [
+            {
+              "col": 3,
+              "row": 20
+            },
+            {
+              "col": 4,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 108,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 108,
+          "cells": [
+            {
+              "col": 5,
+              "row": 20
+            },
+            {
+              "col": 6,
+              "row": 20
+            },
+            {
+              "col": 7,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 109,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 109,
+          "cells": [
+            {
+              "col": 8,
+              "row": 20
+            },
+            {
+              "col": 9,
+              "row": 20
+            },
+            {
+              "col": 10,
+              "row": 20
+            },
+            {
+              "col": 11,
+              "row": 20
+            },
+            {
+              "col": 12,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 110,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 110,
+          "cells": [
+            {
+              "col": 13,
+              "row": 20
+            },
+            {
+              "col": 14,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 111,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 111,
+          "cells": [
+            {
+              "col": 15,
+              "row": 20
+            },
+            {
+              "col": 16,
+              "row": 20
+            },
+            {
+              "col": 17,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 112,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 112,
+          "cells": [
+            {
+              "col": 3,
+              "row": 21
+            },
+            {
+              "col": 2,
+              "row": 21
+            },
+            {
+              "col": 1,
+              "row": 21
+            },
+            {
+              "col": 0,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 113,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 113,
+          "cells": [
+            {
+              "col": 5,
+              "row": 21
+            },
+            {
+              "col": 4,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 114,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 114,
+          "cells": [
+            {
+              "col": 8,
+              "row": 21
+            },
+            {
+              "col": 7,
+              "row": 21
+            },
+            {
+              "col": 6,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 115,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 115,
+          "cells": [
+            {
+              "col": 12,
+              "row": 21
+            },
+            {
+              "col": 11,
+              "row": 21
+            },
+            {
+              "col": 10,
+              "row": 21
+            },
+            {
+              "col": 9,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 116,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 116,
+          "cells": [
+            {
+              "col": 17,
+              "row": 21
+            },
+            {
+              "col": 16,
+              "row": 21
+            },
+            {
+              "col": 15,
+              "row": 21
+            },
+            {
+              "col": 14,
+              "row": 21
+            },
+            {
+              "col": 13,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 117,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 117,
+          "cells": [
+            {
+              "col": 0,
+              "row": 22
+            },
+            {
+              "col": 1,
+              "row": 22
+            },
+            {
+              "col": 2,
+              "row": 22
+            },
+            {
+              "col": 3,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 118,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 118,
+          "cells": [
+            {
+              "col": 4,
+              "row": 22
+            },
+            {
+              "col": 5,
+              "row": 22
+            },
+            {
+              "col": 6,
+              "row": 22
+            },
+            {
+              "col": 7,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 119,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 119,
+          "cells": [
+            {
+              "col": 8,
+              "row": 22
+            },
+            {
+              "col": 9,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 120,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 120,
+          "cells": [
+            {
+              "col": 10,
+              "row": 22
+            },
+            {
+              "col": 11,
+              "row": 22
+            },
+            {
+              "col": 12,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 121,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 121,
+          "cells": [
+            {
+              "col": 13,
+              "row": 22
+            },
+            {
+              "col": 14,
+              "row": 22
+            },
+            {
+              "col": 15,
+              "row": 22
+            },
+            {
+              "col": 16,
+              "row": 22
+            },
+            {
+              "col": 17,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 122,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 122,
+          "cells": [
+            {
+              "col": 2,
+              "row": 23
+            },
+            {
+              "col": 1,
+              "row": 23
+            },
+            {
+              "col": 0,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 123,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 123,
+          "cells": [
+            {
+              "col": 6,
+              "row": 23
+            },
+            {
+              "col": 5,
+              "row": 23
+            },
+            {
+              "col": 4,
+              "row": 23
+            },
+            {
+              "col": 3,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 124,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 124,
+          "cells": [
+            {
+              "col": 8,
+              "row": 23
+            },
+            {
+              "col": 7,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 125,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 125,
+          "cells": [
+            {
+              "col": 10,
+              "row": 23
+            },
+            {
+              "col": 9,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 126,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 126,
+          "cells": [
+            {
+              "col": 12,
+              "row": 23
+            },
+            {
+              "col": 11,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 127,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 127,
+          "cells": [
+            {
+              "col": 15,
+              "row": 23
+            },
+            {
+              "col": 14,
+              "row": 23
+            },
+            {
+              "col": 13,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 128,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 128,
+          "cells": [
+            {
+              "col": 17,
+              "row": 23
+            },
+            {
+              "col": 16,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 129,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 129,
+          "cells": [
+            {
+              "col": 0,
+              "row": 24
+            },
+            {
+              "col": 1,
+              "row": 24
+            },
+            {
+              "col": 2,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 130,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 130,
+          "cells": [
+            {
+              "col": 3,
+              "row": 24
+            },
+            {
+              "col": 4,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 131,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 131,
+          "cells": [
+            {
+              "col": 5,
+              "row": 24
+            },
+            {
+              "col": 6,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 132,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 132,
+          "cells": [
+            {
+              "col": 7,
+              "row": 24
+            },
+            {
+              "col": 8,
+              "row": 24
+            },
+            {
+              "col": 9,
+              "row": 24
+            },
+            {
+              "col": 10,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 133,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 133,
+          "cells": [
+            {
+              "col": 11,
+              "row": 24
+            },
+            {
+              "col": 12,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 134,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 134,
+          "cells": [
+            {
+              "col": 13,
+              "row": 24
+            },
+            {
+              "col": 14,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 135,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 135,
+          "cells": [
+            {
+              "col": 15,
+              "row": 24
+            },
+            {
+              "col": 16,
+              "row": 24
+            },
+            {
+              "col": 17,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 136,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 136,
+          "cells": [
+            {
+              "col": 4,
+              "row": 25
+            },
+            {
+              "col": 3,
+              "row": 25
+            },
+            {
+              "col": 2,
+              "row": 25
+            },
+            {
+              "col": 1,
+              "row": 25
+            },
+            {
+              "col": 0,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 137,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 137,
+          "cells": [
+            {
+              "col": 9,
+              "row": 25
+            },
+            {
+              "col": 8,
+              "row": 25
+            },
+            {
+              "col": 7,
+              "row": 25
+            },
+            {
+              "col": 6,
+              "row": 25
+            },
+            {
+              "col": 5,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 138,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 138,
+          "cells": [
+            {
+              "col": 14,
+              "row": 25
+            },
+            {
+              "col": 13,
+              "row": 25
+            },
+            {
+              "col": 12,
+              "row": 25
+            },
+            {
+              "col": 11,
+              "row": 25
+            },
+            {
+              "col": 10,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 139,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 139,
+          "cells": [
+            {
+              "col": 17,
+              "row": 25
+            },
+            {
+              "col": 16,
+              "row": 25
+            },
+            {
+              "col": 15,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 140,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 140,
+          "cells": [
+            {
+              "col": 0,
+              "row": 26
+            },
+            {
+              "col": 1,
+              "row": 26
+            },
+            {
+              "col": 2,
+              "row": 26
+            },
+            {
+              "col": 3,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 141,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 141,
+          "cells": [
+            {
+              "col": 4,
+              "row": 26
+            },
+            {
+              "col": 5,
+              "row": 26
+            },
+            {
+              "col": 6,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 142,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 142,
+          "cells": [
+            {
+              "col": 7,
+              "row": 26
+            },
+            {
+              "col": 8,
+              "row": 26
+            },
+            {
+              "col": 9,
+              "row": 26
+            },
+            {
+              "col": 10,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 143,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 143,
+          "cells": [
+            {
+              "col": 11,
+              "row": 26
+            },
+            {
+              "col": 12,
+              "row": 26
+            },
+            {
+              "col": 13,
+              "row": 26
+            },
+            {
+              "col": 14,
+              "row": 26
+            },
+            {
+              "col": 15,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 144,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 144,
+          "cells": [
+            {
+              "col": 16,
+              "row": 26
+            },
+            {
+              "col": 17,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 145,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 145,
+          "cells": [
+            {
+              "col": 2,
+              "row": 27
+            },
+            {
+              "col": 1,
+              "row": 27
+            },
+            {
+              "col": 0,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 146,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 146,
+          "cells": [
+            {
+              "col": 6,
+              "row": 27
+            },
+            {
+              "col": 5,
+              "row": 27
+            },
+            {
+              "col": 4,
+              "row": 27
+            },
+            {
+              "col": 3,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 147,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 147,
+          "cells": [
+            {
+              "col": 9,
+              "row": 27
+            },
+            {
+              "col": 8,
+              "row": 27
+            },
+            {
+              "col": 7,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 148,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 148,
+          "cells": [
+            {
+              "col": 11,
+              "row": 27
+            },
+            {
+              "col": 10,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 149,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 149,
+          "cells": [
+            {
+              "col": 14,
+              "row": 27
+            },
+            {
+              "col": 13,
+              "row": 27
+            },
+            {
+              "col": 12,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 150,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 150,
+          "cells": [
+            {
+              "col": 17,
+              "row": 27
+            },
+            {
+              "col": 16,
+              "row": 27
+            },
+            {
+              "col": 15,
+              "row": 27
+            }
+          ]
+        }
+      ]
+    },
+    "stats": {
+      "lineCount": 151,
+      "coveredCells": 504,
+      "totalCells": 504,
+      "coverage": 1,
+      "directions": {
+        "up": 0,
+        "down": 0,
+        "left": 73,
+        "right": 78
+      }
+    },
+    "updatedAt": "2026-03-22T05:23:26.398Z"
+  },
+  "8": {
+    "settings": {
+      "level": 8,
+      "dimensionMode": "rows",
+      "dimensionValue": 28,
+      "gridCols": 18,
+      "gridRows": 28,
+      "minLen": 2,
+      "maxLen": 6
+    },
+    "data": {
+      "version": 1,
+      "generatorVersion": 5,
+      "level": 8,
+      "gridCols": 18,
+      "gridRows": 28,
+      "minLen": 2,
+      "maxLen": 6,
+      "lineCount": 130,
+      "path": null,
+      "lines": [
+        {
+          "id": 0,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 0,
+          "cells": [
+            {
+              "col": 0,
+              "row": 0
+            },
+            {
+              "col": 1,
+              "row": 0
+            },
+            {
+              "col": 2,
+              "row": 0
+            },
+            {
+              "col": 3,
+              "row": 0
+            },
+            {
+              "col": 4,
+              "row": 0
+            },
+            {
+              "col": 5,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 1,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 1,
+          "cells": [
+            {
+              "col": 6,
+              "row": 0
+            },
+            {
+              "col": 7,
+              "row": 0
+            },
+            {
+              "col": 8,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 2,
+          "cells": [
+            {
+              "col": 9,
+              "row": 0
+            },
+            {
+              "col": 10,
+              "row": 0
+            },
+            {
+              "col": 11,
+              "row": 0
+            },
+            {
+              "col": 12,
+              "row": 0
+            },
+            {
+              "col": 13,
+              "row": 0
+            },
+            {
+              "col": 14,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 3,
+          "cells": [
+            {
+              "col": 15,
+              "row": 0
+            },
+            {
+              "col": 16,
+              "row": 0
+            },
+            {
+              "col": 17,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 4,
+          "cells": [
+            {
+              "col": 1,
+              "row": 1
+            },
+            {
+              "col": 0,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 5,
+          "cells": [
+            {
+              "col": 3,
+              "row": 1
+            },
+            {
+              "col": 2,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 6,
+          "cells": [
+            {
+              "col": 7,
+              "row": 1
+            },
+            {
+              "col": 6,
+              "row": 1
+            },
+            {
+              "col": 5,
+              "row": 1
+            },
+            {
+              "col": 4,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 7,
+          "cells": [
+            {
+              "col": 9,
+              "row": 1
+            },
+            {
+              "col": 8,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 8,
+          "cells": [
+            {
+              "col": 14,
+              "row": 1
+            },
+            {
+              "col": 13,
+              "row": 1
+            },
+            {
+              "col": 12,
+              "row": 1
+            },
+            {
+              "col": 11,
+              "row": 1
+            },
+            {
+              "col": 10,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 9,
+          "cells": [
+            {
+              "col": 17,
+              "row": 1
+            },
+            {
+              "col": 16,
+              "row": 1
+            },
+            {
+              "col": 15,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 10,
+          "cells": [
+            {
+              "col": 0,
+              "row": 2
+            },
+            {
+              "col": 1,
+              "row": 2
+            },
+            {
+              "col": 2,
+              "row": 2
+            },
+            {
+              "col": 3,
+              "row": 2
+            },
+            {
+              "col": 4,
+              "row": 2
+            },
+            {
+              "col": 5,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 11,
+          "cells": [
+            {
+              "col": 6,
+              "row": 2
+            },
+            {
+              "col": 7,
+              "row": 2
+            },
+            {
+              "col": 8,
+              "row": 2
+            },
+            {
+              "col": 9,
+              "row": 2
+            },
+            {
+              "col": 10,
+              "row": 2
+            },
+            {
+              "col": 11,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 12,
+          "cells": [
+            {
+              "col": 12,
+              "row": 2
+            },
+            {
+              "col": 13,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 13,
+          "cells": [
+            {
+              "col": 14,
+              "row": 2
+            },
+            {
+              "col": 15,
+              "row": 2
+            },
+            {
+              "col": 16,
+              "row": 2
+            },
+            {
+              "col": 17,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 14,
+          "cells": [
+            {
+              "col": 3,
+              "row": 3
+            },
+            {
+              "col": 2,
+              "row": 3
+            },
+            {
+              "col": 1,
+              "row": 3
+            },
+            {
+              "col": 0,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 15,
+          "cells": [
+            {
+              "col": 7,
+              "row": 3
+            },
+            {
+              "col": 6,
+              "row": 3
+            },
+            {
+              "col": 5,
+              "row": 3
+            },
+            {
+              "col": 4,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 16,
+          "cells": [
+            {
+              "col": 13,
+              "row": 3
+            },
+            {
+              "col": 12,
+              "row": 3
+            },
+            {
+              "col": 11,
+              "row": 3
+            },
+            {
+              "col": 10,
+              "row": 3
+            },
+            {
+              "col": 9,
+              "row": 3
+            },
+            {
+              "col": 8,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 17,
+          "cells": [
+            {
+              "col": 17,
+              "row": 3
+            },
+            {
+              "col": 16,
+              "row": 3
+            },
+            {
+              "col": 15,
+              "row": 3
+            },
+            {
+              "col": 14,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 18,
+          "cells": [
+            {
+              "col": 0,
+              "row": 4
+            },
+            {
+              "col": 1,
+              "row": 4
+            },
+            {
+              "col": 2,
+              "row": 4
+            },
+            {
+              "col": 3,
+              "row": 4
+            },
+            {
+              "col": 4,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 19,
+          "cells": [
+            {
+              "col": 5,
+              "row": 4
+            },
+            {
+              "col": 6,
+              "row": 4
+            },
+            {
+              "col": 7,
+              "row": 4
+            },
+            {
+              "col": 8,
+              "row": 4
+            },
+            {
+              "col": 9,
+              "row": 4
+            },
+            {
+              "col": 10,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 20,
+          "cells": [
+            {
+              "col": 11,
+              "row": 4
+            },
+            {
+              "col": 12,
+              "row": 4
+            },
+            {
+              "col": 13,
+              "row": 4
+            },
+            {
+              "col": 14,
+              "row": 4
+            },
+            {
+              "col": 15,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 21,
+          "cells": [
+            {
+              "col": 16,
+              "row": 4
+            },
+            {
+              "col": 17,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 22,
+          "cells": [
+            {
+              "col": 2,
+              "row": 5
+            },
+            {
+              "col": 1,
+              "row": 5
+            },
+            {
+              "col": 0,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 23,
+          "cells": [
+            {
+              "col": 8,
+              "row": 5
+            },
+            {
+              "col": 7,
+              "row": 5
+            },
+            {
+              "col": 6,
+              "row": 5
+            },
+            {
+              "col": 5,
+              "row": 5
+            },
+            {
+              "col": 4,
+              "row": 5
+            },
+            {
+              "col": 3,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 24,
+          "cells": [
+            {
+              "col": 11,
+              "row": 5
+            },
+            {
+              "col": 10,
+              "row": 5
+            },
+            {
+              "col": 9,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 25,
+          "cells": [
+            {
+              "col": 14,
+              "row": 5
+            },
+            {
+              "col": 13,
+              "row": 5
+            },
+            {
+              "col": 12,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 26,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 26,
+          "cells": [
+            {
+              "col": 17,
+              "row": 5
+            },
+            {
+              "col": 16,
+              "row": 5
+            },
+            {
+              "col": 15,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 27,
+          "cells": [
+            {
+              "col": 0,
+              "row": 6
+            },
+            {
+              "col": 1,
+              "row": 6
+            },
+            {
+              "col": 2,
+              "row": 6
+            },
+            {
+              "col": 3,
+              "row": 6
+            },
+            {
+              "col": 4,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 28,
+          "cells": [
+            {
+              "col": 5,
+              "row": 6
+            },
+            {
+              "col": 6,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 29,
+          "cells": [
+            {
+              "col": 7,
+              "row": 6
+            },
+            {
+              "col": 8,
+              "row": 6
+            },
+            {
+              "col": 9,
+              "row": 6
+            },
+            {
+              "col": 10,
+              "row": 6
+            },
+            {
+              "col": 11,
+              "row": 6
+            },
+            {
+              "col": 12,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 30,
+          "cells": [
+            {
+              "col": 13,
+              "row": 6
+            },
+            {
+              "col": 14,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 31,
+          "cells": [
+            {
+              "col": 15,
+              "row": 6
+            },
+            {
+              "col": 16,
+              "row": 6
+            },
+            {
+              "col": 17,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 32,
+          "cells": [
+            {
+              "col": 3,
+              "row": 7
+            },
+            {
+              "col": 2,
+              "row": 7
+            },
+            {
+              "col": 1,
+              "row": 7
+            },
+            {
+              "col": 0,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 33,
+          "cells": [
+            {
+              "col": 7,
+              "row": 7
+            },
+            {
+              "col": 6,
+              "row": 7
+            },
+            {
+              "col": 5,
+              "row": 7
+            },
+            {
+              "col": 4,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 34,
+          "cells": [
+            {
+              "col": 13,
+              "row": 7
+            },
+            {
+              "col": 12,
+              "row": 7
+            },
+            {
+              "col": 11,
+              "row": 7
+            },
+            {
+              "col": 10,
+              "row": 7
+            },
+            {
+              "col": 9,
+              "row": 7
+            },
+            {
+              "col": 8,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 35,
+          "cells": [
+            {
+              "col": 17,
+              "row": 7
+            },
+            {
+              "col": 16,
+              "row": 7
+            },
+            {
+              "col": 15,
+              "row": 7
+            },
+            {
+              "col": 14,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 36,
+          "cells": [
+            {
+              "col": 0,
+              "row": 8
+            },
+            {
+              "col": 1,
+              "row": 8
+            },
+            {
+              "col": 2,
+              "row": 8
+            },
+            {
+              "col": 3,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 37,
+          "cells": [
+            {
+              "col": 4,
+              "row": 8
+            },
+            {
+              "col": 5,
+              "row": 8
+            },
+            {
+              "col": 6,
+              "row": 8
+            },
+            {
+              "col": 7,
+              "row": 8
+            },
+            {
+              "col": 8,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 38,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 38,
+          "cells": [
+            {
+              "col": 9,
+              "row": 8
+            },
+            {
+              "col": 10,
+              "row": 8
+            },
+            {
+              "col": 11,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 39,
+          "cells": [
+            {
+              "col": 12,
+              "row": 8
+            },
+            {
+              "col": 13,
+              "row": 8
+            },
+            {
+              "col": 14,
+              "row": 8
+            },
+            {
+              "col": 15,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 40,
+          "cells": [
+            {
+              "col": 16,
+              "row": 8
+            },
+            {
+              "col": 17,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 41,
+          "cells": [
+            {
+              "col": 5,
+              "row": 9
+            },
+            {
+              "col": 4,
+              "row": 9
+            },
+            {
+              "col": 3,
+              "row": 9
+            },
+            {
+              "col": 2,
+              "row": 9
+            },
+            {
+              "col": 1,
+              "row": 9
+            },
+            {
+              "col": 0,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 42,
+          "cells": [
+            {
+              "col": 11,
+              "row": 9
+            },
+            {
+              "col": 10,
+              "row": 9
+            },
+            {
+              "col": 9,
+              "row": 9
+            },
+            {
+              "col": 8,
+              "row": 9
+            },
+            {
+              "col": 7,
+              "row": 9
+            },
+            {
+              "col": 6,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 43,
+          "cells": [
+            {
+              "col": 13,
+              "row": 9
+            },
+            {
+              "col": 12,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 44,
+          "cells": [
+            {
+              "col": 17,
+              "row": 9
+            },
+            {
+              "col": 16,
+              "row": 9
+            },
+            {
+              "col": 15,
+              "row": 9
+            },
+            {
+              "col": 14,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 45,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 45,
+          "cells": [
+            {
+              "col": 0,
+              "row": 10
+            },
+            {
+              "col": 1,
+              "row": 10
+            },
+            {
+              "col": 2,
+              "row": 10
+            },
+            {
+              "col": 3,
+              "row": 10
+            },
+            {
+              "col": 4,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 46,
+          "cells": [
+            {
+              "col": 5,
+              "row": 10
+            },
+            {
+              "col": 6,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 47,
+          "cells": [
+            {
+              "col": 7,
+              "row": 10
+            },
+            {
+              "col": 8,
+              "row": 10
+            },
+            {
+              "col": 9,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 48,
+          "cells": [
+            {
+              "col": 10,
+              "row": 10
+            },
+            {
+              "col": 11,
+              "row": 10
+            },
+            {
+              "col": 12,
+              "row": 10
+            },
+            {
+              "col": 13,
+              "row": 10
+            },
+            {
+              "col": 14,
+              "row": 10
+            },
+            {
+              "col": 15,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 49,
+          "cells": [
+            {
+              "col": 16,
+              "row": 10
+            },
+            {
+              "col": 17,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 50,
+          "cells": [
+            {
+              "col": 2,
+              "row": 11
+            },
+            {
+              "col": 1,
+              "row": 11
+            },
+            {
+              "col": 0,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 51,
+          "cells": [
+            {
+              "col": 7,
+              "row": 11
+            },
+            {
+              "col": 6,
+              "row": 11
+            },
+            {
+              "col": 5,
+              "row": 11
+            },
+            {
+              "col": 4,
+              "row": 11
+            },
+            {
+              "col": 3,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 52,
+          "cells": [
+            {
+              "col": 10,
+              "row": 11
+            },
+            {
+              "col": 9,
+              "row": 11
+            },
+            {
+              "col": 8,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 53,
+          "cells": [
+            {
+              "col": 14,
+              "row": 11
+            },
+            {
+              "col": 13,
+              "row": 11
+            },
+            {
+              "col": 12,
+              "row": 11
+            },
+            {
+              "col": 11,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 54,
+          "cells": [
+            {
+              "col": 17,
+              "row": 11
+            },
+            {
+              "col": 16,
+              "row": 11
+            },
+            {
+              "col": 15,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 55,
+          "cells": [
+            {
+              "col": 0,
+              "row": 12
+            },
+            {
+              "col": 1,
+              "row": 12
+            },
+            {
+              "col": 2,
+              "row": 12
+            },
+            {
+              "col": 3,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 56,
+          "cells": [
+            {
+              "col": 4,
+              "row": 12
+            },
+            {
+              "col": 5,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 57,
+          "cells": [
+            {
+              "col": 6,
+              "row": 12
+            },
+            {
+              "col": 7,
+              "row": 12
+            },
+            {
+              "col": 8,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 58,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 58,
+          "cells": [
+            {
+              "col": 9,
+              "row": 12
+            },
+            {
+              "col": 10,
+              "row": 12
+            },
+            {
+              "col": 11,
+              "row": 12
+            },
+            {
+              "col": 12,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 59,
+          "cells": [
+            {
+              "col": 13,
+              "row": 12
+            },
+            {
+              "col": 14,
+              "row": 12
+            },
+            {
+              "col": 15,
+              "row": 12
+            },
+            {
+              "col": 16,
+              "row": 12
+            },
+            {
+              "col": 17,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 60,
+          "cells": [
+            {
+              "col": 3,
+              "row": 13
+            },
+            {
+              "col": 2,
+              "row": 13
+            },
+            {
+              "col": 1,
+              "row": 13
+            },
+            {
+              "col": 0,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 61,
+          "cells": [
+            {
+              "col": 8,
+              "row": 13
+            },
+            {
+              "col": 7,
+              "row": 13
+            },
+            {
+              "col": 6,
+              "row": 13
+            },
+            {
+              "col": 5,
+              "row": 13
+            },
+            {
+              "col": 4,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 62,
+          "cells": [
+            {
+              "col": 12,
+              "row": 13
+            },
+            {
+              "col": 11,
+              "row": 13
+            },
+            {
+              "col": 10,
+              "row": 13
+            },
+            {
+              "col": 9,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 63,
+          "cells": [
+            {
+              "col": 15,
+              "row": 13
+            },
+            {
+              "col": 14,
+              "row": 13
+            },
+            {
+              "col": 13,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 64,
+          "cells": [
+            {
+              "col": 17,
+              "row": 13
+            },
+            {
+              "col": 16,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 65,
+          "cells": [
+            {
+              "col": 0,
+              "row": 14
+            },
+            {
+              "col": 1,
+              "row": 14
+            },
+            {
+              "col": 2,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 66,
+          "cells": [
+            {
+              "col": 3,
+              "row": 14
+            },
+            {
+              "col": 4,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 67,
+          "cells": [
+            {
+              "col": 5,
+              "row": 14
+            },
+            {
+              "col": 6,
+              "row": 14
+            },
+            {
+              "col": 7,
+              "row": 14
+            },
+            {
+              "col": 8,
+              "row": 14
+            },
+            {
+              "col": 9,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 68,
+          "cells": [
+            {
+              "col": 10,
+              "row": 14
+            },
+            {
+              "col": 11,
+              "row": 14
+            },
+            {
+              "col": 12,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 69,
+          "cells": [
+            {
+              "col": 13,
+              "row": 14
+            },
+            {
+              "col": 14,
+              "row": 14
+            },
+            {
+              "col": 15,
+              "row": 14
+            },
+            {
+              "col": 16,
+              "row": 14
+            },
+            {
+              "col": 17,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 70,
+          "cells": [
+            {
+              "col": 2,
+              "row": 15
+            },
+            {
+              "col": 1,
+              "row": 15
+            },
+            {
+              "col": 0,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 71,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 71,
+          "cells": [
+            {
+              "col": 7,
+              "row": 15
+            },
+            {
+              "col": 6,
+              "row": 15
+            },
+            {
+              "col": 5,
+              "row": 15
+            },
+            {
+              "col": 4,
+              "row": 15
+            },
+            {
+              "col": 3,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 72,
+          "cells": [
+            {
+              "col": 9,
+              "row": 15
+            },
+            {
+              "col": 8,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 73,
+          "cells": [
+            {
+              "col": 13,
+              "row": 15
+            },
+            {
+              "col": 12,
+              "row": 15
+            },
+            {
+              "col": 11,
+              "row": 15
+            },
+            {
+              "col": 10,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 74,
+          "cells": [
+            {
+              "col": 17,
+              "row": 15
+            },
+            {
+              "col": 16,
+              "row": 15
+            },
+            {
+              "col": 15,
+              "row": 15
+            },
+            {
+              "col": 14,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 75,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 75,
+          "cells": [
+            {
+              "col": 0,
+              "row": 16
+            },
+            {
+              "col": 1,
+              "row": 16
+            },
+            {
+              "col": 2,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 76,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 76,
+          "cells": [
+            {
+              "col": 3,
+              "row": 16
+            },
+            {
+              "col": 4,
+              "row": 16
+            },
+            {
+              "col": 5,
+              "row": 16
+            },
+            {
+              "col": 6,
+              "row": 16
+            },
+            {
+              "col": 7,
+              "row": 16
+            },
+            {
+              "col": 8,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 77,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 77,
+          "cells": [
+            {
+              "col": 9,
+              "row": 16
+            },
+            {
+              "col": 10,
+              "row": 16
+            },
+            {
+              "col": 11,
+              "row": 16
+            },
+            {
+              "col": 12,
+              "row": 16
+            },
+            {
+              "col": 13,
+              "row": 16
+            },
+            {
+              "col": 14,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 78,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 78,
+          "cells": [
+            {
+              "col": 15,
+              "row": 16
+            },
+            {
+              "col": 16,
+              "row": 16
+            },
+            {
+              "col": 17,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 79,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 79,
+          "cells": [
+            {
+              "col": 3,
+              "row": 17
+            },
+            {
+              "col": 2,
+              "row": 17
+            },
+            {
+              "col": 1,
+              "row": 17
+            },
+            {
+              "col": 0,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 80,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 80,
+          "cells": [
+            {
+              "col": 6,
+              "row": 17
+            },
+            {
+              "col": 5,
+              "row": 17
+            },
+            {
+              "col": 4,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 81,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 81,
+          "cells": [
+            {
+              "col": 10,
+              "row": 17
+            },
+            {
+              "col": 9,
+              "row": 17
+            },
+            {
+              "col": 8,
+              "row": 17
+            },
+            {
+              "col": 7,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 82,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 82,
+          "cells": [
+            {
+              "col": 14,
+              "row": 17
+            },
+            {
+              "col": 13,
+              "row": 17
+            },
+            {
+              "col": 12,
+              "row": 17
+            },
+            {
+              "col": 11,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 83,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 83,
+          "cells": [
+            {
+              "col": 17,
+              "row": 17
+            },
+            {
+              "col": 16,
+              "row": 17
+            },
+            {
+              "col": 15,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 84,
+          "cells": [
+            {
+              "col": 0,
+              "row": 18
+            },
+            {
+              "col": 1,
+              "row": 18
+            },
+            {
+              "col": 2,
+              "row": 18
+            },
+            {
+              "col": 3,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 85,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 85,
+          "cells": [
+            {
+              "col": 4,
+              "row": 18
+            },
+            {
+              "col": 5,
+              "row": 18
+            },
+            {
+              "col": 6,
+              "row": 18
+            },
+            {
+              "col": 7,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 86,
+          "cells": [
+            {
+              "col": 8,
+              "row": 18
+            },
+            {
+              "col": 9,
+              "row": 18
+            },
+            {
+              "col": 10,
+              "row": 18
+            },
+            {
+              "col": 11,
+              "row": 18
+            },
+            {
+              "col": 12,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 87,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 87,
+          "cells": [
+            {
+              "col": 13,
+              "row": 18
+            },
+            {
+              "col": 14,
+              "row": 18
+            },
+            {
+              "col": 15,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 88,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 88,
+          "cells": [
+            {
+              "col": 16,
+              "row": 18
+            },
+            {
+              "col": 17,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 89,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 89,
+          "cells": [
+            {
+              "col": 2,
+              "row": 19
+            },
+            {
+              "col": 1,
+              "row": 19
+            },
+            {
+              "col": 0,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 90,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 90,
+          "cells": [
+            {
+              "col": 6,
+              "row": 19
+            },
+            {
+              "col": 5,
+              "row": 19
+            },
+            {
+              "col": 4,
+              "row": 19
+            },
+            {
+              "col": 3,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 91,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 91,
+          "cells": [
+            {
+              "col": 12,
+              "row": 19
+            },
+            {
+              "col": 11,
+              "row": 19
+            },
+            {
+              "col": 10,
+              "row": 19
+            },
+            {
+              "col": 9,
+              "row": 19
+            },
+            {
+              "col": 8,
+              "row": 19
+            },
+            {
+              "col": 7,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 92,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 92,
+          "cells": [
+            {
+              "col": 17,
+              "row": 19
+            },
+            {
+              "col": 16,
+              "row": 19
+            },
+            {
+              "col": 15,
+              "row": 19
+            },
+            {
+              "col": 14,
+              "row": 19
+            },
+            {
+              "col": 13,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 93,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 93,
+          "cells": [
+            {
+              "col": 0,
+              "row": 20
+            },
+            {
+              "col": 1,
+              "row": 20
+            },
+            {
+              "col": 2,
+              "row": 20
+            },
+            {
+              "col": 3,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 94,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 94,
+          "cells": [
+            {
+              "col": 4,
+              "row": 20
+            },
+            {
+              "col": 5,
+              "row": 20
+            },
+            {
+              "col": 6,
+              "row": 20
+            },
+            {
+              "col": 7,
+              "row": 20
+            },
+            {
+              "col": 8,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 95,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 95,
+          "cells": [
+            {
+              "col": 9,
+              "row": 20
+            },
+            {
+              "col": 10,
+              "row": 20
+            },
+            {
+              "col": 11,
+              "row": 20
+            },
+            {
+              "col": 12,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 96,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 96,
+          "cells": [
+            {
+              "col": 13,
+              "row": 20
+            },
+            {
+              "col": 14,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 97,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 97,
+          "cells": [
+            {
+              "col": 15,
+              "row": 20
+            },
+            {
+              "col": 16,
+              "row": 20
+            },
+            {
+              "col": 17,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 98,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 98,
+          "cells": [
+            {
+              "col": 5,
+              "row": 21
+            },
+            {
+              "col": 4,
+              "row": 21
+            },
+            {
+              "col": 3,
+              "row": 21
+            },
+            {
+              "col": 2,
+              "row": 21
+            },
+            {
+              "col": 1,
+              "row": 21
+            },
+            {
+              "col": 0,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 99,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 99,
+          "cells": [
+            {
+              "col": 11,
+              "row": 21
+            },
+            {
+              "col": 10,
+              "row": 21
+            },
+            {
+              "col": 9,
+              "row": 21
+            },
+            {
+              "col": 8,
+              "row": 21
+            },
+            {
+              "col": 7,
+              "row": 21
+            },
+            {
+              "col": 6,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 100,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 100,
+          "cells": [
+            {
+              "col": 14,
+              "row": 21
+            },
+            {
+              "col": 13,
+              "row": 21
+            },
+            {
+              "col": 12,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 101,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 101,
+          "cells": [
+            {
+              "col": 17,
+              "row": 21
+            },
+            {
+              "col": 16,
+              "row": 21
+            },
+            {
+              "col": 15,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 102,
+          "cells": [
+            {
+              "col": 0,
+              "row": 22
+            },
+            {
+              "col": 1,
+              "row": 22
+            },
+            {
+              "col": 2,
+              "row": 22
+            },
+            {
+              "col": 3,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 103,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 103,
+          "cells": [
+            {
+              "col": 4,
+              "row": 22
+            },
+            {
+              "col": 5,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 104,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 104,
+          "cells": [
+            {
+              "col": 6,
+              "row": 22
+            },
+            {
+              "col": 7,
+              "row": 22
+            },
+            {
+              "col": 8,
+              "row": 22
+            },
+            {
+              "col": 9,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 105,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 105,
+          "cells": [
+            {
+              "col": 10,
+              "row": 22
+            },
+            {
+              "col": 11,
+              "row": 22
+            },
+            {
+              "col": 12,
+              "row": 22
+            },
+            {
+              "col": 13,
+              "row": 22
+            },
+            {
+              "col": 14,
+              "row": 22
+            },
+            {
+              "col": 15,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 106,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 106,
+          "cells": [
+            {
+              "col": 16,
+              "row": 22
+            },
+            {
+              "col": 17,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 107,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 107,
+          "cells": [
+            {
+              "col": 2,
+              "row": 23
+            },
+            {
+              "col": 1,
+              "row": 23
+            },
+            {
+              "col": 0,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 108,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 108,
+          "cells": [
+            {
+              "col": 7,
+              "row": 23
+            },
+            {
+              "col": 6,
+              "row": 23
+            },
+            {
+              "col": 5,
+              "row": 23
+            },
+            {
+              "col": 4,
+              "row": 23
+            },
+            {
+              "col": 3,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 109,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 109,
+          "cells": [
+            {
+              "col": 10,
+              "row": 23
+            },
+            {
+              "col": 9,
+              "row": 23
+            },
+            {
+              "col": 8,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 110,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 110,
+          "cells": [
+            {
+              "col": 13,
+              "row": 23
+            },
+            {
+              "col": 12,
+              "row": 23
+            },
+            {
+              "col": 11,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 111,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 111,
+          "cells": [
+            {
+              "col": 15,
+              "row": 23
+            },
+            {
+              "col": 14,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 112,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 112,
+          "cells": [
+            {
+              "col": 17,
+              "row": 23
+            },
+            {
+              "col": 16,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 113,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 113,
+          "cells": [
+            {
+              "col": 0,
+              "row": 24
+            },
+            {
+              "col": 1,
+              "row": 24
+            },
+            {
+              "col": 2,
+              "row": 24
+            },
+            {
+              "col": 3,
+              "row": 24
+            },
+            {
+              "col": 4,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 114,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 114,
+          "cells": [
+            {
+              "col": 5,
+              "row": 24
+            },
+            {
+              "col": 6,
+              "row": 24
+            },
+            {
+              "col": 7,
+              "row": 24
+            },
+            {
+              "col": 8,
+              "row": 24
+            },
+            {
+              "col": 9,
+              "row": 24
+            },
+            {
+              "col": 10,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 115,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 115,
+          "cells": [
+            {
+              "col": 11,
+              "row": 24
+            },
+            {
+              "col": 12,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 116,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 116,
+          "cells": [
+            {
+              "col": 13,
+              "row": 24
+            },
+            {
+              "col": 14,
+              "row": 24
+            },
+            {
+              "col": 15,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 117,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 117,
+          "cells": [
+            {
+              "col": 16,
+              "row": 24
+            },
+            {
+              "col": 17,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 118,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 118,
+          "cells": [
+            {
+              "col": 4,
+              "row": 25
+            },
+            {
+              "col": 3,
+              "row": 25
+            },
+            {
+              "col": 2,
+              "row": 25
+            },
+            {
+              "col": 1,
+              "row": 25
+            },
+            {
+              "col": 0,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 119,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 119,
+          "cells": [
+            {
+              "col": 10,
+              "row": 25
+            },
+            {
+              "col": 9,
+              "row": 25
+            },
+            {
+              "col": 8,
+              "row": 25
+            },
+            {
+              "col": 7,
+              "row": 25
+            },
+            {
+              "col": 6,
+              "row": 25
+            },
+            {
+              "col": 5,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 120,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 120,
+          "cells": [
+            {
+              "col": 15,
+              "row": 25
+            },
+            {
+              "col": 14,
+              "row": 25
+            },
+            {
+              "col": 13,
+              "row": 25
+            },
+            {
+              "col": 12,
+              "row": 25
+            },
+            {
+              "col": 11,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 121,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 121,
+          "cells": [
+            {
+              "col": 17,
+              "row": 25
+            },
+            {
+              "col": 16,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 122,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 122,
+          "cells": [
+            {
+              "col": 0,
+              "row": 26
+            },
+            {
+              "col": 1,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 123,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 123,
+          "cells": [
+            {
+              "col": 2,
+              "row": 26
+            },
+            {
+              "col": 3,
+              "row": 26
+            },
+            {
+              "col": 4,
+              "row": 26
+            },
+            {
+              "col": 5,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 124,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 124,
+          "cells": [
+            {
+              "col": 6,
+              "row": 26
+            },
+            {
+              "col": 7,
+              "row": 26
+            },
+            {
+              "col": 8,
+              "row": 26
+            },
+            {
+              "col": 9,
+              "row": 26
+            },
+            {
+              "col": 10,
+              "row": 26
+            },
+            {
+              "col": 11,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 125,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 125,
+          "cells": [
+            {
+              "col": 12,
+              "row": 26
+            },
+            {
+              "col": 13,
+              "row": 26
+            },
+            {
+              "col": 14,
+              "row": 26
+            },
+            {
+              "col": 15,
+              "row": 26
+            },
+            {
+              "col": 16,
+              "row": 26
+            },
+            {
+              "col": 17,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 126,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 126,
+          "cells": [
+            {
+              "col": 2,
+              "row": 27
+            },
+            {
+              "col": 1,
+              "row": 27
+            },
+            {
+              "col": 0,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 127,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 127,
+          "cells": [
+            {
+              "col": 8,
+              "row": 27
+            },
+            {
+              "col": 7,
+              "row": 27
+            },
+            {
+              "col": 6,
+              "row": 27
+            },
+            {
+              "col": 5,
+              "row": 27
+            },
+            {
+              "col": 4,
+              "row": 27
+            },
+            {
+              "col": 3,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 128,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 128,
+          "cells": [
+            {
+              "col": 14,
+              "row": 27
+            },
+            {
+              "col": 13,
+              "row": 27
+            },
+            {
+              "col": 12,
+              "row": 27
+            },
+            {
+              "col": 11,
+              "row": 27
+            },
+            {
+              "col": 10,
+              "row": 27
+            },
+            {
+              "col": 9,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 129,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 129,
+          "cells": [
+            {
+              "col": 17,
+              "row": 27
+            },
+            {
+              "col": 16,
+              "row": 27
+            },
+            {
+              "col": 15,
+              "row": 27
+            }
+          ]
+        }
+      ]
+    },
+    "stats": {
+      "lineCount": 130,
+      "coveredCells": 504,
+      "totalCells": 504,
+      "coverage": 1,
+      "directions": {
+        "up": 0,
+        "down": 0,
+        "left": 65,
+        "right": 65
+      }
+    },
+    "updatedAt": "2026-03-22T07:12:53.027Z"
+  },
+  "9": {
+    "settings": {
+      "level": 9,
+      "dimensionMode": "rows",
+      "dimensionValue": 29,
+      "gridCols": 19,
+      "gridRows": 29,
+      "minLen": 2,
+      "maxLen": 6
+    },
+    "data": {
+      "version": 1,
+      "generatorVersion": 5,
+      "level": 9,
+      "gridCols": 18,
+      "gridRows": 29,
+      "minLen": 2,
+      "maxLen": 6,
+      "lineCount": 147,
+      "path": null,
+      "lines": [
+        {
+          "id": 0,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 0,
+          "cells": [
+            {
+              "col": 0,
+              "row": 0
+            },
+            {
+              "col": 1,
+              "row": 0
+            },
+            {
+              "col": 2,
+              "row": 0
+            },
+            {
+              "col": 3,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 1,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 1,
+          "cells": [
+            {
+              "col": 4,
+              "row": 0
+            },
+            {
+              "col": 5,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 2,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 2,
+          "cells": [
+            {
+              "col": 6,
+              "row": 0
+            },
+            {
+              "col": 7,
+              "row": 0
+            },
+            {
+              "col": 8,
+              "row": 0
+            },
+            {
+              "col": 9,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 3,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 3,
+          "cells": [
+            {
+              "col": 10,
+              "row": 0
+            },
+            {
+              "col": 11,
+              "row": 0
+            },
+            {
+              "col": 12,
+              "row": 0
+            },
+            {
+              "col": 13,
+              "row": 0
+            },
+            {
+              "col": 14,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 4,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 4,
+          "cells": [
+            {
+              "col": 15,
+              "row": 0
+            },
+            {
+              "col": 16,
+              "row": 0
+            },
+            {
+              "col": 17,
+              "row": 0
+            }
+          ]
+        },
+        {
+          "id": 5,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 5,
+          "cells": [
+            {
+              "col": 2,
+              "row": 1
+            },
+            {
+              "col": 1,
+              "row": 1
+            },
+            {
+              "col": 0,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 6,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 6,
+          "cells": [
+            {
+              "col": 8,
+              "row": 1
+            },
+            {
+              "col": 7,
+              "row": 1
+            },
+            {
+              "col": 6,
+              "row": 1
+            },
+            {
+              "col": 5,
+              "row": 1
+            },
+            {
+              "col": 4,
+              "row": 1
+            },
+            {
+              "col": 3,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 7,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 7,
+          "cells": [
+            {
+              "col": 14,
+              "row": 1
+            },
+            {
+              "col": 13,
+              "row": 1
+            },
+            {
+              "col": 12,
+              "row": 1
+            },
+            {
+              "col": 11,
+              "row": 1
+            },
+            {
+              "col": 10,
+              "row": 1
+            },
+            {
+              "col": 9,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 8,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 8,
+          "cells": [
+            {
+              "col": 17,
+              "row": 1
+            },
+            {
+              "col": 16,
+              "row": 1
+            },
+            {
+              "col": 15,
+              "row": 1
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 9,
+          "cells": [
+            {
+              "col": 0,
+              "row": 2
+            },
+            {
+              "col": 1,
+              "row": 2
+            },
+            {
+              "col": 2,
+              "row": 2
+            },
+            {
+              "col": 3,
+              "row": 2
+            },
+            {
+              "col": 4,
+              "row": 2
+            },
+            {
+              "col": 5,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 10,
+          "cells": [
+            {
+              "col": 6,
+              "row": 2
+            },
+            {
+              "col": 7,
+              "row": 2
+            },
+            {
+              "col": 8,
+              "row": 2
+            },
+            {
+              "col": 9,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 11,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 11,
+          "cells": [
+            {
+              "col": 10,
+              "row": 2
+            },
+            {
+              "col": 11,
+              "row": 2
+            },
+            {
+              "col": 12,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 12,
+          "cells": [
+            {
+              "col": 13,
+              "row": 2
+            },
+            {
+              "col": 14,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 13,
+          "cells": [
+            {
+              "col": 15,
+              "row": 2
+            },
+            {
+              "col": 16,
+              "row": 2
+            },
+            {
+              "col": 17,
+              "row": 2
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 14,
+          "cells": [
+            {
+              "col": 3,
+              "row": 3
+            },
+            {
+              "col": 2,
+              "row": 3
+            },
+            {
+              "col": 1,
+              "row": 3
+            },
+            {
+              "col": 0,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 15,
+          "cells": [
+            {
+              "col": 5,
+              "row": 3
+            },
+            {
+              "col": 4,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 16,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 16,
+          "cells": [
+            {
+              "col": 11,
+              "row": 3
+            },
+            {
+              "col": 10,
+              "row": 3
+            },
+            {
+              "col": 9,
+              "row": 3
+            },
+            {
+              "col": 8,
+              "row": 3
+            },
+            {
+              "col": 7,
+              "row": 3
+            },
+            {
+              "col": 6,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 17,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 17,
+          "cells": [
+            {
+              "col": 15,
+              "row": 3
+            },
+            {
+              "col": 14,
+              "row": 3
+            },
+            {
+              "col": 13,
+              "row": 3
+            },
+            {
+              "col": 12,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 18,
+          "cells": [
+            {
+              "col": 17,
+              "row": 3
+            },
+            {
+              "col": 16,
+              "row": 3
+            }
+          ]
+        },
+        {
+          "id": 19,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 19,
+          "cells": [
+            {
+              "col": 0,
+              "row": 4
+            },
+            {
+              "col": 1,
+              "row": 4
+            },
+            {
+              "col": 2,
+              "row": 4
+            },
+            {
+              "col": 3,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 20,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 20,
+          "cells": [
+            {
+              "col": 4,
+              "row": 4
+            },
+            {
+              "col": 5,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 21,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 21,
+          "cells": [
+            {
+              "col": 6,
+              "row": 4
+            },
+            {
+              "col": 7,
+              "row": 4
+            },
+            {
+              "col": 8,
+              "row": 4
+            },
+            {
+              "col": 9,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 22,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 22,
+          "cells": [
+            {
+              "col": 10,
+              "row": 4
+            },
+            {
+              "col": 11,
+              "row": 4
+            },
+            {
+              "col": 12,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 23,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 23,
+          "cells": [
+            {
+              "col": 13,
+              "row": 4
+            },
+            {
+              "col": 14,
+              "row": 4
+            },
+            {
+              "col": 15,
+              "row": 4
+            },
+            {
+              "col": 16,
+              "row": 4
+            },
+            {
+              "col": 17,
+              "row": 4
+            }
+          ]
+        },
+        {
+          "id": 24,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 24,
+          "cells": [
+            {
+              "col": 2,
+              "row": 5
+            },
+            {
+              "col": 1,
+              "row": 5
+            },
+            {
+              "col": 0,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 25,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 25,
+          "cells": [
+            {
+              "col": 6,
+              "row": 5
+            },
+            {
+              "col": 5,
+              "row": 5
+            },
+            {
+              "col": 4,
+              "row": 5
+            },
+            {
+              "col": 3,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 26,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 26,
+          "cells": [
+            {
+              "col": 11,
+              "row": 5
+            },
+            {
+              "col": 10,
+              "row": 5
+            },
+            {
+              "col": 9,
+              "row": 5
+            },
+            {
+              "col": 8,
+              "row": 5
+            },
+            {
+              "col": 7,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 27,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 27,
+          "cells": [
+            {
+              "col": 17,
+              "row": 5
+            },
+            {
+              "col": 16,
+              "row": 5
+            },
+            {
+              "col": 15,
+              "row": 5
+            },
+            {
+              "col": 14,
+              "row": 5
+            },
+            {
+              "col": 13,
+              "row": 5
+            },
+            {
+              "col": 12,
+              "row": 5
+            }
+          ]
+        },
+        {
+          "id": 28,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 28,
+          "cells": [
+            {
+              "col": 0,
+              "row": 6
+            },
+            {
+              "col": 1,
+              "row": 6
+            },
+            {
+              "col": 2,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 29,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 29,
+          "cells": [
+            {
+              "col": 3,
+              "row": 6
+            },
+            {
+              "col": 4,
+              "row": 6
+            },
+            {
+              "col": 5,
+              "row": 6
+            },
+            {
+              "col": 6,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 30,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 30,
+          "cells": [
+            {
+              "col": 7,
+              "row": 6
+            },
+            {
+              "col": 8,
+              "row": 6
+            },
+            {
+              "col": 9,
+              "row": 6
+            },
+            {
+              "col": 10,
+              "row": 6
+            },
+            {
+              "col": 11,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 31,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 31,
+          "cells": [
+            {
+              "col": 12,
+              "row": 6
+            },
+            {
+              "col": 13,
+              "row": 6
+            },
+            {
+              "col": 14,
+              "row": 6
+            },
+            {
+              "col": 15,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 32,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 32,
+          "cells": [
+            {
+              "col": 16,
+              "row": 6
+            },
+            {
+              "col": 17,
+              "row": 6
+            }
+          ]
+        },
+        {
+          "id": 33,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 33,
+          "cells": [
+            {
+              "col": 1,
+              "row": 7
+            },
+            {
+              "col": 0,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 34,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 34,
+          "cells": [
+            {
+              "col": 7,
+              "row": 7
+            },
+            {
+              "col": 6,
+              "row": 7
+            },
+            {
+              "col": 5,
+              "row": 7
+            },
+            {
+              "col": 4,
+              "row": 7
+            },
+            {
+              "col": 3,
+              "row": 7
+            },
+            {
+              "col": 2,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 35,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 35,
+          "cells": [
+            {
+              "col": 10,
+              "row": 7
+            },
+            {
+              "col": 9,
+              "row": 7
+            },
+            {
+              "col": 8,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 36,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 36,
+          "cells": [
+            {
+              "col": 15,
+              "row": 7
+            },
+            {
+              "col": 14,
+              "row": 7
+            },
+            {
+              "col": 13,
+              "row": 7
+            },
+            {
+              "col": 12,
+              "row": 7
+            },
+            {
+              "col": 11,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 37,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 37,
+          "cells": [
+            {
+              "col": 17,
+              "row": 7
+            },
+            {
+              "col": 16,
+              "row": 7
+            }
+          ]
+        },
+        {
+          "id": 38,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 38,
+          "cells": [
+            {
+              "col": 0,
+              "row": 8
+            },
+            {
+              "col": 1,
+              "row": 8
+            },
+            {
+              "col": 2,
+              "row": 8
+            },
+            {
+              "col": 3,
+              "row": 8
+            },
+            {
+              "col": 4,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 39,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 39,
+          "cells": [
+            {
+              "col": 5,
+              "row": 8
+            },
+            {
+              "col": 6,
+              "row": 8
+            },
+            {
+              "col": 7,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 40,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 40,
+          "cells": [
+            {
+              "col": 8,
+              "row": 8
+            },
+            {
+              "col": 9,
+              "row": 8
+            },
+            {
+              "col": 10,
+              "row": 8
+            },
+            {
+              "col": 11,
+              "row": 8
+            },
+            {
+              "col": 12,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 41,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 41,
+          "cells": [
+            {
+              "col": 13,
+              "row": 8
+            },
+            {
+              "col": 14,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 42,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 42,
+          "cells": [
+            {
+              "col": 15,
+              "row": 8
+            },
+            {
+              "col": 16,
+              "row": 8
+            },
+            {
+              "col": 17,
+              "row": 8
+            }
+          ]
+        },
+        {
+          "id": 43,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 43,
+          "cells": [
+            {
+              "col": 4,
+              "row": 9
+            },
+            {
+              "col": 3,
+              "row": 9
+            },
+            {
+              "col": 2,
+              "row": 9
+            },
+            {
+              "col": 1,
+              "row": 9
+            },
+            {
+              "col": 0,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 44,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 44,
+          "cells": [
+            {
+              "col": 6,
+              "row": 9
+            },
+            {
+              "col": 5,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 45,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 45,
+          "cells": [
+            {
+              "col": 8,
+              "row": 9
+            },
+            {
+              "col": 7,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 46,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 46,
+          "cells": [
+            {
+              "col": 12,
+              "row": 9
+            },
+            {
+              "col": 11,
+              "row": 9
+            },
+            {
+              "col": 10,
+              "row": 9
+            },
+            {
+              "col": 9,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 47,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 47,
+          "cells": [
+            {
+              "col": 14,
+              "row": 9
+            },
+            {
+              "col": 13,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 48,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 48,
+          "cells": [
+            {
+              "col": 17,
+              "row": 9
+            },
+            {
+              "col": 16,
+              "row": 9
+            },
+            {
+              "col": 15,
+              "row": 9
+            }
+          ]
+        },
+        {
+          "id": 49,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 49,
+          "cells": [
+            {
+              "col": 0,
+              "row": 10
+            },
+            {
+              "col": 1,
+              "row": 10
+            },
+            {
+              "col": 2,
+              "row": 10
+            },
+            {
+              "col": 3,
+              "row": 10
+            },
+            {
+              "col": 4,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 50,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 50,
+          "cells": [
+            {
+              "col": 5,
+              "row": 10
+            },
+            {
+              "col": 6,
+              "row": 10
+            },
+            {
+              "col": 7,
+              "row": 10
+            },
+            {
+              "col": 8,
+              "row": 10
+            },
+            {
+              "col": 9,
+              "row": 10
+            },
+            {
+              "col": 10,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 51,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 51,
+          "cells": [
+            {
+              "col": 11,
+              "row": 10
+            },
+            {
+              "col": 12,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 52,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 52,
+          "cells": [
+            {
+              "col": 13,
+              "row": 10
+            },
+            {
+              "col": 14,
+              "row": 10
+            },
+            {
+              "col": 15,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 53,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 53,
+          "cells": [
+            {
+              "col": 16,
+              "row": 10
+            },
+            {
+              "col": 17,
+              "row": 10
+            }
+          ]
+        },
+        {
+          "id": 54,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 54,
+          "cells": [
+            {
+              "col": 3,
+              "row": 11
+            },
+            {
+              "col": 2,
+              "row": 11
+            },
+            {
+              "col": 1,
+              "row": 11
+            },
+            {
+              "col": 0,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 55,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 55,
+          "cells": [
+            {
+              "col": 8,
+              "row": 11
+            },
+            {
+              "col": 7,
+              "row": 11
+            },
+            {
+              "col": 6,
+              "row": 11
+            },
+            {
+              "col": 5,
+              "row": 11
+            },
+            {
+              "col": 4,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 56,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 56,
+          "cells": [
+            {
+              "col": 13,
+              "row": 11
+            },
+            {
+              "col": 12,
+              "row": 11
+            },
+            {
+              "col": 11,
+              "row": 11
+            },
+            {
+              "col": 10,
+              "row": 11
+            },
+            {
+              "col": 9,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 57,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 57,
+          "cells": [
+            {
+              "col": 15,
+              "row": 11
+            },
+            {
+              "col": 14,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 58,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 58,
+          "cells": [
+            {
+              "col": 17,
+              "row": 11
+            },
+            {
+              "col": 16,
+              "row": 11
+            }
+          ]
+        },
+        {
+          "id": 59,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 59,
+          "cells": [
+            {
+              "col": 0,
+              "row": 12
+            },
+            {
+              "col": 1,
+              "row": 12
+            },
+            {
+              "col": 2,
+              "row": 12
+            },
+            {
+              "col": 3,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 60,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 60,
+          "cells": [
+            {
+              "col": 4,
+              "row": 12
+            },
+            {
+              "col": 5,
+              "row": 12
+            },
+            {
+              "col": 6,
+              "row": 12
+            },
+            {
+              "col": 7,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 61,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 61,
+          "cells": [
+            {
+              "col": 8,
+              "row": 12
+            },
+            {
+              "col": 9,
+              "row": 12
+            },
+            {
+              "col": 10,
+              "row": 12
+            },
+            {
+              "col": 11,
+              "row": 12
+            },
+            {
+              "col": 12,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 62,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 62,
+          "cells": [
+            {
+              "col": 13,
+              "row": 12
+            },
+            {
+              "col": 14,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 63,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 63,
+          "cells": [
+            {
+              "col": 15,
+              "row": 12
+            },
+            {
+              "col": 16,
+              "row": 12
+            },
+            {
+              "col": 17,
+              "row": 12
+            }
+          ]
+        },
+        {
+          "id": 64,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 64,
+          "cells": [
+            {
+              "col": 3,
+              "row": 13
+            },
+            {
+              "col": 2,
+              "row": 13
+            },
+            {
+              "col": 1,
+              "row": 13
+            },
+            {
+              "col": 0,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 65,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 65,
+          "cells": [
+            {
+              "col": 7,
+              "row": 13
+            },
+            {
+              "col": 6,
+              "row": 13
+            },
+            {
+              "col": 5,
+              "row": 13
+            },
+            {
+              "col": 4,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 66,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 66,
+          "cells": [
+            {
+              "col": 13,
+              "row": 13
+            },
+            {
+              "col": 12,
+              "row": 13
+            },
+            {
+              "col": 11,
+              "row": 13
+            },
+            {
+              "col": 10,
+              "row": 13
+            },
+            {
+              "col": 9,
+              "row": 13
+            },
+            {
+              "col": 8,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 67,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 67,
+          "cells": [
+            {
+              "col": 15,
+              "row": 13
+            },
+            {
+              "col": 14,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 68,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 68,
+          "cells": [
+            {
+              "col": 17,
+              "row": 13
+            },
+            {
+              "col": 16,
+              "row": 13
+            }
+          ]
+        },
+        {
+          "id": 69,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 69,
+          "cells": [
+            {
+              "col": 0,
+              "row": 14
+            },
+            {
+              "col": 1,
+              "row": 14
+            },
+            {
+              "col": 2,
+              "row": 14
+            },
+            {
+              "col": 3,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 70,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 70,
+          "cells": [
+            {
+              "col": 4,
+              "row": 14
+            },
+            {
+              "col": 5,
+              "row": 14
+            },
+            {
+              "col": 6,
+              "row": 14
+            },
+            {
+              "col": 7,
+              "row": 14
+            },
+            {
+              "col": 8,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 71,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 71,
+          "cells": [
+            {
+              "col": 9,
+              "row": 14
+            },
+            {
+              "col": 10,
+              "row": 14
+            },
+            {
+              "col": 11,
+              "row": 14
+            },
+            {
+              "col": 12,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 72,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 72,
+          "cells": [
+            {
+              "col": 13,
+              "row": 14
+            },
+            {
+              "col": 14,
+              "row": 14
+            },
+            {
+              "col": 15,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 73,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 73,
+          "cells": [
+            {
+              "col": 16,
+              "row": 14
+            },
+            {
+              "col": 17,
+              "row": 14
+            }
+          ]
+        },
+        {
+          "id": 74,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 74,
+          "cells": [
+            {
+              "col": 4,
+              "row": 15
+            },
+            {
+              "col": 3,
+              "row": 15
+            },
+            {
+              "col": 2,
+              "row": 15
+            },
+            {
+              "col": 1,
+              "row": 15
+            },
+            {
+              "col": 0,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 75,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 75,
+          "cells": [
+            {
+              "col": 8,
+              "row": 15
+            },
+            {
+              "col": 7,
+              "row": 15
+            },
+            {
+              "col": 6,
+              "row": 15
+            },
+            {
+              "col": 5,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 76,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 76,
+          "cells": [
+            {
+              "col": 12,
+              "row": 15
+            },
+            {
+              "col": 11,
+              "row": 15
+            },
+            {
+              "col": 10,
+              "row": 15
+            },
+            {
+              "col": 9,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 77,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 77,
+          "cells": [
+            {
+              "col": 15,
+              "row": 15
+            },
+            {
+              "col": 14,
+              "row": 15
+            },
+            {
+              "col": 13,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 78,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 78,
+          "cells": [
+            {
+              "col": 17,
+              "row": 15
+            },
+            {
+              "col": 16,
+              "row": 15
+            }
+          ]
+        },
+        {
+          "id": 79,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 79,
+          "cells": [
+            {
+              "col": 0,
+              "row": 16
+            },
+            {
+              "col": 1,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 80,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 80,
+          "cells": [
+            {
+              "col": 2,
+              "row": 16
+            },
+            {
+              "col": 3,
+              "row": 16
+            },
+            {
+              "col": 4,
+              "row": 16
+            },
+            {
+              "col": 5,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 81,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 81,
+          "cells": [
+            {
+              "col": 6,
+              "row": 16
+            },
+            {
+              "col": 7,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 82,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 82,
+          "cells": [
+            {
+              "col": 8,
+              "row": 16
+            },
+            {
+              "col": 9,
+              "row": 16
+            },
+            {
+              "col": 10,
+              "row": 16
+            },
+            {
+              "col": 11,
+              "row": 16
+            },
+            {
+              "col": 12,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 83,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 83,
+          "cells": [
+            {
+              "col": 13,
+              "row": 16
+            },
+            {
+              "col": 14,
+              "row": 16
+            },
+            {
+              "col": 15,
+              "row": 16
+            },
+            {
+              "col": 16,
+              "row": 16
+            },
+            {
+              "col": 17,
+              "row": 16
+            }
+          ]
+        },
+        {
+          "id": 84,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 84,
+          "cells": [
+            {
+              "col": 3,
+              "row": 17
+            },
+            {
+              "col": 2,
+              "row": 17
+            },
+            {
+              "col": 1,
+              "row": 17
+            },
+            {
+              "col": 0,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 85,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 85,
+          "cells": [
+            {
+              "col": 5,
+              "row": 17
+            },
+            {
+              "col": 4,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 86,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 86,
+          "cells": [
+            {
+              "col": 8,
+              "row": 17
+            },
+            {
+              "col": 7,
+              "row": 17
+            },
+            {
+              "col": 6,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 87,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 87,
+          "cells": [
+            {
+              "col": 11,
+              "row": 17
+            },
+            {
+              "col": 10,
+              "row": 17
+            },
+            {
+              "col": 9,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 88,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 88,
+          "cells": [
+            {
+              "col": 15,
+              "row": 17
+            },
+            {
+              "col": 14,
+              "row": 17
+            },
+            {
+              "col": 13,
+              "row": 17
+            },
+            {
+              "col": 12,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 89,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 89,
+          "cells": [
+            {
+              "col": 17,
+              "row": 17
+            },
+            {
+              "col": 16,
+              "row": 17
+            }
+          ]
+        },
+        {
+          "id": 90,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 90,
+          "cells": [
+            {
+              "col": 0,
+              "row": 18
+            },
+            {
+              "col": 1,
+              "row": 18
+            },
+            {
+              "col": 2,
+              "row": 18
+            },
+            {
+              "col": 3,
+              "row": 18
+            },
+            {
+              "col": 4,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 91,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 91,
+          "cells": [
+            {
+              "col": 5,
+              "row": 18
+            },
+            {
+              "col": 6,
+              "row": 18
+            },
+            {
+              "col": 7,
+              "row": 18
+            },
+            {
+              "col": 8,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 92,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 92,
+          "cells": [
+            {
+              "col": 9,
+              "row": 18
+            },
+            {
+              "col": 10,
+              "row": 18
+            },
+            {
+              "col": 11,
+              "row": 18
+            },
+            {
+              "col": 12,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 93,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 93,
+          "cells": [
+            {
+              "col": 13,
+              "row": 18
+            },
+            {
+              "col": 14,
+              "row": 18
+            },
+            {
+              "col": 15,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 94,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 94,
+          "cells": [
+            {
+              "col": 16,
+              "row": 18
+            },
+            {
+              "col": 17,
+              "row": 18
+            }
+          ]
+        },
+        {
+          "id": 95,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 95,
+          "cells": [
+            {
+              "col": 3,
+              "row": 19
+            },
+            {
+              "col": 2,
+              "row": 19
+            },
+            {
+              "col": 1,
+              "row": 19
+            },
+            {
+              "col": 0,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 96,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 96,
+          "cells": [
+            {
+              "col": 9,
+              "row": 19
+            },
+            {
+              "col": 8,
+              "row": 19
+            },
+            {
+              "col": 7,
+              "row": 19
+            },
+            {
+              "col": 6,
+              "row": 19
+            },
+            {
+              "col": 5,
+              "row": 19
+            },
+            {
+              "col": 4,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 97,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 97,
+          "cells": [
+            {
+              "col": 13,
+              "row": 19
+            },
+            {
+              "col": 12,
+              "row": 19
+            },
+            {
+              "col": 11,
+              "row": 19
+            },
+            {
+              "col": 10,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 98,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 98,
+          "cells": [
+            {
+              "col": 15,
+              "row": 19
+            },
+            {
+              "col": 14,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 99,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 99,
+          "cells": [
+            {
+              "col": 17,
+              "row": 19
+            },
+            {
+              "col": 16,
+              "row": 19
+            }
+          ]
+        },
+        {
+          "id": 100,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 100,
+          "cells": [
+            {
+              "col": 0,
+              "row": 20
+            },
+            {
+              "col": 1,
+              "row": 20
+            },
+            {
+              "col": 2,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 101,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 101,
+          "cells": [
+            {
+              "col": 3,
+              "row": 20
+            },
+            {
+              "col": 4,
+              "row": 20
+            },
+            {
+              "col": 5,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 102,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 102,
+          "cells": [
+            {
+              "col": 6,
+              "row": 20
+            },
+            {
+              "col": 7,
+              "row": 20
+            },
+            {
+              "col": 8,
+              "row": 20
+            },
+            {
+              "col": 9,
+              "row": 20
+            },
+            {
+              "col": 10,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 103,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 103,
+          "cells": [
+            {
+              "col": 11,
+              "row": 20
+            },
+            {
+              "col": 12,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 104,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 104,
+          "cells": [
+            {
+              "col": 13,
+              "row": 20
+            },
+            {
+              "col": 14,
+              "row": 20
+            },
+            {
+              "col": 15,
+              "row": 20
+            },
+            {
+              "col": 16,
+              "row": 20
+            },
+            {
+              "col": 17,
+              "row": 20
+            }
+          ]
+        },
+        {
+          "id": 105,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 105,
+          "cells": [
+            {
+              "col": 3,
+              "row": 21
+            },
+            {
+              "col": 2,
+              "row": 21
+            },
+            {
+              "col": 1,
+              "row": 21
+            },
+            {
+              "col": 0,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 106,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 106,
+          "cells": [
+            {
+              "col": 5,
+              "row": 21
+            },
+            {
+              "col": 4,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 107,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 107,
+          "cells": [
+            {
+              "col": 7,
+              "row": 21
+            },
+            {
+              "col": 6,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 108,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 108,
+          "cells": [
+            {
+              "col": 9,
+              "row": 21
+            },
+            {
+              "col": 8,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 109,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 109,
+          "cells": [
+            {
+              "col": 15,
+              "row": 21
+            },
+            {
+              "col": 14,
+              "row": 21
+            },
+            {
+              "col": 13,
+              "row": 21
+            },
+            {
+              "col": 12,
+              "row": 21
+            },
+            {
+              "col": 11,
+              "row": 21
+            },
+            {
+              "col": 10,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 110,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 110,
+          "cells": [
+            {
+              "col": 17,
+              "row": 21
+            },
+            {
+              "col": 16,
+              "row": 21
+            }
+          ]
+        },
+        {
+          "id": 111,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 111,
+          "cells": [
+            {
+              "col": 0,
+              "row": 22
+            },
+            {
+              "col": 1,
+              "row": 22
+            },
+            {
+              "col": 2,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 112,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 112,
+          "cells": [
+            {
+              "col": 3,
+              "row": 22
+            },
+            {
+              "col": 4,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 113,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 113,
+          "cells": [
+            {
+              "col": 5,
+              "row": 22
+            },
+            {
+              "col": 6,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 114,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 114,
+          "cells": [
+            {
+              "col": 7,
+              "row": 22
+            },
+            {
+              "col": 8,
+              "row": 22
+            },
+            {
+              "col": 9,
+              "row": 22
+            },
+            {
+              "col": 10,
+              "row": 22
+            },
+            {
+              "col": 11,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 115,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 115,
+          "cells": [
+            {
+              "col": 12,
+              "row": 22
+            },
+            {
+              "col": 13,
+              "row": 22
+            },
+            {
+              "col": 14,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 116,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 116,
+          "cells": [
+            {
+              "col": 15,
+              "row": 22
+            },
+            {
+              "col": 16,
+              "row": 22
+            },
+            {
+              "col": 17,
+              "row": 22
+            }
+          ]
+        },
+        {
+          "id": 117,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 117,
+          "cells": [
+            {
+              "col": 5,
+              "row": 23
+            },
+            {
+              "col": 4,
+              "row": 23
+            },
+            {
+              "col": 3,
+              "row": 23
+            },
+            {
+              "col": 2,
+              "row": 23
+            },
+            {
+              "col": 1,
+              "row": 23
+            },
+            {
+              "col": 0,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 118,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 118,
+          "cells": [
+            {
+              "col": 7,
+              "row": 23
+            },
+            {
+              "col": 6,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 119,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 119,
+          "cells": [
+            {
+              "col": 10,
+              "row": 23
+            },
+            {
+              "col": 9,
+              "row": 23
+            },
+            {
+              "col": 8,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 120,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 120,
+          "cells": [
+            {
+              "col": 14,
+              "row": 23
+            },
+            {
+              "col": 13,
+              "row": 23
+            },
+            {
+              "col": 12,
+              "row": 23
+            },
+            {
+              "col": 11,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 121,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 121,
+          "cells": [
+            {
+              "col": 17,
+              "row": 23
+            },
+            {
+              "col": 16,
+              "row": 23
+            },
+            {
+              "col": 15,
+              "row": 23
+            }
+          ]
+        },
+        {
+          "id": 122,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 122,
+          "cells": [
+            {
+              "col": 0,
+              "row": 24
+            },
+            {
+              "col": 1,
+              "row": 24
+            },
+            {
+              "col": 2,
+              "row": 24
+            },
+            {
+              "col": 3,
+              "row": 24
+            },
+            {
+              "col": 4,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 123,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 123,
+          "cells": [
+            {
+              "col": 5,
+              "row": 24
+            },
+            {
+              "col": 6,
+              "row": 24
+            },
+            {
+              "col": 7,
+              "row": 24
+            },
+            {
+              "col": 8,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 124,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 124,
+          "cells": [
+            {
+              "col": 9,
+              "row": 24
+            },
+            {
+              "col": 10,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 125,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 125,
+          "cells": [
+            {
+              "col": 11,
+              "row": 24
+            },
+            {
+              "col": 12,
+              "row": 24
+            },
+            {
+              "col": 13,
+              "row": 24
+            },
+            {
+              "col": 14,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 126,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 126,
+          "cells": [
+            {
+              "col": 15,
+              "row": 24
+            },
+            {
+              "col": 16,
+              "row": 24
+            },
+            {
+              "col": 17,
+              "row": 24
+            }
+          ]
+        },
+        {
+          "id": 127,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 127,
+          "cells": [
+            {
+              "col": 4,
+              "row": 25
+            },
+            {
+              "col": 3,
+              "row": 25
+            },
+            {
+              "col": 2,
+              "row": 25
+            },
+            {
+              "col": 1,
+              "row": 25
+            },
+            {
+              "col": 0,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 128,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 128,
+          "cells": [
+            {
+              "col": 6,
+              "row": 25
+            },
+            {
+              "col": 5,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 129,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 129,
+          "cells": [
+            {
+              "col": 8,
+              "row": 25
+            },
+            {
+              "col": 7,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 130,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 130,
+          "cells": [
+            {
+              "col": 12,
+              "row": 25
+            },
+            {
+              "col": 11,
+              "row": 25
+            },
+            {
+              "col": 10,
+              "row": 25
+            },
+            {
+              "col": 9,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 131,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 131,
+          "cells": [
+            {
+              "col": 15,
+              "row": 25
+            },
+            {
+              "col": 14,
+              "row": 25
+            },
+            {
+              "col": 13,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 132,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 132,
+          "cells": [
+            {
+              "col": 17,
+              "row": 25
+            },
+            {
+              "col": 16,
+              "row": 25
+            }
+          ]
+        },
+        {
+          "id": 133,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 133,
+          "cells": [
+            {
+              "col": 0,
+              "row": 26
+            },
+            {
+              "col": 1,
+              "row": 26
+            },
+            {
+              "col": 2,
+              "row": 26
+            },
+            {
+              "col": 3,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 134,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 134,
+          "cells": [
+            {
+              "col": 4,
+              "row": 26
+            },
+            {
+              "col": 5,
+              "row": 26
+            },
+            {
+              "col": 6,
+              "row": 26
+            },
+            {
+              "col": 7,
+              "row": 26
+            },
+            {
+              "col": 8,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 135,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 135,
+          "cells": [
+            {
+              "col": 9,
+              "row": 26
+            },
+            {
+              "col": 10,
+              "row": 26
+            },
+            {
+              "col": 11,
+              "row": 26
+            },
+            {
+              "col": 12,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 136,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 136,
+          "cells": [
+            {
+              "col": 13,
+              "row": 26
+            },
+            {
+              "col": 14,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 137,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 137,
+          "cells": [
+            {
+              "col": 15,
+              "row": 26
+            },
+            {
+              "col": 16,
+              "row": 26
+            },
+            {
+              "col": 17,
+              "row": 26
+            }
+          ]
+        },
+        {
+          "id": 138,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 138,
+          "cells": [
+            {
+              "col": 3,
+              "row": 27
+            },
+            {
+              "col": 2,
+              "row": 27
+            },
+            {
+              "col": 1,
+              "row": 27
+            },
+            {
+              "col": 0,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 139,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 139,
+          "cells": [
+            {
+              "col": 9,
+              "row": 27
+            },
+            {
+              "col": 8,
+              "row": 27
+            },
+            {
+              "col": 7,
+              "row": 27
+            },
+            {
+              "col": 6,
+              "row": 27
+            },
+            {
+              "col": 5,
+              "row": 27
+            },
+            {
+              "col": 4,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 140,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 140,
+          "cells": [
+            {
+              "col": 11,
+              "row": 27
+            },
+            {
+              "col": 10,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 141,
+          "direction": "left",
+          "color": "#1a1c3c",
+          "zIndex": 141,
+          "cells": [
+            {
+              "col": 17,
+              "row": 27
+            },
+            {
+              "col": 16,
+              "row": 27
+            },
+            {
+              "col": 15,
+              "row": 27
+            },
+            {
+              "col": 14,
+              "row": 27
+            },
+            {
+              "col": 13,
+              "row": 27
+            },
+            {
+              "col": 12,
+              "row": 27
+            }
+          ]
+        },
+        {
+          "id": 142,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 142,
+          "cells": [
+            {
+              "col": 0,
+              "row": 28
+            },
+            {
+              "col": 1,
+              "row": 28
+            },
+            {
+              "col": 2,
+              "row": 28
+            },
+            {
+              "col": 3,
+              "row": 28
+            }
+          ]
+        },
+        {
+          "id": 143,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 143,
+          "cells": [
+            {
+              "col": 4,
+              "row": 28
+            },
+            {
+              "col": 5,
+              "row": 28
+            },
+            {
+              "col": 6,
+              "row": 28
+            },
+            {
+              "col": 7,
+              "row": 28
+            },
+            {
+              "col": 8,
+              "row": 28
+            },
+            {
+              "col": 9,
+              "row": 28
+            }
+          ]
+        },
+        {
+          "id": 144,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 144,
+          "cells": [
+            {
+              "col": 10,
+              "row": 28
+            },
+            {
+              "col": 11,
+              "row": 28
+            },
+            {
+              "col": 12,
+              "row": 28
+            }
+          ]
+        },
+        {
+          "id": 145,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 145,
+          "cells": [
+            {
+              "col": 13,
+              "row": 28
+            },
+            {
+              "col": 14,
+              "row": 28
+            },
+            {
+              "col": 15,
+              "row": 28
+            }
+          ]
+        },
+        {
+          "id": 146,
+          "direction": "right",
+          "color": "#1a1c3c",
+          "zIndex": 146,
+          "cells": [
+            {
+              "col": 16,
+              "row": 28
+            },
+            {
+              "col": 17,
+              "row": 28
+            }
+          ]
+        }
+      ]
+    },
+    "stats": {
+      "lineCount": 147,
+      "coveredCells": 522,
+      "totalCells": 522,
+      "coverage": 1,
+      "directions": {
+        "up": 0,
+        "down": 0,
+        "left": 71,
+        "right": 76
+      }
+    },
+    "updatedAt": "2026-03-22T07:12:53.200Z"
   }
 }

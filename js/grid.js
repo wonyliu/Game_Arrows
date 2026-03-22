@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Grid System - 绠＄悊2D缃戞牸鍧愭爣绯荤粺
  */
 export class Grid {

@@ -2,8 +2,9 @@ const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
 const DESIGN_V2 = {
     snakeHead: 'assets/design-v4/clean/snake_head.png',
-    snakeHeadCurious: 'assets/design-v4/clean/snake_head_curious.png',
-    snakeHeadSleepy: 'assets/design-v4/clean/snake_head_sleepy.png',
+    snakeHeadCurious: 'assets/design-v4/clean/snake_head_curious_r2.png',
+    snakeHeadSleepy: 'assets/design-v4/clean/snake_head_sleepy_r2.png',
+    snakeHeadSurprised: 'assets/design-v4/clean/snake_head_surprised_r2.png',
     snakeSegA: 'assets/design-v4/clean/snake_seg_a.png',
     snakeSegB: 'assets/design-v4/clean/snake_seg_b.png',
     snakeTailBase: 'assets/design-v4/clean/snake_tail_base.png',
@@ -153,6 +154,12 @@ const MOLE_FAMILIES = [
 const EXPRESSIONS = ['goofy', 'smirk', 'sleepy', 'grin'];
 const SPRITE_CACHE = new Map();
 const RASTER_SPRITE_CACHE = new Map();
+const CARDINAL_VECTORS = {
+    up: { x: 0, y: -1 },
+    down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 },
+    right: { x: 1, y: 0 }
+};
 
 function createSurface(width, height) {
     const canvas = document.createElement('canvas');
@@ -213,6 +220,7 @@ function ensureSnakeImageSprites(atlas) {
     atlas.sprites.snakeHead = atlas.sprites.snakeHead || loadRasterSprite('snake-head', DESIGN_V2.snakeHead);
     atlas.sprites.snakeHeadCurious = atlas.sprites.snakeHeadCurious || loadRasterSprite('snake-head-curious', DESIGN_V2.snakeHeadCurious);
     atlas.sprites.snakeHeadSleepy = atlas.sprites.snakeHeadSleepy || loadRasterSprite('snake-head-sleepy', DESIGN_V2.snakeHeadSleepy);
+    atlas.sprites.snakeHeadSurprised = atlas.sprites.snakeHeadSurprised || loadRasterSprite('snake-head-surprised', DESIGN_V2.snakeHeadSurprised);
     atlas.sprites.snakeSegA = atlas.sprites.snakeSegA || loadRasterSprite('snake-seg-a', DESIGN_V2.snakeSegA);
     atlas.sprites.snakeSegB = atlas.sprites.snakeSegB || loadRasterSprite('snake-seg-b', DESIGN_V2.snakeSegB);
     atlas.sprites.snakeTailBase = atlas.sprites.snakeTailBase || loadRasterSprite('snake-tail-base', DESIGN_V2.snakeTailBase);
@@ -222,6 +230,7 @@ function ensureSnakeImageSprites(atlas) {
         atlas.sprites.snakeHead &&
         atlas.sprites.snakeHeadCurious &&
         atlas.sprites.snakeHeadSleepy &&
+        atlas.sprites.snakeHeadSurprised &&
         atlas.sprites.snakeSegA &&
         atlas.sprites.snakeSegB &&
         atlas.sprites.snakeTailBase &&
@@ -326,49 +335,117 @@ export function drawSprite(ctx, sprite, x, y, options = {}) {
     ctx.restore();
 }
 
-function drawSnakeTongue(ctx, x, y, angle, thickness, alpha, style, expression = 'default', anchorAngle = angle) {
-    const length = thickness * 0.46;
-    const spread = thickness * 0.16;
+function normalizeDirection(direction, fallback = 'right') {
+    return CARDINAL_VECTORS[direction] ? direction : fallback;
+}
+
+function drawSnakeDirectionArrow(ctx, x, y, direction, thickness, alpha, style) {
+    const vector = CARDINAL_VECTORS[direction] || CARDINAL_VECTORS.right;
+    const angle = Math.atan2(vector.y, vector.x);
+    const length = thickness * 0.34;
+    const spread = thickness * 0.14;
     const color = style === 'error' ? '#ff4f6f' : '#ff8cab';
-    const visibility = expression === 'sleepy' ? 0.24 : 1;
-    const frontOffset = thickness * 0.92;
+    const frontOffset = thickness * 0.62 + 1.5;
 
     ctx.save();
-    ctx.globalAlpha = alpha * 0.82 * visibility;
+    ctx.globalAlpha = alpha * 0.82;
     ctx.translate(
-        x + Math.cos(anchorAngle) * frontOffset,
-        y + Math.sin(anchorAngle) * frontOffset
+        x + vector.x * frontOffset,
+        y + vector.y * frontOffset
     );
     ctx.rotate(angle);
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(length, -spread);
-    ctx.lineTo(length, spread);
+    ctx.moveTo(length, 0);
+    ctx.lineTo(0, -spread);
+    ctx.lineTo(0, spread);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
 }
 
-function normalizeHeadUpright(angle) {
-    const full = Math.PI * 2;
-    let a = ((angle + Math.PI) % full + full) % full - Math.PI;
-    if (a > Math.PI / 2) a -= Math.PI;
-    if (a < -Math.PI / 2) a += Math.PI;
-    return a;
+function resolveCardinalDirection(dx, dy, fallback = 'right') {
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) {
+        return fallback;
+    }
+    if (Math.abs(dx) >= Math.abs(dy)) {
+        return dx >= 0 ? 'right' : 'left';
+    }
+    return dy >= 0 ? 'down' : 'up';
+}
+
+function resolveHeadDirection(points) {
+    if (!Array.isArray(points) || points.length < 2) {
+        return 'right';
+    }
+    const head = points[points.length - 1];
+    const neck = points[points.length - 2];
+    return resolveCardinalDirection(head.x - neck.x, head.y - neck.y);
+}
+
+function directionToHeadPose(direction) {
+    switch (direction) {
+        case 'up':
+            return { angle: -Math.PI / 2, flipX: false, isVertical: true };
+        case 'down':
+            return { angle: Math.PI / 2, flipX: false, isVertical: true };
+        case 'left':
+            return { angle: 0, flipX: true, isVertical: false };
+        default:
+            return { angle: 0, flipX: false, isVertical: false };
+    }
 }
 
 function pickSnakeHeadSprite(atlas, expression = 'default') {
-    if (expression === 'sleepy' && atlas?.sprites?.snakeHeadSleepy) {
-        return atlas.sprites.snakeHeadSleepy;
+    const sprites = atlas?.sprites || {};
+    switch (expression) {
+        case 'curious':
+            return sprites.snakeHeadCurious || sprites.snakeHead || null;
+        case 'sleepy':
+            return sprites.snakeHeadSleepy || sprites.snakeHead || null;
+        case 'surprised':
+            return sprites.snakeHeadSurprised || sprites.snakeHead || null;
+        default:
+            return sprites.snakeHead || null;
     }
-    if (expression === 'curious' && atlas?.sprites?.snakeHeadCurious) {
-        return atlas.sprites.snakeHeadCurious;
-    }
-    return atlas?.sprites?.snakeHead || null;
 }
 
-function drawSnakePathWithSprites(ctx, pathPoints, styleState) {
+function drawSnakeHeadSprite(ctx, sprite, x, y, options = {}) {
+    if (!sprite || !sprite.canvas) return;
+
+    const {
+        alpha = 1,
+        scale = 1,
+        rotation = 0,
+        flipX = false,
+        tint = null
+    } = options;
+
+    const width = sprite.width * scale;
+    const height = sprite.height * scale;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(x, y);
+    ctx.rotate(rotation);
+    if (flipX) {
+        ctx.scale(-1, 1);
+    }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(sprite.canvas, -width / 2, -height / 2, width, height);
+
+    if (tint) {
+        ctx.globalCompositeOperation = 'source-atop';
+        ctx.fillStyle = tint;
+        ctx.fillRect(-width / 2, -height / 2, width, height);
+        ctx.globalCompositeOperation = 'source-over';
+    }
+
+    ctx.restore();
+}
+
+function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = 'right') {
     const {
         atlas,
         alpha = 1,
@@ -413,7 +490,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState) {
         smooth: true
     });
 
-    for (let i = 1; i < bodyPoints.length - 1; i++) {
+    for (let i = 1; i < bodyPoints.length - 2; i++) {
         const point = bodyPoints[i];
         const prev = bodyPoints[Math.max(0, i - 1)];
         const next = bodyPoints[Math.min(bodyPoints.length - 1, i + 1)];
@@ -436,13 +513,12 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState) {
 
     const sampledHead = sampled[sampled.length - 1];
     const sampledNeck = sampled[Math.max(1, sampled.length - 2)];
-    const rawTravelAngle = Math.atan2(sampledHead.y - sampledNeck.y, sampledHead.x - sampledNeck.x);
-    const travelAngle = Number.isFinite(rawTravelAngle) ? rawTravelAngle : 0;
-    const headAngle = normalizeHeadUpright(travelAngle + Math.PI);
+    const headDirection = normalizeDirection(directionHint, resolveHeadDirection(pathPoints));
+    const headPose = directionToHeadPose(headDirection);
     const bobAmplitude = thickness * (0.06 + softPulse * 0.03);
     const headBob = Math.sin(wiggleTime * 7 + lineId * 0.73 + Math.PI * 0.25) * bobAmplitude;
     const neckBob = headBob * 0.58;
-    const isVerticalByPath = Math.abs(Math.sin(travelAngle)) > Math.abs(Math.cos(travelAngle));
+    const isVerticalByPath = headPose.isVertical;
     const headRender = {
         x: sampledHead.x + (isVerticalByPath ? 0 : headBob),
         y: sampledHead.y + (isVerticalByPath ? headBob : 0)
@@ -455,7 +531,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState) {
     const neckScale = (thickness * 1.05) / atlas.sprites.snakeSegA.height;
     drawSprite(ctx, atlas.sprites.snakeSegA, neckRender.x, neckRender.y, {
         alpha: alpha * 0.96,
-        rotation: headAngle,
+        rotation: headPose.angle,
         scale: neckScale,
         tint: styleTint,
         smooth: true
@@ -463,25 +539,15 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState) {
 
     const headSprite = pickSnakeHeadSprite(atlas, headExpression);
     const headScale = (thickness * 1.1) / headSprite.height;
-    drawSprite(ctx, headSprite, headRender.x, headRender.y, {
+    drawSnakeHeadSprite(ctx, headSprite, headRender.x, headRender.y, {
         alpha,
-        rotation: headAngle,
+        rotation: headPose.angle,
+        flipX: headPose.flipX,
         scale: headScale,
-        tint: styleTint,
-        smooth: true
+        tint: styleTint
     });
 
-    drawSnakeTongue(
-        ctx,
-        headRender.x,
-        headRender.y,
-        travelAngle + Math.PI,
-        thickness,
-        alpha,
-        style,
-        headExpression,
-        travelAngle
-    );
+    drawSnakeDirectionArrow(ctx, headRender.x, headRender.y, headDirection, thickness, alpha, style);
     return true;
 }
 
@@ -775,6 +841,7 @@ export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily'
             snakeHead: loadRasterSprite('snake-head', DESIGN_V2.snakeHead),
             snakeHeadCurious: loadRasterSprite('snake-head-curious', DESIGN_V2.snakeHeadCurious),
             snakeHeadSleepy: loadRasterSprite('snake-head-sleepy', DESIGN_V2.snakeHeadSleepy),
+            snakeHeadSurprised: loadRasterSprite('snake-head-surprised', DESIGN_V2.snakeHeadSurprised),
             snakeSegA: loadRasterSprite('snake-seg-a', DESIGN_V2.snakeSegA),
             snakeSegB: loadRasterSprite('snake-seg-b', DESIGN_V2.snakeSegB),
             snakeTailBase: loadRasterSprite('snake-tail-base', DESIGN_V2.snakeTailBase),
@@ -784,7 +851,7 @@ export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily'
 }
 
 export function drawArrowPathPixels(ctx, pathPoints, direction, styleState = {}) {
-    if (drawSnakePathWithSprites(ctx, pathPoints, styleState)) {
+    if (drawSnakePathWithSprites(ctx, pathPoints, styleState, direction)) {
         return;
     }
 

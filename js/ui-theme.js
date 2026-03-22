@@ -1,4 +1,4 @@
-﻿const DEFAULT_THEME = 'design-v5';
+const DEFAULT_THEME = 'design-v5';
 
 const STATIC_FALLBACK = {
     'home.background': 'assets/design-v3/clean/ui_app_bg.png',

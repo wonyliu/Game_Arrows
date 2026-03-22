@@ -1,4 +1,4 @@
-﻿const DEFAULT_LOCALE = 'zh-CN';
+const DEFAULT_LOCALE = 'zh-CN';
 const STORAGE_KEY = 'arrowClear_locale';
 
 const DICTIONARY = {
