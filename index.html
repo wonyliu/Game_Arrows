@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=47">
+    <link rel="stylesheet" href="css/style.css?v=48">
 </head>
 <body>
     <div class="app-container">
@@ -24,6 +24,17 @@
                 <canvas id="gameCanvas"></canvas>
             </div>
         </main>
+
+        <div id="bootPreloadOverlay" class="boot-preload-overlay">
+            <div class="boot-preload-panel">
+                <div class="boot-preload-title">加载中</div>
+                <div id="bootPreloadTip" class="boot-preload-tip">准备关卡数据...</div>
+                <div class="boot-preload-track">
+                    <div id="bootPreloadFill" class="boot-preload-fill"></div>
+                </div>
+                <div id="bootPreloadText" class="boot-preload-text">0%</div>
+            </div>
+        </div>
 
         <div id="hud" class="hidden">
             <div class="hud-top">
@@ -241,6 +252,6 @@
         <div id="errorVignette" class="error-vignette"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=76"></script>
+    <script type="module" src="js/main.js?v=77"></script>
 </body>
 </html>
