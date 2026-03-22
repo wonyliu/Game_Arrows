@@ -1,6 +1,6 @@
 import { buildPlayableLevelRecord } from './level-builder.js?v=46';
 import { getBaseLevelConfig } from './levels.js?v=27';
-import { buildStoredSettings, getSavedLevelRecord, saveSavedLevelRecord } from './level-storage.js?v=43';
+import { buildStoredSettings, getSavedLevelRecord, saveSavedLevelRecord } from './level-storage.js?v=44';
 
 const PRELOAD_MODE = 1;
 const MAX_PRELOAD_LEVEL = 60;

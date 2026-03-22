@@ -197,7 +197,7 @@ async function hydrateFromServer() {
 }
 
 async function fetchMapFromServer(name) {
-    if (!canUseServerStorage()) {
+    if (!canUseFetchStorage()) {
         return null;
     }
 
@@ -208,6 +208,10 @@ async function fetchMapFromServer(name) {
     }
 
     // Local dev server/backend storage API.
+    if (!canUseApiStorage()) {
+        return null;
+    }
+
     const serverData = await tryFetchMap(`${STORAGE_API_BASE}/${name}`);
     if (serverData) {
         return serverData;
@@ -218,7 +222,7 @@ async function fetchMapFromServer(name) {
 }
 
 async function persistMapToServer(name, mapValue) {
-    if (!canUseServerStorage()) {
+    if (!canUseApiStorage()) {
         return false;
     }
 
@@ -293,8 +297,29 @@ function writeMap(key, value) {
     }
 }
 
-function canUseServerStorage() {
+function canUseFetchStorage() {
     return typeof window !== 'undefined' && typeof fetch === 'function';
+}
+
+function canUseApiStorage() {
+    if (!canUseFetchStorage()) {
+        return false;
+    }
+
+    const host = (window.location?.hostname || '').toLowerCase();
+    if (!host) {
+        return false;
+    }
+
+    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.endsWith('.local')) {
+        return true;
+    }
+
+    if (isPrivateIpv4Host(host)) {
+        return true;
+    }
+
+    return false;
 }
 
 function resolveStaticStorageUrl(name) {
@@ -303,6 +328,23 @@ function resolveStaticStorageUrl(name) {
     } catch {
         return `./.local-data/${name}.json`;
     }
+}
+
+function isPrivateIpv4Host(host) {
+    const parts = host.split('.');
+    if (parts.length !== 4) {
+        return false;
+    }
+
+    const nums = parts.map((part) => Number(part));
+    if (nums.some((num) => !Number.isInteger(num) || num < 0 || num > 255)) {
+        return false;
+    }
+
+    if (nums[0] === 10) return true;
+    if (nums[0] === 192 && nums[1] === 168) return true;
+    if (nums[0] === 172 && nums[1] >= 16 && nums[1] <= 31) return true;
+    return false;
 }
 
 function isPlainObject(value) {
