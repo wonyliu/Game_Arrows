@@ -5,7 +5,6 @@ const PREVIEW_LEVELS_KEY = 'arrowClear_previewLevels_v1';
 const SAVED_LEVELS_FILE = 'saved-levels-v1';
 const PREVIEW_LEVELS_FILE = 'preview-levels-v1';
 const STORAGE_API_BASE = '/api/storage';
-const STORAGE_STATIC_BASE = './.local-data';
 
 const DEFAULT_PLAYFIELD = {
     width: 430,
@@ -149,6 +148,21 @@ export function getPreviewLevelRecord(level) {
     return previewLevelsCache[String(level)] || null;
 }
 
+export function getMaxStoredLevel() {
+    const keys = [
+        ...Object.keys(savedLevelsCache || {}),
+        ...Object.keys(previewLevelsCache || {})
+    ];
+    let maxLevel = 0;
+    for (const key of keys) {
+        const level = Number(key);
+        if (Number.isFinite(level) && level > maxLevel) {
+            maxLevel = level;
+        }
+    }
+    return maxLevel;
+}
+
 export function savePreviewLevelRecord(level, record) {
     previewLevelsCache = {
         ...previewLevelsCache,
@@ -187,14 +201,16 @@ async function fetchMapFromServer(name) {
         return null;
     }
 
+    // GitHub Pages/static hosting: prefer committed JSON files in repo.
+    const staticData = await tryFetchMap(resolveStaticStorageUrl(name));
+    if (staticData) {
+        return staticData;
+    }
+
+    // Local dev server/backend storage API.
     const serverData = await tryFetchMap(`${STORAGE_API_BASE}/${name}`);
     if (serverData) {
         return serverData;
-    }
-
-    const staticData = await tryFetchMap(`${STORAGE_STATIC_BASE}/${name}.json`);
-    if (staticData) {
-        return staticData;
     }
 
     warnServerUnavailable(new Error(`storage fetch failed for ${name}`));
@@ -279,6 +295,14 @@ function writeMap(key, value) {
 
 function canUseServerStorage() {
     return typeof window !== 'undefined' && typeof fetch === 'function';
+}
+
+function resolveStaticStorageUrl(name) {
+    try {
+        return new URL(`../.local-data/${name}.json`, import.meta.url).toString();
+    } catch {
+        return `./.local-data/${name}.json`;
+    }
 }
 
 function isPlainObject(value) {

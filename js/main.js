@@ -3,7 +3,7 @@
  */
 import { Game } from './game.js?v=52';
 import { UI } from './ui.js?v=38';
-import { initLevelStorage } from './level-storage.js?v=42';
+import { getMaxStoredLevel, initLevelStorage } from './level-storage.js?v=43';
 import { initUiTheme } from './ui-theme.js?v=1';
 
 const DESIGN_WIDTH = 430;
@@ -74,8 +74,8 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
             return;
         }
 
-        // Do not block menu interactivity on async storage/theme hydration.
-        const storageInitTask = initLevelStorage().catch((error) => {
+        // Load level packs before menu interactions so GitHub Pages has full level data.
+        await initLevelStorage().catch((error) => {
             console.warn('[main] level storage init failed', error);
         });
         const themeInitTask = initUiTheme('design-v5').catch((error) => {
@@ -83,6 +83,12 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         });
 
         gameRef = new Game(canvas);
+        const storedMaxLevel = getMaxStoredLevel();
+        if (storedMaxLevel > 0 && storedMaxLevel > gameRef.maxUnlockedLevel) {
+            gameRef.maxUnlockedLevel = storedMaxLevel;
+            gameRef.currentLevel = Math.min(gameRef.currentLevel, gameRef.maxUnlockedLevel);
+            gameRef.saveProgress();
+        }
         uiRef = new UI(gameRef);
         gameRef.start();
         applyAdaptiveLayout(true);
@@ -93,12 +99,6 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
             uiRef.applyThemeAssets();
             uiRef.renderFeatureCards();
         });
-        storageInitTask.then(() => {
-            if (!uiRef || !gameRef) return;
-            uiRef.refreshMenuLevelTag();
-            uiRef.updateHUD();
-        });
-
         // Fallback for browsers that delay resize/orientation events.
         resizePollTimer = setInterval(() => applyAdaptiveLayout(false), 300);
     });

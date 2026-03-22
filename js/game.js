@@ -8,7 +8,7 @@ import {
     deserializeLevelData,
     getPreviewLevelRecord,
     getSavedLevelRecord
-} from './level-storage.js?v=42';
+} from './level-storage.js?v=43';
 import {
     playClearSound,
     playErrorSound,
