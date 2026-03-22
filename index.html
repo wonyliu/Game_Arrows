@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=48">
+    <link rel="stylesheet" href="css/style.css?v=50">
 </head>
 <body>
     <div class="app-container">
@@ -134,6 +134,11 @@
                         <div class="setting-title" data-i18n="panel.settings.graphics">Graphics</div>
                         <div class="setting-desc" data-i18n="panel.settings.graphicsDesc">Performance presets will be available in a future update.</div>
                     </div>
+                    <div class="setting-row setting-row-reset">
+                        <div class="setting-title" data-i18n="panel.settings.reset">Reset Progress</div>
+                        <div class="setting-desc" data-i18n="panel.settings.resetDesc">Reset campaign progress back to level one.</div>
+                        <button id="btnResetProgress" class="btn-popup-secondary settings-reset-btn" type="button" data-i18n="panel.settings.reset">Reset Progress</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -215,6 +220,22 @@
             </div>
         </div>
 
+        <div id="resetProgressOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell panel-shell-sm">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.reset.title">Reset Progress</h2>
+                    <button id="btnResetProgressCancelTop" class="panel-back-btn" type="button" data-i18n="common.close">Close</button>
+                </div>
+                <div class="panel-body">
+                    <p class="exit-desc" data-i18n="panel.reset.desc">Reset your campaign progress and start from level one?</p>
+                    <div class="exit-actions">
+                        <button id="btnResetProgressConfirm" class="btn-popup-primary" type="button" data-i18n="panel.reset.confirm">Reset Now</button>
+                        <button id="btnResetProgressCancel" class="btn-popup-secondary" type="button" data-i18n="panel.reset.cancel">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="levelSelectOverlay" class="overlay hidden menu-panel-overlay">
             <div class="panel-shell panel-shell-levels">
                 <div class="panel-head">
@@ -252,6 +273,6 @@
         <div id="errorVignette" class="error-vignette"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=80"></script>
+    <script type="module" src="js/main.js?v=82"></script>
 </body>
 </html>

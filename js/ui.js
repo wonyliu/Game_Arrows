@@ -1,5 +1,5 @@
 ﻿import { playClickSound, resumeAudio } from './audio.js?v=20';
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=1';
+import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=2';
 import { getUiAsset } from './ui-theme.js?v=2';
 
 const MENU_PANEL = Object.freeze({
@@ -9,7 +9,8 @@ const MENU_PANEL = Object.freeze({
     LEADERBOARD: 'LEADERBOARD',
     SKINS: 'SKINS',
     CHECKIN: 'CHECKIN',
-    EXIT_CONFIRM: 'EXIT_CONFIRM'
+    EXIT_CONFIRM: 'EXIT_CONFIRM',
+    RESET_PROGRESS_CONFIRM: 'RESET_PROGRESS_CONFIRM'
 });
 
 const FEATURE_CONFIG = Object.freeze([
@@ -48,6 +49,7 @@ export class UI {
         this.skinsOverlay = document.getElementById('skinsOverlay');
         this.checkinOverlay = document.getElementById('checkinOverlay');
         this.exitOverlay = document.getElementById('exitOverlay');
+        this.resetProgressOverlay = document.getElementById('resetProgressOverlay');
 
         this.levelCompleteOverlay = document.getElementById('levelCompleteOverlay');
         this.gameOverOverlay = document.getElementById('gameOverOverlay');
@@ -101,6 +103,10 @@ export class UI {
         this.bindButton('btnExitCancelTop', () => this.closeMenuPanel());
         this.bindButton('btnExitCancel', () => this.closeMenuPanel());
         this.bindButton('btnExitConfirm', () => this.handleExitConfirm());
+        this.bindButton('btnResetProgress', () => this.openMenuPanel(MENU_PANEL.RESET_PROGRESS_CONFIRM));
+        this.bindButton('btnResetProgressCancelTop', () => this.openMenuPanel(MENU_PANEL.SETTINGS));
+        this.bindButton('btnResetProgressCancel', () => this.openMenuPanel(MENU_PANEL.SETTINGS));
+        this.bindButton('btnResetProgressConfirm', () => this.handleResetProgressConfirm());
 
         this.bindButton('btnLocaleZh', () => this.setLocale('zh-CN'));
         this.bindButton('btnLocaleEn', () => this.setLocale('en-US'));
@@ -272,6 +278,11 @@ export class UI {
             this.exitFeedback?.classList.add('hidden');
         }
 
+        if (target === MENU_PANEL.RESET_PROGRESS_CONFIRM) {
+            this.resetProgressOverlay?.classList.remove('hidden');
+            this.game.state = 'RESET_PROGRESS_CONFIRM';
+        }
+
         this.menuState = target;
         this.applyLocalizedText();
         this.refreshMenuLevelTag();
@@ -321,6 +332,7 @@ export class UI {
         this.skinsOverlay.classList.add('hidden');
         this.checkinOverlay.classList.add('hidden');
         this.exitOverlay.classList.add('hidden');
+        this.resetProgressOverlay?.classList.add('hidden');
         this.levelCompleteOverlay.classList.add('hidden');
         this.gameOverOverlay.classList.add('hidden');
         this.levelSelectOverlay.classList.add('hidden');
@@ -512,6 +524,14 @@ export class UI {
             this.exitFeedback.classList.remove('hidden');
             this.exitFeedback.textContent = t(this.locale, 'panel.exit.feedback');
         }
+    }
+
+    handleResetProgressConfirm() {
+        this.game.maxUnlockedLevel = 1;
+        this.game.currentLevel = 1;
+        this.game.saveProgress();
+        this.refreshMenuLevelTag();
+        this.openMenuPanel(MENU_PANEL.HOME);
     }
 
     triggerErrorVignette() {

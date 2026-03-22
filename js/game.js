@@ -27,8 +27,8 @@ export class Game {
         this.isPlaytestMode = this.searchParams.get('playtest') === '1';
         this.playtestLevel = Number(this.searchParams.get('level') || this.searchParams.get('playtestLevel') || 0);
         this.state = 'MENU';
-        this.currentLevel = 3;
-        this.maxUnlockedLevel = 3;
+        this.currentLevel = 1;
+        this.maxUnlockedLevel = 1;
         this.grid = null;
         this.lines = [];
         this.lives = 3;
@@ -65,11 +65,11 @@ export class Game {
     loadProgress() {
         try {
             const data = JSON.parse(localStorage.getItem('arrowClear_progress') || '{}');
-            this.maxUnlockedLevel = Math.max(3, data.maxUnlockedLevel || 3);
-            this.currentLevel = Math.max(1, Math.min(this.maxUnlockedLevel, data.currentLevel || 3));
+            this.maxUnlockedLevel = Math.max(1, data.maxUnlockedLevel || 1);
+            this.currentLevel = Math.max(1, Math.min(this.maxUnlockedLevel, data.currentLevel || 1));
         } catch {
-            this.maxUnlockedLevel = 3;
-            this.currentLevel = 3;
+            this.maxUnlockedLevel = 1;
+            this.currentLevel = 1;
         }
     }
 

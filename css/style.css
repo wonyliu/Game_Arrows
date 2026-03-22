@@ -793,6 +793,19 @@ body {
     margin-bottom: 10px;
 }
 
+.settings-reset-btn {
+    margin-top: 10px;
+    width: 100%;
+    height: 44px;
+    border: 2px solid #dba88e;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f7d0c0 0%, #e7aa95 100%);
+    color: #6f3f2a;
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 0.4px;
+}
+
 .setting-title {
     color: #6a4628;
     font-family: var(--font-display);
@@ -1076,13 +1089,14 @@ body {
     position: absolute;
     left: 92.5px;
     top: 308px;
-    width: 245px;
-    height: 91.1px;
+    width: 336px;
+    height: 94px;
     margin: 0;
     padding: 0;
     gap: 0;
     z-index: 4;
     pointer-events: auto;
+    overflow: visible;
 }
 
 #menuOverlay .btn-play {
@@ -1136,7 +1150,26 @@ body {
 }
 
 #menuOverlay .current-level-tag {
-    display: none;
+    position: absolute;
+    left: 252px;
+    top: 21px;
+    z-index: 7;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 84px;
+    height: 46px;
+    margin: 0;
+    border: 2px solid rgba(99, 66, 43, 0.48);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(242, 226, 178, 0.96) 0%, rgba(214, 179, 108, 0.98) 100%);
+    box-shadow: 0 3px 8px rgba(43, 27, 15, 0.24);
+    color: #6d4528;
+    font-family: var(--font-display);
+    font-size: 19px;
+    line-height: 1;
+    letter-spacing: 0.2px;
+    pointer-events: auto;
 }
 
 #menuOverlay .menu-bottom-zone-v2 {
@@ -1293,6 +1326,30 @@ body {
     top: 134px;
     width: 298px;
     height: 48px;
+}
+
+#settingsOverlay .setting-row-reset {
+    position: absolute;
+    left: 52px;
+    top: 500px;
+    width: 252px;
+    height: 48px;
+    pointer-events: auto;
+}
+
+#settingsOverlay .setting-row-reset .settings-reset-btn {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    border: 2px solid rgba(113, 69, 44, 0.34);
+    border-radius: 999px;
+    background: linear-gradient(180deg, rgba(248, 193, 173, 0.96) 0%, rgba(228, 150, 126, 0.96) 100%);
+    box-shadow: inset 0 -2px 0 rgba(111, 62, 43, 0.26), 0 2px 6px rgba(72, 40, 24, 0.2);
+    color: #6f3f2a;
+    font-family: var(--font-display);
+    font-size: 24px;
+    letter-spacing: 0.4px;
+    pointer-events: auto;
 }
 
 #settingsOverlay .locale-switch {
