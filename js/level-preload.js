@@ -52,7 +52,7 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
             }
 
             let currentSource = 'cache';
-            if (!getSavedLevelRecord(unlockedLevel)) {
+            if (!hasUsableCachedLevel(unlockedLevel)) {
                 onStatus?.({ phase: 'current-start', level: unlockedLevel });
                 currentSource = await enqueueEnsureLevel(unlockedLevel);
                 onStatus?.({
@@ -72,7 +72,7 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
                 return;
             }
 
-            if (getSavedLevelRecord(nextLevel)) {
+            if (hasUsableCachedLevel(nextLevel)) {
                 satisfiedUnlockedLevel = unlockedLevel;
                 onStatus?.({ phase: 'next-ready', level: nextLevel, source: 'cache' });
                 return;
@@ -148,7 +148,7 @@ function ensureLevelCached(level) {
         return Promise.resolve(null);
     }
 
-    if (getSavedLevelRecord(targetLevel)) {
+    if (hasUsableCachedLevel(targetLevel)) {
         return Promise.resolve('cache');
     }
 
@@ -198,7 +198,7 @@ function getWorker() {
     }
 
     try {
-        const workerUrl = new URL('./level-preload-worker.js?v=2', import.meta.url);
+        const workerUrl = new URL('./level-preload-worker.js?v=3', import.meta.url);
         workerRef = new Worker(workerUrl, { type: 'module' });
         workerRef.addEventListener('message', onWorkerMessage);
         workerRef.addEventListener('error', onWorkerError);
@@ -261,6 +261,24 @@ async function buildRecordOnMainThread(level) {
 function normalizeLevel(value) {
     const level = Math.floor(Number(value) || 0);
     return Math.max(0, Math.min(MAX_PRELOAD_LEVEL, level));
+}
+
+function hasUsableCachedLevel(level) {
+    return isCompatibleLevelRecord(getSavedLevelRecord(level));
+}
+
+function isCompatibleLevelRecord(record) {
+    if (!record || typeof record !== 'object') {
+        return false;
+    }
+    const data = record.data;
+    if (!data || typeof data !== 'object') {
+        return false;
+    }
+    if (!Array.isArray(data.lines) || data.lines.length === 0) {
+        return false;
+    }
+    return Number(data.generatorVersion || 0) >= 5;
 }
 
 function yieldToUi(source) {

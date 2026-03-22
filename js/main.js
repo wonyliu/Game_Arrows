@@ -8,7 +8,7 @@ import {
     preloadCurrentPlayableLevels,
     startNextUnlockPreload,
     stopNextUnlockPreload
-} from './level-preload.js?v=3';
+} from './level-preload.js?v=4';
 import { initLevelStorage } from './level-storage.js?v=44';
 import { initUiTheme } from './ui-theme.js?v=2';
 
