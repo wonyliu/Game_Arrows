@@ -1,19 +1,20 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=53';
+import { Game } from './game.js?v=54';
 import { UI } from './ui.js?v=38';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
     startNextUnlockPreload,
     stopNextUnlockPreload
-} from './level-preload.js?v=4';
-import { initLevelStorage } from './level-storage.js?v=44';
+} from './level-preload.js?v=5';
+import { initLevelStorage } from './level-storage.js?v=45';
 import { initUiTheme } from './ui-theme.js?v=2';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
+const BOOT_LOG_TAG = '[boot]';
 
 let gameRef = null;
 let uiRef = null;
@@ -25,6 +26,24 @@ let bootPreloadOverlayEl = null;
 let bootPreloadFillEl = null;
 let bootPreloadTextEl = null;
 let bootPreloadTipEl = null;
+
+function nowMs() {
+    return typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
+}
+
+function logBoot(step, details = null) {
+    if (details && typeof details === 'object') {
+        console.info(`${BOOT_LOG_TAG} ${step}`, details);
+        return;
+    }
+    if (details !== null && details !== undefined) {
+        console.info(`${BOOT_LOG_TAG} ${step}`, details);
+        return;
+    }
+    console.info(`${BOOT_LOG_TAG} ${step}`);
+}
 
 function readViewportSize() {
     const visual = window.visualViewport;
@@ -101,10 +120,13 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
     window.__ARROW_GAME_BOOTSTRAPPED__ = true;
 
     window.addEventListener('DOMContentLoaded', async () => {
+        const bootStartedAt = nowMs();
+        logBoot('DOMContentLoaded');
+
         applyAdaptiveLayout(true);
         initBootPreloadDom();
         showBootPreloadOverlay();
-        updateBootPreloadProgress(2, '加载关卡存档...');
+        updateBootPreloadProgress(2, 'Loading level cache...');
 
         const triggerResize = () => applyAdaptiveLayout(true);
         window.addEventListener('resize', triggerResize);
@@ -122,43 +144,55 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
 
         try {
-            // Step 1: read remote/local storage maps first.
+            const storageStartedAt = nowMs();
             await initLevelStorage().catch((error) => {
                 console.warn('[main] level storage init failed', error);
             });
-            updateBootPreloadProgress(26, '初始化游戏...');
+            logBoot('level storage initialized', { durationMs: Math.round(nowMs() - storageStartedAt) });
+            updateBootPreloadProgress(26, 'Initializing game...');
 
-            // Theme can initialize in parallel while booting gameplay.
-            const themeInitTask = initUiTheme('design-v5').catch((error) => {
-                console.warn('[main] ui theme init failed', error);
-            });
+            const themeInitTask = initUiTheme('design-v5')
+                .then(() => logBoot('ui theme initialized'))
+                .catch((error) => {
+                    console.warn('[main] ui theme init failed', error);
+                });
 
             gameRef = new Game(canvas);
             const preloadTargetLevel = Math.max(1, gameRef.maxUnlockedLevel || gameRef.currentLevel || 1);
+            logBoot('preload current level start', { level: preloadTargetLevel });
 
-            // Step 2: preload the current playable (unpassed) level before menu.
+            const preloadStartedAt = nowMs();
             await preloadCurrentPlayableLevels(preloadTargetLevel, {
                 onProgress: ({ done, total, level, source }) => {
                     const ratio = total > 0 ? done / total : 1;
                     const percent = 26 + ratio * 64;
-                    const sourceTip = source === 'cache' ? '本地缓存' : (source === 'generated' ? '已生成' : '加载中');
-                    const levelTip = level > 0 ? `预加载第 ${level} 关（${sourceTip}）` : '预加载当前关卡';
+                    const sourceTip = source === 'cache' ? 'cache' : (source === 'generated' ? 'generated' : 'loading');
+                    const levelTip = level > 0
+                        ? `Preloading level ${level} (${sourceTip})`
+                        : 'Preloading current level';
                     updateBootPreloadProgress(percent, levelTip);
                 }
+            });
+            logBoot('preload current level done', {
+                level: preloadTargetLevel,
+                durationMs: Math.round(nowMs() - preloadStartedAt)
             });
 
             uiRef = new UI(gameRef);
             gameRef.start();
             applyAdaptiveLayout(true);
-            updateBootPreloadProgress(100, '准备完成');
+            updateBootPreloadProgress(100, 'Ready');
 
-            // Step 3: in background, always keep exactly current + next available.
             startNextUnlockPreload(
                 () => gameRef?.maxUnlockedLevel || 1,
-                { canPreload: () => !!gameRef }
+                {
+                    canPreload: () => !!gameRef,
+                    onStatus: (payload) => {
+                        logBoot('background preload status', payload || {});
+                    }
+                }
             );
 
-            // Re-apply assets after theme manifest is ready.
             themeInitTask.then(() => {
                 if (!uiRef) return;
                 uiRef.applyThemeAssets();
@@ -167,10 +201,10 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         } finally {
             setTimeout(() => {
                 hideBootPreloadOverlay();
+                logBoot('boot complete', { durationMs: Math.round(nowMs() - bootStartedAt) });
             }, 120);
         }
 
-        // Fallback for browsers that delay resize/orientation events.
         resizePollTimer = setInterval(() => applyAdaptiveLayout(false), 300);
     });
 

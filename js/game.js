@@ -7,8 +7,9 @@ import { buildPlayableLevel } from './level-builder.js?v=46';
 import {
     deserializeLevelData,
     getPreviewLevelRecord,
-    getSavedLevelRecord
-} from './level-storage.js?v=44';
+    getSavedLevelRecord,
+    isStoredLevelDataUsable
+} from './level-storage.js?v=45';
 import {
     playClearSound,
     playErrorSound,
@@ -93,28 +94,23 @@ export class Game {
     startLevel(levelNum) {
         resumeAudio();
         this.currentLevel = levelNum;
-
+        const startedAt = nowMs();
         const config = getLevelConfig(levelNum);
         const preparedRecord = this.getPreparedLevelRecord(levelNum);
-        const levelData = isCompatibleLevelData(preparedRecord?.data) ? preparedRecord.data : null;
-        const gridCols = levelData?.gridCols || config.gridCols;
-        const gridRows = levelData?.gridRows || config.gridRows;
+        const cachedLevelData = isStoredLevelDataUsable(preparedRecord?.data) ? preparedRecord.data : null;
+        let source = cachedLevelData ? 'cache' : 'generate';
 
-        this.grid = new Grid(gridCols, gridRows);
-        this.grid.resize(this.canvas.width, this.canvas.height);
-
-        const generated = levelData ? null : buildPlayableLevel(config);
-        this.lines = levelData
-            ? deserializeLevelData(levelData)
-            : (Array.isArray(generated) ? generated : (generated?.lines || []));
-        if (!Array.isArray(this.lines)) {
-            this.lines = [];
+        try {
+            this.applyRuntimeLevelData(config, cachedLevelData);
+        } catch (error) {
+            console.warn('[game] level load failed, fallback to generator', {
+                level: levelNum,
+                source,
+                error: error instanceof Error ? error.message : String(error)
+            });
+            source = 'fallback-generate';
+            this.applyRuntimeLevelData(config, null);
         }
-        this.grid.clear();
-        for (const line of this.lines) {
-            this.grid.registerLine(line);
-        }
-        this.rebuildPixelScene();
 
         this.lives = config.lives;
         this.maxLives = config.lives;
@@ -144,7 +140,40 @@ export class Game {
             }, 1000);
         }
 
+        console.info('[game] level ready', {
+            level: levelNum,
+            source,
+            lineCount: Array.isArray(this.lines) ? this.lines.length : 0,
+            durationMs: Math.round(nowMs() - startedAt)
+        });
         this.updateHUD();
+    }
+
+    applyRuntimeLevelData(config, levelData = null) {
+        const gridCols = levelData?.gridCols || config.gridCols;
+        const gridRows = levelData?.gridRows || config.gridRows;
+
+        this.grid = new Grid(gridCols, gridRows);
+        this.grid.resize(this.canvas.width, this.canvas.height);
+
+        const generated = levelData ? null : buildPlayableLevel(config);
+        const lines = levelData
+            ? deserializeLevelData(levelData)
+            : (Array.isArray(generated) ? generated : (generated?.lines || []));
+
+        if (!Array.isArray(lines) || lines.length === 0) {
+            throw new Error(`empty line list for level ${config.level}`);
+        }
+
+        this.lines = lines;
+        this.grid.clear();
+        for (const line of this.lines) {
+            if (!line || !Array.isArray(line.cells) || line.cells.length < 2) {
+                throw new Error(`invalid line data for level ${config.level}`);
+            }
+            this.grid.registerLine(line);
+        }
+        this.rebuildPixelScene();
     }
 
     getPreparedLevelRecord(levelNum) {
@@ -537,6 +566,12 @@ export class Game {
     }
 }
 
+function nowMs() {
+    return typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
+}
+
 function isLevelSolvable(lines, config) {
     for (let attempt = 0; attempt < 14; attempt++) {
         const simGrid = new Grid(config.gridCols, config.gridRows);
@@ -713,13 +748,3 @@ function distanceToSegment(px, py, start, end) {
     return distance(px, py, projX, projY);
 }
 
-function isCompatibleLevelData(levelData) {
-    if (!levelData || !Array.isArray(levelData.lines) || levelData.lines.length === 0) {
-        return false;
-    }
-
-    if ((levelData.generatorVersion || 0) >= 5) {
-        return true;
-    }
-    return false;
-}

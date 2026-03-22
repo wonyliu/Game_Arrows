@@ -5,6 +5,7 @@ const PREVIEW_LEVELS_KEY = 'arrowClear_previewLevels_v1';
 const SAVED_LEVELS_FILE = 'saved-levels-v1';
 const PREVIEW_LEVELS_FILE = 'preview-levels-v1';
 const STORAGE_API_BASE = '/api/storage';
+const VALID_DIRECTIONS = new Set(['up', 'down', 'left', 'right']);
 
 const DEFAULT_PLAYFIELD = {
     width: 430,
@@ -146,6 +147,63 @@ export function deleteSavedLevelRecord(level) {
 
 export function getPreviewLevelRecord(level) {
     return previewLevelsCache[String(level)] || null;
+}
+
+export function isStoredLevelRecordUsable(record) {
+    if (!isPlainObject(record)) {
+        return false;
+    }
+    return isStoredLevelDataUsable(record.data);
+}
+
+export function isStoredLevelDataUsable(levelData) {
+    if (!isPlainObject(levelData)) {
+        return false;
+    }
+
+    const gridCols = Number(levelData.gridCols);
+    const gridRows = Number(levelData.gridRows);
+    if (!Number.isInteger(gridCols) || !Number.isInteger(gridRows) || gridCols < 2 || gridRows < 2) {
+        return false;
+    }
+
+    if (Number(levelData.generatorVersion || 0) < 5) {
+        return false;
+    }
+
+    if (!Array.isArray(levelData.lines) || levelData.lines.length === 0) {
+        return false;
+    }
+
+    for (const line of levelData.lines) {
+        if (!isPlainObject(line)) {
+            return false;
+        }
+
+        if (!VALID_DIRECTIONS.has(String(line.direction || ''))) {
+            return false;
+        }
+
+        if (!Array.isArray(line.cells) || line.cells.length < 2) {
+            return false;
+        }
+
+        for (const cell of line.cells) {
+            if (!isPlainObject(cell)) {
+                return false;
+            }
+            const col = Number(cell.col);
+            const row = Number(cell.row);
+            if (!Number.isInteger(col) || !Number.isInteger(row)) {
+                return false;
+            }
+            if (col < 0 || col >= gridCols || row < 0 || row >= gridRows) {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }
 
 export function getMaxStoredLevel() {

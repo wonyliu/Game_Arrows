@@ -1,4 +1,8 @@
-import { getSavedLevelRecord, saveSavedLevelRecord } from './level-storage.js?v=44';
+import {
+    getSavedLevelRecord,
+    isStoredLevelRecordUsable,
+    saveSavedLevelRecord
+} from './level-storage.js?v=45';
 
 const PRELOAD_MODE = 1;
 const MAX_PRELOAD_LEVEL = 1000;
@@ -12,6 +16,7 @@ let nextLevelInitialTimer = null;
 let workerSeq = 0;
 let workerRef = null;
 let workerTasks = new Map();
+const LOG_TAG = '[level-preload]';
 
 export async function preloadCurrentPlayableLevels(maxUnlockedLevel, options = {}) {
     const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
@@ -22,8 +27,15 @@ export async function preloadCurrentPlayableLevels(maxUnlockedLevel, options = {
         return;
     }
 
+    const startedAt = nowMs();
+    console.info(`${LOG_TAG} boot preload start`, { level: targetLevel });
     onProgress?.({ done: 0, total: 1, level: targetLevel, source: 'pending' });
     const source = await enqueueEnsureLevel(targetLevel);
+    console.info(`${LOG_TAG} boot preload done`, {
+        level: targetLevel,
+        source: source || 'failed',
+        durationMs: Math.round(nowMs() - startedAt)
+    });
     onProgress?.({ done: 1, total: 1, level: targetLevel, source: source || 'failed' });
 }
 
@@ -54,6 +66,7 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
             let currentSource = 'cache';
             if (!hasUsableCachedLevel(unlockedLevel)) {
                 onStatus?.({ phase: 'current-start', level: unlockedLevel });
+                console.info(`${LOG_TAG} ensure current level`, { level: unlockedLevel });
                 currentSource = await enqueueEnsureLevel(unlockedLevel);
                 onStatus?.({
                     phase: currentSource ? 'current-done' : 'current-failed',
@@ -83,6 +96,7 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
             }
 
             onStatus?.({ phase: 'next-start', level: nextLevel, source: currentSource });
+            console.info(`${LOG_TAG} preload next level`, { level: nextLevel });
             const nextSource = await enqueueEnsureLevel(nextLevel);
             if (nextSource) {
                 satisfiedUnlockedLevel = unlockedLevel;
@@ -149,6 +163,7 @@ function ensureLevelCached(level) {
     }
 
     if (hasUsableCachedLevel(targetLevel)) {
+        console.info(`${LOG_TAG} cache hit`, { level: targetLevel });
         return Promise.resolve('cache');
     }
 
@@ -156,12 +171,17 @@ function ensureLevelCached(level) {
         return pendingLevels.get(targetLevel);
     }
 
+    const startedAt = nowMs();
     const task = requestBuildRecord(targetLevel)
         .then(async (record) => {
             if (!record) {
                 return null;
             }
             await Promise.resolve(saveSavedLevelRecord(targetLevel, record));
+            console.info(`${LOG_TAG} generated level`, {
+                level: targetLevel,
+                durationMs: Math.round(nowMs() - startedAt)
+            });
             return 'generated';
         })
         .catch((error) => {
@@ -198,7 +218,7 @@ function getWorker() {
     }
 
     try {
-        const workerUrl = new URL('./level-preload-worker.js?v=3', import.meta.url);
+        const workerUrl = new URL('./level-preload-worker.js?v=4', import.meta.url);
         workerRef = new Worker(workerUrl, { type: 'module' });
         workerRef.addEventListener('message', onWorkerMessage);
         workerRef.addEventListener('error', onWorkerError);
@@ -244,7 +264,7 @@ async function buildRecordOnMainThread(level) {
     const [{ buildPlayableLevelRecord }, { getBaseLevelConfig }, { buildStoredSettings }] = await Promise.all([
         import('./level-builder.js?v=46'),
         import('./levels.js?v=27'),
-        import('./level-storage.js?v=44')
+        import('./level-storage.js?v=45')
     ]);
 
     const baseConfig = getBaseLevelConfig(level);
@@ -264,21 +284,13 @@ function normalizeLevel(value) {
 }
 
 function hasUsableCachedLevel(level) {
-    return isCompatibleLevelRecord(getSavedLevelRecord(level));
+    return isStoredLevelRecordUsable(getSavedLevelRecord(level));
 }
 
-function isCompatibleLevelRecord(record) {
-    if (!record || typeof record !== 'object') {
-        return false;
-    }
-    const data = record.data;
-    if (!data || typeof data !== 'object') {
-        return false;
-    }
-    if (!Array.isArray(data.lines) || data.lines.length === 0) {
-        return false;
-    }
-    return Number(data.generatorVersion || 0) >= 5;
+function nowMs() {
+    return typeof performance !== 'undefined' && typeof performance.now === 'function'
+        ? performance.now()
+        : Date.now();
 }
 
 function yieldToUi(source) {
