@@ -4,7 +4,7 @@
 import { Game } from './game.js?v=52';
 import { UI } from './ui.js?v=38';
 import { getMaxStoredLevel, initLevelStorage } from './level-storage.js?v=43';
-import { initUiTheme } from './ui-theme.js?v=1';
+import { initUiTheme } from './ui-theme.js?v=2';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;

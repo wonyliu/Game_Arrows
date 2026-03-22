@@ -27,11 +27,16 @@ function normalizeAssetPath(assetPath) {
         return assetPath;
     }
 
-    if (assetPath.startsWith('/')) {
-        return assetPath;
-    }
+    const normalized = assetPath.replace(/^[./\\]+/, '');
+    const baseUrl = typeof document !== 'undefined' && document.baseURI
+        ? document.baseURI
+        : (typeof import.meta !== 'undefined' ? import.meta.url : '/');
 
-    return `/${assetPath.replace(/^\.?\//, '')}`;
+    try {
+        return new URL(normalized, baseUrl).toString();
+    } catch {
+        return `./${normalized}`;
+    }
 }
 
 export async function initUiTheme(theme = DEFAULT_THEME) {
