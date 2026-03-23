@@ -1,15 +1,14 @@
 import { Grid } from './grid.js?v=24';
-import { Line } from './line.js?v=43';
+import { Line } from './line.js?v=44';
 import { canMove, findMovableLines } from './collision.js?v=19';
-import { getLevelConfig } from './levels.js?v=27';
-import { AnimationManager } from './animation.js?v=28';
+import { getLevelConfig } from './levels.js?v=28';
+import { AnimationManager } from './animation.js?v=29';
 import { buildPlayableLevel } from './level-builder.js?v=48';
 import {
     deserializeLevelData,
-    getPreviewLevelRecord,
     getSavedLevelRecord,
     isStoredLevelDataUsable
-} from './level-storage.js?v=47';
+} from './level-storage.js?v=48';
 import {
     playClearSound,
     playErrorSound,
@@ -17,7 +16,13 @@ import {
     playLevelCompleteSound,
     resumeAudio
 } from './audio.js?v=20';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=20';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=21';
+
+const DEFAULT_TOOL_USES = Object.freeze({
+    hint: 2,
+    undo: 2,
+    shuffle: 2
+});
 
 export class Game {
     constructor(canvas) {
@@ -43,6 +48,8 @@ export class Game {
         this.lastSnakeInteractionTime = performance.now();
         this.hintLine = null;
         this.undoStack = [];
+        this.defaultToolUses = { ...DEFAULT_TOOL_USES };
+        this.toolUses = { ...DEFAULT_TOOL_USES };
         this.pixelTheme = null;
 
         this.loadProgress();
@@ -130,6 +137,7 @@ export class Game {
         this.timeRemaining = config.timerSeconds;
         this.hintLine = null;
         this.undoStack = [];
+        this.resetToolUses();
         this.state = 'PLAYING';
         this.lastSnakeInteractionTime = performance.now();
 
@@ -200,10 +208,7 @@ export class Game {
     }
 
     getPreparedLevelRecord(levelNum) {
-        if (this.isPlaytestMode && this.playtestLevel === levelNum) {
-            return getPreviewLevelRecord(levelNum) || getSavedLevelRecord(levelNum);
-        }
-
+        // Only saved records are considered persistent level data.
         return getSavedLevelRecord(levelNum);
     }
 
@@ -366,16 +371,28 @@ export class Game {
 
     useHint() {
         if (this.state !== 'PLAYING') return;
+        if (!this.consumeToolUse('hint')) return;
+
         const movableLines = findMovableLines(this.lines, this.grid);
         this.hintLine = movableLines[0] || null;
+        if (!this.hintLine) {
+            this.restoreToolUse('hint');
+        }
+        this.updateHUD();
     }
 
     useUndo() {
         if (this.state !== 'PLAYING' || this.undoStack.length === 0) return;
+        if (!this.consumeToolUse('undo')) return;
 
-        const undo = this.undoStack.pop();
+        const undo = this.undoStack[this.undoStack.length - 1];
         const line = this.lines.find((item) => item.id === undo.lineId);
-        if (!line || line.state === 'active') return;
+        if (!line || line.state === 'active') {
+            this.restoreToolUse('undo');
+            return;
+        }
+
+        this.undoStack.pop();
 
         line.state = 'active';
         line.opacity = 1;
@@ -391,9 +408,13 @@ export class Game {
 
     useShuffle() {
         if (this.state !== 'PLAYING') return;
+        if (!this.consumeToolUse('shuffle')) return;
 
         const activeLines = this.lines.filter((line) => line.state === 'active');
-        if (activeLines.length < 2) return;
+        if (activeLines.length < 2) {
+            this.restoreToolUse('shuffle');
+            return;
+        }
 
         const zIndices = activeLines.map((line) => line.zIndex);
         for (let i = zIndices.length - 1; i > 0; i--) {
@@ -405,6 +426,7 @@ export class Game {
             line.zIndex = zIndices[index];
         });
         this.hintLine = null;
+        this.updateHUD();
     }
 
     render(timestamp) {
@@ -568,6 +590,32 @@ export class Game {
         if (this.onHUDUpdate) {
             this.onHUDUpdate();
         }
+    }
+
+    resetToolUses() {
+        this.toolUses = { ...this.defaultToolUses };
+    }
+
+    getToolUses(type) {
+        return Math.max(0, Number(this.toolUses?.[type] || 0));
+    }
+
+    consumeToolUse(type) {
+        const remaining = this.getToolUses(type);
+        if (remaining <= 0) {
+            return false;
+        }
+        this.toolUses[type] = remaining - 1;
+        return true;
+    }
+
+    restoreToolUse(type) {
+        if (!(type in this.toolUses)) {
+            return;
+        }
+        const limit = Math.max(0, Number(this.defaultToolUses?.[type] || 0));
+        const next = Math.min(limit, this.getToolUses(type) + 1);
+        this.toolUses[type] = next;
     }
 
     updateTimerUI() {

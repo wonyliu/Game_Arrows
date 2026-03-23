@@ -154,12 +154,155 @@ const MOLE_FAMILIES = [
 const EXPRESSIONS = ['goofy', 'smirk', 'sleepy', 'grin'];
 const SPRITE_CACHE = new Map();
 const RASTER_SPRITE_CACHE = new Map();
+const SNAKE_VARIANT_SPRITE_CACHE = new Map();
 const CARDINAL_VECTORS = {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
     left: { x: -1, y: 0 },
     right: { x: 1, y: 0 }
 };
+const SNAKE_COLOR_VARIANTS = [
+    { id: 'vivid-green', hueShift: 0, saturation: 1.32, lightness: 1.03, contrast: 1.04 },
+    { id: 'sun-amber', hueShift: -34, saturation: 1.38, lightness: 1.02, contrast: 1.05 },
+    { id: 'mint-cyan', hueShift: 58, saturation: 1.35, lightness: 1.03, contrast: 1.04 },
+    { id: 'sky-blue', hueShift: 102, saturation: 1.33, lightness: 1.04, contrast: 1.03 },
+    { id: 'berry-violet', hueShift: 138, saturation: 1.34, lightness: 1.03, contrast: 1.03 }
+];
+
+function normalizeHue(value) {
+    let hue = value % 360;
+    if (hue < 0) hue += 360;
+    return hue;
+}
+
+function rgbToHsl(r, g, b) {
+    const nr = r / 255;
+    const ng = g / 255;
+    const nb = b / 255;
+    const max = Math.max(nr, ng, nb);
+    const min = Math.min(nr, ng, nb);
+    const lightness = (max + min) / 2;
+    const delta = max - min;
+
+    if (delta <= 0.00001) {
+        return { h: 0, s: 0, l: lightness };
+    }
+
+    const saturation = lightness > 0.5
+        ? delta / (2 - max - min)
+        : delta / (max + min);
+
+    let hue = 0;
+    switch (max) {
+        case nr:
+            hue = ((ng - nb) / delta + (ng < nb ? 6 : 0)) * 60;
+            break;
+        case ng:
+            hue = ((nb - nr) / delta + 2) * 60;
+            break;
+        default:
+            hue = ((nr - ng) / delta + 4) * 60;
+            break;
+    }
+
+    return { h: normalizeHue(hue), s: saturation, l: lightness };
+}
+
+function hueToRgb(p, q, t) {
+    let nt = t;
+    if (nt < 0) nt += 1;
+    if (nt > 1) nt -= 1;
+    if (nt < 1 / 6) return p + (q - p) * 6 * nt;
+    if (nt < 1 / 2) return q;
+    if (nt < 2 / 3) return p + (q - p) * (2 / 3 - nt) * 6;
+    return p;
+}
+
+function hslToRgb(h, s, l) {
+    if (s <= 0.00001) {
+        const gray = Math.round(clamp(l, 0, 1) * 255);
+        return [gray, gray, gray];
+    }
+
+    const nh = normalizeHue(h) / 360;
+    const q = l < 0.5
+        ? l * (1 + s)
+        : l + s - l * s;
+    const p = 2 * l - q;
+    const r = hueToRgb(p, q, nh + 1 / 3);
+    const g = hueToRgb(p, q, nh);
+    const b = hueToRgb(p, q, nh - 1 / 3);
+    return [
+        Math.round(clamp(r, 0, 1) * 255),
+        Math.round(clamp(g, 0, 1) * 255),
+        Math.round(clamp(b, 0, 1) * 255)
+    ];
+}
+
+function getSnakeColorVariant(lineId = 0) {
+    const index = Math.abs(Math.trunc(lineId || 0)) % SNAKE_COLOR_VARIANTS.length;
+    return SNAKE_COLOR_VARIANTS[index];
+}
+
+function makeSnakeVariantSprite(sprite, variant) {
+    if (!sprite?.canvas || !variant) return sprite;
+
+    const spriteName = sprite.name || 'snake-sprite';
+    const cacheKey = `${spriteName}:${variant.id}`;
+    const cached = SNAKE_VARIANT_SPRITE_CACHE.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
+    const canvas = createSurface(sprite.width, sprite.height);
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(sprite.canvas, 0, 0);
+
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        if (alpha === 0) continue;
+
+        const hsl = rgbToHsl(data[i], data[i + 1], data[i + 2]);
+        const preserveDetail = hsl.s < 0.12 || hsl.l < 0.12;
+
+        if (!preserveDetail) {
+            hsl.h = normalizeHue(hsl.h + variant.hueShift);
+        }
+
+        const saturationBoost = preserveDetail ? Math.min(1.1, variant.saturation) : variant.saturation;
+        const lightnessBoost = preserveDetail ? 1.02 : variant.lightness;
+        const contrastBoost = preserveDetail ? 1.01 : variant.contrast;
+
+        hsl.s = clamp(hsl.s * saturationBoost, 0, 1);
+        hsl.l = clamp((hsl.l - 0.5) * contrastBoost + 0.5, 0, 1);
+        hsl.l = clamp(hsl.l * lightnessBoost, 0, 1);
+
+        const [r, g, b] = hslToRgb(hsl.h, hsl.s, hsl.l);
+        data[i] = r;
+        data[i + 1] = g;
+        data[i + 2] = b;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    const variantSprite = {
+        ...sprite,
+        name: `${spriteName}-${variant.id}`,
+        canvas
+    };
+    SNAKE_VARIANT_SPRITE_CACHE.set(cacheKey, variantSprite);
+    return variantSprite;
+}
+
+function getSnakeVariantSprite(sprite, variant) {
+    if (!sprite || !variant) {
+        return sprite;
+    }
+    return makeSnakeVariantSprite(sprite, variant) || sprite;
+}
 
 function createSurface(width, height) {
     const canvas = document.createElement('canvas');
@@ -465,6 +608,10 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     const styleTint = getStyleTint(style);
     const wiggleStrength = (style === 'remove' ? 2.2 : 0.78) + softPulse * 1.5;
     const thickness = clamp(atlas.cellSize * 0.9, 18, 34);
+    const colorVariant = getSnakeColorVariant(lineId);
+    const segASprite = getSnakeVariantSprite(atlas.sprites.snakeSegA, colorVariant);
+    const segBSprite = getSnakeVariantSprite(atlas.sprites.snakeSegB, colorVariant);
+    const tailTipSprite = getSnakeVariantSprite(atlas.sprites.snakeTailTip, colorVariant);
 
     const bodyPoints = [];
     for (const point of sampled) {
@@ -481,8 +628,8 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     const tailNext = bodyPoints[1];
     const tailAngle = Math.atan2(tailNext.y - tail.y, tailNext.x - tail.x) + Math.PI;
 
-    const tailTipScale = (thickness * 0.95) / atlas.sprites.snakeTailTip.height;
-    drawSprite(ctx, atlas.sprites.snakeTailTip, tail.x, tail.y, {
+    const tailTipScale = (thickness * 0.95) / tailTipSprite.height;
+    drawSprite(ctx, tailTipSprite, tail.x, tail.y, {
         alpha: alpha * 0.96,
         rotation: tailAngle,
         scale: tailTipScale,
@@ -497,7 +644,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
         const angle = Math.atan2(next.y - prev.y, next.x - prev.x);
         const t = i / Math.max(1, bodyPoints.length - 1);
 
-        const sprite = i % 2 === 0 ? atlas.sprites.snakeSegA : atlas.sprites.snakeSegB;
+        const sprite = i % 2 === 0 ? segASprite : segBSprite;
         const sizeTier = t > 0.76 ? 1.12 : (t > 0.5 ? 1.0 : 0.9);
         const pulse = 1 + Math.sin(i * 0.6 + wiggleTime * 2.1) * 0.03 + softPulse * 0.04;
         const scale = (thickness * sizeTier * pulse) / sprite.height;
@@ -528,8 +675,8 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
         y: sampledNeck.y + (isVerticalByPath ? neckBob : 0)
     };
 
-    const neckScale = (thickness * 1.05) / atlas.sprites.snakeSegA.height;
-    drawSprite(ctx, atlas.sprites.snakeSegA, neckRender.x, neckRender.y, {
+    const neckScale = (thickness * 1.05) / segASprite.height;
+    drawSprite(ctx, segASprite, neckRender.x, neckRender.y, {
         alpha: alpha * 0.96,
         rotation: headPose.angle,
         scale: neckScale,
@@ -538,8 +685,9 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     });
 
     const headSprite = pickSnakeHeadSprite(atlas, headExpression);
-    const headScale = (thickness * 1.1) / headSprite.height;
-    drawSnakeHeadSprite(ctx, headSprite, headRender.x, headRender.y, {
+    const coloredHeadSprite = getSnakeVariantSprite(headSprite, colorVariant);
+    const headScale = (thickness * 1.1) / coloredHeadSprite.height;
+    drawSnakeHeadSprite(ctx, coloredHeadSprite, headRender.x, headRender.y, {
         alpha,
         rotation: headPose.angle,
         flipX: headPose.flipX,

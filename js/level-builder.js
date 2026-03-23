@@ -1,7 +1,7 @@
 import { Grid } from './grid.js?v=40';
 import { Line } from './line.js?v=43';
 import { canMove } from './collision.js?v=40';
-import { serializeLevelData, estimateLineCount } from './level-storage.js?v=47';
+import { serializeLevelData, estimateLineCount } from './level-storage.js?v=48';
 
 export const DIRS = ['up', 'down', 'left', 'right'];
 export const OPPOSITE = { up: 'down', down: 'up', left: 'right', right: 'left' };
@@ -61,7 +61,12 @@ export function buildPlayableLevel(config, mode = 1) {
     // We force Locked Hamiltonian Path Strategy as requested
     // This allows background path synchronization and GUARANTEES zero opposite conflicts
     const hPath = buildWeavePath(config.gridCols, config.gridRows);
-    if (!hPath) return { lines: generateEmergencyLevel(config), path: null };
+    if (!hPath) {
+        if (mode === 3) {
+            throw new Error('Mode 3 requires a valid weave path, but path generation failed.');
+        }
+        return { lines: generateEmergencyLevel(config), path: null };
+    }
 
     const colors = config.colors?.length ? config.colors : ['#1a1c3c'];
 
@@ -73,6 +78,7 @@ export function buildPlayableLevel(config, mode = 1) {
                 path: hPath
             };
         }
+        throw new Error('Mode 3 failed to produce a valid bent/interwoven full-cover solvable layout with current settings.');
     }
 
     let segments;
@@ -181,33 +187,64 @@ function buildBentInterwovenFullCoverLevel(config, basePath, colors) {
 
     let best = null;
     let bestScore = -Infinity;
+    const passCandidates = [];
+    const passSignatures = new Set();
+
+    const signatureOf = (lines) => {
+        if (!Array.isArray(lines)) return '';
+        return lines
+            .map((line) => {
+                const head = line.cells?.[line.cells.length - 1];
+                const tail = line.cells?.[0];
+                const len = line.cells?.length ?? 0;
+                if (!head || !tail) return `x:${len}`;
+                return `${tail.col},${tail.row}>${head.col},${head.row}:${len}`;
+            })
+            .join('|');
+    };
+
+    const considerCandidate = (candidate, bonus = 0) => {
+        if (!candidate || !isFullCoverage(candidate, config) || !isLevelSolvable(candidate, config)) {
+            return;
+        }
+        if (!isLengthRangeValid(candidate, minLen, maxLen)) {
+            return;
+        }
+
+        const complexity = evaluateBentInterweaveComplexity(candidate, config);
+        const score = complexity.score + bonus + Math.random() * 0.05;
+        if (score > bestScore) {
+            best = candidate;
+            bestScore = score;
+        }
+
+        if (complexity.pass) {
+            const sig = signatureOf(candidate);
+            if (!passSignatures.has(sig)) {
+                passSignatures.add(sig);
+                passCandidates.push({ lines: candidate, score });
+            }
+        }
+    };
 
     const mazeStyle = buildIrregularMazeStyleLevel(config, colors);
-    if (mazeStyle && isFullCoverage(mazeStyle, config) && isLevelSolvable(mazeStyle, config)) {
-        const mazeComplexity = evaluateBentInterweaveComplexity(mazeStyle, config);
-        if (mazeComplexity.pass) {
-            return mazeStyle;
-        }
-        best = mazeStyle;
-        bestScore = mazeComplexity.score;
+    considerCandidate(mazeStyle, 0.35);
+
+    const centeredCore = buildCenteredCoreBentExtensionLevel(config, colors);
+    if (
+        centeredCore &&
+        isFullCoverage(centeredCore, config) &&
+        isLengthRangeValid(centeredCore, minLen, maxLen) &&
+        isLevelSolvable(centeredCore, config)
+    ) {
+        return centeredCore;
     }
 
     const blockCascade = buildBentBlockCascadeLevel(config, colors);
     if (blockCascade && isFullCoverage(blockCascade, config) && isLevelSolvable(blockCascade, config)) {
         const stitched = stitchBentInterwovenLines(blockCascade, config, colors);
-        const stitchedComplexity = evaluateBentInterweaveComplexity(stitched, config);
-        if (stitchedComplexity.pass) {
-            return stitched;
-        }
-
-        const baseComplexity = evaluateBentInterweaveComplexity(blockCascade, config);
-        if (stitchedComplexity.score >= baseComplexity.score) {
-            best = stitched;
-            bestScore = stitchedComplexity.score;
-        } else {
-            best = blockCascade;
-            bestScore = baseComplexity.score;
-        }
+        considerCandidate(stitched, 0.18);
+        considerCandidate(blockCascade, 0.1);
     }
 
     for (let attempt = 0; attempt < attempts; attempt++) {
@@ -218,10 +255,12 @@ function buildBentInterwovenFullCoverLevel(config, basePath, colors) {
 
         const preferred = collectVerticalEndIndices(path);
         let lengths = null;
-        const splitMode = attempt % 3;
+        const splitMode = attempt % 4;
         if (splitMode === 0) {
-            lengths = splitLengthOptimized(path, minLen, maxLen, preferred, 0.5, 0.72, 240);
+            lengths = buildTurnAwareSplit(path, minLen, maxLen, 220);
         } else if (splitMode === 1) {
+            lengths = splitLengthOptimized(path, minLen, maxLen, preferred, 0.5, 0.72, 240);
+        } else if (splitMode === 2) {
             lengths = buildGuidedSplit(path, minLen, maxLen, 0.5);
         } else {
             lengths = splitLength(path.length, minLen, maxLen, true, preferred, 0.8);
@@ -236,22 +275,14 @@ function buildBentInterwovenFullCoverLevel(config, basePath, colors) {
         }
 
         let candidate = assembleGuaranteedSolvableFromSegments(path, segments, colors, config, false);
-        if (!candidate.length) {
-            continue;
-        }
-        candidate = rebalanceDirections(candidate, config, 0.24);
-
-        if (!isFullCoverage(candidate, config) || !isLevelSolvable(candidate, config)) {
-            continue;
+        if (candidate.length) {
+            candidate = rebalanceDirections(candidate, config, 0.24);
+            considerCandidate(candidate, 0.24);
         }
 
-        const complexity = evaluateBentInterweaveComplexity(candidate, config);
-        if (complexity.score > bestScore) {
-            best = candidate;
-            bestScore = complexity.score;
-        }
-        if (complexity.pass) {
-            return candidate;
+        const flowLocked = assembleGuaranteedSolvableFromSegments(path, segments, colors, config, true);
+        if (flowLocked.length) {
+            considerCandidate(flowLocked, 0.2);
         }
     }
 
@@ -260,23 +291,304 @@ function buildBentInterwovenFullCoverLevel(config, basePath, colors) {
         const candidate = attempt % 2 === 0
             ? generateBalancedEmergencyFillLevel(config)
             : generateEmergencyFillLevel(config);
+        if (!candidate || !candidate.length) continue;
+        considerCandidate(candidate, 0.05);
+    }
+
+    if (passCandidates.length > 0) {
+        passCandidates.sort((a, b) => b.score - a.score);
+        const topN = passCandidates.slice(0, Math.min(10, passCandidates.length));
+        return topN[randomInt(0, topN.length - 1)].lines;
+    }
+
+    return best;
+}
+
+function buildCenteredCoreBentExtensionLevel(config, colors) {
+    const cols = config.gridCols;
+    const rows = config.gridRows;
+    const minLen = Math.max(2, config.minLen ?? 2);
+    const maxLen = Math.max(minLen, config.maxLen ?? 6);
+    const tallAndNarrow = rows > 30 && rows >= Math.ceil(cols * 1.25);
+    if (!tallAndNarrow || minLen > cols) {
+        return null;
+    }
+
+    const coreRows = Math.max(8, Math.min(30, rows - 2));
+    const nominalCoreCols = Math.max(minLen, Math.round(coreRows * 430 / 664));
+    const coreCols = clamp(nominalCoreCols, minLen, Math.max(minLen, cols - 2));
+    if (coreCols > cols || coreRows > rows) {
+        return null;
+    }
+
+    const coreStartRow = Math.floor((rows - coreRows) / 2);
+    const coreStartCol = Math.floor((cols - coreCols) / 2);
+    const topRows = coreStartRow;
+    const bottomRows = rows - (coreStartRow + coreRows);
+    const leftCols = coreStartCol;
+    const rightCols = cols - (coreStartCol + coreCols);
+    if (leftCols + rightCols + topRows + bottomRows <= 0) {
+        return null;
+    }
+
+    const coreConfig = { ...config, gridCols: coreCols, gridRows: coreRows, colors };
+
+    let coreLines = null;
+    let coreScore = -Infinity;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const coreResult = buildPlayableLevel(coreConfig, 3);
+            const candidate = coreResult?.lines ?? null;
+            if (!candidate || candidate.length === 0) {
+                continue;
+            }
+            if (!isFullCoverage(candidate, coreConfig) || !isLengthRangeValid(candidate, minLen, maxLen)) {
+                continue;
+            }
+            const complexity = evaluateBentInterweaveComplexity(candidate, coreConfig);
+            const score = complexity.score + complexity.bentRatio * 2.2 + complexity.avgTurns;
+            if (score > coreScore) {
+                coreLines = candidate;
+                coreScore = score;
+            }
+            if (complexity.pass || (complexity.bentRatio >= 0.52 && complexity.avgTurns >= 0.75)) {
+                break;
+            }
+        } catch {
+            continue;
+        }
+    }
+
+    if (!coreLines || coreLines.length === 0) {
+        return null;
+    }
+
+    const outerBentFloor = clamp(0.28 - (minLen - 2) * 0.01, 0.12, 0.28);
+    let bestCandidate = null;
+    let bestOuterScore = -Infinity;
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+        const payload = [];
+        const topLines = topRows > 0
+            ? buildBentPeripheralRegionLines(
+                { ...config, gridCols: cols, gridRows: topRows, minLen, maxLen, colors },
+                colors,
+                outerBentFloor,
+                2
+            )
+            : [];
+        if (topRows > 0 && (!topLines || topLines.length === 0)) continue;
+        for (const line of topLines) {
+            payload.push({
+                cells: line.cells.map((cell) => ({ col: cell.col, row: cell.row })),
+                color: line.color
+            });
+        }
+
+        const leftLines = leftCols > 0
+            ? buildBentPeripheralRegionLines(
+                {
+                    ...config,
+                    gridCols: leftCols,
+                    gridRows: coreRows,
+                    minLen,
+                    maxLen,
+                    colors
+                },
+                colors,
+                outerBentFloor * 0.9,
+                3
+            )
+            : [];
+        if (leftCols > 0 && (!leftLines || leftLines.length === 0)) continue;
+        for (const line of leftLines) {
+            payload.push({
+                cells: line.cells.map((cell) => ({
+                    col: cell.col,
+                    row: cell.row + coreStartRow
+                })),
+                color: line.color
+            });
+        }
+
+        for (const line of coreLines) {
+            payload.push({
+                cells: line.cells.map((cell) => ({
+                    col: cell.col + coreStartCol,
+                    row: cell.row + coreStartRow
+                })),
+                color: line.color
+            });
+        }
+
+        const rightLines = rightCols > 0
+            ? buildBentPeripheralRegionLines(
+                {
+                    ...config,
+                    gridCols: rightCols,
+                    gridRows: coreRows,
+                    minLen,
+                    maxLen,
+                    colors
+                },
+                colors,
+                outerBentFloor * 0.9,
+                3
+            )
+            : [];
+        if (rightCols > 0 && (!rightLines || rightLines.length === 0)) continue;
+        for (const line of rightLines) {
+            payload.push({
+                cells: line.cells.map((cell) => ({
+                    col: cell.col + coreStartCol + coreCols,
+                    row: cell.row + coreStartRow
+                })),
+                color: line.color
+            });
+        }
+
+        const bottomLines = bottomRows > 0
+            ? buildBentPeripheralRegionLines(
+                { ...config, gridCols: cols, gridRows: bottomRows, minLen, maxLen, colors },
+                colors,
+                outerBentFloor,
+                2
+            )
+            : [];
+        if (bottomRows > 0 && (!bottomLines || bottomLines.length === 0)) continue;
+        for (const line of bottomLines) {
+            payload.push({
+                cells: line.cells.map((cell) => ({
+                    col: cell.col,
+                    row: cell.row + coreStartRow + coreRows
+                })),
+                color: line.color
+            });
+        }
+
+        const candidate = reindexLines(payload, colors);
+        if (!isFullCoverage(candidate, config) || !isLengthRangeValid(candidate, minLen, maxLen)) {
+            continue;
+        }
+        if (!isLevelSolvable(candidate, config)) {
+            continue;
+        }
+        const outerStats = evaluateOuterBentStats(
+            candidate,
+            coreStartCol,
+            coreStartRow,
+            coreCols,
+            coreRows
+        );
+        const outerScore = outerStats.bentRatio * 3.2 + outerStats.avgTurns * 1.4;
+        if (outerScore > bestOuterScore) {
+            bestOuterScore = outerScore;
+            bestCandidate = candidate;
+        }
+        if (outerStats.bentRatio >= outerBentFloor || outerStats.avgTurns >= Math.max(0.22, outerBentFloor * 1.5)) {
+            return candidate;
+        }
+    }
+
+    return bestCandidate;
+}
+
+function buildBentPeripheralRegionLines(regionConfig, colors, bendFloor = 0.18, searchAttempts = 4) {
+    const cols = regionConfig.gridCols;
+    const rows = regionConfig.gridRows;
+    if (cols <= 0 || rows <= 0) {
+        return [];
+    }
+
+    const maxSpan = Math.max(cols, rows);
+    const minLen = clamp(regionConfig.minLen ?? 2, 2, maxSpan);
+    const maxLen = clamp(regionConfig.maxLen ?? minLen, minLen, maxSpan);
+    if (minLen > maxSpan) {
+        return null;
+    }
+
+    const localConfig = {
+        ...regionConfig,
+        gridCols: cols,
+        gridRows: rows,
+        minLen,
+        maxLen,
+        colors
+    };
+    const basePath = buildWeavePath(cols, rows);
+    if (!basePath || basePath.length !== cols * rows) {
+        return null;
+    }
+
+    let best = null;
+    let bestScore = -Infinity;
+    const attempts = Math.max(2, searchAttempts);
+    for (let attempt = 0; attempt < attempts; attempt++) {
+        const candidate = buildBentInterwovenFullCoverLevel(localConfig, basePath, colors);
         if (!candidate || !candidate.length) {
             continue;
         }
-        if (!isFullCoverage(candidate, config) || !isLevelSolvable(candidate, config)) {
+        if (!isFullCoverage(candidate, localConfig) || !isLengthRangeValid(candidate, minLen, maxLen)) {
             continue;
         }
-        const complexity = evaluateBentInterweaveComplexity(candidate, config);
-        if (complexity.score > bestScore) {
-            best = candidate;
-            bestScore = complexity.score;
+        if (!isLevelSolvable(candidate, localConfig)) {
+            continue;
         }
-        if (complexity.pass) {
+
+        const complexity = evaluateBentInterweaveComplexity(candidate, localConfig);
+        const score = complexity.score + complexity.bentRatio * 2.2 + complexity.avgTurns * 1.1 + Math.random() * 0.03;
+        if (score > bestScore) {
+            best = candidate;
+            bestScore = score;
+        }
+
+        if (complexity.bentRatio >= bendFloor || complexity.avgTurns >= Math.max(0.2, bendFloor * 1.35)) {
             return candidate;
         }
     }
 
     return best;
+}
+
+function evaluateOuterBentStats(lines, coreStartCol, coreStartRow, coreCols, coreRows) {
+    const coreEndCol = coreStartCol + coreCols - 1;
+    const coreEndRow = coreStartRow + coreRows - 1;
+    let outerLines = 0;
+    let bentLines = 0;
+    let turnTotal = 0;
+
+    for (const line of lines) {
+        let hasOuter = false;
+        for (const cell of line.cells) {
+            const inCore =
+                cell.col >= coreStartCol &&
+                cell.col <= coreEndCol &&
+                cell.row >= coreStartRow &&
+                cell.row <= coreEndRow;
+            if (!inCore) {
+                hasOuter = true;
+                break;
+            }
+        }
+        if (!hasOuter) {
+            continue;
+        }
+
+        outerLines++;
+        const turns = countTurns(line.cells);
+        turnTotal += turns;
+        if (turns > 0) {
+            bentLines++;
+        }
+    }
+
+    if (outerLines === 0) {
+        return { bentRatio: 1, avgTurns: 1 };
+    }
+    return {
+        bentRatio: bentLines / outerLines,
+        avgTurns: turnTotal / outerLines
+    };
 }
 
 function buildPathVariantForComplexMode(config, basePath, attempt) {
@@ -311,8 +623,8 @@ function buildPathVariantForComplexMode(config, basePath, attempt) {
 function buildIrregularMazeStyleLevel(config, colors) {
     const cols = config.gridCols;
     const rows = config.gridRows;
-    const minLen = 3;
-    const maxLen = Math.max(8, Math.min(16, Math.max(config.maxLen ?? 6, 10)));
+    const minLen = Math.max(2, config.minLen ?? 2);
+    const maxLen = Math.max(minLen, Math.min(16, config.maxLen ?? minLen));
     const attempts = Math.max(14, Math.min(40, Math.floor((cols * rows) / 18)));
 
     let best = null;
@@ -2763,6 +3075,89 @@ function generateConstructiveEmergency(config) {
         return fallback;
     }
     return generateEmergencyFillLevel(config);
+}
+
+function buildTurnAwareSplit(path, minLen, maxLen, iterations = 180) {
+    if (!Array.isArray(path) || path.length < minLen) {
+        return null;
+    }
+
+    const total = path.length;
+    let best = null;
+    let bestScore = -Infinity;
+
+    for (let attempt = 0; attempt < iterations; attempt++) {
+        const lengths = [];
+        let cursor = 0;
+        let bentSegments = 0;
+        let valid = true;
+
+        while (cursor < total) {
+            const remaining = total - cursor;
+            if (remaining < minLen) {
+                valid = false;
+                break;
+            }
+
+            if (remaining <= maxLen) {
+                const turnsTail = countPathTurns(path, cursor, total - 1);
+                if (turnsTail > 0) bentSegments++;
+                lengths.push(remaining);
+                cursor = total;
+                break;
+            }
+
+            const candidateMax = Math.min(maxLen, remaining - minLen);
+            if (candidateMax < minLen) {
+                valid = false;
+                break;
+            }
+
+            const options = [];
+            for (let len = minLen; len <= candidateMax; len++) {
+                const rest = total - (cursor + len);
+                if (!canFillRemaining(rest, minLen, maxLen)) {
+                    continue;
+                }
+                const turns = countPathTurns(path, cursor, cursor + len - 1);
+                const bendBonus = turns > 0 ? 3.2 : 0;
+                const score = bendBonus + turns * 1.4 + Math.random() * 0.45;
+                options.push({ len, turns, score });
+            }
+
+            if (options.length === 0) {
+                valid = false;
+                break;
+            }
+
+            const bentOptions = options.filter((item) => item.turns > 0);
+            const pool = bentOptions.length > 0 ? bentOptions : options;
+            pool.sort((a, b) => b.score - a.score);
+            const pickTop = pool[Math.min(pool.length - 1, randomInt(0, Math.min(3, pool.length - 1)))];
+
+            lengths.push(pickTop.len);
+            if (pickTop.turns > 0) {
+                bentSegments++;
+            }
+            cursor += pickTop.len;
+        }
+
+        if (!valid || cursor !== total || lengths.length === 0) {
+            continue;
+        }
+
+        const bentRatio = bentSegments / lengths.length;
+        const score = bentRatio * 5 + lengths.length * 0.03 + Math.random() * 0.25;
+        if (score > bestScore) {
+            bestScore = score;
+            best = lengths;
+        }
+        if (bentRatio >= 0.7) {
+            return lengths;
+        }
+    }
+
+    return best;
 }
 
 function scoreSegmentPlan(path, segments, targetVerticalRatio) {

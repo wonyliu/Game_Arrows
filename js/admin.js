@@ -1,7 +1,7 @@
 import { Grid } from './grid.js?v=40';
 import { canMove } from './collision.js?v=40';
-import { getBaseLevelConfig } from './levels.js?v=40';
-import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=48';
+import { getBaseLevelConfig } from './levels.js?v=41';
+import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=58';
 import {
     applyStoredSettings,
     buildStoredSettings,
@@ -14,7 +14,7 @@ import {
     initLevelStorage,
     savePreviewLevelRecord,
     saveSavedLevelRecord
-} from './level-storage.js?v=47';
+} from './level-storage.js?v=48';
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),
@@ -22,6 +22,7 @@ const el = {
     dimensionValue: document.getElementById('dimensionValue'),
     minLen: document.getElementById('minLen'),
     maxLen: document.getElementById('maxLen'),
+    timerSeconds: document.getElementById('timerSeconds'),
     gridText: document.getElementById('gridText'),
     lineText: document.getElementById('lineText'),
     coverageText: document.getElementById('coverageText'),
@@ -107,7 +108,7 @@ function loadLevelState() {
     const base = getBaseLevelConfig(level);
     const saved = normalizeRecord(getSavedLevelRecord(level));
     const preview = normalizeRecord(getPreviewLevelRecord(level));
-    const record = preview || saved;
+    const record = saved;
     const settings = record?.settings || buildStoredSettings(base, {
         dimensionMode: 'rows',
         dimensionValue: base.gridRows,
@@ -119,18 +120,23 @@ function loadLevelState() {
     el.dimensionValue.value = String(settings.dimensionValue);
     el.minLen.value = String(settings.minLen);
     el.maxLen.value = String(settings.maxLen);
+    el.timerSeconds.value = String(settings.timerSeconds ?? base.timerSeconds ?? 0);
     el.previewTitle.textContent = `Preview - Level ${level}`;
-    previewRecord = preview || null;
+    previewRecord = record || null;
     renderedLevelData = record?.data ? cloneLevelData(record.data) : null;
     resetPreviewPlayState();
 
     if (record?.data) {
         drawPreviewState();
-        setStatus(`Loaded ${preview ? 'preview' : 'saved'} record for level ${level}.`);
+        setStatus(`Loaded saved record for level ${level}.`);
         drawStats(record);
     } else {
         clearCanvas();
-        setStatus(`No generated record for level ${level}.`);
+        if (preview?.data) {
+            setStatus(`No saved record for level ${level}. Legacy preview exists but is ignored. Click Save after Generate to persist.`);
+        } else {
+            setStatus(`No saved record for level ${level}.`);
+        }
         drawStats(null);
     }
 
@@ -163,7 +169,8 @@ function collectConfig() {
         dimensionMode: el.dimensionMode.value,
         dimensionValue: Number(el.dimensionValue.value || 0),
         minLen: Number(el.minLen.value || 0),
-        maxLen: Number(el.maxLen.value || 0)
+        maxLen: Number(el.maxLen.value || 0),
+        timerSeconds: Number(el.timerSeconds.value || 0)
     });
     return {
         settings,
@@ -182,6 +189,56 @@ function updateDerived() {
     el.coverageText.textContent = `${cov}%`;
 }
 
+function buildLevelDataSignature(levelData) {
+    if (!levelData?.lines || !Array.isArray(levelData.lines)) {
+        return '';
+    }
+
+    return levelData.lines
+        .map((line) => {
+            const cells = Array.isArray(line.cells) ? line.cells : [];
+            const tail = cells[0] || {};
+            const head = cells[cells.length - 1] || {};
+            const len = cells.length || 0;
+            return `${tail.col ?? -1},${tail.row ?? -1}>${head.col ?? -1},${head.row ?? -1}:${len}:${line.direction ?? ''}`;
+        })
+        .join('|');
+}
+
+function tryGenerateMode3Record(config, settings, avoidSignature = '') {
+    let lastError = null;
+    let sameSignatureFallback = null;
+    const retryCount = 6;
+
+    for (let retry = 0; retry < retryCount; retry++) {
+        try {
+            const record = buildPlayableLevelRecord(config, settings, 3);
+            const signature = buildLevelDataSignature(record.data);
+            const result = {
+                record,
+                usedConfig: config,
+                usedSettings: settings
+            };
+
+            if (!avoidSignature || signature !== avoidSignature) {
+                return result;
+            }
+
+            if (!sameSignatureFallback) {
+                sameSignatureFallback = result;
+            }
+        } catch (error) {
+            lastError = error;
+        }
+    }
+
+    if (sameSignatureFallback) {
+        return sameSignatureFallback;
+    }
+
+    throw (lastError || new Error('Mode 3 generation failed.'));
+}
+
 async function onGenerate(mode = 1) {
     if (isGenerating) {
         return;
@@ -191,6 +248,7 @@ async function onGenerate(mode = 1) {
 
     const level = getLevel();
     const { config, settings } = collectConfig();
+    const previousSignature = mode === 3 ? buildLevelDataSignature(renderedLevelData) : '';
     try {
         setGenerateProgress(8, `Preparing level ${level}...`);
         await nextFrame();
@@ -199,29 +257,26 @@ async function onGenerate(mode = 1) {
         await nextFrame();
 
         setGenerateProgress(54, 'Solving and validating...');
-        previewRecord = buildPlayableLevelRecord(config, settings, mode);
+        if (mode === 3) {
+            const result = tryGenerateMode3Record(config, settings, previousSignature);
+            previewRecord = result.record;
+        } else {
+            previewRecord = buildPlayableLevelRecord(config, settings, mode);
+        }
 
         setGenerateProgress(78, 'Applying preview state...');
         renderedLevelData = cloneLevelData(previewRecord.data);
         resetPreviewPlayState();
         await nextFrame();
 
-        setGenerateProgress(92, 'Saving local records...');
-        const [previewOk, savedOk] = await Promise.all([
-            savePreviewLevelRecord(level, previewRecord),
-            saveSavedLevelRecord(level, previewRecord)
-        ]);
+        setGenerateProgress(92, 'Finalizing preview...');
 
         drawPreviewState();
         drawStats(previewRecord);
         updateDerived();
         setGenerateProgress(100, 'Done');
         const modeLabel = mode === 3 ? 'bent' : 'straight';
-        if (previewOk && savedOk) {
-            setStatus(`Level ${level} generated and persisted to local files. Mode=${mode} (${modeLabel}).`);
-        } else {
-            setStatus(`Level ${level} generated, but disk sync is unavailable. Saved to browser cache only. Mode=${mode} (${modeLabel}).`);
-        }
+        setStatus(`Level ${level} generated in memory only. Click Save to persist. Mode=${mode} (${modeLabel}).`);
     } catch (error) {
         setGenerateProgress(0, 'Generation failed');
         setStatus(`Generate failed: ${error?.message || 'unknown error'}`);
@@ -331,7 +386,6 @@ function finishLifting() {
     renderedLevelData.lines.push(newLine);
     
     // Save
-    const level = getLevel();
     const settings = collectConfig().settings;
     previewRecord = {
         settings,
@@ -343,7 +397,6 @@ function finishLifting() {
         },
         updatedAt: new Date().toISOString()
     };
-    savePreviewLevelRecord(level, previewRecord);
     drawStats(previewRecord);
     resetPreviewPlayState();
     drawPreviewState();
@@ -412,8 +465,11 @@ async function onSave() {
             return;
         }
     }
-    const savedOk = await saveSavedLevelRecord(level, previewRecord);
-    if (savedOk) {
+    const [previewOk, savedOk] = await Promise.all([
+        savePreviewLevelRecord(level, previewRecord),
+        saveSavedLevelRecord(level, previewRecord)
+    ]);
+    if (savedOk && previewOk) {
         setStatus(`Level ${level} saved permanently to local file. Game will load this record first.`);
     } else {
         setStatus(`Level ${level} saved to browser cache only (disk sync unavailable).`);
@@ -511,7 +567,6 @@ function deleteLine(lineId) {
 }
 
 function updatePreviewRecord() {
-    const level = getLevel();
     const { settings } = collectConfig();
     previewRecord = {
         settings,
@@ -523,7 +578,6 @@ function updatePreviewRecord() {
         },
         updatedAt: new Date().toISOString()
     };
-    savePreviewLevelRecord(level, previewRecord);
     drawStats(previewRecord);
 }
 
@@ -661,7 +715,6 @@ function onCanvasGenerate2Click(event) {
     renderedLevelData.lines.push(newLine);
     
     // Update preview state
-    const level = getLevel();
     const settings = collectConfig().settings;
     previewRecord = {
         settings,
@@ -673,7 +726,6 @@ function onCanvasGenerate2Click(event) {
         },
         updatedAt: new Date().toISOString()
     };
-    savePreviewLevelRecord(level, previewRecord);
     resetPreviewPlayState();
     drawPreviewState();
     setStatus(`Added ${currentKeyDir} arrow. Total lines: ${renderedLevelData.lines.length}`);
@@ -708,8 +760,6 @@ function onCanvasFlip(event) {
     lineData.cells = [...lineData.cells].reverse();
     lineData.direction = inferDirectionFromCells(lineData.cells);
 
-    const level = getLevel();
-    const base = getBaseLevelConfig(level);
     const settings = previewRecord?.settings || collectConfig().settings;
     previewRecord = {
         settings,
@@ -721,14 +771,12 @@ function onCanvasFlip(event) {
         },
         updatedAt: new Date().toISOString()
     };
-    savePreviewLevelRecord(level, previewRecord);
-    saveSavedLevelRecord(level, previewRecord);
     syncPlayStateLine(lineData.id, lineData.cells, lineData.direction);
 
     drawPreviewState();
     drawStats(previewRecord);
     updateDerived();
-    setStatus(`Flipped line ${target.id}. Changes saved locally.`);
+    setStatus(`Flipped line ${target.id}. Unsaved changes in preview.`);
 }
 
 function onCanvasPlay(event) {
@@ -787,6 +835,7 @@ function drawStats(record) {
     if (!record?.stats) {
         pushStat('Cells: 0 / 0');
         pushStat('Lines: 0');
+        pushStat('Timer: Off');
         pushStat('Updated: -');
         return;
     }
@@ -795,6 +844,7 @@ function drawStats(record) {
     const pct = Math.round((covered / total) * 100);
     pushStat(`Sys: v6.0 | Pct: ${pct}%`);
     pushStat(`Lines: ${record.stats.lineCount}`);
+    pushStat(`Timer: ${formatSeconds(record.settings?.timerSeconds ?? 0)}`);
     pushStat(`Updated: ${formatTime(record.updatedAt)}`);
 }
 
@@ -1094,4 +1144,14 @@ function formatTime(value) {
         return '-';
     }
     return d.toLocaleString();
+}
+
+function formatSeconds(value) {
+    const seconds = Math.max(0, Math.round(Number(value) || 0));
+    if (seconds <= 0) {
+        return 'Off';
+    }
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}m${secs.toString().padStart(2, '0')}s`;
 }

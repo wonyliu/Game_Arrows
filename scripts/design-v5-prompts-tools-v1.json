@@ -1,0 +1,72 @@
+{
+  "theme": "design-v5-tools",
+  "promptVersion": "v2-tool-icons-polish",
+  "styleGuide": {
+    "visualDirection": "Premium casual mobile game utility icon style, polished 2.5D sticker rendering, smooth anti-aliased edges, clean enamel-like highlights, warm gold-brown palette, high readability at tiny size.",
+    "referenceImages": [],
+    "mustHave": [
+      "single dominant icon object",
+      "thick readable outline",
+      "center composition",
+      "transparent background",
+      "high contrast at small size",
+      "strict utility symbol semantics",
+      "clean inner shading with subtle depth"
+    ],
+    "mustNot": [
+      "text",
+      "numbers",
+      "watermark",
+      "checkerboard fake transparency",
+      "busy scene background",
+      "extra decorative mascot",
+      "eyes",
+      "face",
+      "character",
+      "dirty texture noise",
+      "blurry edges"
+    ]
+  },
+  "assets": [
+    {
+      "slot": "icon.hint",
+      "fileName": "icon_hint.png",
+      "usage": "in-game hint tool icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create one clean premium hint icon in flat 2.5D style: a single rounded light-bulb silhouette, warm yellow glass, soft highlight, simple metallic base, one tiny ivory sparkle. Keep lines clean and minimal.",
+      "negativePrompt": "no text, no letters, no abstract symbols, no black blobs, no black sparkle, no black filament, no checkerboard, no background plate, no glow ring, no mascot",
+      "safeAreaHint": "Keep all key shape detail inside center 70% area.",
+      "readabilityHint": "Must be instantly recognizable at 28-34 px."
+    },
+    {
+      "slot": "icon.undo",
+      "fileName": "icon_undo.png",
+      "usage": "in-game undo tool icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "cropMode": "contain",
+      "prompt": "Create one clean premium undo icon: a single curved left-facing rollback arrow (head points left), thick readable stroke, warm cream-gold fill, dark-brown contour, subtle 2.5D highlight.",
+      "negativePrompt": "no text, no dual arrows, no circular refresh loop, no black fill region, no cluttered effects, no dark gritty texture, no mascot",
+      "safeAreaHint": "Arrow head must remain clearly visible with roomy padding.",
+      "readabilityHint": "Direction should be obvious at a glance on small buttons."
+    },
+    {
+      "slot": "icon.shuffle",
+      "fileName": "icon_shuffle.png",
+      "usage": "in-game shuffle tool icon",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "skipBgFloodFill": true,
+      "cropMode": "contain",
+      "prompt": "Create one premium shuffle/refresh icon: exactly two curved arrows forming a circular loop, both arrowheads crisp and obvious, balanced spacing, same polished material style and contour weight as hint and undo.",
+      "negativePrompt": "no text, no gears, no abstract crosses, no single-arrow only, no face, no eyes, no mascot, no extra objects, no background plate",
+      "safeAreaHint": "Two-arrow loop centered, enough spacing to read both arrowheads.",
+      "readabilityHint": "Must read as reroll/refresh even at 28-34 px."
+    }
+  ]
+}

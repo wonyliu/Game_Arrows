@@ -1,4 +1,4 @@
-import { drawPixelParticle } from './pixel-art.js?v=20';
+import { drawPixelParticle } from './pixel-art.js?v=21';
 
 const DIR_VEC = {
     up: { dx: 0, dy: -1 },

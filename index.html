@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=54">
+    <link rel="stylesheet" href="css/style.css?v=61">
 </head>
 <body>
     <div class="app-container">
@@ -38,6 +38,9 @@
 
         <div id="hud" class="hidden">
             <div class="hud-top">
+                <button id="btnHudSettings" class="hud-settings-btn" type="button" aria-label="settings">
+                    <img class="hud-settings-icon" src="assets/design-v2/clean/icon_settings.png" alt="settings">
+                </button>
                 <div class="hud-center">
                     <div id="levelInfo" class="hud-level">Burrow 1</div>
                     <div id="lives" class="hud-lives"></div>
@@ -49,15 +52,15 @@
                 <div class="items-container">
                     <button id="btnUndo" class="item-btn" type="button" aria-label="undo">
                         <img class="pixel-icon item-icon-img" src="assets/design-v2/clean/icon_undo.png" alt="undo">
-                        <span class="badge-plus">+</span>
+                        <span class="badge-plus">2</span>
                     </button>
                     <button id="btnHint" class="item-btn" type="button" aria-label="hint">
                         <img class="pixel-icon item-icon-img" src="assets/design-v2/clean/icon_hint.png" alt="hint">
-                        <span class="badge-plus">+</span>
+                        <span class="badge-plus">2</span>
                     </button>
                     <button id="btnShuffle" class="item-btn" type="button" aria-label="shuffle">
                         <img class="pixel-icon item-icon-img" src="assets/design-v2/clean/icon_shuffle.png" alt="shuffle">
-                        <span class="badge-plus">+</span>
+                        <span class="badge-plus">2</span>
                     </button>
                 </div>
             </div>
@@ -158,6 +161,11 @@
                         <div class="setting-desc" data-i18n="panel.settings.resetDesc">Reset campaign progress back to level one.</div>
                         <button id="btnResetProgress" class="btn-popup-secondary settings-reset-btn" type="button" data-i18n="panel.settings.reset">Reset Progress</button>
                     </div>
+                    <div id="settingsEndRunRow" class="setting-row setting-row-end-run hidden">
+                        <div class="setting-title" data-i18n="panel.exit.title">Exit Game</div>
+                        <div class="setting-desc" data-i18n="panel.exit.desc">Do you want to exit now? Progress is saved locally.</div>
+                        <button id="btnEndRun" class="btn-popup-secondary settings-end-run-btn" type="button" data-i18n="panel.exit.title">Exit Game</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -242,13 +250,13 @@
         <div id="resetProgressOverlay" class="overlay menu-panel-overlay hidden">
             <div class="panel-shell panel-shell-sm">
                 <div class="panel-head">
-                    <h2 class="panel-title" data-i18n="panel.reset.title">Reset Progress</h2>
+                    <h2 id="settingsConfirmTitle" class="panel-title">Reset Progress</h2>
                     <button id="btnResetProgressCancelTop" class="panel-back-btn" type="button" data-i18n="common.close">Close</button>
                 </div>
                 <div class="panel-body">
-                    <p class="exit-desc" data-i18n="panel.reset.desc">Reset your campaign progress and start from level one?</p>
+                    <p id="settingsConfirmDesc" class="exit-desc">Reset your campaign progress and start from level one?</p>
                     <div class="exit-actions">
-                        <button id="btnResetProgressConfirm" class="btn-popup-primary" type="button" data-i18n="panel.reset.confirm">Reset Now</button>
+                        <button id="btnResetProgressConfirm" class="btn-popup-primary" type="button">Reset Now</button>
                         <button id="btnResetProgressCancel" class="btn-popup-secondary" type="button" data-i18n="panel.reset.cancel">Cancel</button>
                     </div>
                 </div>
@@ -299,7 +307,7 @@
         <div id="errorVignette" class="error-vignette"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=87"></script>
+    <script type="module" src="js/main.js?v=91"></script>
 </body>
 </html>
 

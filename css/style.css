@@ -178,6 +178,34 @@ textarea {
     height: 68px;
 }
 
+.hud-settings-btn {
+    position: absolute;
+    left: 14px;
+    top: 2px;
+    width: 44px;
+    height: 44px;
+    border: 0;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(247, 227, 192, 0.96) 0%, rgba(223, 182, 124, 0.95) 100%);
+    box-shadow: 0 4px 10px rgba(43, 27, 16, 0.32), inset 0 0 0 2px rgba(132, 84, 49, 0.44);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform 120ms ease, filter 120ms ease;
+}
+
+.hud-settings-btn:active {
+    transform: translateY(1px) scale(0.97);
+    filter: brightness(0.95);
+}
+
+.hud-settings-icon {
+    width: 24px;
+    height: 24px;
+}
+
 .hud-center {
     display: flex;
     flex-direction: column;
@@ -252,46 +280,76 @@ textarea {
 .items-container {
     display: flex;
     justify-content: center;
-    gap: 18px;
+    gap: 12px;
 }
 
 .item-btn {
     position: relative;
-    width: 74px;
-    height: 74px;
+    width: 98px;
+    height: 66px;
     border: 0;
-    border-radius: 50%;
-    background: url('../assets/design-v3/clean/ui_item_button.png') center / 100% 100% no-repeat;
-    box-shadow: 0 6px 16px rgba(40, 24, 15, 0.36);
+    border-radius: 18px;
+    background: url('../assets/design-v2/clean/ui_item_button_ref4_exact.png?v=3') center / 100% 100% no-repeat;
+    box-shadow: 0 6px 10px rgba(42, 25, 14, 0.22);
     cursor: pointer;
-    transition: transform 120ms ease, filter 120ms ease;
+    transition: transform 110ms ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .item-btn:active {
-    transform: translateY(1px) scale(0.98);
-    filter: brightness(0.96);
+    transform: translateY(2px);
+}
+
+.item-btn:disabled,
+.item-btn.item-btn-disabled {
+    cursor: default;
+    filter: none;
+    opacity: 1;
+    transform: none;
+}
+
+.item-btn:disabled:active,
+.item-btn.item-btn-disabled:active {
+    transform: none;
+}
+
+.item-btn:disabled .item-icon-img,
+.item-btn.item-btn-disabled .item-icon-img {
+    filter: grayscale(0.55) saturate(0.72) brightness(0.9);
+    opacity: 0.9;
 }
 
 .item-icon-img {
-    width: 31px;
-    height: 31px;
+    width: 36px;
+    height: 36px;
+    position: relative;
+    z-index: 1;
 }
 
 .badge-plus {
     position: absolute;
-    right: -2px;
-    bottom: -2px;
-    width: 23px;
-    height: 23px;
+    right: -6px;
+    bottom: -6px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     background: linear-gradient(180deg, #88d96e, #5db74e);
     border: 2px solid #fff5e3;
     color: #fff;
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 900;
+    font-family: var(--font-ui-clean);
     display: flex;
     align-items: center;
     justify-content: center;
+    z-index: 2;
+}
+
+.badge-plus.is-empty {
+    background: linear-gradient(180deg, #b9c1bf, #8f9796);
+    color: #f2f2f2;
 }
 
 .overlay {
@@ -846,6 +904,19 @@ textarea {
     letter-spacing: 0.4px;
 }
 
+.settings-end-run-btn {
+    margin-top: 10px;
+    width: 100%;
+    height: 44px;
+    border: 2px solid #d18a73;
+    border-radius: 14px;
+    background: linear-gradient(180deg, #f6c3b0 0%, #e9977d 100%);
+    color: #6b3624;
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 0.4px;
+}
+
 .setting-title {
     color: #6a4628;
     font-family: var(--font-display);
@@ -1257,7 +1328,7 @@ textarea {
 
 #menuOverlay .current-level-tag {
     position: absolute;
-    left: 248px;
+    left: 262px;
     top: 5px;
     z-index: 7;
     display: inline-flex;
@@ -1501,6 +1572,21 @@ textarea {
     pointer-events: auto;
 }
 
+#settingsOverlay .setting-row-end-run .settings-end-run-btn {
+    margin: 0;
+    width: 100%;
+    height: 44px;
+    border: 2px solid rgba(139, 64, 52, 0.42);
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(239, 179, 158, 0.98) 0%, rgba(219, 118, 96, 0.96) 100%);
+    box-shadow: inset 0 -2px 0 rgba(111, 62, 43, 0.24), 0 2px 6px rgba(72, 40, 24, 0.2);
+    color: #6a3222;
+    font-family: var(--font-display);
+    font-size: 25px;
+    letter-spacing: 0.3px;
+    pointer-events: auto;
+}
+
 #settingsOverlay .panel-title,
 #settingsOverlay .panel-back-btn,
 #settingsOverlay .setting-title,
@@ -1509,7 +1595,8 @@ textarea {
 #settingsOverlay .audio-row,
 #settingsOverlay .audio-row span,
 #settingsOverlay .graphics-option,
-#settingsOverlay .settings-reset-btn {
+#settingsOverlay .settings-reset-btn,
+#settingsOverlay .settings-end-run-btn {
     font-family: var(--font-ui-clean);
 }
 

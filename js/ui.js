@@ -21,6 +21,12 @@ const FEATURE_CONFIG = Object.freeze([
     { id: 'exit', buttonId: 'btnExit', panelId: MENU_PANEL.EXIT_CONFIRM, labelKey: 'feature.exit', iconSlot: 'icon.exit', badge: null, enabled: true }
 ]);
 
+const TOOL_BUTTON_CONFIG = Object.freeze([
+    { id: 'undo', buttonId: 'btnUndo' },
+    { id: 'hint', buttonId: 'btnHint' },
+    { id: 'shuffle', buttonId: 'btnShuffle' }
+]);
+
 const HOME_START_VISUAL_HITBOX = Object.freeze({
     x: 92.5,
     y: 332.5,
@@ -28,11 +34,23 @@ const HOME_START_VISUAL_HITBOX = Object.freeze({
     height: 91.1
 });
 
+const SETTINGS_ENTRY = Object.freeze({
+    MENU: 'menu',
+    GAME: 'game'
+});
+
+const SETTINGS_CONFIRM_MODE = Object.freeze({
+    RESET_PROGRESS: 'reset-progress',
+    END_RUN: 'end-run'
+});
+
 export class UI {
     constructor(game) {
         this.game = game;
         this.locale = detectInitialLocale();
         this.menuState = MENU_PANEL.HOME;
+        this.settingsEntry = SETTINGS_ENTRY.MENU;
+        this.settingsConfirmMode = SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
         this.lastStartTriggerAt = Number.NEGATIVE_INFINITY;
         this.menuBadges = Object.fromEntries(
             FEATURE_CONFIG.map((feature) => [feature.id, feature.badge ?? null])
@@ -64,6 +82,10 @@ export class UI {
         this.exitFeedback = document.getElementById('exitFeedback');
         this.localeZhBtn = document.getElementById('btnLocaleZh');
         this.localeEnBtn = document.getElementById('btnLocaleEn');
+        this.settingsEndRunRow = document.getElementById('settingsEndRunRow');
+        this.settingsConfirmTitleEl = document.getElementById('settingsConfirmTitle');
+        this.settingsConfirmDescEl = document.getElementById('settingsConfirmDesc');
+        this.settingsConfirmActionBtn = document.getElementById('btnResetProgressConfirm');
 
         this.bindEvents();
         this.bindGameCallbacks();
@@ -96,7 +118,8 @@ export class UI {
         this.bindButton('btnBackFromSkins', () => this.closeMenuPanel());
         this.bindButton('btnBackFromCheckin', () => this.closeMenuPanel());
 
-        this.bindButton('btnSettings', () => this.openMenuPanel(MENU_PANEL.SETTINGS));
+        this.bindButton('btnSettings', () => this.openSettingsPanel(SETTINGS_ENTRY.MENU));
+        this.bindButton('btnHudSettings', () => this.openSettingsFromGame());
         this.bindButton('btnLeaderboard', () => this.openMenuPanel(MENU_PANEL.LEADERBOARD));
         this.bindButton('btnSkins', () => this.openMenuPanel(MENU_PANEL.SKINS));
         this.bindButton('btnCheckin', () => this.openMenuPanel(MENU_PANEL.CHECKIN));
@@ -105,10 +128,11 @@ export class UI {
         this.bindButton('btnExitCancelTop', () => this.closeMenuPanel());
         this.bindButton('btnExitCancel', () => this.closeMenuPanel());
         this.bindButton('btnExitConfirm', () => this.handleExitConfirm());
-        this.bindButton('btnResetProgress', () => this.openMenuPanel(MENU_PANEL.RESET_PROGRESS_CONFIRM));
+        this.bindButton('btnResetProgress', () => this.openSettingsConfirm(SETTINGS_CONFIRM_MODE.RESET_PROGRESS));
+        this.bindButton('btnEndRun', () => this.openSettingsConfirm(SETTINGS_CONFIRM_MODE.END_RUN));
         this.bindButton('btnResetProgressCancelTop', () => this.openMenuPanel(MENU_PANEL.SETTINGS));
         this.bindButton('btnResetProgressCancel', () => this.openMenuPanel(MENU_PANEL.SETTINGS));
-        this.bindButton('btnResetProgressConfirm', () => this.handleResetProgressConfirm());
+        this.bindButton('btnResetProgressConfirm', () => this.handleSettingsConfirmAction());
 
         this.bindButton('btnLocaleZh', () => this.setLocale('zh-CN'));
         this.bindButton('btnLocaleEn', () => this.setLocale('en-US'));
@@ -237,6 +261,20 @@ export class UI {
         this.openMenuPanel(MENU_PANEL.LEVEL_SELECT);
     }
 
+    openSettingsPanel(source = SETTINGS_ENTRY.MENU) {
+        this.settingsEntry = source === SETTINGS_ENTRY.GAME
+            ? SETTINGS_ENTRY.GAME
+            : SETTINGS_ENTRY.MENU;
+        this.openMenuPanel(MENU_PANEL.SETTINGS);
+    }
+
+    openSettingsFromGame() {
+        if (this.game.state !== 'PLAYING') {
+            return;
+        }
+        this.openSettingsPanel(SETTINGS_ENTRY.GAME);
+    }
+
     openMenuPanel(panelId) {
         const target = Object.values(MENU_PANEL).includes(panelId) ? panelId : MENU_PANEL.HOME;
         this.hideAll();
@@ -246,6 +284,8 @@ export class UI {
         if (target === MENU_PANEL.HOME) {
             this.menuOverlay.classList.remove('hidden');
             this.game.state = 'MENU';
+            this.settingsEntry = SETTINGS_ENTRY.MENU;
+            this.settingsConfirmMode = SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
         }
 
         if (target === MENU_PANEL.LEVEL_SELECT) {
@@ -257,6 +297,7 @@ export class UI {
         if (target === MENU_PANEL.SETTINGS) {
             this.settingsOverlay.classList.remove('hidden');
             this.game.state = 'SETTINGS';
+            this.updateSettingsActionRows();
         }
 
         if (target === MENU_PANEL.LEADERBOARD) {
@@ -283,6 +324,7 @@ export class UI {
         if (target === MENU_PANEL.RESET_PROGRESS_CONFIRM) {
             this.resetProgressOverlay?.classList.remove('hidden');
             this.game.state = 'RESET_PROGRESS_CONFIRM';
+            this.updateSettingsConfirmDialogText();
         }
 
         this.menuState = target;
@@ -292,6 +334,10 @@ export class UI {
     }
 
     closeMenuPanel() {
+        if (this.menuState === MENU_PANEL.SETTINGS && this.settingsEntry === SETTINGS_ENTRY.GAME) {
+            this.resumeGameFromSettings();
+            return;
+        }
         this.openMenuPanel(MENU_PANEL.HOME);
     }
 
@@ -383,11 +429,54 @@ export class UI {
         this.updateLocaleButtons();
         this.refreshMenuLevelTag();
         this.renderFeatureCards();
+        this.updateSettingsActionRows();
+        this.updateSettingsConfirmDialogText();
     }
 
     updateLocaleButtons() {
         this.localeZhBtn?.classList.toggle('active', this.locale === 'zh-CN');
         this.localeEnBtn?.classList.toggle('active', this.locale === 'en-US');
+    }
+
+    updateSettingsActionRows() {
+        const inGameSettings = this.settingsEntry === SETTINGS_ENTRY.GAME;
+        const resetRow = document.querySelector('#settingsOverlay .setting-row-reset');
+        resetRow?.classList.toggle('hidden', inGameSettings);
+        this.settingsEndRunRow?.classList.toggle('hidden', !inGameSettings);
+    }
+
+    openSettingsConfirm(mode) {
+        this.settingsConfirmMode = mode === SETTINGS_CONFIRM_MODE.END_RUN
+            ? SETTINGS_CONFIRM_MODE.END_RUN
+            : SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
+        this.openMenuPanel(MENU_PANEL.RESET_PROGRESS_CONFIRM);
+    }
+
+    updateSettingsConfirmDialogText() {
+        const isEndRun = this.settingsConfirmMode === SETTINGS_CONFIRM_MODE.END_RUN;
+        const titleKey = isEndRun ? 'panel.exit.title' : 'panel.reset.title';
+        const descKey = isEndRun ? 'panel.exit.desc' : 'panel.reset.desc';
+        const confirmKey = isEndRun ? 'panel.exit.confirm' : 'panel.reset.confirm';
+
+        if (this.settingsConfirmTitleEl) {
+            this.settingsConfirmTitleEl.textContent = t(this.locale, titleKey);
+        }
+        if (this.settingsConfirmDescEl) {
+            this.settingsConfirmDescEl.textContent = t(this.locale, descKey);
+        }
+        if (this.settingsConfirmActionBtn) {
+            this.settingsConfirmActionBtn.textContent = t(this.locale, confirmKey);
+        }
+    }
+
+    resumeGameFromSettings() {
+        this.hideAll();
+        this.hud.classList.remove('hidden');
+        this.setMenuChromeVisible(false);
+        this.game.state = 'PLAYING';
+        this.menuState = MENU_PANEL.HOME;
+        this.forceGameCanvasResize();
+        this.updateHUD();
     }
 
     renderFeatureCards() {
@@ -457,7 +546,32 @@ export class UI {
         }
 
         this.updateTimer();
+        this.updateToolButtons();
         this.refreshMenuLevelTag();
+    }
+
+    updateToolButtons() {
+        for (const item of TOOL_BUTTON_CONFIG) {
+            const button = document.getElementById(item.buttonId);
+            if (!button) continue;
+
+            const remaining = typeof this.game.getToolUses === 'function'
+                ? this.game.getToolUses(item.id)
+                : 0;
+
+            const badge = button.querySelector('.badge-plus');
+            if (badge) {
+                badge.textContent = String(remaining);
+                badge.classList.toggle('is-empty', remaining <= 0);
+            }
+
+            let disabled = this.game.state !== 'PLAYING' || remaining <= 0;
+            if (item.id === 'undo' && (!Array.isArray(this.game.undoStack) || this.game.undoStack.length === 0)) {
+                disabled = true;
+            }
+            button.disabled = disabled;
+            button.classList.toggle('item-btn-disabled', disabled);
+        }
     }
 
     updateTimer() {
@@ -544,7 +658,12 @@ export class UI {
         }
     }
 
-    handleResetProgressConfirm() {
+    handleSettingsConfirmAction() {
+        if (this.settingsConfirmMode === SETTINGS_CONFIRM_MODE.END_RUN) {
+            this.openMenuPanel(MENU_PANEL.HOME);
+            return;
+        }
+
         this.game.maxUnlockedLevel = 1;
         this.game.currentLevel = 1;
         this.game.saveProgress();

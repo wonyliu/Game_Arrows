@@ -1,15 +1,15 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=59';
-import { UI } from './ui.js?v=42';
+import { Game } from './game.js?v=62';
+import { UI } from './ui.js?v=44';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
     startNextUnlockPreload,
     stopNextUnlockPreload
 } from './level-preload.js?v=8';
-import { initLevelStorage } from './level-storage.js?v=47';
+import { initLevelStorage } from './level-storage.js?v=48';
 import { initUiTheme } from './ui-theme.js?v=2';
 
 const DESIGN_WIDTH = 430;

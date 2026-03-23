@@ -2,7 +2,7 @@ import {
     getSavedLevelRecord,
     isStoredLevelRecordUsable,
     saveSavedLevelRecord
-} from './level-storage.js?v=47';
+} from './level-storage.js?v=48';
 
 const PRELOAD_MODE = 1;
 const MAX_PRELOAD_LEVEL = 1000;
@@ -264,8 +264,8 @@ function onWorkerError(error) {
 async function buildRecordOnMainThread(level) {
     const [{ buildPlayableLevelRecord }, { getBaseLevelConfig }, { buildStoredSettings }] = await Promise.all([
         import('./level-builder.js?v=48'),
-        import('./levels.js?v=27'),
-        import('./level-storage.js?v=47')
+        import('./levels.js?v=28'),
+        import('./level-storage.js?v=48')
     ]);
 
     const baseConfig = getBaseLevelConfig(level);

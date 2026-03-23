@@ -56,6 +56,11 @@ export function buildStoredSettings(baseConfig, overrides = {}) {
         minLen,
         16
     );
+    const timerSeconds = clamp(
+        Math.round(Number(overrides.timerSeconds ?? baseConfig.timerSeconds) || 0),
+        0,
+        7200
+    );
 
     return {
         level: baseConfig.level,
@@ -64,7 +69,8 @@ export function buildStoredSettings(baseConfig, overrides = {}) {
         gridCols: grid.gridCols,
         gridRows: grid.gridRows,
         minLen,
-        maxLen
+        maxLen,
+        timerSeconds
     };
 }
 
@@ -80,6 +86,8 @@ export function applyStoredSettings(baseConfig, storedSettings = null) {
     return {
         ...baseConfig,
         ...settings,
+        hasTimer: settings.timerSeconds > 0,
+        timerSeconds: settings.timerSeconds,
         lineCount: estimateLineCount(settings.gridCols, settings.gridRows, settings.minLen, settings.maxLen),
         fillRatio: 1,
         maxCellUsage: 1

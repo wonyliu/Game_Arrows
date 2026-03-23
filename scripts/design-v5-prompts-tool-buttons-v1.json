@@ -1,0 +1,78 @@
+{
+  "theme": "design-v5-tool-buttons",
+  "promptVersion": "v3-start-ui-style-unified",
+  "styleGuide": {
+    "visualDirection": "Casual game UI style unified with existing start-menu icons: clean cartoon rendering, bold black outline, smooth flat+soft-shaded surfaces, clear ring hierarchy, high readability.",
+    "referenceImages": [
+      "assets/design-v2/clean/icon_home.png",
+      "assets/design-v2/clean/icon_rank.png",
+      "assets/design-v2/clean/icon_settings.png",
+      "assets/design-v2/clean/icon_theme.png"
+    ],
+    "mustHave": [
+      "isolated circular button base",
+      "transparent outside area",
+      "all design content must stay inside one perfect outer circle",
+      "center area clean for icon overlay",
+      "clear inner and outer ring hierarchy",
+      "soft shadow and depth without clutter"
+    ],
+    "mustNot": [
+      "text",
+      "numbers",
+      "checkerboard fake transparency",
+      "watermark",
+      "mascot",
+      "busy background",
+      "spikes",
+      "teeth",
+      "black dirty pixels",
+      "photorealism",
+      "metal engraving noise"
+    ]
+  },
+  "assets": [
+    {
+      "slot": "tool.button.undo",
+      "fileName": "ui_item_btn_undo.png",
+      "usage": "Undo tool full button skin",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "skipBgFloodFill": true,
+      "cropMode": "contain",
+      "prompt": "Create one game-style circular button base for Undo, matching referenced start-menu icons. Thick black outer outline, light stone outer ring, warm tan inner ring, soft cream center disk reserved for icon.",
+      "negativePrompt": "no text, no symbol, no checkerboard, no mascot, no extra floating objects, no spikes, no black artifacts, no realistic metal texture",
+      "safeAreaHint": "Keep center 42% area smooth and less detailed for icon overlay.",
+      "readabilityHint": "Recognizable ring layers at 74px size."
+    },
+    {
+      "slot": "tool.button.hint",
+      "fileName": "ui_item_btn_hint.png",
+      "usage": "Hint tool full button skin",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "skipBgFloodFill": true,
+      "cropMode": "contain",
+      "prompt": "Create one game-style circular button base for Hint, matching referenced start-menu icons. Thick black outline, fresh green outer ring with subtle soft pattern, bright yellow-beige center medallion for icon placement.",
+      "negativePrompt": "no text, no symbol, no checkerboard, no mascot, no noisy texture, no spikes, no gear teeth, no black artifacts, no realistic texture",
+      "safeAreaHint": "Center 42% area must stay clean for icon overlay.",
+      "readabilityHint": "Should feel friendlier and brighter than Undo and Shuffle."
+    },
+    {
+      "slot": "tool.button.shuffle",
+      "fileName": "ui_item_btn_shuffle.png",
+      "usage": "Shuffle tool full button skin",
+      "width": 512,
+      "height": 512,
+      "transparent": true,
+      "skipBgFloodFill": true,
+      "cropMode": "contain",
+      "prompt": "Create one game-style circular button base for Shuffle, matching referenced start-menu icons. Thick black outline, cyan-blue outer ring with subtle segmented motion feel, pale center medallion and SOLID closed center disk for icon overlay.",
+      "negativePrompt": "no text, no symbol, no checkerboard, no mascot, no clutter, no spikes, no black artifacts, no center hole, no missing center, no realistic texture",
+      "safeAreaHint": "Center 42% area must be a complete solid disk for icon overlay.",
+      "readabilityHint": "Looks dynamic but still clean at 74px."
+    }
+  ]
+}
