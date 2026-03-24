@@ -1,5 +1,5 @@
 import { playClickSound, resumeAudio } from './audio.js?v=20';
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=4';
+import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=5';
 import { getUiAsset } from './ui-theme.js?v=2';
 
 const MENU_PANEL = Object.freeze({
@@ -60,6 +60,11 @@ export class UI {
         this.livesEl = document.getElementById('lives');
         this.levelInfoEl = document.getElementById('levelInfo');
         this.timerEl = document.getElementById('timer');
+        this.timerFillEl = document.getElementById('timerFill');
+        this.timerLabelEl = document.getElementById('timerLabel');
+        this.comboDisplayEl = document.getElementById('comboDisplay');
+        this.hudEnergyLayerEl = document.getElementById('hudEnergyLayer');
+        this.energyOrbNodes = new Set();
 
         this.menuOverlay = document.getElementById('menuOverlay');
         this.settingsOverlay = document.getElementById('settingsOverlay');
@@ -72,6 +77,8 @@ export class UI {
         this.levelCompleteOverlay = document.getElementById('levelCompleteOverlay');
         this.gameOverOverlay = document.getElementById('gameOverOverlay');
         this.levelSelectOverlay = document.getElementById('levelSelectOverlay');
+        this.levelCompleteTitleEl = document.querySelector('#levelCompleteOverlay .popup-title');
+        this.levelCompleteNextButton = document.getElementById('btnNext');
 
         this.levelScore = document.getElementById('levelScore');
         this.levelGrid = document.getElementById('levelGrid');
@@ -213,6 +220,9 @@ export class UI {
     bindGameCallbacks() {
         this.game.onHUDUpdate = () => this.updateHUD();
         this.game.onTimerUpdate = () => this.updateTimer();
+        this.game.onTimerEnergyEmit = (payload) => this.spawnTimerEnergyOrb(payload);
+        this.game.onTimerEnergyBatchCancel = (batchId) => this.cancelTimerEnergyBatch(batchId);
+        this.game.onTimerEnergyClear = () => this.clearTimerEnergyOrbs();
         this.game.onLevelComplete = () => this.showLevelCompletePopup();
         this.game.onGameOver = (reason) => this.showGameOverPopup(reason);
         this.game.onCollision = () => this.triggerErrorVignette();
@@ -220,21 +230,31 @@ export class UI {
 
     startGame() {
         const defaultLevel = this.getDefaultStartLevel();
+        this.clearTimerEnergyOrbs();
         this.hideAll();
         this.hud.classList.remove('hidden');
         this.setMenuChromeVisible(false);
         this.forceGameCanvasResize();
-        this.game.startLevel(defaultLevel);
+        if (typeof this.game.startNormalLevel === 'function') {
+            this.game.startNormalLevel(defaultLevel);
+        } else {
+            this.game.startLevel(defaultLevel);
+        }
         requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
     }
 
     startSpecificLevel(level) {
+        this.clearTimerEnergyOrbs();
         this.hideAll();
         this.hud.classList.remove('hidden');
         this.setMenuChromeVisible(false);
         this.forceGameCanvasResize();
-        this.game.startLevel(level);
+        if (typeof this.game.startNormalLevel === 'function') {
+            this.game.startNormalLevel(level);
+        } else {
+            this.game.startLevel(level);
+        }
         requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
     }
@@ -246,10 +266,36 @@ export class UI {
     }
 
     nextLevel() {
+        if (typeof this.game.isCampaignCompleted === 'function' && this.game.isCampaignCompleted()) {
+            this.goToMenu();
+            return;
+        }
+        if (typeof this.game.startNextStage === 'function') {
+            this.clearTimerEnergyOrbs();
+            this.hideAll();
+            this.hud.classList.remove('hidden');
+            this.setMenuChromeVisible(false);
+            this.forceGameCanvasResize();
+            this.game.startNextStage();
+            requestAnimationFrame(() => this.forceGameCanvasResize());
+            this.updateHUD();
+            return;
+        }
         this.startSpecificLevel(this.game.currentLevel + 1);
     }
 
     retryLevel() {
+        if (typeof this.game.retryCurrentStage === 'function') {
+            this.clearTimerEnergyOrbs();
+            this.hideAll();
+            this.hud.classList.remove('hidden');
+            this.setMenuChromeVisible(false);
+            this.forceGameCanvasResize();
+            this.game.retryCurrentStage();
+            requestAnimationFrame(() => this.forceGameCanvasResize());
+            this.updateHUD();
+            return;
+        }
         this.startSpecificLevel(this.game.currentLevel);
     }
 
@@ -277,6 +323,7 @@ export class UI {
 
     openMenuPanel(panelId) {
         const target = Object.values(MENU_PANEL).includes(panelId) ? panelId : MENU_PANEL.HOME;
+        this.clearTimerEnergyOrbs();
         this.hideAll();
         this.hud.classList.add('hidden');
         this.setMenuChromeVisible(true);
@@ -387,10 +434,29 @@ export class UI {
     }
 
     getDefaultStartLevel() {
-        return Math.max(1, this.game.maxUnlockedLevel || this.game.currentLevel || 1);
+        const maxCampaignLevel = this.getCampaignLevelCount();
+        const fallback = Math.max(1, this.game.maxUnlockedLevel || this.game.currentLevel || 1);
+        return Math.min(maxCampaignLevel, fallback);
+    }
+
+    getCampaignLevelCount() {
+        if (this.game && typeof this.game.getNormalLevelCount === 'function') {
+            return Math.max(1, Number(this.game.getNormalLevelCount()) || 1);
+        }
+        return Math.max(1, Number(this.game.maxUnlockedLevel) || 1);
     }
 
     formatLevel(level) {
+        if (
+            this.game
+            && Number(level) === Number(this.game.currentLevel)
+            && typeof this.game.getCurrentStageLabel === 'function'
+        ) {
+            const stageLabel = `${this.game.getCurrentStageLabel() || ''}`.trim();
+            if (stageLabel) {
+                return stageLabel;
+            }
+        }
         return t(this.locale, 'common.levelTag', { level });
     }
 
@@ -534,18 +600,23 @@ export class UI {
         }
 
         if (this.livesEl) {
+            const showLives = !!this.game.lifeSystemEnabled;
+            this.livesEl.classList.toggle('hidden', !showLives);
             this.livesEl.innerHTML = '';
-            for (let i = 0; i < this.game.maxLives; i++) {
-                const heart = document.createElement('span');
-                heart.className = `heart${i < this.game.lives ? '' : ' empty'}`;
-                const icon = document.createElement('span');
-                icon.className = 'heart-icon';
-                heart.appendChild(icon);
-                this.livesEl.appendChild(heart);
+            if (showLives) {
+                for (let i = 0; i < this.game.maxLives; i++) {
+                    const heart = document.createElement('span');
+                    heart.className = `heart${i < this.game.lives ? '' : ' empty'}`;
+                    const icon = document.createElement('span');
+                    icon.className = 'heart-icon';
+                    heart.appendChild(icon);
+                    this.livesEl.appendChild(heart);
+                }
             }
         }
 
         this.updateTimer();
+        this.updateComboDisplay();
         this.updateToolButtons();
         this.refreshMenuLevelTag();
     }
@@ -578,19 +649,297 @@ export class UI {
         if (!this.timerEl) return;
 
         if (!this.game.hasTimer) {
+            this.clearTimerEnergyOrbs();
             this.timerEl.classList.add('hidden');
             return;
         }
 
         this.timerEl.classList.remove('hidden');
-        const mins = Math.floor(this.game.timeRemaining / 60);
-        const secs = this.game.timeRemaining % 60;
-        this.timerEl.textContent = `${mins}m${secs.toString().padStart(2, '0')}s`;
-        this.timerEl.classList.toggle('timer-danger', this.game.timeRemaining <= 10);
+        const maxSeconds = Math.max(1, Number(this.game.maxTimeRemaining) || 1);
+        const remainingSeconds = Math.max(0, Number(this.game.timeRemaining) || 0);
+        const ratio = Math.max(0, Math.min(1, remainingSeconds / maxSeconds));
+        const displaySeconds = Math.ceil(remainingSeconds);
+        const mins = Math.floor(displaySeconds / 60);
+        const secs = displaySeconds % 60;
+
+        if (this.timerFillEl) {
+            this.timerFillEl.style.transform = `scaleX(${ratio.toFixed(4)})`;
+        }
+        if (this.timerLabelEl) {
+            this.timerLabelEl.textContent = `${mins}m${secs.toString().padStart(2, '0')}s`;
+        } else {
+            this.timerEl.textContent = `${mins}m${secs.toString().padStart(2, '0')}s`;
+        }
+
+        this.timerEl.classList.toggle('timer-danger', ratio <= 0.12 || displaySeconds <= 10);
+        this.timerEl.setAttribute('aria-valuemin', '0');
+        this.timerEl.setAttribute('aria-valuemax', String(maxSeconds));
+        this.timerEl.setAttribute('aria-valuenow', String(Math.max(0, Math.min(maxSeconds, displaySeconds))));
+    }
+
+    updateComboDisplay() {
+        if (!this.comboDisplayEl) {
+            return;
+        }
+        const combo = Math.max(0, Math.floor(Number(this.game.combo) || 0));
+        const shouldShow = combo >= 5;
+        this.comboDisplayEl.classList.toggle('hidden', !shouldShow);
+        if (!shouldShow) {
+            this.comboDisplayEl.textContent = '';
+            this.comboDisplayEl.classList.remove('combo-tier-1', 'combo-tier-2', 'combo-tier-3', 'combo-tier-4');
+            return;
+        }
+
+        this.comboDisplayEl.textContent = `${combo} combo`;
+        this.comboDisplayEl.classList.remove('combo-tier-1', 'combo-tier-2', 'combo-tier-3', 'combo-tier-4');
+        if (combo >= 100) {
+            this.comboDisplayEl.classList.add('combo-tier-4');
+            return;
+        }
+        if (combo >= 50) {
+            this.comboDisplayEl.classList.add('combo-tier-3');
+            return;
+        }
+        if (combo >= 10) {
+            this.comboDisplayEl.classList.add('combo-tier-2');
+            return;
+        }
+        this.comboDisplayEl.classList.add('combo-tier-1');
+    }
+
+    spawnTimerEnergyOrb(payload = {}) {
+        const seconds = Math.max(0, Number(payload.seconds) || 0);
+        if (seconds <= 0) {
+            return;
+        }
+
+        const batchId = typeof payload.batchId === 'number' ? payload.batchId : null;
+        const lineId = typeof payload.lineId === 'number' ? payload.lineId : null;
+
+        const applyGainDirectly = () => this.game.collectTimerEnergy(seconds, batchId, lineId);
+
+        if (!this.hudEnergyLayerEl || !this.timerEl || this.timerEl.classList.contains('hidden')) {
+            applyGainDirectly();
+            return;
+        }
+
+        const start = this.resolveCanvasPointInApp(payload.x, payload.y);
+        const target = this.resolveTimerTargetInApp();
+        if (!start || !target) {
+            applyGainDirectly();
+            return;
+        }
+
+        const orb = document.createElement('span');
+        orb.className = 'hud-energy-orb';
+        if (batchId !== null) {
+            orb.dataset.batchId = String(batchId);
+        }
+        orb.style.left = `${start.x}px`;
+        orb.style.top = `${start.y}px`;
+        this.hudEnergyLayerEl.appendChild(orb);
+        this.energyOrbNodes.add(orb);
+
+        if (typeof orb.animate !== 'function') {
+            this.energyOrbNodes.delete(orb);
+            orb.remove();
+            applyGainDirectly();
+            return;
+        }
+
+        const dx = target.x - start.x;
+        const dy = target.y - start.y;
+        const lift = 24 + Math.random() * 20;
+        const duration = 320 + Math.random() * 200;
+        const animation = orb.animate([
+            { transform: 'translate(-50%, -50%) scale(0.6)', opacity: 0.2 },
+            { offset: 0.12, transform: 'translate(-50%, -50%) scale(1)', opacity: 1 },
+            { offset: 0.68, transform: `translate(-50%, -50%) translate(${dx * 0.65}px, ${dy * 0.65 - lift}px) scale(0.92)`, opacity: 0.95 },
+            { transform: `translate(-50%, -50%) translate(${dx}px, ${dy}px) scale(0.72)`, opacity: 0.1 }
+        ], {
+            duration,
+            easing: 'cubic-bezier(0.22, 0.8, 0.2, 1)',
+            fill: 'forwards'
+        });
+
+        let finalized = false;
+        const cleanup = () => {
+            if (finalized) return;
+            finalized = true;
+            this.energyOrbNodes.delete(orb);
+            if (orb.isConnected) {
+                orb.remove();
+            }
+        };
+
+        animation.onfinish = () => {
+            cleanup();
+            const gained = applyGainDirectly();
+            if (gained > 0) {
+                this.flashTimerGain();
+                this.showTimerGainText(gained);
+            }
+        };
+        animation.oncancel = () => cleanup();
+    }
+
+    cancelTimerEnergyBatch(batchId) {
+        const parsed = Number(batchId);
+        if (!Number.isFinite(parsed)) {
+            return;
+        }
+        for (const orb of Array.from(this.energyOrbNodes)) {
+            if (Number(orb.dataset.batchId) !== parsed) {
+                continue;
+            }
+            const animations = typeof orb.getAnimations === 'function' ? orb.getAnimations() : [];
+            if (animations.length > 0) {
+                for (const animation of animations) {
+                    animation.cancel();
+                }
+            } else {
+                this.energyOrbNodes.delete(orb);
+                orb.remove();
+            }
+        }
+    }
+
+    clearTimerEnergyOrbs() {
+        for (const orb of Array.from(this.energyOrbNodes)) {
+            const animations = typeof orb.getAnimations === 'function' ? orb.getAnimations() : [];
+            if (animations.length > 0) {
+                for (const animation of animations) {
+                    animation.cancel();
+                }
+            } else {
+                orb.remove();
+            }
+        }
+        this.energyOrbNodes.clear();
+        this.hudEnergyLayerEl?.querySelectorAll('.hud-timer-gain-pop').forEach((node) => node.remove());
+    }
+
+    resolveCanvasPointInApp(canvasX, canvasY) {
+        const canvas = this.game?.canvas;
+        if (!canvas || canvas.width <= 0 || canvas.height <= 0) {
+            return null;
+        }
+        const rect = canvas.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) {
+            return null;
+        }
+
+        const x = Math.max(0, Math.min(canvas.width, Number(canvasX) || 0));
+        const y = Math.max(0, Math.min(canvas.height, Number(canvasY) || 0));
+        const clientX = rect.left + (x / canvas.width) * rect.width;
+        const clientY = rect.top + (y / canvas.height) * rect.height;
+        return this.toAppPoint(clientX, clientY);
+    }
+
+    resolveTimerTargetInApp() {
+        if (!this.timerEl) {
+            return null;
+        }
+        const rect = this.timerEl.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) {
+            return null;
+        }
+        const clientX = rect.left + rect.width * 0.82;
+        const clientY = rect.top + rect.height * 0.5;
+        return this.toAppPoint(clientX, clientY);
+    }
+
+    resolveTimerGainAnchorInApp() {
+        if (!this.timerEl) {
+            return null;
+        }
+        const rect = this.timerEl.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) {
+            return null;
+        }
+        const clientX = rect.right - 6;
+        const clientY = rect.top + 2;
+        return this.toAppPoint(clientX, clientY);
+    }
+
+    toAppPoint(clientX, clientY) {
+        const app = document.querySelector('.app-container');
+        if (!app) {
+            return null;
+        }
+        const rect = app.getBoundingClientRect();
+        const scaleX = app.clientWidth > 0 ? rect.width / app.clientWidth : 1;
+        const scaleY = app.clientHeight > 0 ? rect.height / app.clientHeight : 1;
+        if (scaleX <= 0 || scaleY <= 0) {
+            return null;
+        }
+        return {
+            x: (clientX - rect.left) / scaleX,
+            y: (clientY - rect.top) / scaleY
+        };
+    }
+
+    flashTimerGain() {
+        if (!this.timerEl) {
+            return;
+        }
+        this.timerEl.classList.remove('timer-gain');
+        void this.timerEl.offsetWidth;
+        this.timerEl.classList.add('timer-gain');
+        setTimeout(() => {
+            this.timerEl?.classList.remove('timer-gain');
+        }, 180);
+    }
+
+    showTimerGainText(gainedSeconds, anchor = null) {
+        if (!this.hudEnergyLayerEl) {
+            return;
+        }
+        const resolvedAnchor = anchor || this.resolveTimerGainAnchorInApp();
+        if (!resolvedAnchor) {
+            return;
+        }
+        const display = Math.max(1, Math.round(Number(gainedSeconds) || 0));
+        const popup = document.createElement('span');
+        popup.className = 'hud-timer-gain-pop';
+        popup.textContent = `+${display}`;
+        popup.style.left = `${resolvedAnchor.x}px`;
+        popup.style.top = `${resolvedAnchor.y}px`;
+        this.hudEnergyLayerEl.appendChild(popup);
+
+        if (typeof popup.animate !== 'function') {
+            setTimeout(() => popup.remove(), 360);
+            return;
+        }
+
+        const animation = popup.animate([
+            { transform: 'translate(-50%, -50%) translateY(0px) scale(0.92)', opacity: 0 },
+            { offset: 0.2, transform: 'translate(-50%, -50%) translateY(-8px) scale(1.08)', opacity: 1 },
+            { transform: 'translate(-50%, -50%) translateY(-24px) scale(1)', opacity: 0 }
+        ], {
+            duration: 520,
+            easing: 'cubic-bezier(0.22, 0.8, 0.2, 1)',
+            fill: 'forwards'
+        });
+        animation.onfinish = () => popup.remove();
+        animation.oncancel = () => popup.remove();
     }
 
     showLevelCompletePopup() {
         this.levelCompleteOverlay.classList.remove('hidden');
+        const isCampaignComplete = typeof this.game.isCampaignCompleted === 'function'
+            && this.game.isCampaignCompleted();
+        if (this.levelCompleteNextButton) {
+            this.levelCompleteNextButton.textContent = t(
+                this.locale,
+                isCampaignComplete ? 'common.menu' : 'common.next'
+            );
+        }
+        if (this.levelCompleteTitleEl) {
+            this.levelCompleteTitleEl.textContent = isCampaignComplete
+                ? (this.locale === 'en-US' ? 'Congratulations!' : '恭喜通关')
+                : t(this.locale, 'panel.complete.title');
+        }
         if (this.levelScore) {
             this.levelScore.textContent = t(this.locale, 'common.score', { score: this.game.score });
         }
@@ -608,15 +957,17 @@ export class UI {
 
         this.levelGrid.innerHTML = '';
         const defaultLevel = this.getDefaultStartLevel();
-        for (let i = 1; i <= 30; i++) {
+        const totalLevels = this.getCampaignLevelCount();
+        const unlockedMax = Math.min(totalLevels, Math.max(1, Number(this.game.maxUnlockedLevel) || 1));
+        for (let i = 1; i <= totalLevels; i++) {
             const button = document.createElement('button');
             button.type = 'button';
             button.className = 'level-btn';
             button.setAttribute('aria-label', this.formatLevel(i));
 
-            if (i <= this.game.maxUnlockedLevel) {
+            if (i <= unlockedMax) {
                 button.classList.add('unlocked');
-                if (i < this.game.maxUnlockedLevel) {
+                if (i < unlockedMax) {
                     button.classList.add('completed');
                 }
                 if (i === defaultLevel) {
@@ -682,3 +1033,4 @@ export class UI {
 }
 
 export { MENU_PANEL };
+

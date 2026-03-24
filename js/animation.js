@@ -15,19 +15,31 @@ export class AnimationManager {
         this.screenShakeDecay = 0;
     }
 
-    startRemoveAnimation(line, grid, onComplete) {
+    startRemoveAnimation(line, grid, options = null) {
+        const onComplete = typeof options === 'function'
+            ? options
+            : options?.onComplete;
+        const onSegment = typeof options === 'function'
+            ? null
+            : options?.onSegment;
+
         line.state = 'removing';
         // Keep removal motion clean: no extra blue tint/trail overlay.
         line.removeTint = null;
         line.trails = [];
 
         const cellSize = grid.cellSize;
+        const segmentSources = line.getScreenPoints(grid).slice().reverse();
         line._removeAnim = {
             speed: cellSize * 4.5,
             accel: cellSize * 2.2,
             maxDist: Math.max(grid.cols, grid.rows) * cellSize + line.cells.length * cellSize + cellSize * 4,
             dist: 0,
-            onComplete
+            onComplete,
+            onSegment,
+            segmentStepDist: Math.max(1, cellSize * 0.9),
+            segmentSources,
+            emittedSegments: 0
         };
 
         this.screenShake = 2;
@@ -93,6 +105,22 @@ export class AnimationManager {
                 const animation = line._removeAnim;
                 animation.speed += animation.accel * dt;
                 animation.dist += animation.speed * dt;
+
+                if (typeof animation.onSegment === 'function' && Array.isArray(animation.segmentSources)) {
+                    while (
+                        animation.emittedSegments < animation.segmentSources.length &&
+                        animation.dist >= animation.emittedSegments * animation.segmentStepDist
+                    ) {
+                        const segmentIndex = animation.emittedSegments;
+                        const source = animation.segmentSources[segmentIndex];
+                        try {
+                            animation.onSegment(source, segmentIndex, animation.segmentSources.length);
+                        } catch (error) {
+                            console.warn('[animation] remove segment callback failed', error);
+                        }
+                        animation.emittedSegments++;
+                    }
+                }
 
                 if (animation.dist > animation.maxDist) {
                     line.state = 'removed';
@@ -277,4 +305,5 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.arcTo(x, y, x + width, y, radius);
     ctx.closePath();
 }
+
 

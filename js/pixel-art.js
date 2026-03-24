@@ -603,7 +603,9 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
 
     const spacing = clamp(atlas.cellSize * 0.88, 12, 22);
     const sampled = samplePolyline(pathPoints, spacing);
-    if (sampled.length < 4) return false;
+    // Support very short snakes (2 cells) with sprite rendering too, otherwise
+    // they fall back to the legacy mole-head style and look like wrong assets.
+    if (sampled.length < 3) return false;
 
     const styleTint = getStyleTint(style);
     const wiggleStrength = (style === 'remove' ? 2.2 : 0.78) + softPulse * 1.5;
@@ -1086,3 +1088,4 @@ export function hashPoint(x, y, seed = 0) {
     value = (value ^ (value >> 13)) * 1274126177;
     return (value >>> 0) / 0xffffffff;
 }
+

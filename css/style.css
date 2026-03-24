@@ -213,6 +213,16 @@ textarea {
     gap: 2px;
 }
 
+.hud-status-row {
+    margin-top: 2px;
+    width: 356px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    transform: translateX(2px);
+}
+
 .hud-level {
     color: #fff3df;
     font-family: var(--font-display);
@@ -249,23 +259,139 @@ textarea {
 }
 
 .hud-timer {
+    width: 186px;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 6px;
+    gap: 4px;
+}
+
+.hud-timer-track {
+    position: relative;
+    width: 100%;
+    height: 16px;
+    border-radius: 999px;
+    border: 2px solid rgba(133, 88, 56, 0.74);
+    background: rgba(61, 40, 26, 0.52);
+    box-shadow: inset 0 1px 3px rgba(20, 12, 7, 0.4);
+    overflow: hidden;
+}
+
+.hud-timer-fill {
+    position: absolute;
+    inset: 0;
+    transform-origin: left center;
+    transform: scaleX(1);
+    background: linear-gradient(90deg, #ffbe8d 0%, #ff845d 44%, #f34a4a 100%);
+    transition: transform 80ms linear, filter 120ms ease;
+}
+
+.hud-timer-label {
     color: #fff5e3;
     font-size: 13px;
     font-weight: 900;
+    line-height: 1;
+    text-shadow: 0 1px 0 rgba(35, 22, 15, 0.5);
 }
 
-.hud-timer::before {
-    content: '';
-    width: 14px;
-    height: 14px;
-    background: url('../assets/design-v2/clean/icon_clock.png') center / contain no-repeat;
-}
-
-.timer-danger {
+.hud-timer.timer-danger .hud-timer-label {
     color: #ffd4df;
+}
+
+.hud-timer.timer-danger .hud-timer-fill {
+    background: linear-gradient(90deg, #ffb0ba 0%, #ff5f88 45%, #eb2c61 100%);
+    filter: saturate(1.1);
+}
+
+.hud-timer.timer-gain .hud-timer-fill {
+    filter: brightness(1.25) saturate(1.12);
+}
+
+.hud-combo {
+    min-width: 124px;
+    height: 48px;
+    display: inline-flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    font-family: var(--font-display);
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: 0.5px;
+    text-align: right;
+    pointer-events: none;
+    user-select: none;
+    text-shadow: 0 2px 0 rgba(73, 43, 25, 0.68), 0 6px 16px rgba(26, 15, 9, 0.44);
+}
+
+.hud-combo.combo-tier-1 {
+    font-size: 22px;
+    color: #ffe5af;
+}
+
+.hud-combo.combo-tier-2 {
+    font-size: 28px;
+    color: #ffeec5;
+}
+
+.hud-combo.combo-tier-3 {
+    font-size: 34px;
+    color: #ff6a63;
+    text-shadow: 0 2px 0 rgba(120, 26, 21, 0.62), 0 0 12px rgba(255, 90, 77, 0.5);
+}
+
+.hud-combo.combo-tier-4 {
+    font-size: 40px;
+    color: #ffd6a8;
+    text-shadow:
+        0 2px 0 rgba(151, 46, 25, 0.7),
+        0 0 10px rgba(255, 170, 88, 0.66),
+        0 0 20px rgba(255, 96, 58, 0.5);
+    animation: combo-flame 220ms infinite alternate;
+}
+
+.hud-energy-layer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.hud-energy-orb {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 30% 28%, #fff7da 0%, #ffe380 38%, #ffa447 74%, #ff6a3a 100%);
+    box-shadow: 0 0 8px rgba(255, 177, 73, 0.7), 0 0 14px rgba(255, 95, 52, 0.36);
+    transform: translate(-50%, -50%) scale(0.8);
+}
+
+.hud-timer-gain-pop {
+    position: absolute;
+    color: #fff2c5;
+    font-family: var(--font-display);
+    font-size: 26px;
+    line-height: 1;
+    text-shadow: 0 2px 0 rgba(89, 53, 31, 0.75), 0 0 10px rgba(255, 174, 86, 0.54);
+    pointer-events: none;
+    transform: translate(-50%, -50%);
+}
+
+@keyframes combo-flame {
+    from {
+        transform: translateY(0) scale(1);
+        text-shadow:
+            0 2px 0 rgba(151, 46, 25, 0.72),
+            0 0 10px rgba(255, 170, 88, 0.58),
+            0 0 20px rgba(255, 96, 58, 0.48);
+    }
+    to {
+        transform: translateY(-1px) scale(1.02);
+        text-shadow:
+            0 2px 0 rgba(171, 52, 27, 0.78),
+            0 0 14px rgba(255, 202, 112, 0.72),
+            0 0 24px rgba(255, 104, 61, 0.64);
+    }
 }
 
 .hud-bottom {
@@ -1264,7 +1390,7 @@ textarea {
 
 #menuOverlay .play-area-v2 {
     position: absolute;
-    left: 92.5px;
+    left: 46px;
     top: 308px;
     width: 336px;
     height: 94px;
@@ -1328,7 +1454,7 @@ textarea {
 
 #menuOverlay .current-level-tag {
     position: absolute;
-    left: 262px;
+    left: 282px;
     top: 5px;
     z-index: 7;
     display: inline-flex;

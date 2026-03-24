@@ -1,5 +1,5 @@
 import { DIR_VECTORS } from './grid.js?v=40';
-import { drawArrowPathPixels } from './pixel-art.js?v=21';
+import { drawArrowPathPixels } from './pixel-art.js?v=22';
 
 export class Line {
     constructor(id, cells, direction, color = '#1a1c3d') {
@@ -324,4 +324,5 @@ function getSubPath(points, pixelDistance, headDir) {
     result.reverse();
     return { pts: result };
 }
+
 

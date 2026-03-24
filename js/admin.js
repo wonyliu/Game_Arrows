@@ -1,6 +1,16 @@
 import { Grid } from './grid.js?v=40';
 import { canMove } from './collision.js?v=40';
-import { getBaseLevelConfig } from './levels.js?v=41';
+import {
+    BONUS_LEVEL_ID,
+    MAX_NORMAL_LEVEL,
+    MAX_REWARD_LEVEL,
+    getBaseLevelConfig,
+    getNormalLevelCount,
+    getRewardLevelCount,
+    isRewardLevel,
+    rewardIndexFromLevelId,
+    toRewardLevelId
+} from './levels.js?v=32';
 import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=58';
 import {
     applyStoredSettings,
@@ -9,20 +19,32 @@ import {
     deleteSavedLevelRecord,
     deserializeLevelData,
     estimateLineCount,
+    getLevelCatalog,
     getPreviewLevelRecord,
     getSavedLevelRecord,
     initLevelStorage,
     savePreviewLevelRecord,
-    saveSavedLevelRecord
-} from './level-storage.js?v=48';
+    saveSavedLevelRecord,
+    saveLevelCatalog
+} from './level-storage.js?v=55';
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),
+    normalLevelCount: document.getElementById('normalLevelCount'),
+    rewardLevelCount: document.getElementById('rewardLevelCount'),
+    btnNormalLevelMinus: document.getElementById('btnNormalLevelMinus'),
+    btnNormalLevelPlus: document.getElementById('btnNormalLevelPlus'),
+    btnRewardLevelMinus: document.getElementById('btnRewardLevelMinus'),
+    btnRewardLevelPlus: document.getElementById('btnRewardLevelPlus'),
+    btnSaveLevelCatalog: document.getElementById('btnSaveLevelCatalog'),
+    levelDisplayNameField: document.getElementById('levelDisplayNameField'),
+    levelDisplayName: document.getElementById('levelDisplayName'),
     dimensionMode: document.getElementById('dimensionMode'),
     dimensionValue: document.getElementById('dimensionValue'),
     minLen: document.getElementById('minLen'),
     maxLen: document.getElementById('maxLen'),
     timerSeconds: document.getElementById('timerSeconds'),
+    misclickPenaltySeconds: document.getElementById('misclickPenaltySeconds'),
     gridText: document.getElementById('gridText'),
     lineText: document.getElementById('lineText'),
     coverageText: document.getElementById('coverageText'),
@@ -35,11 +57,17 @@ const el = {
     btnGenerate: document.getElementById('btnGenerate'),
     btnGenerate2: document.getElementById('btnGenerate2'),
     btnGenerate3: document.getElementById('btnGenerate3'),
+    btnGenerate4: document.getElementById('btnGenerate4'),
     btnRestPreview: document.getElementById('btnRestPreview'),
     btnHint: document.getElementById('btnHint'),
     btnSave: document.getElementById('btnSave'),
     btnReset: document.getElementById('btnReset'),
-    togglePath: document.getElementById('togglePath')
+    togglePath: document.getElementById('togglePath'),
+    btnPatternSeed: document.getElementById('btnPatternSeed'),
+    generate4Tools: document.getElementById('generate4Tools'),
+    manualGridCols: document.getElementById('manualGridCols'),
+    manualGridRows: document.getElementById('manualGridRows'),
+    btnApplyGridSize: document.getElementById('btnApplyGridSize')
 };
 
 const ctx = el.canvas.getContext('2d');
@@ -48,6 +76,7 @@ let renderedLevelData = null;
 let previewPlayState = null;
 let isGenerating = false;
 let isGenerate2Mode = false;
+let isGenerate4Mode = false;
 let activeHamiltonianPath = null;
 let currentKeyDir = null; // up, down, left, right
 let isLifting = false;
@@ -57,6 +86,13 @@ let liftedCellsIndices = []; // Indices in activeHamiltonianPath
 let rightMouseDownTime = 0;
 let rightMouseDownPos = null;
 let isPathVisible = true; // NEW: Toggle for Hamiltonian Path visibility
+let isDrawingManualLine = false;
+let manualDrawStartCell = null;
+let manualDrawCells = [];
+let levelCatalog = {
+    normalCount: getNormalLevelCount(),
+    rewardCount: getRewardLevelCount()
+};
 
 init().catch((error) => {
     console.error(error);
@@ -65,16 +101,18 @@ init().catch((error) => {
 
 async function init() {
     await initLevelStorage();
-
-    for (let i = 1; i <= 30; i++) {
-        const option = document.createElement('option');
-        option.value = String(i);
-        option.textContent = `Level ${i}`;
-        el.levelSelect.appendChild(option);
-    }
-    el.levelSelect.value = '3';
+    levelCatalog = normalizeCatalog(getLevelCatalog());
+    syncCatalogInputs();
+    rebuildLevelSelect(3);
 
     el.levelSelect.addEventListener('change', loadLevelState);
+    el.btnNormalLevelMinus?.addEventListener('click', () => adjustCatalogInput('normal', -1));
+    el.btnNormalLevelPlus?.addEventListener('click', () => adjustCatalogInput('normal', 1));
+    el.btnRewardLevelMinus?.addEventListener('click', () => adjustCatalogInput('reward', -1));
+    el.btnRewardLevelPlus?.addEventListener('click', () => adjustCatalogInput('reward', 1));
+    el.btnSaveLevelCatalog?.addEventListener('click', onSaveLevelCatalog);
+    el.normalLevelCount?.addEventListener('change', () => syncCatalogInputs(readCatalogFromInputs()));
+    el.rewardLevelCount?.addEventListener('change', () => syncCatalogInputs(readCatalogFromInputs()));
     el.dimensionMode.addEventListener('change', updateDerived);
     el.dimensionValue.addEventListener('input', updateDerived);
     el.minLen.addEventListener('input', updateDerived);
@@ -83,11 +121,16 @@ async function init() {
     el.btnGenerate.addEventListener('click', () => onGenerate(3));
     el.btnGenerate2.addEventListener('click', onGenerate2);
     el.btnGenerate3.addEventListener('click', () => onGenerate(1));
+    el.btnGenerate4.addEventListener('click', onGenerate4);
     el.btnRestPreview.addEventListener('click', onRestPreview);
     el.btnHint.addEventListener('click', onHint);
     el.btnSave.addEventListener('click', onSave);
     el.btnReset.addEventListener('click', onReset);
     el.togglePath.addEventListener('click', onTogglePath);
+    el.btnPatternSeed?.addEventListener('click', onGenerate4Pattern);
+    el.btnApplyGridSize?.addEventListener('click', onApplyGenerate4GridSize);
+    el.manualGridCols?.addEventListener('change', onGenerate4GridInputChange);
+    el.manualGridRows?.addEventListener('change', onGenerate4GridInputChange);
     el.canvas.addEventListener('mousedown', onCanvasMouseDown);
     el.canvas.addEventListener('mouseup', onCanvasMouseUp);
     el.canvas.addEventListener('mousemove', onCanvasMouseMove);
@@ -100,11 +143,198 @@ async function init() {
 }
 
 function getLevel() {
-    return Number(el.levelSelect.value || 1);
+    const raw = Math.floor(Number(el.levelSelect.value || 1) || 1);
+    if (isRewardLevel(raw)) {
+        return raw;
+    }
+    return clampInt(raw, 1, levelCatalog.normalCount, 1);
+}
+
+function formatLevelLabel(level) {
+    if (isRewardLevel(level)) {
+        const rewardIndex = rewardIndexFromLevelId(level);
+        return rewardIndex > 0 ? `Reward ${rewardIndex}` : 'Reward';
+    }
+    return `Level ${level}`;
+}
+
+function updateLevelDisplayNameField(level, value = '') {
+    if (!el.levelDisplayNameField || !el.levelDisplayName) {
+        return;
+    }
+    const rewardStage = isRewardLevel(level);
+    el.levelDisplayNameField.style.display = rewardStage ? '' : 'none';
+    el.levelDisplayName.value = rewardStage ? `${value || ''}` : '';
+}
+
+function normalizeCatalog(catalog) {
+    return {
+        normalCount: clampInt(catalog?.normalCount, 1, MAX_NORMAL_LEVEL, getNormalLevelCount()),
+        rewardCount: clampInt(catalog?.rewardCount, 0, MAX_REWARD_LEVEL, getRewardLevelCount())
+    };
+}
+
+function syncCatalogInputs(catalog = levelCatalog) {
+    const normalized = normalizeCatalog(catalog);
+    if (el.normalLevelCount) {
+        el.normalLevelCount.value = String(normalized.normalCount);
+    }
+    if (el.rewardLevelCount) {
+        el.rewardLevelCount.value = String(normalized.rewardCount);
+    }
+    return normalized;
+}
+
+function readCatalogFromInputs() {
+    return normalizeCatalog({
+        normalCount: Number(el.normalLevelCount?.value || levelCatalog.normalCount || 1),
+        rewardCount: Number(el.rewardLevelCount?.value || levelCatalog.rewardCount || 0)
+    });
+}
+
+function adjustCatalogInput(type, delta) {
+    const current = readCatalogFromInputs();
+    if (type === 'reward') {
+        current.rewardCount = clampInt(current.rewardCount + delta, 0, MAX_REWARD_LEVEL, current.rewardCount);
+    } else {
+        current.normalCount = clampInt(current.normalCount + delta, 1, MAX_NORMAL_LEVEL, current.normalCount);
+    }
+    syncCatalogInputs(current);
+}
+
+function rebuildLevelSelect(preferredLevel = null) {
+    const selectedBefore = Math.floor(Number(preferredLevel ?? el.levelSelect.value) || 1);
+    const catalogSnapshot = normalizeCatalog(levelCatalog);
+    el.levelSelect.innerHTML = '';
+
+    for (let level = 1; level <= catalogSnapshot.normalCount; level++) {
+        const option = document.createElement('option');
+        option.value = String(level);
+        option.textContent = `Level ${level}`;
+        el.levelSelect.appendChild(option);
+    }
+
+    for (let rewardIndex = 1; rewardIndex <= catalogSnapshot.rewardCount; rewardIndex++) {
+        const option = document.createElement('option');
+        option.value = String(toRewardLevelId(rewardIndex));
+        option.textContent = `Reward ${rewardIndex}`;
+        el.levelSelect.appendChild(option);
+    }
+
+    const maxRewardId = catalogSnapshot.rewardCount > 0
+        ? toRewardLevelId(catalogSnapshot.rewardCount)
+        : 0;
+    const canUseSelected = (
+        selectedBefore >= 1 && selectedBefore <= catalogSnapshot.normalCount
+    ) || (
+        selectedBefore >= BONUS_LEVEL_ID && selectedBefore <= maxRewardId
+    );
+    const fallbackLevel = clampInt(
+        selectedBefore,
+        1,
+        catalogSnapshot.normalCount,
+        catalogSnapshot.normalCount
+    );
+    const selectedLevel = canUseSelected ? selectedBefore : fallbackLevel;
+    el.levelSelect.value = String(selectedLevel);
+}
+
+function collectRemovedLevelIds(previousCatalog, nextCatalog) {
+    const removed = [];
+    const prev = normalizeCatalog(previousCatalog);
+    const next = normalizeCatalog(nextCatalog);
+
+    for (let level = next.normalCount + 1; level <= prev.normalCount; level++) {
+        removed.push(level);
+    }
+
+    for (let rewardIndex = next.rewardCount + 1; rewardIndex <= prev.rewardCount; rewardIndex++) {
+        removed.push(toRewardLevelId(rewardIndex));
+    }
+
+    return removed;
+}
+
+async function onSaveLevelCatalog() {
+    const selectedBefore = getLevel();
+    const nextCatalog = readCatalogFromInputs();
+    syncCatalogInputs(nextCatalog);
+    const prevCatalog = normalizeCatalog(levelCatalog);
+    const changed = prevCatalog.normalCount !== nextCatalog.normalCount
+        || prevCatalog.rewardCount !== nextCatalog.rewardCount;
+
+    if (!changed) {
+        setStatus(`Level catalog unchanged. Normal=${prevCatalog.normalCount}, Reward=${prevCatalog.rewardCount}.`);
+        return;
+    }
+
+    const removedLevelIds = collectRemovedLevelIds(prevCatalog, nextCatalog);
+    const savedToDisk = await saveLevelCatalog(nextCatalog);
+    levelCatalog = normalizeCatalog(nextCatalog);
+    rebuildLevelSelect(selectedBefore);
+    loadLevelState();
+
+    const removedText = removedLevelIds.length > 0
+        ? ` ${removedLevelIds.length} level record(s) are now out of range and ignored.`
+        : '';
+    if (savedToDisk) {
+        setStatus(`Level catalog saved. Normal=${levelCatalog.normalCount}, Reward=${levelCatalog.rewardCount}.${removedText}`);
+    } else {
+        setStatus(`Level catalog saved to browser cache only (disk sync unavailable).${removedText}`);
+    }
+}
+
+function setGenerateMode(mode = 'normal') {
+    const nextMode = `${mode || 'normal'}`.toLowerCase();
+    isGenerate2Mode = nextMode === 'generate2';
+    isGenerate4Mode = nextMode === 'generate4';
+    if (!isGenerate2Mode) {
+        liftedCellsIndices = [];
+        currentKeyDir = null;
+    }
+    if (!isGenerate4Mode) {
+        isDrawingManualLine = false;
+        manualDrawStartCell = null;
+        manualDrawCells = [];
+    }
+    updateGenerate4UiState();
+}
+
+function updateGenerate4UiState() {
+    const showGenerate4Tools = !!isGenerate4Mode;
+    el.generate4Tools?.classList.toggle('hidden', !showGenerate4Tools);
+    el.btnPatternSeed?.classList.toggle('hidden', !showGenerate4Tools);
+    syncEyeButtonState();
+}
+
+function syncManualGridInputs(cols, rows) {
+    if (el.manualGridCols) {
+        el.manualGridCols.value = String(clampInt(cols, 4, 40, 18));
+    }
+    if (el.manualGridRows) {
+        el.manualGridRows.value = String(clampInt(rows, 4, 40, 26));
+    }
+}
+
+function readManualGridSize(fallbackCols, fallbackRows) {
+    return {
+        cols: clampInt(Number(el.manualGridCols?.value || fallbackCols), 4, 40, fallbackCols),
+        rows: clampInt(Number(el.manualGridRows?.value || fallbackRows), 4, 40, fallbackRows)
+    };
+}
+
+function buildEmptyRenderedLevelData(gridCols, gridRows) {
+    return {
+        gridCols,
+        gridRows,
+        lines: [],
+        generatorVersion: 6
+    };
 }
 
 function loadLevelState() {
     const level = getLevel();
+    const levelLabel = formatLevelLabel(level);
     const base = getBaseLevelConfig(level);
     const saved = normalizeRecord(getSavedLevelRecord(level));
     const preview = normalizeRecord(getPreviewLevelRecord(level));
@@ -116,26 +346,35 @@ function loadLevelState() {
         maxLen: base.maxLen
     });
 
-    el.dimensionMode.value = settings.dimensionMode;
+    const dimensionMode = ['rows', 'cols', 'custom'].includes(settings.dimensionMode)
+        ? settings.dimensionMode
+        : 'rows';
+    el.dimensionMode.value = dimensionMode;
     el.dimensionValue.value = String(settings.dimensionValue);
     el.minLen.value = String(settings.minLen);
     el.maxLen.value = String(settings.maxLen);
     el.timerSeconds.value = String(settings.timerSeconds ?? base.timerSeconds ?? 0);
-    el.previewTitle.textContent = `Preview - Level ${level}`;
+    el.misclickPenaltySeconds.value = String(settings.misclickPenaltySeconds ?? base.misclickPenaltySeconds ?? 1);
+    syncManualGridInputs(
+        settings.customGridCols ?? settings.gridCols ?? base.gridCols,
+        settings.customGridRows ?? settings.gridRows ?? base.gridRows
+    );
+    updateLevelDisplayNameField(level, settings.displayName || base.displayName || '');
+    el.previewTitle.textContent = `Preview - ${levelLabel}`;
     previewRecord = record || null;
     renderedLevelData = record?.data ? cloneLevelData(record.data) : null;
     resetPreviewPlayState();
 
     if (record?.data) {
         drawPreviewState();
-        setStatus(`Loaded saved record for level ${level}.`);
+        setStatus(`Loaded saved record for ${levelLabel}.`);
         drawStats(record);
     } else {
         clearCanvas();
         if (preview?.data) {
-            setStatus(`No saved record for level ${level}. Legacy preview exists but is ignored. Click Save after Generate to persist.`);
+            setStatus(`No saved record for ${levelLabel}. Legacy preview exists but is ignored. Click Save after Generate to persist.`);
         } else {
-            setStatus(`No saved record for level ${level}.`);
+            setStatus(`No saved record for ${levelLabel}.`);
         }
         drawStats(null);
     }
@@ -143,14 +382,11 @@ function loadLevelState() {
     updateDerived();
     setGenerateProgress(0, 'Ready');
     
-    // Reset Edit Modes on Level Change
-    isGenerate2Mode = false;
+    // Reset edit modes on level change
+    setGenerateMode('normal');
     isPathVisible = false;
     activeHamiltonianPath = null;
-    const eyeOpen = el.togglePath.querySelector('.eye-open');
-    const eyeClosed = el.togglePath.querySelector('.eye-closed');
-    eyeOpen.style.display = 'none';
-    eyeClosed.style.display = 'block';
+    syncEyeButtonState();
 }
 
 function normalizeRecord(record) {
@@ -164,13 +400,24 @@ function normalizeRecord(record) {
 }
 
 function collectConfig() {
-    const base = getBaseLevelConfig(getLevel());
+    const level = getLevel();
+    const base = getBaseLevelConfig(level);
+    const displayName = isRewardLevel(level)
+        ? (el.levelDisplayName?.value || '')
+        : '';
+    const selectedDimensionMode = `${el.dimensionMode.value || 'rows'}`.toLowerCase();
+    const shouldUseCustomGrid = isGenerate4Mode || selectedDimensionMode === 'custom';
+    const manualSize = readManualGridSize(base.gridCols, base.gridRows);
     const settings = buildStoredSettings(base, {
-        dimensionMode: el.dimensionMode.value,
+        dimensionMode: shouldUseCustomGrid ? 'custom' : selectedDimensionMode,
         dimensionValue: Number(el.dimensionValue.value || 0),
+        customGridCols: manualSize.cols,
+        customGridRows: manualSize.rows,
         minLen: Number(el.minLen.value || 0),
         maxLen: Number(el.maxLen.value || 0),
-        timerSeconds: Number(el.timerSeconds.value || 0)
+        timerSeconds: Number(el.timerSeconds.value || 0),
+        misclickPenaltySeconds: Number(el.misclickPenaltySeconds.value || 0),
+        displayName
     });
     return {
         settings,
@@ -247,10 +494,12 @@ async function onGenerate(mode = 1) {
     setButtonsDisabled(true);
 
     const level = getLevel();
+    const levelLabel = formatLevelLabel(level);
     const { config, settings } = collectConfig();
+    setGenerateMode('normal');
     const previousSignature = mode === 3 ? buildLevelDataSignature(renderedLevelData) : '';
     try {
-        setGenerateProgress(8, `Preparing level ${level}...`);
+        setGenerateProgress(8, `Preparing ${levelLabel}...`);
         await nextFrame();
 
         setGenerateProgress(26, 'Building path graph...');
@@ -276,7 +525,7 @@ async function onGenerate(mode = 1) {
         updateDerived();
         setGenerateProgress(100, 'Done');
         const modeLabel = mode === 3 ? 'bent' : 'straight';
-        setStatus(`Level ${level} generated in memory only. Click Save to persist. Mode=${mode} (${modeLabel}).`);
+        setStatus(`${levelLabel} generated in memory only. Click Save to persist. Mode=${mode} (${modeLabel}).`);
     } catch (error) {
         setGenerateProgress(0, 'Generation failed');
         setStatus(`Generate failed: ${error?.message || 'unknown error'}`);
@@ -289,13 +538,9 @@ async function onGenerate(mode = 1) {
 async function onGenerate2() {
     if (isGenerating) return;
     const { config } = collectConfig();
-    isGenerate2Mode = true;
-    renderedLevelData = {
-        gridCols: config.gridCols,
-        gridRows: config.gridRows,
-        lines: [],
-        generatorVersion: 6
-    };
+    setGenerateMode('generate2');
+    syncManualGridInputs(config.gridCols, config.gridRows);
+    renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
     previewRecord = null;
     resetPreviewPlayState();
     
@@ -304,6 +549,313 @@ async function onGenerate2() {
     
     drawPreviewState();
     setStatus('Generate2 Mode: Hold Right Mouse Button to brush, then press ASDW to create an arrow. Right click to flip.');
+}
+
+function onGenerate4() {
+    if (isGenerating) return;
+    setGenerateMode('generate4');
+
+    const { config } = collectConfig();
+    syncManualGridInputs(config.gridCols, config.gridRows);
+    renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
+    previewRecord = null;
+    activeHamiltonianPath = null;
+    liftedCellsIndices = [];
+    isPathVisible = false;
+    isErasing = false;
+    isRightMouseDown = false;
+    isDrawingManualLine = false;
+    manualDrawStartCell = null;
+    manualDrawCells = [];
+    resetPreviewPlayState();
+    drawPreviewState();
+    updateDerived();
+    syncEyeButtonState();
+    setStatus('Generate4 Mode: Free manual edit enabled. Drag left mouse to draw arrows, right mouse to erase.');
+}
+
+function onGenerate4GridInputChange() {
+    if (!isGenerate4Mode) {
+        return;
+    }
+    const { config } = collectConfig();
+    syncManualGridInputs(config.gridCols, config.gridRows);
+    updateDerived();
+}
+
+function onApplyGenerate4GridSize() {
+    if (!isGenerate4Mode) {
+        setStatus('Switch to Generate4 mode first.');
+        return;
+    }
+    const { config } = collectConfig();
+    syncManualGridInputs(config.gridCols, config.gridRows);
+    renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
+    previewRecord = null;
+    activeHamiltonianPath = null;
+    liftedCellsIndices = [];
+    isPathVisible = false;
+    isDrawingManualLine = false;
+    manualDrawStartCell = null;
+    manualDrawCells = [];
+    resetPreviewPlayState();
+    drawPreviewState();
+    updateDerived();
+    syncEyeButtonState();
+    setStatus(`Generate4 grid applied: ${config.gridCols} x ${config.gridRows}.`);
+}
+
+function onGenerate4Pattern() {
+    if (!isGenerate4Mode) {
+        setStatus('Pattern generator is only available in Generate4 mode.');
+        return;
+    }
+    const { config, settings } = collectConfig();
+    syncManualGridInputs(config.gridCols, config.gridRows);
+
+    const recipes = [buildGenerate4RayPattern, buildGenerate4SpiralPattern];
+    const startIndex = Math.floor(Math.random() * recipes.length);
+    let selected = null;
+    for (let step = 0; step < recipes.length; step++) {
+        const recipe = recipes[(startIndex + step) % recipes.length];
+        const candidate = recipe(config);
+        if (candidate && Array.isArray(candidate.lines) && candidate.lines.length > 0) {
+            selected = candidate;
+            break;
+        }
+    }
+
+    if (!selected) {
+        setStatus('Failed to build a valid pattern for current grid/length settings.');
+        return;
+    }
+
+    renderedLevelData = {
+        gridCols: config.gridCols,
+        gridRows: config.gridRows,
+        lines: selected.lines,
+        path: selected.path || null,
+        generatorVersion: 6
+    };
+    activeHamiltonianPath = selected.path || null;
+    if (!activeHamiltonianPath) {
+        isPathVisible = false;
+    }
+    liftedCellsIndices = [];
+    syncEyeButtonState();
+    previewRecord = {
+        settings,
+        data: cloneLevelData(renderedLevelData),
+        stats: {
+            lineCount: renderedLevelData.lines.length,
+            coveredCells: countCoveredCells(renderedLevelData.lines),
+            totalCells: renderedLevelData.gridCols * renderedLevelData.gridRows
+        },
+        updatedAt: new Date().toISOString()
+    };
+    resetPreviewPlayState();
+    drawPreviewState();
+    drawStats(previewRecord);
+    updateDerived();
+    setStatus(`Generate4 pattern ready: ${selected.name}. Lines: ${selected.lines.length}.`);
+}
+
+function buildGenerate4RayPattern(config) {
+    const gridCols = clampInt(config.gridCols, 4, 40, 18);
+    const gridRows = clampInt(config.gridRows, 4, 40, 26);
+    const minLen = clampInt(config.minLen, 2, 999, 2);
+    const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
+    const centerRow = Math.floor((gridRows - 1) / 2);
+    const maxDistance = Math.max(1, Math.max(centerRow, gridRows - 1 - centerRow));
+    const segments = [];
+
+    for (let row = 0; row < gridRows; row++) {
+        const distance = Math.abs(row - centerRow);
+        const ratio = 1 - (distance / maxDistance);
+        const span = clampInt(
+            Math.round(gridCols * (0.34 + ratio * 0.66)),
+            2,
+            gridCols,
+            gridCols
+        );
+        if (span < minLen) {
+            continue;
+        }
+
+        const startCol = Math.floor((gridCols - span) / 2);
+        const endCol = startCol + span - 1;
+        const cells = [];
+
+        if (row % 2 === 0) {
+            for (let col = startCol; col <= endCol; col++) {
+                cells.push({ col, row });
+            }
+        } else {
+            for (let col = endCol; col >= startCol; col--) {
+                cells.push({ col, row });
+            }
+        }
+        segments.push(cells);
+    }
+
+    if (segments.length === 0) {
+        for (let col = 0; col < gridCols; col++) {
+            const cells = [];
+            if (col % 2 === 0) {
+                for (let row = 0; row < gridRows; row++) {
+                    cells.push({ col, row });
+                }
+            } else {
+                for (let row = gridRows - 1; row >= 0; row--) {
+                    cells.push({ col, row });
+                }
+            }
+            segments.push(cells);
+        }
+    }
+
+    const lines = buildGenerate4LinesFromSegments(segments, minLen, maxLen, config.colors);
+    if (!lines.length) {
+        return null;
+    }
+    return {
+        name: 'Center Rays',
+        lines,
+        path: null
+    };
+}
+
+function buildGenerate4SpiralPattern(config) {
+    const gridCols = clampInt(config.gridCols, 4, 40, 18);
+    const gridRows = clampInt(config.gridRows, 4, 40, 26);
+    const minLen = clampInt(config.minLen, 2, 999, 2);
+    const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
+    const spiralPath = buildGenerate4SpiralPath(gridCols, gridRows);
+    const segments = splitGenerate4SegmentByLength(spiralPath, minLen, maxLen);
+    const lines = buildGenerate4LinesFromSegments(segments, minLen, maxLen, config.colors);
+
+    if (!lines.length) {
+        return null;
+    }
+    return {
+        name: 'Spiral Burst',
+        lines,
+        path: spiralPath
+    };
+}
+
+function buildGenerate4SpiralPath(gridCols, gridRows) {
+    const path = [];
+    let left = 0;
+    let right = gridCols - 1;
+    let top = 0;
+    let bottom = gridRows - 1;
+
+    while (left <= right && top <= bottom) {
+        for (let col = left; col <= right; col++) {
+            path.push({ col, row: top });
+        }
+        top += 1;
+
+        for (let row = top; row <= bottom; row++) {
+            path.push({ col: right, row });
+        }
+        right -= 1;
+
+        if (top <= bottom) {
+            for (let col = right; col >= left; col--) {
+                path.push({ col, row: bottom });
+            }
+            bottom -= 1;
+        }
+
+        if (left <= right) {
+            for (let row = bottom; row >= top; row--) {
+                path.push({ col: left, row });
+            }
+            left += 1;
+        }
+    }
+
+    return path;
+}
+
+function buildGenerate4LinesFromSegments(segments, minLen, maxLen, palette) {
+    const colors = Array.isArray(palette) && palette.length ? palette : ['#1a1c3c'];
+    const lines = [];
+    const occupiedCells = new Set();
+
+    for (const rawSegment of segments) {
+        if (!Array.isArray(rawSegment) || rawSegment.length < minLen) {
+            continue;
+        }
+
+        const chunks = splitGenerate4SegmentByLength(rawSegment, minLen, maxLen);
+        for (const chunk of chunks) {
+            if (!Array.isArray(chunk) || chunk.length < minLen) {
+                continue;
+            }
+
+            const duplicated = chunk.some((cell) => occupiedCells.has(`${cell.col},${cell.row}`));
+            if (duplicated) {
+                continue;
+            }
+
+            const lineId = lines.length;
+            for (const cell of chunk) {
+                occupiedCells.add(`${cell.col},${cell.row}`);
+            }
+
+            lines.push({
+                id: lineId,
+                cells: chunk.map((cell) => ({ col: cell.col, row: cell.row })),
+                direction: inferDirectionFromCells(chunk),
+                color: colors[lineId % colors.length],
+                zIndex: lineId
+            });
+        }
+    }
+
+    return lines;
+}
+
+function splitGenerate4SegmentByLength(segment, minLen, maxLen) {
+    const total = Array.isArray(segment) ? segment.length : 0;
+    if (total < minLen) {
+        return [];
+    }
+
+    const plan = partitionGenerate4Lengths(total, minLen, maxLen);
+    if (!plan.length) {
+        return [];
+    }
+
+    const chunks = [];
+    let cursor = 0;
+    for (const length of plan) {
+        chunks.push(segment.slice(cursor, cursor + length));
+        cursor += length;
+    }
+    return chunks;
+}
+
+function partitionGenerate4Lengths(total, minLen, maxLen) {
+    const maxTake = Math.max(minLen, maxLen);
+    const dp = new Array(total + 1).fill(null);
+    dp[0] = [];
+
+    for (let length = 1; length <= total; length++) {
+        for (let take = Math.min(maxTake, length); take >= minLen; take--) {
+            const prev = dp[length - take];
+            if (!prev) {
+                continue;
+            }
+            dp[length] = [...prev, take];
+            break;
+        }
+    }
+
+    return dp[total] || [];
 }
 
 function onKeyDown(e) {
@@ -414,14 +966,14 @@ function onRestPreview() {
 }
 
 function onHint() {
-    console.log('Hint button clicked'); // 仅供调试
+    console.log('Hint button clicked'); // debug only
     try {
         if (!previewPlayState) {
-            setStatus('�?No preview data. Click "Generate" first.');
+            setStatus('No preview data. Click "Generate" first.');
             return;
         }
 
-        setStatus('🔍 Checking for movable arrows...');
+        setStatus('Checking for movable arrows...');
         
         const movableLines = previewPlayState.lines.filter((line) => {
             if (line.state !== 'active') return false;
@@ -429,7 +981,7 @@ function onHint() {
         });
 
         if (movableLines.length === 0) {
-            setStatus('⚠️ No movable arrows found in current state.');
+            setStatus('鈿狅笍 No movable arrows found in current state.');
             return;
         }
 
@@ -440,7 +992,7 @@ function onHint() {
         }
         console.log("Movable Arrow IDs:", movableLines.map(l => l.id));
         drawPreviewState();
-        setStatus(`�?Highlighted ${movableLines.length} movable arrow(s). It will last 4s.`);
+        setStatus(`Highlighted ${movableLines.length} movable arrow(s). It will last 4s.`);
 
         // Clear highlight after 4 seconds
         if (window._hintTimeout) clearTimeout(window._hintTimeout);
@@ -453,31 +1005,66 @@ function onHint() {
         }, 4000);
     } catch (err) {
         console.error('Hint error:', err);
-        setStatus(`�?Hint failed: ${err.message}`);
+        setStatus(`Hint failed: ${err.message}`);
     }
 }
 
 async function onSave() {
     const level = getLevel();
-    if (!previewRecord) {
+    const levelLabel = formatLevelLabel(level);
+    if (!previewRecord && !renderedLevelData) {
         await onGenerate();
-        if (!previewRecord) {
+        if (!previewRecord && !renderedLevelData) {
             return;
         }
     }
+
+    const recordToSave = buildRecordForSave();
+    if (!recordToSave) {
+        setStatus(`${levelLabel} has no valid preview data to save.`);
+        return;
+    }
+
+    previewRecord = recordToSave;
     const [previewOk, savedOk] = await Promise.all([
-        savePreviewLevelRecord(level, previewRecord),
-        saveSavedLevelRecord(level, previewRecord)
+        savePreviewLevelRecord(level, recordToSave),
+        saveSavedLevelRecord(level, recordToSave)
     ]);
     if (savedOk && previewOk) {
-        setStatus(`Level ${level} saved permanently to local file. Game will load this record first.`);
+        setStatus(`${levelLabel} saved permanently to local file. Game will load this record first.`);
     } else {
-        setStatus(`Level ${level} saved to browser cache only (disk sync unavailable).`);
+        setStatus(`${levelLabel} saved to browser cache only (disk sync unavailable).`);
     }
+}
+
+function buildRecordForSave() {
+    const { settings } = collectConfig();
+    const sourceData = previewRecord?.data || renderedLevelData;
+    if (!sourceData) {
+        return null;
+    }
+
+    const data = cloneLevelData(sourceData);
+    const lines = Array.isArray(data.lines) ? data.lines : [];
+    const totalCells = Math.max(0, Number(data.gridCols || 0) * Number(data.gridRows || 0));
+    const fallbackStats = {
+        lineCount: lines.length,
+        coveredCells: countCoveredCells(lines),
+        totalCells
+    };
+
+    return {
+        ...(previewRecord || {}),
+        settings,
+        data,
+        stats: previewRecord?.stats || fallbackStats,
+        updatedAt: new Date().toISOString()
+    };
 }
 
 async function onReset() {
     const level = getLevel();
+    const levelLabel = formatLevelLabel(level);
     const [previewDeleted, savedDeleted] = await Promise.all([
         deletePreviewLevelRecord(level),
         deleteSavedLevelRecord(level)
@@ -487,18 +1074,33 @@ async function onReset() {
     previewPlayState = null;
     loadLevelState();
     if (previewDeleted && savedDeleted) {
-        setStatus(`Level ${level} reset and removed from local files.`);
+        setStatus(`${levelLabel} reset and removed from local files.`);
     } else {
-        setStatus(`Level ${level} reset in browser cache only (disk sync unavailable).`);
+        setStatus(`${levelLabel} reset in browser cache only (disk sync unavailable).`);
     }
 }
 
 function onCanvasMouseDown(event) {
     const point = getCanvasPoint(event);
     if (event.button === 2) {
+        if (isGenerate4Mode) {
+            const cell = previewPlayState?.grid?.screenToGrid(point.x, point.y);
+            if (!cell) return;
+            const targetLine = findLineByCell(renderedLevelData, cell.col, cell.row);
+            if (!targetLine) return;
+            isErasing = true;
+            isRightMouseDown = true;
+            rightMouseDownTime = Date.now();
+            rightMouseDownPos = point;
+            deleteLine(targetLine.id);
+            return;
+        }
+
         // Right Click: Check if clicking on an arrow to Erase
-        const targetLine = findLineByCell(renderedLevelData, 
-            ...Object.values(previewPlayState.grid.screenToGrid(point.x, point.y) || {}));
+        const targetCell = previewPlayState?.grid?.screenToGrid(point.x, point.y);
+        const targetLine = targetCell
+            ? findLineByCell(renderedLevelData, targetCell.col, targetCell.row)
+            : null;
         
         if (targetLine && isPathVisible) {
             isErasing = true;
@@ -529,12 +1131,31 @@ function onCanvasMouseDown(event) {
         return;
     }
     if (event.button === 0) {
+        if (isGenerate4Mode) {
+            const cell = previewPlayState?.grid?.screenToGrid(point.x, point.y);
+            if (!cell) return;
+            isDrawingManualLine = true;
+            manualDrawStartCell = { col: cell.col, row: cell.row };
+            manualDrawCells = [{ col: cell.col, row: cell.row }];
+            drawPreviewState();
+            return;
+        }
         onCanvasPlay(event);
     }
 }
 
 function onCanvasMouseUp(event) {
+    if (event.button === 0 && isGenerate4Mode && isDrawingManualLine) {
+        finalizeGenerate4ManualLine();
+        return;
+    }
+
     if (event.button === 2 && isRightMouseDown) {
+        if (isGenerate4Mode) {
+            isRightMouseDown = false;
+            isErasing = false;
+            return;
+        }
         const point = getCanvasPoint(event);
         const duration = Date.now() - rightMouseDownTime;
         const dist = Math.hypot(point.x - rightMouseDownPos.x, point.y - rightMouseDownPos.y);
@@ -584,17 +1205,38 @@ function updatePreviewRecord() {
 function onCanvasMouseMove(event) {
     const point = getCanvasPoint(event);
     lastMousePos = point; // Update for keydown trigger
-    
-    if (!isGenerate2Mode || !isRightMouseDown || !activeHamiltonianPath) return;
 
-    if (isErasing) {
-        const cell = previewPlayState.grid.screenToGrid(point.x, point.y);
+    if (isGenerate4Mode) {
+        if (isDrawingManualLine) {
+            updateGenerate4ManualDraft(point);
+            return;
+        }
+        if (isErasing && isRightMouseDown) {
+            const cell = previewPlayState?.grid?.screenToGrid(point.x, point.y);
+            if (!cell) return;
+            const targetLine = findLineByCell(renderedLevelData, cell.col, cell.row);
+            if (targetLine) {
+                deleteLine(targetLine.id);
+            }
+        }
+        return;
+    }
+
+    if (isErasing && isRightMouseDown) {
+        const cell = previewPlayState?.grid?.screenToGrid(point.x, point.y);
         if (cell) {
             const targetLine = findLineByCell(renderedLevelData, cell.col, cell.row);
             if (targetLine) {
                 deleteLine(targetLine.id);
             }
         }
+        if (!isGenerate2Mode || !activeHamiltonianPath) {
+            return;
+        }
+    }
+
+    if (!isGenerate2Mode || !isRightMouseDown || !activeHamiltonianPath) return;
+    if (isErasing) {
         return;
     }
     
@@ -633,6 +1275,99 @@ function onCanvasMouseMove(event) {
             drawPreviewState();
         }
     }
+}
+
+function updateGenerate4ManualDraft(point) {
+    if (!isDrawingManualLine || !manualDrawStartCell || !previewPlayState?.grid) {
+        return;
+    }
+    const cell = previewPlayState.grid.screenToGrid(point.x, point.y);
+    if (!cell) {
+        return;
+    }
+    manualDrawCells = buildGenerate4ManualSegment(
+        manualDrawStartCell,
+        { col: cell.col, row: cell.row }
+    );
+    drawPreviewState();
+}
+
+function buildGenerate4ManualSegment(startCell, endCell) {
+    const start = {
+        col: Math.round(Number(startCell?.col) || 0),
+        row: Math.round(Number(startCell?.row) || 0)
+    };
+    const end = {
+        col: Math.round(Number(endCell?.col) || 0),
+        row: Math.round(Number(endCell?.row) || 0)
+    };
+    const dx = end.col - start.col;
+    const dy = end.row - start.row;
+    const horizontal = Math.abs(dx) >= Math.abs(dy);
+    const cells = [];
+
+    if (horizontal) {
+        const step = dx >= 0 ? 1 : -1;
+        for (let col = start.col; step > 0 ? col <= end.col : col >= end.col; col += step) {
+            cells.push({ col, row: start.row });
+        }
+    } else {
+        const step = dy >= 0 ? 1 : -1;
+        for (let row = start.row; step > 0 ? row <= end.row : row >= end.row; row += step) {
+            cells.push({ col: start.col, row });
+        }
+    }
+
+    return cells;
+}
+
+function finalizeGenerate4ManualLine() {
+    const segment = Array.isArray(manualDrawCells) ? manualDrawCells.map((cell) => ({ ...cell })) : [];
+    isDrawingManualLine = false;
+    manualDrawStartCell = null;
+    manualDrawCells = [];
+
+    if (segment.length < 2) {
+        drawPreviewState();
+        return;
+    }
+
+    appendGenerate4ManualLine(segment);
+}
+
+function appendGenerate4ManualLine(segment) {
+    if (!renderedLevelData) {
+        return;
+    }
+
+    const { config } = collectConfig();
+    if (segment.length < config.minLen || segment.length > config.maxLen) {
+        setStatus(`Invalid length! Segment is ${segment.length} cells, need ${config.minLen}-${config.maxLen}.`);
+        drawPreviewState();
+        return;
+    }
+
+    const isOccupied = segment.some((cell) => findLineByCell(renderedLevelData, cell.col, cell.row));
+    if (isOccupied) {
+        setStatus('Space already occupied.');
+        drawPreviewState();
+        return;
+    }
+
+    const colors = config.colors?.length ? config.colors : ['#1a1c3c'];
+    const lineId = renderedLevelData.lines.length;
+    renderedLevelData.lines.push({
+        id: lineId,
+        cells: segment.map((cell) => ({ col: cell.col, row: cell.row })),
+        direction: inferDirectionFromCells(segment),
+        color: colors[lineId % colors.length],
+        zIndex: lineId
+    });
+
+    updatePreviewRecord();
+    resetPreviewPlayState();
+    drawPreviewState();
+    setStatus(`Generate4: added line ${lineId}. Total lines: ${renderedLevelData.lines.length}.`);
 }
 
 function onCanvasGenerate2Click(event) {
@@ -836,15 +1571,20 @@ function drawStats(record) {
         pushStat('Cells: 0 / 0');
         pushStat('Lines: 0');
         pushStat('Timer: Off');
+        pushStat('Wrong Tap Penalty: 1s');
         pushStat('Updated: -');
         return;
     }
     const total = record.stats.totalCells;
     const covered = record.stats.coveredCells;
     const pct = Math.round((covered / total) * 100);
+    if (record.settings?.displayName) {
+        pushStat(`Stage Name: ${record.settings.displayName}`);
+    }
     pushStat(`Sys: v6.0 | Pct: ${pct}%`);
     pushStat(`Lines: ${record.stats.lineCount}`);
     pushStat(`Timer: ${formatSeconds(record.settings?.timerSeconds ?? 0)}`);
+    pushStat(`Wrong Tap Penalty: ${formatPenaltySeconds(record.settings?.misclickPenaltySeconds ?? 1)}`);
     pushStat(`Updated: ${formatTime(record.updatedAt)}`);
 }
 
@@ -931,6 +1671,41 @@ function drawPreviewState() {
     for (const line of drawLines) {
         line.draw(ctx, previewPlayState.grid);
     }
+
+    if (isGenerate4Mode && Array.isArray(manualDrawCells) && manualDrawCells.length > 0) {
+        drawGenerate4ManualDraft(previewPlayState.grid, manualDrawCells);
+    }
+}
+
+function drawGenerate4ManualDraft(grid, cells) {
+    if (!grid || !Array.isArray(cells) || cells.length === 0) {
+        return;
+    }
+
+    const points = cells.map((cell) => grid.gridToScreen(cell.col, cell.row));
+    const dashA = Math.max(4, grid.cellSize * 0.4);
+    const dashB = Math.max(3, grid.cellSize * 0.24);
+
+    ctx.save();
+    ctx.strokeStyle = 'rgba(21, 24, 40, 0.68)';
+    ctx.lineWidth = Math.max(2, grid.cellSize * 0.28);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([dashA, dashB]);
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+        ctx.lineTo(points[i].x, points[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    const tail = points[points.length - 1];
+    ctx.fillStyle = 'rgba(21, 24, 40, 0.88)';
+    ctx.beginPath();
+    ctx.arc(tail.x, tail.y, Math.max(2, grid.cellSize * 0.18), 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
 }
 
 function drawHamiltonianPath(grid, path, highlightIndices = []) {
@@ -1077,33 +1852,53 @@ function cloneLevelData(levelData) {
     return JSON.parse(JSON.stringify(levelData));
 }
 
+function syncEyeButtonState() {
+    const eyeOpen = el.togglePath?.querySelector('.eye-open');
+    const eyeClosed = el.togglePath?.querySelector('.eye-closed');
+    if (!eyeOpen || !eyeClosed) {
+        return;
+    }
+    eyeOpen.style.display = isPathVisible ? 'block' : 'none';
+    eyeClosed.style.display = isPathVisible ? 'none' : 'block';
+}
+
 function onTogglePath() {
-    if (!isPathVisible) {
-        // Turning ON: Auto-enable Generate2 mode if needed
-        if (!isGenerate2Mode || !activeHamiltonianPath) {
-            const { config } = collectConfig();
-            isGenerate2Mode = true;
-            activeHamiltonianPath = buildWeavePath(config.gridCols, config.gridRows);
-            resetPreviewPlayState();
-            setStatus('Helper mode enabled automatically. Path generated.');
+    if (isGenerate4Mode) {
+        const hasHelperPath = Array.isArray(activeHamiltonianPath) && activeHamiltonianPath.length > 1;
+        if (!hasHelperPath) {
+            isPathVisible = false;
+            syncEyeButtonState();
+            drawPreviewState();
+            setStatus('Generate4 has no helper path. Use the flower button to generate a pattern first.');
+            return;
         }
+
+        isPathVisible = !isPathVisible;
+        syncEyeButtonState();
+        drawPreviewState();
+        setStatus(isPathVisible ? 'Generate4 helper path visible.' : 'Generate4 helper path hidden.');
+        return;
+    }
+
+    if (!isPathVisible && (!isGenerate2Mode || !activeHamiltonianPath)) {
+        const { config } = collectConfig();
+        setGenerateMode('generate2');
+        activeHamiltonianPath = buildWeavePath(config.gridCols, config.gridRows);
+        if (
+            !renderedLevelData
+            || renderedLevelData.gridCols !== config.gridCols
+            || renderedLevelData.gridRows !== config.gridRows
+        ) {
+            renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
+            previewRecord = null;
+        }
+        resetPreviewPlayState();
     }
 
     isPathVisible = !isPathVisible;
-    const eyeOpen = el.togglePath.querySelector('.eye-open');
-    const eyeClosed = el.togglePath.querySelector('.eye-closed');
-    
-    if (isPathVisible) {
-        eyeOpen.style.display = 'block';
-        eyeClosed.style.display = 'none';
-        setStatus('Helper mode ON: Hamiltonian path visible.');
-    } else {
-        eyeOpen.style.display = 'none';
-        eyeClosed.style.display = 'block';
-        setStatus('Normal mode: Helper path hidden.');
-    }
-    
+    syncEyeButtonState();
     drawPreviewState();
+    setStatus(isPathVisible ? 'Helper mode ON: Hamiltonian path visible.' : 'Normal mode: Helper path hidden.');
 }
 function nextFrame() {
     return new Promise((resolve) => requestAnimationFrame(() => resolve()));
@@ -1155,3 +1950,19 @@ function formatSeconds(value) {
     const secs = seconds % 60;
     return `${mins}m${secs.toString().padStart(2, '0')}s`;
 }
+
+function formatPenaltySeconds(value) {
+    const seconds = Math.max(0, Math.round(Number(value) || 0));
+    if (seconds <= 0) {
+        return '0s (Off)';
+    }
+    return `${seconds}s`;
+}
+
+function clampInt(value, min, max, fallback) {
+    const parsed = Math.round(Number(value));
+    const base = Number.isFinite(parsed) ? parsed : fallback;
+    return Math.max(min, Math.min(max, base));
+}
+
+

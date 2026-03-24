@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arrow Clear Admin</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=40">
+    <link rel="stylesheet" href="css/admin.css?v=42">
 </head>
 <body>
     <main class="admin-shell">
@@ -18,11 +18,40 @@
                 <select id="levelSelect"></select>
             </label>
 
+            <div class="field">
+                <span>Campaign level counts</span>
+                <div class="catalog-row">
+                    <label class="catalog-item">
+                        <span>Normal</span>
+                        <div class="catalog-control">
+                            <button id="btnNormalLevelMinus" type="button" aria-label="Decrease normal levels">-</button>
+                            <input id="normalLevelCount" type="number" min="1" max="1000" step="1">
+                            <button id="btnNormalLevelPlus" type="button" aria-label="Increase normal levels">+</button>
+                        </div>
+                    </label>
+                    <label class="catalog-item">
+                        <span>Reward</span>
+                        <div class="catalog-control">
+                            <button id="btnRewardLevelMinus" type="button" aria-label="Decrease reward levels">-</button>
+                            <input id="rewardLevelCount" type="number" min="0" max="200" step="1">
+                            <button id="btnRewardLevelPlus" type="button" aria-label="Increase reward levels">+</button>
+                        </div>
+                    </label>
+                </div>
+                <button id="btnSaveLevelCatalog" type="button">Save level counts</button>
+            </div>
+
+            <label class="field" id="levelDisplayNameField" style="display:none;">
+                <span>Reward stage name</span>
+                <input id="levelDisplayName" type="text" maxlength="28" placeholder="e.g. Reward Rush">
+            </label>
+
             <label class="field">
                 <span>Dimension mode</span>
                 <select id="dimensionMode">
                     <option value="rows">Rows fixed</option>
                     <option value="cols">Cols fixed</option>
+                    <option value="custom">Custom (manual)</option>
                 </select>
             </label>
 
@@ -38,12 +67,17 @@
 
             <label class="field">
                 <span>Max arrow length</span>
-                <input id="maxLen" type="number" min="2" max="16" step="1">
+                <input id="maxLen" type="number" min="2" max="999" step="1">
             </label>
 
             <label class="field">
                 <span>Level timer (seconds, 0 = off)</span>
                 <input id="timerSeconds" type="number" min="0" max="7200" step="1">
+            </label>
+
+            <label class="field">
+                <span>Wrong tap penalty (seconds)</span>
+                <input id="misclickPenaltySeconds" type="number" min="0" max="120" step="1">
             </label>
 
             <div class="meta">
@@ -56,6 +90,7 @@
                 <button id="btnGenerate" class="primary" type="button">Generate</button>
                 <button id="btnGenerate2" class="primary" type="button">Generate 2</button>
                 <button id="btnGenerate3" class="primary" type="button">Generate 3</button>
+                <button id="btnGenerate4" class="primary" type="button">Generate 4</button>
                 <button id="btnRestPreview" type="button">restpreview</button>
                 <button id="btnHint" type="button">Hint</button>
                 <button id="btnSave" type="button">Save</button>
@@ -80,15 +115,34 @@
         <section class="preview">
             <div class="preview-header">
                 <h2 id="previewTitle">Preview</h2>
-                <button id="togglePath" class="icon-btn" title="Toggle Hamiltonian Path (Generate2 Mode)">
-                    <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                    <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                </button>
+                <div class="preview-tools">
+                    <div id="generate4Tools" class="generate4-tools hidden">
+                        <label class="mini-field">
+                            <span>W</span>
+                            <input id="manualGridCols" type="number" min="4" max="40" step="1" value="18">
+                        </label>
+                        <label class="mini-field">
+                            <span>H</span>
+                            <input id="manualGridRows" type="number" min="4" max="40" step="1" value="26">
+                        </label>
+                        <button id="btnApplyGridSize" class="mini-btn" type="button">Apply</button>
+                    </div>
+                    <button id="btnPatternSeed" class="icon-btn hidden" type="button" title="Generate a symmetric pattern (Generate4)">
+                        <span class="icon-flower" aria-hidden="true">&#10047;</span>
+                    </button>
+                    <button id="togglePath" class="icon-btn" type="button" title="Toggle Hamiltonian Path (Generate2 Mode)">
+                        <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                    </button>
+                </div>
             </div>
             <canvas id="previewCanvas" width="430" height="664"></canvas>
         </section>
     </main>
 
-    <script type="module" src="js/admin.js?v=60"></script>
+    <script type="module" src="js/admin.js?v=67"></script>
 </body>
 </html>
+
+
+

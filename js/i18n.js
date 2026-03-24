@@ -22,7 +22,7 @@ const DICTIONARY = {
         'feature.skins': '皮肤',
         'feature.checkin': '签到',
         'feature.exit': '退出',
-        'feature.more': '功能入口',
+        'feature.more': '更多',
         'panel.settings.title': '设置',
         'panel.settings.language': '语言',
         'panel.settings.languageDesc': '切换 UI 语言，不影响存档。',

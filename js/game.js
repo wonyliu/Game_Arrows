@@ -1,14 +1,20 @@
 import { Grid } from './grid.js?v=24';
-import { Line } from './line.js?v=44';
+import { Line } from './line.js?v=45';
 import { canMove, findMovableLines } from './collision.js?v=19';
-import { getLevelConfig } from './levels.js?v=28';
-import { AnimationManager } from './animation.js?v=29';
+import {
+    BONUS_LEVEL_ID,
+    getLevelConfig,
+    getNormalLevelCount,
+    getRewardLevelCount,
+    toRewardLevelId
+} from './levels.js?v=32';
+import { AnimationManager } from './animation.js?v=30';
 import { buildPlayableLevel } from './level-builder.js?v=48';
 import {
     deserializeLevelData,
     getSavedLevelRecord,
     isStoredLevelDataUsable
-} from './level-storage.js?v=48';
+} from './level-storage.js?v=55';
 import {
     playClearSound,
     playErrorSound,
@@ -16,13 +22,15 @@ import {
     playLevelCompleteSound,
     resumeAudio
 } from './audio.js?v=20';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=21';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=22';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
     undo: 2,
     shuffle: 2
 });
+const REWARD_COMBO_THRESHOLD = 100;
+const DRAG_RELEASE_CLICK_SUPPRESS_MS = 160;
 
 export class Game {
     constructor(canvas) {
@@ -34,15 +42,23 @@ export class Game {
         this.state = 'MENU';
         this.currentLevel = 1;
         this.maxUnlockedLevel = 1;
+        this.normalLevelCount = getNormalLevelCount();
+        this.rewardLevelCount = getRewardLevelCount();
         this.grid = null;
         this.lines = [];
-        this.lives = 3;
-        this.maxLives = 3;
+        this.lifeSystemEnabled = false;
+        this.lives = 0;
+        this.maxLives = 0;
         this.score = 0;
         this.combo = 0;
+        this.comboWindowMs = 3000;
+        this.lastComboReleaseAt = 0;
         this.timeRemaining = 0;
+        this.maxTimeRemaining = 0;
         this.hasTimer = false;
-        this.timerInterval = null;
+        this.misclickPenaltySeconds = 1;
+        this.energyBatchSeq = 1;
+        this.activeEnergyBatches = new Set();
         this.animations = new AnimationManager();
         this.lastTime = 0;
         this.lastSnakeInteractionTime = performance.now();
@@ -51,15 +67,30 @@ export class Game {
         this.defaultToolUses = { ...DEFAULT_TOOL_USES };
         this.toolUses = { ...DEFAULT_TOOL_USES };
         this.pixelTheme = null;
+        this.isRewardStage = false;
+        this.rewardReturnLevel = null;
+        this.rewardSourceLevel = null;
+        this.pendingRewardReturnLevel = null;
+        this.pendingRewardSourceLevel = null;
+        this.currentStageLabel = '';
+        this.campaignCompleted = false;
+        this.bestComboThisLevel = 0;
+        this.dragReleaseActive = false;
+        this.dragReleaseLineIds = new Set();
+        this.suppressClickUntil = 0;
 
         this.loadProgress();
 
         if (this.isPlaytestMode && this.playtestLevel > 0) {
-            this.currentLevel = this.playtestLevel;
-            this.maxUnlockedLevel = Math.max(this.maxUnlockedLevel, this.playtestLevel);
+            const playtestTargetLevel = normalizePlayableLevel(this.playtestLevel, this.normalLevelCount);
+            this.currentLevel = playtestTargetLevel;
+            this.maxUnlockedLevel = Math.max(this.maxUnlockedLevel, playtestTargetLevel);
         }
 
         this.canvas.addEventListener('click', (event) => this.handleClick(event));
+        this.canvas.addEventListener('mousedown', (event) => this.handlePointerDown(event));
+        window.addEventListener('mousemove', (event) => this.handlePointerMove(event));
+        window.addEventListener('mouseup', (event) => this.handlePointerUp(event));
         this.canvas.addEventListener('touchstart', (event) => {
             event.preventDefault();
             this.handleClick(event.touches[0]);
@@ -70,10 +101,14 @@ export class Game {
     }
 
     loadProgress() {
+        this.refreshLevelCatalog();
         try {
             const data = JSON.parse(localStorage.getItem('arrowClear_progress') || '{}');
-            this.maxUnlockedLevel = Math.max(1, data.maxUnlockedLevel || 1);
-            this.currentLevel = Math.max(1, Math.min(this.maxUnlockedLevel, data.currentLevel || 1));
+            this.maxUnlockedLevel = normalizePlayableLevel(data.maxUnlockedLevel || 1, this.normalLevelCount);
+            this.currentLevel = normalizePlayableLevel(
+                data.currentLevel || 1,
+                Math.max(1, this.maxUnlockedLevel)
+            );
         } catch {
             this.maxUnlockedLevel = 1;
             this.currentLevel = 1;
@@ -81,10 +116,28 @@ export class Game {
     }
 
     saveProgress() {
+        this.refreshLevelCatalog();
+        const cappedUnlocked = normalizePlayableLevel(this.maxUnlockedLevel || 1, this.normalLevelCount);
+        const cappedCurrent = this.isRewardStage
+            ? normalizePlayableLevel(this.rewardSourceLevel || 1, cappedUnlocked)
+            : normalizePlayableLevel(this.currentLevel || 1, cappedUnlocked);
+        this.maxUnlockedLevel = cappedUnlocked;
         localStorage.setItem('arrowClear_progress', JSON.stringify({
-            maxUnlockedLevel: this.maxUnlockedLevel,
-            currentLevel: this.currentLevel
+            maxUnlockedLevel: cappedUnlocked,
+            currentLevel: cappedCurrent
         }));
+    }
+
+    refreshLevelCatalog() {
+        this.normalLevelCount = Math.max(1, getNormalLevelCount());
+        this.rewardLevelCount = Math.max(0, getRewardLevelCount());
+        this.maxUnlockedLevel = normalizePlayableLevel(this.maxUnlockedLevel || 1, this.normalLevelCount);
+        if (!this.isRewardStage) {
+            this.currentLevel = normalizePlayableLevel(this.currentLevel || 1, this.maxUnlockedLevel);
+        }
+        if (this.rewardReturnLevel !== null && this.rewardReturnLevel !== undefined) {
+            this.rewardReturnLevel = normalizePlayableLevel(this.rewardReturnLevel, this.normalLevelCount);
+        }
     }
 
     resize() {
@@ -108,12 +161,129 @@ export class Game {
         }
     }
 
-    startLevel(levelNum) {
+    startNormalLevel(levelNum) {
+        this.refreshLevelCatalog();
+        const targetLevel = normalizePlayableLevel(levelNum, this.normalLevelCount);
+        this.startLevel(targetLevel, { stageType: 'normal' });
+    }
+
+    startRewardLevel(returnLevel, rewardSourceLevel = this.currentLevel) {
+        this.refreshLevelCatalog();
+        const sourceLevel = normalizePlayableLevel(rewardSourceLevel, this.normalLevelCount);
+        const nextNormalLevel = normalizePlayableLevel(returnLevel || (sourceLevel + 1), this.normalLevelCount);
+        const rewardLevelId = this.resolveRewardLevelId(sourceLevel);
+        if (!rewardLevelId) {
+            this.startNormalLevel(nextNormalLevel);
+            return;
+        }
+        this.startLevel(rewardLevelId, {
+            stageType: 'reward',
+            rewardLevelId,
+            rewardReturnLevel: nextNormalLevel,
+            rewardSourceLevel: sourceLevel
+        });
+    }
+
+    startNextStage() {
+        this.refreshLevelCatalog();
+        if (!this.isRewardStage && this.campaignCompleted) {
+            return;
+        }
+
+        if (this.pendingRewardReturnLevel && !this.isRewardStage) {
+            const nextNormalLevel = this.pendingRewardReturnLevel;
+            const sourceLevel = this.pendingRewardSourceLevel || this.currentLevel;
+            this.pendingRewardReturnLevel = null;
+            this.pendingRewardSourceLevel = null;
+            this.startRewardLevel(nextNormalLevel, sourceLevel);
+            return;
+        }
+
+        if (this.isRewardStage) {
+            const fallback = normalizePlayableLevel(
+                (this.rewardSourceLevel || this.currentLevel) + 1,
+                this.normalLevelCount
+            );
+            this.startNormalLevel(this.rewardReturnLevel || fallback);
+            return;
+        }
+
+        this.startNormalLevel(this.currentLevel + 1);
+    }
+
+    retryCurrentStage() {
+        if (this.isRewardStage) {
+            this.startRewardLevel(
+                this.rewardReturnLevel || normalizePlayableLevel((this.rewardSourceLevel || 1) + 1, this.normalLevelCount),
+                this.rewardSourceLevel || 1
+            );
+            return;
+        }
+        this.startNormalLevel(this.currentLevel);
+    }
+
+    getCurrentStageLabel() {
+        return this.currentStageLabel || '';
+    }
+
+    getNormalLevelCount() {
+        this.refreshLevelCatalog();
+        return this.normalLevelCount;
+    }
+
+    isCampaignCompleted() {
+        return !this.isRewardStage && !!this.campaignCompleted;
+    }
+
+    resolveRewardLevelId(rewardSourceLevel, preferredLevelId = null) {
+        this.refreshLevelCatalog();
+        if (this.rewardLevelCount <= 0) {
+            return null;
+        }
+
+        const minRewardId = BONUS_LEVEL_ID;
+        const maxRewardId = toRewardLevelId(this.rewardLevelCount);
+        const preferred = Math.floor(Number(preferredLevelId) || 0);
+        if (preferred >= minRewardId && preferred <= maxRewardId) {
+            return preferred;
+        }
+
+        const sourceLevel = normalizePlayableLevel(rewardSourceLevel, this.normalLevelCount);
+        const rewardIndex = ((sourceLevel - 1) % this.rewardLevelCount) + 1;
+        return toRewardLevelId(rewardIndex);
+    }
+
+    startLevel(levelNum, options = {}) {
         resumeAudio();
-        this.currentLevel = levelNum;
+        this.refreshLevelCatalog();
+        const stageType = options?.stageType === 'reward' ? 'reward' : 'normal';
+        const isRewardStage = stageType === 'reward';
+        const sourceLevel = normalizePlayableLevel(options?.rewardSourceLevel ?? this.currentLevel, this.normalLevelCount);
+        const rewardLevelId = isRewardStage
+            ? this.resolveRewardLevelId(sourceLevel, options?.rewardLevelId ?? levelNum)
+            : null;
+        if (isRewardStage && !rewardLevelId) {
+            this.startNormalLevel(
+                normalizePlayableLevel(options?.rewardReturnLevel || (sourceLevel + 1), this.normalLevelCount)
+            );
+            return;
+        }
+        const normalizedLevel = isRewardStage
+            ? rewardLevelId
+            : normalizePlayableLevel(levelNum, this.normalLevelCount);
+        this.currentLevel = normalizedLevel;
+        this.isRewardStage = isRewardStage;
+        this.rewardSourceLevel = isRewardStage ? sourceLevel : null;
+        this.rewardReturnLevel = isRewardStage
+            ? normalizePlayableLevel(options?.rewardReturnLevel || (sourceLevel + 1), this.normalLevelCount)
+            : null;
+        if (!isRewardStage) {
+            this.pendingRewardReturnLevel = null;
+            this.pendingRewardSourceLevel = null;
+        }
         const startedAt = nowMs();
-        const config = getLevelConfig(levelNum);
-        const preparedRecord = this.getPreparedLevelRecord(levelNum);
+        const config = getLevelConfig(normalizedLevel);
+        const preparedRecord = this.getPreparedLevelRecord(normalizedLevel);
         const cachedLevelData = isStoredLevelDataUsable(preparedRecord?.data) ? preparedRecord.data : null;
         let source = cachedLevelData ? 'cache' : 'generate';
 
@@ -121,7 +291,7 @@ export class Game {
             this.applyRuntimeLevelData(config, cachedLevelData);
         } catch (error) {
             console.warn('[game] level load failed, fallback to generator', {
-                level: levelNum,
+                level: normalizedLevel,
                 source,
                 error: error instanceof Error ? error.message : String(error)
             });
@@ -129,37 +299,32 @@ export class Game {
             this.applyRuntimeLevelData(config, null);
         }
 
-        this.lives = config.lives;
-        this.maxLives = config.lives;
+        this.resetEnergyBatches();
+        this.lives = this.lifeSystemEnabled ? config.lives : 0;
+        this.maxLives = this.lifeSystemEnabled ? config.lives : 0;
         this.score = 0;
         this.combo = 0;
-        this.hasTimer = config.hasTimer;
-        this.timeRemaining = config.timerSeconds;
+        this.bestComboThisLevel = 0;
+        this.lastComboReleaseAt = 0;
+        this.hasTimer = !!config.hasTimer && Number(config.timerSeconds) > 0;
+        this.maxTimeRemaining = this.hasTimer ? Math.max(1, Number(config.timerSeconds) || 0) : 0;
+        this.timeRemaining = this.maxTimeRemaining;
+        this.misclickPenaltySeconds = Math.max(0, Math.round(Number(config.misclickPenaltySeconds ?? 1) || 0));
+        this.currentStageLabel = this.resolveStageLabel(config);
         this.hintLine = null;
         this.undoStack = [];
         this.resetToolUses();
         this.state = 'PLAYING';
+        this.campaignCompleted = false;
         this.lastSnakeInteractionTime = performance.now();
-
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-        }
-
-        if (this.hasTimer) {
-            this.timerInterval = setInterval(() => {
-                if (this.state !== 'PLAYING') return;
-
-                this.timeRemaining--;
-                this.updateTimerUI();
-
-                if (this.timeRemaining <= 0) {
-                    this.gameOver('Time is up');
-                }
-            }, 1000);
-        }
+        this.dragReleaseActive = false;
+        this.dragReleaseLineIds.clear();
+        this.suppressClickUntil = 0;
 
         console.info('[game] level ready ' + JSON.stringify({
-            level: levelNum,
+            level: normalizedLevel,
+            stage: isRewardStage ? 'reward' : 'normal',
+            rewardReturnLevel: this.rewardReturnLevel,
             source,
             lineCount: Array.isArray(this.lines) ? this.lines.length : 0,
             durationMs: Math.round(nowMs() - startedAt),
@@ -171,7 +336,7 @@ export class Game {
             requestAnimationFrame(() => {
                 this.resize();
                 console.info('[game] deferred resize ' + JSON.stringify({
-                    level: levelNum,
+                    level: normalizedLevel,
                     canvasWidth: this.canvas.width,
                     canvasHeight: this.canvas.height
                 }));
@@ -212,17 +377,146 @@ export class Game {
         return getSavedLevelRecord(levelNum);
     }
 
-    handleClick(event) {
-        if (this.state !== 'PLAYING' || !this.grid) return;
+    resolveStageLabel(config) {
+        if (!this.isRewardStage && !config?.isRewardLevel) {
+            return '';
+        }
+        const customName = `${config?.displayName || ''}`.trim();
+        return customName || 'Reward';
+    }
 
-        resumeAudio();
+    handleClick(event) {
+        if (this.state !== 'PLAYING' || !this.grid) {
+            return;
+        }
+        if (nowMs() < this.suppressClickUntil) {
+            return;
+        }
+
+        const point = this.getCanvasPoint(event);
+        if (!point) {
+            return;
+        }
+        this.tryReleaseAtPoint(point.x, point.y, {
+            allowPenalty: true,
+            trackDragTarget: false
+        });
+    }
+
+    handlePointerDown(event) {
+        if (this.state !== 'PLAYING' || !this.grid) {
+            return;
+        }
+        if (event?.button !== undefined && event.button !== 0) {
+            return;
+        }
+
+        const point = this.getCanvasPoint(event);
+        if (!point) {
+            return;
+        }
+
+        if (this.canUseDragRelease(event)) {
+            if (typeof event?.preventDefault === 'function') {
+                event.preventDefault();
+            }
+            this.dragReleaseActive = true;
+            this.dragReleaseLineIds.clear();
+            this.suppressClickUntil = nowMs() + DRAG_RELEASE_CLICK_SUPPRESS_MS;
+            this.tryReleaseAtPoint(point.x, point.y, {
+                allowPenalty: false,
+                trackDragTarget: true
+            });
+            return;
+        }
+
+        // Normal stages: release immediately on press to remove click-up latency.
+        this.suppressClickUntil = nowMs() + DRAG_RELEASE_CLICK_SUPPRESS_MS;
+        this.tryReleaseAtPoint(point.x, point.y, {
+            allowPenalty: true,
+            trackDragTarget: false
+        });
+    }
+
+    handlePointerMove(event) {
+        if (this.dragReleaseActive && event?.buttons !== undefined && (event.buttons & 1) !== 1) {
+            this.handlePointerUp({ button: 0 });
+            return;
+        }
+        if (!this.dragReleaseActive || !this.canUseDragRelease(event)) {
+            return;
+        }
+        if (typeof event?.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        const point = this.getCanvasPoint(event);
+        if (!point) {
+            return;
+        }
+
+        this.tryReleaseAtPoint(point.x, point.y, {
+            allowPenalty: false,
+            trackDragTarget: true
+        });
+        this.suppressClickUntil = nowMs() + DRAG_RELEASE_CLICK_SUPPRESS_MS;
+    }
+
+    handlePointerUp(event) {
+        if (event && event.button !== undefined && event.button !== 0) {
+            return;
+        }
+        if (!this.dragReleaseActive) {
+            return;
+        }
+        this.dragReleaseActive = false;
+        this.dragReleaseLineIds.clear();
+        this.suppressClickUntil = nowMs() + DRAG_RELEASE_CLICK_SUPPRESS_MS;
+    }
+
+    canUseDragRelease(event) {
+        if (this.state !== 'PLAYING' || !this.grid || !this.isRewardStage) {
+            return false;
+        }
+        if (event?.buttons !== undefined && event.type === 'mousemove') {
+            return (event.buttons & 1) === 1;
+        }
+        if (event?.button !== undefined) {
+            return event.button === 0;
+        }
+        return true;
+    }
+
+    getCanvasPoint(event) {
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = rect.width > 0 ? this.canvas.width / rect.width : 1;
         const scaleY = rect.height > 0 ? this.canvas.height / rect.height : 1;
-        const x = ((event.clientX || event.pageX) - rect.left) * scaleX;
-        const y = ((event.clientY || event.pageY) - rect.top) * scaleY;
+        const clientX = Number(event?.clientX ?? event?.pageX);
+        const clientY = Number(event?.clientY ?? event?.pageY);
+        if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) {
+            return null;
+        }
+        return {
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
+        };
+    }
+
+    tryReleaseAtPoint(x, y, options = {}) {
+        if (this.state !== 'PLAYING' || !this.grid) {
+            return false;
+        }
+
+        resumeAudio();
         const clickedLine = this.findTopLineAtPoint(x, y);
-        if (!clickedLine) return;
+        if (!clickedLine) {
+            return false;
+        }
+
+        const trackDragTarget = !!options.trackDragTarget;
+        if (trackDragTarget && this.dragReleaseLineIds.has(clickedLine.id)) {
+            return false;
+        }
+
         this.lastSnakeInteractionTime = performance.now();
         if (typeof clickedLine.pokeSoft === 'function') {
             clickedLine.pokeSoft(0.85);
@@ -234,9 +528,16 @@ export class Game {
         const result = canMove(clickedLine, this.lines, this.grid);
         if (result.canMove) {
             this.removeLine(clickedLine);
-        } else {
+            if (trackDragTarget) {
+                this.dragReleaseLineIds.add(clickedLine.id);
+            }
+            return true;
+        }
+
+        if (options.allowPenalty !== false) {
             this.errorOnLine(clickedLine, result.distance);
         }
+        return false;
     }
 
     findTopLineAt(col, row) {
@@ -282,15 +583,27 @@ export class Game {
     }
 
     removeLine(line) {
+        const currentMs = nowMs();
+        const isComboWindowActive = this.combo > 0
+            && this.lastComboReleaseAt > 0
+            && (currentMs - this.lastComboReleaseAt) <= this.comboWindowMs;
+        const nextCombo = isComboWindowActive ? (this.combo + 1) : 1;
+        const comboTimerReward = this.getComboTimerReward(nextCombo);
+        const energyBatchId = (this.hasTimer && comboTimerReward > 0) ? this.createEnergyBatch() : null;
         this.undoStack.push({
             lineId: line.id,
             combo: this.combo,
+            lastComboReleaseAt: this.lastComboReleaseAt,
             score: this.score,
-            lives: this.lives
+            lives: this.lives,
+            timeRemaining: this.timeRemaining,
+            energyBatchId
         });
 
         this.grid.unregisterLine(line);
-        this.combo++;
+        this.combo = nextCombo;
+        this.bestComboThisLevel = Math.max(this.bestComboThisLevel, this.combo);
+        this.lastComboReleaseAt = currentMs;
         const points = 100 * this.combo;
         this.score += points;
         playClearSound(this.combo - 1);
@@ -300,7 +613,9 @@ export class Game {
             line.pokeSoft(1.4);
         }
         this.animations.addFloatingText(headPos.x, headPos.y, `+${points}`, '#ffffff', 22);
-        this.animations.addComboText(this.canvas.width / 2, this.canvas.height / 2, this.combo, 'Snake Combo');
+        if (comboTimerReward > 0) {
+            this.emitTimerEnergyFromPoint(headPos, energyBatchId, line.id, comboTimerReward);
+        }
         this.animations.startRemoveAnimation(line, this.grid, () => this.checkLevelComplete());
 
         this.hintLine = null;
@@ -309,7 +624,7 @@ export class Game {
 
     errorOnLine(line, distanceCells) {
         this.combo = 0;
-        this.lives = Math.max(0, this.lives - 1);
+        this.lastComboReleaseAt = 0;
         playErrorSound();
 
         if (this.onCollision) {
@@ -321,17 +636,46 @@ export class Game {
             line.pokeSoft(1.8);
         }
 
-        const center = this.grid.gridToScreen(this.grid.cols / 2, this.grid.rows * 0.72);
-        this.animations.addFloatingText(center.x, center.y, '-1 Life', '#5a3f33', 18, {
-            pill: true,
-            pillColor: '#ffe9dc',
-            life: 0.9,
-            vy: -30,
-            stroke: false
-        });
+        if (this.hasTimer && this.misclickPenaltySeconds > 0 && this.state === 'PLAYING') {
+            const prevTime = this.timeRemaining;
+            this.timeRemaining = Math.max(0, this.timeRemaining - this.misclickPenaltySeconds);
+            const deducted = prevTime - this.timeRemaining;
 
-        if (this.lives <= 0) {
-            setTimeout(() => this.gameOver('No lives left'), 450);
+            if (deducted > 0) {
+                const center = this.grid.gridToScreen(this.grid.cols / 2, this.grid.rows * 0.68);
+                this.animations.addFloatingText(center.x, center.y, `-${formatPenaltySecondsLabel(deducted)}`, '#8b2f4f', 18, {
+                    pill: true,
+                    pillColor: '#ffe1eb',
+                    life: 0.9,
+                    vy: -30,
+                    stroke: false
+                });
+                this.updateTimerUI();
+            }
+
+            if (prevTime > 0 && this.timeRemaining <= 0) {
+                setTimeout(() => {
+                    if (this.state === 'PLAYING') {
+                        this.gameOver('Time is up');
+                    }
+                }, 450);
+            }
+        }
+
+        if (this.lifeSystemEnabled) {
+            this.lives = Math.max(0, this.lives - 1);
+            const center = this.grid.gridToScreen(this.grid.cols / 2, this.grid.rows * 0.72);
+            this.animations.addFloatingText(center.x, center.y, '-1 Life', '#5a3f33', 18, {
+                pill: true,
+                pillColor: '#ffe9dc',
+                life: 0.9,
+                vy: -30,
+                stroke: false
+            });
+
+            if (this.lives <= 0) {
+                setTimeout(() => this.gameOver('No lives left'), 450);
+            }
         }
 
         this.updateHUD();
@@ -341,29 +685,43 @@ export class Game {
         const remaining = this.lines.filter((line) => line.state === 'active');
         if (remaining.length !== 0) return;
 
+        this.refreshLevelCatalog();
         this.state = 'LEVEL_COMPLETE';
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-        }
-
+        this.lastComboReleaseAt = 0;
+        this.resetEnergyBatches();
         playLevelCompleteSound();
         this.animations.addConfetti(this.canvas.width * 0.2, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
         this.animations.addConfetti(this.canvas.width * 0.5, this.canvas.height + 50, 100, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
         this.animations.addConfetti(this.canvas.width * 0.8, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
 
-        if (this.currentLevel >= this.maxUnlockedLevel) {
-            this.maxUnlockedLevel = this.currentLevel + 1;
+        if (this.isRewardStage) {
+            this.pendingRewardReturnLevel = null;
+            this.pendingRewardSourceLevel = null;
+            this.campaignCompleted = false;
+        } else {
+            const isFinalNormalLevel = this.currentLevel >= this.normalLevelCount;
+            if (this.currentLevel >= this.maxUnlockedLevel) {
+                this.maxUnlockedLevel = Math.min(this.normalLevelCount, this.currentLevel + 1);
+            }
+            if (!isFinalNormalLevel && this.rewardLevelCount > 0 && this.bestComboThisLevel > REWARD_COMBO_THRESHOLD) {
+                this.pendingRewardReturnLevel = normalizePlayableLevel(this.currentLevel + 1, this.normalLevelCount);
+                this.pendingRewardSourceLevel = normalizePlayableLevel(this.currentLevel, this.normalLevelCount);
+            } else {
+                this.pendingRewardReturnLevel = null;
+                this.pendingRewardSourceLevel = null;
+            }
+            this.campaignCompleted = isFinalNormalLevel;
+            this.saveProgress();
         }
-        this.saveProgress();
         this.showLevelComplete();
     }
 
     gameOver(reason) {
         this.state = 'GAME_OVER';
-        if (this.timerInterval) {
-            clearInterval(this.timerInterval);
-        }
-
+        this.lastComboReleaseAt = 0;
+        this.resetEnergyBatches();
+        this.dragReleaseActive = false;
+        this.dragReleaseLineIds.clear();
         playGameOverSound();
         this.animations.addConfetti(this.canvas.width / 2, this.canvas.height / 2, 60, ['#ff8ca8', '#ffd5a8', '#fff1d5'], 'star');
         this.showGameOver(reason);
@@ -401,8 +759,16 @@ export class Game {
         line.removeTint = null;
         this.grid.registerLine(line);
         this.combo = undo.combo;
+        this.lastComboReleaseAt = Number(undo.lastComboReleaseAt) || 0;
         this.score = undo.score;
         this.lives = undo.lives;
+        if (typeof undo.energyBatchId === 'number') {
+            this.cancelEnergyBatch(undo.energyBatchId);
+        }
+        if (typeof undo.timeRemaining === 'number') {
+            this.timeRemaining = this.clampTime(undo.timeRemaining);
+            this.updateTimerUI();
+        }
         this.updateHUD();
     }
 
@@ -432,6 +798,8 @@ export class Game {
     render(timestamp) {
         const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
         this.lastTime = timestamp;
+        this.consumeTimer(dt);
+        this.updateComboTimeout(timestamp);
         const globalIdleSeconds = this.state === 'PLAYING'
             ? Math.max(0, (timestamp - this.lastSnakeInteractionTime) / 1000)
             : 0;
@@ -618,6 +986,149 @@ export class Game {
         this.toolUses[type] = next;
     }
 
+    consumeTimer(dt) {
+        if (!this.hasTimer || this.state !== 'PLAYING') {
+            return;
+        }
+        const delta = Math.max(0, Number(dt) || 0);
+        if (delta <= 0) {
+            return;
+        }
+
+        const prev = this.timeRemaining;
+        this.timeRemaining = Math.max(0, this.timeRemaining - delta);
+        if (this.timeRemaining !== prev) {
+            this.updateTimerUI();
+        }
+
+        if (prev > 0 && this.timeRemaining <= 0) {
+            this.gameOver('Time is up');
+        }
+    }
+
+    updateComboTimeout(currentMs) {
+        if (this.state !== 'PLAYING') {
+            return;
+        }
+        if (this.combo <= 0 || this.lastComboReleaseAt <= 0) {
+            return;
+        }
+        if ((Number(currentMs) || 0) - this.lastComboReleaseAt <= this.comboWindowMs) {
+            return;
+        }
+
+        this.combo = 0;
+        this.lastComboReleaseAt = 0;
+        this.updateHUD();
+    }
+
+    createEnergyBatch() {
+        const batchId = this.energyBatchSeq++;
+        this.activeEnergyBatches.add(batchId);
+        return batchId;
+    }
+
+    isEnergyBatchActive(batchId) {
+        if (typeof batchId !== 'number') {
+            return true;
+        }
+        return this.activeEnergyBatches.has(batchId);
+    }
+
+    cancelEnergyBatch(batchId) {
+        if (typeof batchId !== 'number') {
+            return;
+        }
+        if (!this.activeEnergyBatches.delete(batchId)) {
+            return;
+        }
+        if (this.onTimerEnergyBatchCancel) {
+            this.onTimerEnergyBatchCancel(batchId);
+        }
+    }
+
+    resetEnergyBatches() {
+        if (this.activeEnergyBatches.size === 0) {
+            return;
+        }
+        this.activeEnergyBatches.clear();
+        if (this.onTimerEnergyClear) {
+            this.onTimerEnergyClear();
+        }
+    }
+
+    emitTimerEnergyFromPoint(point, batchId, lineId, seconds = 1) {
+        if (!this.hasTimer || !this.isEnergyBatchActive(batchId)) {
+            return;
+        }
+        const gainSeconds = Math.max(0, Number(seconds) || 0);
+        if (gainSeconds <= 0) {
+            return;
+        }
+        const payload = {
+            x: Number(point?.x) || 0,
+            y: Number(point?.y) || 0,
+            seconds: gainSeconds,
+            batchId,
+            lineId
+        };
+        if (this.onTimerEnergyEmit) {
+            this.onTimerEnergyEmit(payload);
+            return;
+        }
+        this.collectTimerEnergy(payload.seconds, payload.batchId, payload.lineId);
+    }
+
+    collectTimerEnergy(seconds = 1, batchId = null, lineId = null) {
+        if (!this.hasTimer || this.state !== 'PLAYING') {
+            return 0;
+        }
+        if (!this.isEnergyBatchActive(batchId)) {
+            return 0;
+        }
+        if (typeof lineId === 'number') {
+            const line = this.lines.find((item) => item.id === lineId);
+            if (line?.state === 'active') {
+                return 0;
+            }
+        }
+
+        const gain = Math.max(0, Number(seconds) || 0);
+        if (gain <= 0) {
+            return 0;
+        }
+
+        const prev = this.timeRemaining;
+        this.timeRemaining = this.clampTime(this.timeRemaining + gain);
+        const actualGain = this.timeRemaining - prev;
+        if (actualGain > 0) {
+            this.updateTimerUI();
+        }
+        return actualGain;
+    }
+
+    clampTime(seconds) {
+        const value = Math.max(0, Number(seconds) || 0);
+        if (!this.hasTimer || this.maxTimeRemaining <= 0) {
+            return 0;
+        }
+        return Math.min(this.maxTimeRemaining, value);
+    }
+
+    getComboTimerReward(comboCount = this.combo) {
+        const combo = Math.max(0, Math.floor(Number(comboCount) || 0));
+        if (combo <= 10) {
+            return 0;
+        }
+        if (combo <= 50) {
+            return 1;
+        }
+        if (combo <= 100) {
+            return 2;
+        }
+        return 3;
+    }
+
     updateTimerUI() {
         if (this.onTimerUpdate) {
             this.onTimerUpdate();
@@ -637,10 +1148,24 @@ export class Game {
     }
 }
 
+function normalizePlayableLevel(value, maxLevel = getNormalLevelCount()) {
+    const safeMaxLevel = Math.max(1, Math.floor(Number(maxLevel) || 1));
+    const level = Math.floor(Number(value) || 0);
+    if (!Number.isFinite(level) || level < 1) {
+        return 1;
+    }
+    return Math.min(safeMaxLevel, level);
+}
+
 function nowMs() {
     return typeof performance !== 'undefined' && typeof performance.now === 'function'
         ? performance.now()
         : Date.now();
+}
+
+function formatPenaltySecondsLabel(value) {
+    const seconds = Math.max(0, Math.round(Number(value) || 0));
+    return `${seconds}s`;
 }
 
 function isLevelSolvable(lines, config) {
@@ -818,5 +1343,7 @@ function distanceToSegment(px, py, start, end) {
     const projY = start.y + t * dy;
     return distance(px, py, projX, projY);
 }
+
+
 
 

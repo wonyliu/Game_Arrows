@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=61">
+    <link rel="stylesheet" href="css/style.css?v=63">
 </head>
 <body>
     <div class="app-container">
@@ -44,7 +44,15 @@
                 <div class="hud-center">
                     <div id="levelInfo" class="hud-level">Burrow 1</div>
                     <div id="lives" class="hud-lives"></div>
-                    <div id="timer" class="hud-timer hidden">10m00s</div>
+                    <div class="hud-status-row">
+                        <div id="timer" class="hud-timer hidden" role="progressbar" aria-label="countdown">
+                            <div class="hud-timer-track">
+                                <div id="timerFill" class="hud-timer-fill"></div>
+                            </div>
+                            <div id="timerLabel" class="hud-timer-label">10m00s</div>
+                        </div>
+                        <div id="comboDisplay" class="hud-combo hidden">5 combo</div>
+                    </div>
                 </div>
             </div>
 
@@ -64,6 +72,8 @@
                     </button>
                 </div>
             </div>
+
+            <div id="hudEnergyLayer" class="hud-energy-layer"></div>
         </div>
 
         <div id="menuOverlay" class="overlay">
@@ -307,7 +317,7 @@
         <div id="errorVignette" class="error-vignette"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=91"></script>
+    <script type="module" src="js/main.js?v=104"></script>
 </body>
 </html>
 

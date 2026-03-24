@@ -1,6 +1,6 @@
 import { buildPlayableLevelRecord } from './level-builder.js?v=48';
-import { getBaseLevelConfig } from './levels.js?v=28';
-import { buildStoredSettings } from './level-storage.js?v=48';
+import { getBaseLevelConfig } from './levels.js?v=32';
+import { buildStoredSettings } from './level-storage.js?v=55';
 
 const DEFAULT_PRELOAD_MODE = 1;
 
@@ -47,3 +47,5 @@ function normalizeMode(value) {
     const mode = Math.floor(Number(value) || DEFAULT_PRELOAD_MODE);
     return Number.isFinite(mode) ? mode : DEFAULT_PRELOAD_MODE;
 }
+
+

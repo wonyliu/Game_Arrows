@@ -2,10 +2,18 @@ import { Line } from './line.js?v=43';
 
 const SAVED_LEVELS_KEY = 'arrowClear_savedLevels_v1';
 const PREVIEW_LEVELS_KEY = 'arrowClear_previewLevels_v1';
+const LEVEL_CATALOG_KEY = 'arrowClear_levelCatalog_v1';
 const SAVED_LEVELS_FILE = 'saved-levels-v1';
 const PREVIEW_LEVELS_FILE = 'preview-levels-v1';
+const LEVEL_CATALOG_FILE = 'level-catalog-v1';
 const STORAGE_API_BASE = '/api/storage';
 const VALID_DIRECTIONS = new Set(['up', 'down', 'left', 'right']);
+const MAX_LEVEL_DISPLAY_NAME_LENGTH = 28;
+const MAX_ARROW_LENGTH = 999;
+const DEFAULT_LEVEL_CATALOG = Object.freeze({
+    normalCount: 100,
+    rewardCount: 1
+});
 
 const DEFAULT_PLAYFIELD = {
     width: 430,
@@ -14,6 +22,7 @@ const DEFAULT_PLAYFIELD = {
 
 let savedLevelsCache = readMap(SAVED_LEVELS_KEY);
 let previewLevelsCache = readMap(PREVIEW_LEVELS_KEY);
+let levelCatalogCache = readCatalog(LEVEL_CATALOG_KEY);
 let storageInitPromise = null;
 let serverSyncWarned = false;
 
@@ -46,31 +55,60 @@ export function deriveGridSize(dimensionMode, dimensionValue) {
 }
 
 export function buildStoredSettings(baseConfig, overrides = {}) {
-    const dimensionMode = overrides.dimensionMode || 'rows';
-    const fallbackValue = dimensionMode === 'cols' ? baseConfig.gridCols : baseConfig.gridRows;
+    const rawDimensionMode = `${overrides.dimensionMode || 'rows'}`.toLowerCase();
+    const dimensionMode = rawDimensionMode === 'cols' || rawDimensionMode === 'custom'
+        ? rawDimensionMode
+        : 'rows';
+    const fallbackGridCols = clamp(Math.round(Number(baseConfig.gridCols) || 18), 4, 40);
+    const fallbackGridRows = clamp(Math.round(Number(baseConfig.gridRows) || 26), 4, 40);
+    const fallbackValue = dimensionMode === 'cols' ? fallbackGridCols : fallbackGridRows;
     const dimensionValue = clamp(Math.round(Number(overrides.dimensionValue ?? fallbackValue) || fallbackValue), 4, 40);
-    const grid = deriveGridSize(dimensionMode, dimensionValue);
+    const customGridCols = clamp(
+        Math.round(Number(overrides.customGridCols ?? baseConfig.customGridCols ?? fallbackGridCols) || fallbackGridCols),
+        4,
+        40
+    );
+    const customGridRows = clamp(
+        Math.round(Number(overrides.customGridRows ?? baseConfig.customGridRows ?? fallbackGridRows) || fallbackGridRows),
+        4,
+        40
+    );
+    const grid = dimensionMode === 'custom'
+        ? { gridCols: customGridCols, gridRows: customGridRows }
+        : deriveGridSize(dimensionMode, dimensionValue);
+    const maxCells = Math.max(2, grid.gridCols * grid.gridRows);
+    const maxLenUpperBound = Math.min(MAX_ARROW_LENGTH, maxCells);
     const minLen = clamp(Math.round(Number(overrides.minLen ?? baseConfig.minLen) || baseConfig.minLen), 2, 12);
     const maxLen = clamp(
         Math.round(Number(overrides.maxLen ?? baseConfig.maxLen) || baseConfig.maxLen),
         minLen,
-        16
+        maxLenUpperBound
     );
     const timerSeconds = clamp(
         Math.round(Number(overrides.timerSeconds ?? baseConfig.timerSeconds) || 0),
         0,
         7200
     );
+    const misclickPenaltySeconds = clamp(
+        Math.round(Number(overrides.misclickPenaltySeconds ?? baseConfig.misclickPenaltySeconds ?? 1) || 0),
+        0,
+        120
+    );
+    const displayName = sanitizeLevelDisplayName(overrides.displayName ?? baseConfig.displayName ?? '');
 
     return {
         level: baseConfig.level,
         dimensionMode,
-        dimensionValue,
+        dimensionValue: dimensionMode === 'custom' ? grid.gridRows : dimensionValue,
+        customGridCols: grid.gridCols,
+        customGridRows: grid.gridRows,
         gridCols: grid.gridCols,
         gridRows: grid.gridRows,
         minLen,
         maxLen,
-        timerSeconds
+        timerSeconds,
+        misclickPenaltySeconds,
+        displayName
     };
 }
 
@@ -88,6 +126,7 @@ export function applyStoredSettings(baseConfig, storedSettings = null) {
         ...settings,
         hasTimer: settings.timerSeconds > 0,
         timerSeconds: settings.timerSeconds,
+        misclickPenaltySeconds: settings.misclickPenaltySeconds,
         lineCount: estimateLineCount(settings.gridCols, settings.gridRows, settings.minLen, settings.maxLen),
         fillRatio: 1,
         maxCellUsage: 1
@@ -229,6 +268,19 @@ export function getMaxStoredLevel() {
     return maxLevel;
 }
 
+export function getLevelCatalog() {
+    return { ...levelCatalogCache };
+}
+
+export function saveLevelCatalog(catalog) {
+    levelCatalogCache = normalizeLevelCatalog({
+        ...(isPlainObject(catalog) ? catalog : {}),
+        updatedAt: new Date().toISOString()
+    });
+    writeCatalog(LEVEL_CATALOG_KEY, levelCatalogCache);
+    return persistMapToServer(LEVEL_CATALOG_FILE, levelCatalogCache);
+}
+
 export function savePreviewLevelRecord(level, record) {
     previewLevelsCache = {
         ...previewLevelsCache,
@@ -246,19 +298,25 @@ export function deletePreviewLevelRecord(level) {
 }
 
 async function hydrateFromServer() {
-    const [savedRemote, previewRemote] = await Promise.all([
+    const [savedRemote, previewRemote, catalogRemote] = await Promise.all([
         fetchMapFromServer(SAVED_LEVELS_FILE),
-        fetchMapFromServer(PREVIEW_LEVELS_FILE)
+        fetchMapFromServer(PREVIEW_LEVELS_FILE),
+        fetchMapFromServer(LEVEL_CATALOG_FILE)
     ]);
 
     if (savedRemote) {
-        savedLevelsCache = savedRemote;
+        savedLevelsCache = mergeLevelMaps(savedRemote, savedLevelsCache);
         writeMap(SAVED_LEVELS_KEY, savedLevelsCache);
     }
 
     if (previewRemote) {
-        previewLevelsCache = previewRemote;
+        previewLevelsCache = mergeLevelMaps(previewRemote, previewLevelsCache);
         writeMap(PREVIEW_LEVELS_KEY, previewLevelsCache);
+    }
+
+    if (catalogRemote) {
+        levelCatalogCache = mergeCatalog(catalogRemote, levelCatalogCache);
+        writeCatalog(LEVEL_CATALOG_KEY, levelCatalogCache);
     }
 }
 
@@ -267,23 +325,22 @@ async function fetchMapFromServer(name) {
         return null;
     }
 
-    // GitHub Pages/static hosting: prefer committed JSON files in repo.
+    if (canUseApiStorage()) {
+        const serverData = await tryFetchMap(`${STORAGE_API_BASE}/${name}`);
+        if (serverData) {
+            return serverData;
+        }
+    }
+
+    // Static fallback for environments without storage API.
     const staticData = await tryFetchMap(resolveStaticStorageUrl(name));
     if (staticData) {
         return staticData;
     }
 
-    // Local dev server/backend storage API.
-    if (!canUseApiStorage()) {
-        return null;
+    if (canUseApiStorage()) {
+        warnServerUnavailable(new Error(`storage fetch failed for ${name}`));
     }
-
-    const serverData = await tryFetchMap(`${STORAGE_API_BASE}/${name}`);
-    if (serverData) {
-        return serverData;
-    }
-
-    warnServerUnavailable(new Error(`storage fetch failed for ${name}`));
     return null;
 }
 
@@ -363,6 +420,31 @@ function writeMap(key, value) {
     }
 }
 
+function readCatalog(key) {
+    if (typeof localStorage === 'undefined') {
+        return normalizeLevelCatalog(null);
+    }
+
+    try {
+        const parsed = JSON.parse(localStorage.getItem(key) || 'null');
+        return normalizeLevelCatalog(parsed);
+    } catch {
+        return normalizeLevelCatalog(null);
+    }
+}
+
+function writeCatalog(key, value) {
+    if (typeof localStorage === 'undefined') {
+        return;
+    }
+
+    try {
+        localStorage.setItem(key, JSON.stringify(normalizeLevelCatalog(value)));
+    } catch (error) {
+        console.warn('[level-storage] failed to write level catalog', error);
+    }
+}
+
 function canUseFetchStorage() {
     return typeof window !== 'undefined' && typeof fetch === 'function';
 }
@@ -413,11 +495,73 @@ function isPrivateIpv4Host(host) {
     return false;
 }
 
+function mergeLevelMaps(remoteMap, localMap) {
+    const merged = isPlainObject(remoteMap) ? { ...remoteMap } : {};
+    const local = isPlainObject(localMap) ? localMap : {};
+
+    for (const [key, localRecord] of Object.entries(local)) {
+        const remoteRecord = merged[key];
+        if (!isPlainObject(remoteRecord)) {
+            merged[key] = localRecord;
+            continue;
+        }
+
+        const localTs = parseUpdatedAtMs(localRecord?.updatedAt);
+        const remoteTs = parseUpdatedAtMs(remoteRecord?.updatedAt);
+
+        // Prefer newer record; if timestamps are unavailable or equal, keep local to avoid
+        // losing unsynced admin edits after reload.
+        if (localTs >= remoteTs) {
+            merged[key] = localRecord;
+        }
+    }
+
+    return merged;
+}
+
+function mergeCatalog(remoteCatalog, localCatalog) {
+    const remote = normalizeLevelCatalog(remoteCatalog);
+    const local = normalizeLevelCatalog(localCatalog);
+    const localTs = parseUpdatedAtMs(local.updatedAt);
+    const remoteTs = parseUpdatedAtMs(remote.updatedAt);
+    return localTs >= remoteTs ? local : remote;
+}
+
+function parseUpdatedAtMs(value) {
+    const ms = Date.parse(String(value || ''));
+    return Number.isFinite(ms) ? ms : 0;
+}
+
 function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function sanitizeLevelDisplayName(value) {
+    const text = `${value ?? ''}`.trim();
+    if (!text) {
+        return '';
+    }
+    return text.slice(0, MAX_LEVEL_DISPLAY_NAME_LENGTH);
+}
+
+function normalizeLevelCatalog(catalog) {
+    const value = isPlainObject(catalog) ? catalog : {};
+    const normalCount = clamp(
+        Math.round(Number(value.normalCount ?? DEFAULT_LEVEL_CATALOG.normalCount) || DEFAULT_LEVEL_CATALOG.normalCount),
+        1,
+        1000
+    );
+    const rewardCount = clamp(
+        Math.round(Number(value.rewardCount ?? DEFAULT_LEVEL_CATALOG.rewardCount) || 0),
+        0,
+        200
+    );
+    const updatedAt = typeof value.updatedAt === 'string' ? value.updatedAt : '';
+    return { normalCount, rewardCount, updatedAt };
 }
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
+
 

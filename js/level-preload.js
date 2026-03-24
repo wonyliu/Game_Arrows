@@ -2,7 +2,8 @@ import {
     getSavedLevelRecord,
     isStoredLevelRecordUsable,
     saveSavedLevelRecord
-} from './level-storage.js?v=48';
+} from './level-storage.js?v=55';
+import { getNormalLevelCount } from './levels.js?v=32';
 
 const PRELOAD_MODE = 1;
 const MAX_PRELOAD_LEVEL = 1000;
@@ -20,7 +21,7 @@ const LOG_TAG = '[level-preload]';
 
 export async function preloadCurrentPlayableLevels(maxUnlockedLevel, options = {}) {
     const onProgress = typeof options.onProgress === 'function' ? options.onProgress : null;
-    const targetLevel = normalizeLevel(maxUnlockedLevel);
+    const targetLevel = normalizeLevel(maxUnlockedLevel, getNormalLevelCount());
 
     if (targetLevel < 1) {
         onProgress?.({ done: 1, total: 1, level: 0, source: 'skip' });
@@ -59,7 +60,8 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
         }
         running = true;
         try {
-            const unlockedLevel = normalizeLevel(getUnlockedLevel?.());
+            const maxCampaignLevel = Math.max(1, getNormalLevelCount());
+            const unlockedLevel = normalizeLevel(getUnlockedLevel?.(), maxCampaignLevel);
             if (unlockedLevel < 1) {
                 return;
             }
@@ -80,8 +82,8 @@ export function startNextUnlockPreload(getUnlockedLevel, options = {}) {
                 }
             }
 
-            const nextLevel = normalizeLevel(unlockedLevel + 1);
-            if (nextLevel < 1) {
+            const nextLevel = normalizeLevel(unlockedLevel + 1, maxCampaignLevel);
+            if (nextLevel <= unlockedLevel) {
                 satisfiedUnlockedLevel = unlockedLevel;
                 return;
             }
@@ -158,7 +160,7 @@ function enqueueEnsureLevel(level) {
 }
 
 function ensureLevelCached(level) {
-    const targetLevel = normalizeLevel(level);
+    const targetLevel = normalizeLevel(level, getNormalLevelCount());
     if (targetLevel < 1) {
         return Promise.resolve(null);
     }
@@ -214,12 +216,17 @@ function getWorker() {
     if (workerRef) {
         return workerRef;
     }
+    // Worker context has no localStorage, so dynamic catalog counts can be stale there.
+    // Fall back to main-thread generation when campaign count differs from the legacy default.
+    if (getNormalLevelCount() !== 100) {
+        return null;
+    }
     if (typeof Worker === 'undefined') {
         return null;
     }
 
     try {
-        const workerUrl = new URL('./level-preload-worker.js?v=5', import.meta.url);
+        const workerUrl = new URL('./level-preload-worker.js?v=6', import.meta.url);
         workerRef = new Worker(workerUrl, { type: 'module' });
         workerRef.addEventListener('message', onWorkerMessage);
         workerRef.addEventListener('error', onWorkerError);
@@ -264,8 +271,8 @@ function onWorkerError(error) {
 async function buildRecordOnMainThread(level) {
     const [{ buildPlayableLevelRecord }, { getBaseLevelConfig }, { buildStoredSettings }] = await Promise.all([
         import('./level-builder.js?v=48'),
-        import('./levels.js?v=28'),
-        import('./level-storage.js?v=48')
+        import('./levels.js?v=32'),
+        import('./level-storage.js?v=55')
     ]);
 
     const baseConfig = getBaseLevelConfig(level);
@@ -279,9 +286,10 @@ async function buildRecordOnMainThread(level) {
     return buildPlayableLevelRecord(baseConfig, settings, PRELOAD_MODE);
 }
 
-function normalizeLevel(value) {
+function normalizeLevel(value, maxLevel = MAX_PRELOAD_LEVEL) {
+    const max = Math.max(0, Math.min(MAX_PRELOAD_LEVEL, Math.floor(Number(maxLevel) || MAX_PRELOAD_LEVEL)));
     const level = Math.floor(Number(value) || 0);
-    return Math.max(0, Math.min(MAX_PRELOAD_LEVEL, level));
+    return Math.max(0, Math.min(max, level));
 }
 
 function hasUsableCachedLevel(level) {
@@ -322,3 +330,5 @@ function yieldToUi(source) {
         setTimeout(() => resolve(source), 0);
     });
 }
+
+
