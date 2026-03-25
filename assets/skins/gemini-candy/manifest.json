@@ -1,0 +1,22 @@
+{
+  "skinId": "gemini-candy",
+  "generatedAt": "2026-03-24T06:04:52.940176+00:00",
+  "source": "Gemini image generation output in temp directory",
+  "inputs": {
+    "head": "temp\\snake_head_gemini.png",
+    "body_straight": "temp\\snake_body_straight_gemini.png",
+    "body_corner": "temp\\snake_body_corner_gemini.png",
+    "tail": "temp\\snake_tail_gemini.png"
+  },
+  "outputs": [
+    "snake_head.png",
+    "snake_head_curious.png",
+    "snake_head_sleepy.png",
+    "snake_head_surprised.png",
+    "snake_seg_a.png",
+    "snake_seg_b.png",
+    "snake_tail_base.png",
+    "snake_tail_tip.png"
+  ],
+  "notes": "Background cleaned from checkerboard and resized to in-game target dimensions."
+}

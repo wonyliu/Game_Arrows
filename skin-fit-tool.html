@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake Skin Fit Tool</title>
+    <style>
+        :root {
+            --bg: #171421;
+            --panel: #211d2e;
+            --text: #f4f1ff;
+            --muted: #b9b2d1;
+            --accent: #7ee6ff;
+            --line: #3a3352;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+            background: radial-gradient(circle at 20% 10%, #2a2440, var(--bg) 48%);
+            color: var(--text);
+        }
+        .page {
+            max-width: 1320px;
+            margin: 0 auto;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 16px;
+        }
+        .panel {
+            background: color-mix(in srgb, var(--panel) 92%, black 8%);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+        }
+        h1 {
+            margin: 0 0 10px;
+            font-size: 20px;
+        }
+        .hint {
+            margin: 0 0 10px;
+            color: var(--muted);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 6px;
+        }
+        select, input[type="number"], textarea {
+            width: 100%;
+            background: #161324;
+            color: var(--text);
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            padding: 8px;
+            margin-bottom: 10px;
+        }
+        .row {
+            display: grid;
+            grid-template-columns: 1fr 88px;
+            gap: 8px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        input[type="range"] {
+            width: 100%;
+            margin: 0;
+        }
+        .buttons {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+        button, .link-btn {
+            border: 1px solid var(--line);
+            background: #161324;
+            color: var(--text);
+            border-radius: 8px;
+            padding: 8px 10px;
+            cursor: pointer;
+            text-decoration: none;
+            text-align: center;
+            font-size: 13px;
+        }
+        button.primary {
+            background: #183646;
+            border-color: #2d7e97;
+            color: #d5f8ff;
+        }
+        canvas {
+            width: 100%;
+            max-width: 900px;
+            aspect-ratio: 16 / 10;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            background: #0d0b14;
+            display: block;
+        }
+        .status {
+            margin-top: 8px;
+            color: #9df2c0;
+            min-height: 18px;
+            font-size: 12px;
+        }
+        textarea {
+            min-height: 140px;
+            resize: vertical;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 12px;
+        }
+        @media (max-width: 980px) {
+            .page { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+<div class="page">
+    <section class="panel">
+        <h1>皮肤遮罩对齐工具</h1>
+        <p class="hint">用途：调每个部件的主体大小和偏移（scale / x / y），保存后游戏直接读取。不会改颜色。</p>
+        <label for="skinSelect">皮肤</label>
+        <select id="skinSelect"></select>
+
+        <label for="partSelect">部件</label>
+        <select id="partSelect"></select>
+
+        <label>Scale</label>
+        <div class="row">
+            <input id="scaleRange" type="range" min="0.8" max="1.4" step="0.002" />
+            <input id="scaleNumber" type="number" min="0.8" max="1.4" step="0.002" />
+        </div>
+
+        <label>Offset X (相对宽度)</label>
+        <div class="row">
+            <input id="offsetXRange" type="range" min="-0.35" max="0.35" step="0.002" />
+            <input id="offsetXNumber" type="number" min="-0.35" max="0.35" step="0.002" />
+        </div>
+
+        <label>Offset Y (相对高度)</label>
+        <div class="row">
+            <input id="offsetYRange" type="range" min="-0.35" max="0.35" step="0.002" />
+            <input id="offsetYNumber" type="number" min="-0.35" max="0.35" step="0.002" />
+        </div>
+
+        <label>蒙版透明度 (0-100)</label>
+        <div class="row">
+            <input id="maskAlphaRange" type="range" min="0" max="100" step="1" />
+            <input id="maskAlphaNumber" type="number" min="0" max="100" step="1" />
+        </div>
+
+        <div class="buttons">
+            <button id="btnLoadConfig">加载配置默认</button>
+            <button id="btnLoadEffective">加载当前生效</button>
+            <button id="btnSavePart" class="primary">保存当前部件</button>
+            <button id="btnResetPart">重置当前部件</button>
+            <button id="btnResetSkin">清空当前皮肤覆盖</button>
+            <a class="link-btn" href="./index.html" target="_blank">打开游戏页</a>
+        </div>
+
+        <label for="overrideOutput">覆盖参数 JSON（本地存储）</label>
+        <textarea id="overrideOutput" spellcheck="false"></textarea>
+        <div class="buttons">
+            <button id="btnImportJson">从文本导入</button>
+            <button id="btnCopyJson">复制 JSON</button>
+        </div>
+        <p id="statusText" class="status"></p>
+    </section>
+
+    <section class="panel">
+        <p class="hint">可视化说明：青色区域=经典遮罩，白线=遮罩边界。通过“蒙版透明度”控制遮罩可见度。</p>
+        <canvas id="previewCanvas" width="960" height="600"></canvas>
+    </section>
+</div>
+<script type="module" src="./js/skin-fit-tool.js?v=3"></script>
+</body>
+</html>

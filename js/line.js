@@ -1,5 +1,5 @@
 import { DIR_VECTORS } from './grid.js?v=40';
-import { drawArrowPathPixels } from './pixel-art.js?v=22';
+import { drawArrowPathPixels } from './pixel-art.js?v=29';
 
 export class Line {
     constructor(id, cells, direction, color = '#1a1c3d') {
@@ -7,6 +7,7 @@ export class Line {
         this.cells = cells;
         this.direction = direction;
         this.color = color;
+        this.colorVariantIndex = null;
         this.state = 'active';
         this.zIndex = id;
         this.opacity = 1;
@@ -78,6 +79,7 @@ export class Line {
                 alpha: this.opacity,
                 style: pickPixelStyle(this, strokeColor),
                 lineId: this.id,
+                colorVariantIndex: this.colorVariantIndex,
                 wiggleTime: this.wiggleTime,
                 softPulse: this.softPulse,
                 headExpression: this.headExpression
@@ -202,6 +204,7 @@ export class Line {
                     alpha: trail.opacity * 0.22,
                     style: 'remove',
                     lineId: this.id,
+                    colorVariantIndex: this.colorVariantIndex,
                     wiggleTime: this.wiggleTime + 0.5,
                     softPulse: this.softPulse * 0.5
                 });

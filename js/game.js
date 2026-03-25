@@ -1,5 +1,5 @@
 import { Grid } from './grid.js?v=24';
-import { Line } from './line.js?v=45';
+import { Line } from './line.js?v=48';
 import { canMove, findMovableLines } from './collision.js?v=19';
 import {
     BONUS_LEVEL_ID,
@@ -8,7 +8,7 @@ import {
     getRewardLevelCount,
     toRewardLevelId
 } from './levels.js?v=32';
-import { AnimationManager } from './animation.js?v=30';
+import { AnimationManager } from './animation.js?v=33';
 import { buildPlayableLevel } from './level-builder.js?v=48';
 import {
     deserializeLevelData,
@@ -21,8 +21,16 @@ import {
     playGameOverSound,
     playLevelCompleteSound,
     resumeAudio
-} from './audio.js?v=20';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=22';
+} from './audio.js?v=21';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=29';
+import {
+    SCORE_PER_COIN,
+    ensureSelectedSkin,
+    getDefaultSkinId,
+    getSkinById,
+    getSkinCatalog as getSkinCatalogList,
+    normalizeUnlockedSkins
+} from './skins.js?v=6';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
@@ -50,6 +58,8 @@ export class Game {
         this.lives = 0;
         this.maxLives = 0;
         this.score = 0;
+        this.coins = 0;
+        this.lastCoinReward = 0;
         this.combo = 0;
         this.comboWindowMs = 3000;
         this.lastComboReleaseAt = 0;
@@ -67,6 +77,8 @@ export class Game {
         this.defaultToolUses = { ...DEFAULT_TOOL_USES };
         this.toolUses = { ...DEFAULT_TOOL_USES };
         this.pixelTheme = null;
+        this.unlockedSkinIds = [...normalizeUnlockedSkins()];
+        this.selectedSkinId = getDefaultSkinId();
         this.isRewardStage = false;
         this.rewardReturnLevel = null;
         this.rewardSourceLevel = null;
@@ -109,9 +121,17 @@ export class Game {
                 data.currentLevel || 1,
                 Math.max(1, this.maxUnlockedLevel)
             );
+            this.coins = Math.max(0, Math.floor(Number(data.coins) || 0));
+            this.unlockedSkinIds = normalizeUnlockedSkins(data.unlockedSkinIds);
+            this.selectedSkinId = ensureSelectedSkin(data.selectedSkinId, this.unlockedSkinIds);
+            this.lastCoinReward = 0;
         } catch {
             this.maxUnlockedLevel = 1;
             this.currentLevel = 1;
+            this.coins = 0;
+            this.lastCoinReward = 0;
+            this.unlockedSkinIds = normalizeUnlockedSkins();
+            this.selectedSkinId = getDefaultSkinId();
         }
     }
 
@@ -121,10 +141,17 @@ export class Game {
         const cappedCurrent = this.isRewardStage
             ? normalizePlayableLevel(this.rewardSourceLevel || 1, cappedUnlocked)
             : normalizePlayableLevel(this.currentLevel || 1, cappedUnlocked);
+        const normalizedUnlockedSkins = normalizeUnlockedSkins(this.unlockedSkinIds);
+        const selectedSkinId = ensureSelectedSkin(this.selectedSkinId, normalizedUnlockedSkins);
         this.maxUnlockedLevel = cappedUnlocked;
+        this.unlockedSkinIds = normalizedUnlockedSkins;
+        this.selectedSkinId = selectedSkinId;
         localStorage.setItem('arrowClear_progress', JSON.stringify({
             maxUnlockedLevel: cappedUnlocked,
-            currentLevel: cappedCurrent
+            currentLevel: cappedCurrent,
+            coins: Math.max(0, Math.floor(Number(this.coins) || 0)),
+            unlockedSkinIds: normalizedUnlockedSkins,
+            selectedSkinId
         }));
     }
 
@@ -231,6 +258,91 @@ export class Game {
         return this.normalLevelCount;
     }
 
+    getCoins() {
+        return Math.max(0, Math.floor(Number(this.coins) || 0));
+    }
+
+    getLastCoinReward() {
+        return Math.max(0, Math.floor(Number(this.lastCoinReward) || 0));
+    }
+
+    getScorePerCoin() {
+        return SCORE_PER_COIN;
+    }
+
+    getSkinCatalog() {
+        return getSkinCatalogList();
+    }
+
+    getSelectedSkinId() {
+        return this.selectedSkinId;
+    }
+
+    isSkinUnlocked(skinId) {
+        const skin = getSkinById(skinId);
+        return this.unlockedSkinIds.includes(skin.id);
+    }
+
+    canUnlockSkin(skinId) {
+        const skin = getSkinById(skinId);
+        if (this.isSkinUnlocked(skin.id)) {
+            return false;
+        }
+        const cost = Math.max(0, Math.floor(Number(skin.coinCost) || 0));
+        return this.getCoins() >= cost;
+    }
+
+    unlockSkin(skinId) {
+        const skin = getSkinById(skinId);
+        const cost = Math.max(0, Math.floor(Number(skin.coinCost) || 0));
+        if (this.isSkinUnlocked(skin.id)) {
+            return {
+                ok: false,
+                reason: 'already-unlocked',
+                skinId: skin.id,
+                coins: this.getCoins(),
+                coinCost: cost
+            };
+        }
+        if (this.getCoins() < cost) {
+            return {
+                ok: false,
+                reason: 'not-enough-coins',
+                skinId: skin.id,
+                coins: this.getCoins(),
+                coinCost: cost
+            };
+        }
+
+        this.coins = Math.max(0, this.getCoins() - cost);
+        this.unlockedSkinIds = normalizeUnlockedSkins([...this.unlockedSkinIds, skin.id]);
+        this.selectedSkinId = skin.id;
+        this.saveProgress();
+        this.rebuildPixelScene();
+        this.updateHUD();
+        return {
+            ok: true,
+            skinId: skin.id,
+            coins: this.getCoins(),
+            coinCost: cost
+        };
+    }
+
+    selectSkin(skinId) {
+        const skin = getSkinById(skinId);
+        if (!this.isSkinUnlocked(skin.id)) {
+            return false;
+        }
+        if (this.selectedSkinId === skin.id) {
+            return true;
+        }
+        this.selectedSkinId = skin.id;
+        this.saveProgress();
+        this.rebuildPixelScene();
+        this.updateHUD();
+        return true;
+    }
+
     isCampaignCompleted() {
         return !this.isRewardStage && !!this.campaignCompleted;
     }
@@ -303,6 +415,7 @@ export class Game {
         this.lives = this.lifeSystemEnabled ? config.lives : 0;
         this.maxLives = this.lifeSystemEnabled ? config.lives : 0;
         this.score = 0;
+        this.lastCoinReward = 0;
         this.combo = 0;
         this.bestComboThisLevel = 0;
         this.lastComboReleaseAt = 0;
@@ -612,7 +725,15 @@ export class Game {
         if (typeof line.pokeSoft === 'function') {
             line.pokeSoft(1.4);
         }
-        this.animations.addFloatingText(headPos.x, headPos.y, `+${points}`, '#ffffff', 22);
+        if (this.onScoreGain) {
+            this.onScoreGain({
+                gained: points,
+                score: this.score,
+                combo: this.combo
+            });
+        } else {
+            this.animations.addFloatingText(headPos.x, headPos.y, `+${points}`, '#ffffff', 22);
+        }
         if (comboTimerReward > 0) {
             this.emitTimerEnergyFromPoint(headPos, energyBatchId, line.id, comboTimerReward);
         }
@@ -682,6 +803,10 @@ export class Game {
     }
 
     checkLevelComplete() {
+        // Multiple remove-animation callbacks can arrive after a level is already settled.
+        // Only settle rewards once while actively playing.
+        if (this.state !== 'PLAYING') return;
+
         const remaining = this.lines.filter((line) => line.state === 'active');
         if (remaining.length !== 0) return;
 
@@ -690,9 +815,11 @@ export class Game {
         this.lastComboReleaseAt = 0;
         this.resetEnergyBatches();
         playLevelCompleteSound();
-        this.animations.addConfetti(this.canvas.width * 0.2, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
-        this.animations.addConfetti(this.canvas.width * 0.5, this.canvas.height + 50, 100, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
-        this.animations.addConfetti(this.canvas.width * 0.8, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
+        const coinsEarned = Math.floor(Math.max(0, this.score) / SCORE_PER_COIN);
+        this.lastCoinReward = coinsEarned;
+        if (coinsEarned > 0) {
+            this.coins += coinsEarned;
+        }
 
         if (this.isRewardStage) {
             this.pendingRewardReturnLevel = null;
@@ -711,8 +838,8 @@ export class Game {
                 this.pendingRewardSourceLevel = null;
             }
             this.campaignCompleted = isFinalNormalLevel;
-            this.saveProgress();
         }
+        this.saveProgress();
         this.showLevelComplete();
     }
 
@@ -884,7 +1011,7 @@ export class Game {
         }
 
         const dpr = window.devicePixelRatio || 1;
-        const atlas = buildGameSpriteAtlas(this.grid.cellSize, dpr);
+        const atlas = buildGameSpriteAtlas(this.grid.cellSize, dpr, 'moleFamily', this.selectedSkinId);
         const tileKeys = ['tileBase', 'tileVar1', 'tileVar2'];
         const tileSprite = atlas.sprites.tileBase;
         const tileSize = Math.max(8, tileSprite.width);
@@ -923,6 +1050,28 @@ export class Game {
         }
 
         this.pixelTheme = { atlas, tiles, decor };
+        this.assignLineColorVariants();
+    }
+
+    assignLineColorVariants() {
+        if (!Array.isArray(this.lines) || this.lines.length === 0) {
+            return;
+        }
+
+        const atlas = this.pixelTheme?.atlas;
+        const variantCount = Array.isArray(atlas?.snakeColorVariants) ? atlas.snakeColorVariants.length : 0;
+        if (!atlas || atlas.skinAllowHueVariants === false || variantCount <= 1) {
+            for (const line of this.lines) {
+                line.colorVariantIndex = null;
+            }
+            return;
+        }
+
+        const assignment = buildLineColorVariantAssignment(this.lines, variantCount);
+        for (const line of this.lines) {
+            const fallback = Math.abs(Math.trunc(line?.id || 0)) % variantCount;
+            line.colorVariantIndex = assignment.get(line.id) ?? fallback;
+        }
     }
 
     drawPixelBoardBackground(ctx) {
@@ -1135,6 +1284,12 @@ export class Game {
         }
     }
 
+    playLevelCompleteCelebration() {
+        this.animations.addConfetti(this.canvas.width * 0.2, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
+        this.animations.addConfetti(this.canvas.width * 0.5, this.canvas.height + 50, 100, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
+        this.animations.addConfetti(this.canvas.width * 0.8, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
+    }
+
     showLevelComplete() {
         if (this.onLevelComplete) {
             this.onLevelComplete();
@@ -1166,6 +1321,130 @@ function nowMs() {
 function formatPenaltySecondsLabel(value) {
     const seconds = Math.max(0, Math.round(Number(value) || 0));
     return `${seconds}s`;
+}
+
+function buildLineColorVariantAssignment(lines, variantCount) {
+    const safeVariantCount = Math.max(1, Math.floor(Number(variantCount) || 1));
+    const assignment = new Map();
+    if (!Array.isArray(lines) || lines.length === 0 || safeVariantCount <= 1) {
+        return assignment;
+    }
+
+    const neighbors = buildLineNeighborGraph(lines);
+    const usage = new Array(safeVariantCount).fill(0);
+    const ordered = [...lines].sort((a, b) => {
+        const degreeA = neighbors.get(a.id)?.size || 0;
+        const degreeB = neighbors.get(b.id)?.size || 0;
+        if (degreeA !== degreeB) {
+            return degreeB - degreeA;
+        }
+        const lenA = Array.isArray(a.cells) ? a.cells.length : 0;
+        const lenB = Array.isArray(b.cells) ? b.cells.length : 0;
+        if (lenA !== lenB) {
+            return lenB - lenA;
+        }
+        return (Number(a.id) || 0) - (Number(b.id) || 0);
+    });
+
+    for (const line of ordered) {
+        const lineId = line?.id;
+        const preferred = Math.abs(Math.trunc(Number(lineId) || 0)) % safeVariantCount;
+        const conflictCounts = new Array(safeVariantCount).fill(0);
+        const neighborSet = neighbors.get(lineId) || new Set();
+
+        for (const neighborId of neighborSet) {
+            const variant = assignment.get(neighborId);
+            if (Number.isInteger(variant) && variant >= 0 && variant < safeVariantCount) {
+                conflictCounts[variant] += 1;
+            }
+        }
+
+        let bestVariant = 0;
+        for (let variant = 1; variant < safeVariantCount; variant++) {
+            if (isVariantCandidateBetter(
+                variant,
+                bestVariant,
+                conflictCounts,
+                usage,
+                preferred,
+                safeVariantCount
+            )) {
+                bestVariant = variant;
+            }
+        }
+
+        assignment.set(lineId, bestVariant);
+        usage[bestVariant] += 1;
+    }
+
+    return assignment;
+}
+
+function isVariantCandidateBetter(candidate, currentBest, conflictCounts, usage, preferred, variantCount) {
+    const candidateConflict = conflictCounts[candidate];
+    const bestConflict = conflictCounts[currentBest];
+    if (candidateConflict !== bestConflict) {
+        return candidateConflict < bestConflict;
+    }
+
+    const candidateUsage = usage[candidate];
+    const bestUsage = usage[currentBest];
+    if (candidateUsage !== bestUsage) {
+        return candidateUsage < bestUsage;
+    }
+
+    const candidateDistance = cyclicVariantDistance(candidate, preferred, variantCount);
+    const bestDistance = cyclicVariantDistance(currentBest, preferred, variantCount);
+    if (candidateDistance !== bestDistance) {
+        return candidateDistance < bestDistance;
+    }
+
+    return candidate < currentBest;
+}
+
+function cyclicVariantDistance(a, b, count) {
+    const safeCount = Math.max(1, Math.floor(Number(count) || 1));
+    const direct = Math.abs(a - b);
+    return Math.min(direct, safeCount - direct);
+}
+
+function buildLineNeighborGraph(lines) {
+    const neighbors = new Map();
+    const ownerByCell = new Map();
+    const offsets = [
+        [-1, -1], [0, -1], [1, -1],
+        [-1, 0], [1, 0],
+        [-1, 1], [0, 1], [1, 1]
+    ];
+
+    for (const line of lines) {
+        neighbors.set(line.id, new Set());
+        if (!Array.isArray(line.cells)) {
+            continue;
+        }
+        for (const cell of line.cells) {
+            ownerByCell.set(`${cell.col},${cell.row}`, line.id);
+        }
+    }
+
+    for (const line of lines) {
+        if (!Array.isArray(line.cells)) {
+            continue;
+        }
+        const ownNeighbors = neighbors.get(line.id);
+        for (const cell of line.cells) {
+            for (const [dx, dy] of offsets) {
+                const otherId = ownerByCell.get(`${cell.col + dx},${cell.row + dy}`);
+                if (otherId === undefined || otherId === line.id) {
+                    continue;
+                }
+                ownNeighbors?.add(otherId);
+                neighbors.get(otherId)?.add(line.id);
+            }
+        }
+    }
+
+    return neighbors;
 }
 
 function isLevelSolvable(lines, config) {

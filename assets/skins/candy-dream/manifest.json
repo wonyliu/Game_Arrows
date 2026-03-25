@@ -1,0 +1,23 @@
+﻿{
+  "skinId": "candy-dream",
+  "generatedAt": "2026-03-25T15:45:00+08:00",
+  "source": "User exact style reference screenshot + Gemini completion + silhouette lock",
+  "inputs": {
+    "styleRef": "temp/skins/candy-dream/style_ref_user_exact.png",
+    "defaultHeadFromRef": "temp/skins/candy-dream/head_from_user_ref_locked.png",
+    "headExpressionsRawDir": "temp/skins/candy-dream/v2_raw_userref",
+    "nonHeadRawDir": "temp/skins/candy-dream/v2_nonhead_smooth_raw",
+    "baseGeometryDir": "assets/design-v4/clean"
+  },
+  "outputs": [
+    "snake_head.png",
+    "snake_head_curious.png",
+    "snake_head_sleepy.png",
+    "snake_head_surprised.png",
+    "snake_seg_a.png",
+    "snake_seg_b.png",
+    "snake_tail_base.png",
+    "snake_tail_tip.png"
+  ],
+  "notes": "All parts are alpha-masked to classic silhouette and passed IoU threshold 0.90."
+}
