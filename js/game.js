@@ -1,5 +1,5 @@
-import { Grid } from './grid.js?v=24';
-import { Line } from './line.js?v=48';
+﻿import { Grid } from './grid.js?v=24';
+import { Line } from './line.js?v=53';
 import { canMove, findMovableLines } from './collision.js?v=19';
 import {
     BONUS_LEVEL_ID,
@@ -8,7 +8,7 @@ import {
     getRewardLevelCount,
     toRewardLevelId
 } from './levels.js?v=32';
-import { AnimationManager } from './animation.js?v=33';
+import { AnimationManager } from './animation.js?v=42';
 import { buildPlayableLevel } from './level-builder.js?v=48';
 import {
     deserializeLevelData,
@@ -20,24 +20,43 @@ import {
     playErrorSound,
     playGameOverSound,
     playLevelCompleteSound,
-    resumeAudio
-} from './audio.js?v=21';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=29';
+    playReleaseScaleSound,
+    resumeAudio,
+    setAudioSkinId
+} from './audio.js?v=30';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=48';
 import {
-    SCORE_PER_COIN,
     ensureSelectedSkin,
     getDefaultSkinId,
     getSkinById,
     getSkinCatalog as getSkinCatalogList,
     normalizeUnlockedSkins
-} from './skins.js?v=6';
+} from './skins.js?v=23';
+import { readGameplayParams } from './game-params.js?v=3';
+import {
+    readProgressSnapshot,
+    saveProgressSnapshot
+} from './progress-storage.js?v=1';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
     undo: 2,
     shuffle: 2
 });
-const REWARD_COMBO_THRESHOLD = 100;
+const GAMEPLAY_PARAMS = readGameplayParams();
+const SCORE_PER_COIN = GAMEPLAY_PARAMS.scorePerCoin;
+const SCORE_PER_BODY_SEGMENT = GAMEPLAY_PARAMS.scorePerBodySegment;
+const RELEASE_SFX_EVERY_N_SCORE_EVENTS = Math.max(
+    1,
+    Math.floor(Number(GAMEPLAY_PARAMS.releaseSfxEveryNScoreEvents) || 1)
+);
+const SCORE_BURST_STAR_COUNT = GAMEPLAY_PARAMS.scoreBurstStarCount;
+const SCORE_BURST_STAR_COLORS = Object.freeze(['#fff8c9', '#ffe899', '#ffd86e', '#ffffff']);
+const REWARD_COMBO_THRESHOLD = GAMEPLAY_PARAMS.rewardComboThreshold;
+const MISCLICK_PENALTY_TEXT_DURATION_SECONDS = Math.max(
+    0.2,
+    Number(GAMEPLAY_PARAMS.misclickPenaltyTextDurationSeconds) || 1.9
+);
 const DRAG_RELEASE_CLICK_SUPPRESS_MS = 160;
 
 export class Game {
@@ -61,8 +80,9 @@ export class Game {
         this.coins = 0;
         this.lastCoinReward = 0;
         this.combo = 0;
-        this.comboWindowMs = 3000;
+        this.comboWindowMs = GAMEPLAY_PARAMS.comboWindowMs;
         this.lastComboReleaseAt = 0;
+        this.releaseSfxScoreEventCount = 0;
         this.timeRemaining = 0;
         this.maxTimeRemaining = 0;
         this.hasTimer = false;
@@ -92,6 +112,7 @@ export class Game {
         this.suppressClickUntil = 0;
 
         this.loadProgress();
+        setAudioSkinId(this.selectedSkinId);
 
         if (this.isPlaytestMode && this.playtestLevel > 0) {
             const playtestTargetLevel = normalizePlayableLevel(this.playtestLevel, this.normalLevelCount);
@@ -115,7 +136,7 @@ export class Game {
     loadProgress() {
         this.refreshLevelCatalog();
         try {
-            const data = JSON.parse(localStorage.getItem('arrowClear_progress') || '{}');
+            const data = readProgressSnapshot();
             this.maxUnlockedLevel = normalizePlayableLevel(data.maxUnlockedLevel || 1, this.normalLevelCount);
             this.currentLevel = normalizePlayableLevel(
                 data.currentLevel || 1,
@@ -133,6 +154,7 @@ export class Game {
             this.unlockedSkinIds = normalizeUnlockedSkins();
             this.selectedSkinId = getDefaultSkinId();
         }
+        setAudioSkinId(this.selectedSkinId);
     }
 
     saveProgress() {
@@ -146,13 +168,14 @@ export class Game {
         this.maxUnlockedLevel = cappedUnlocked;
         this.unlockedSkinIds = normalizedUnlockedSkins;
         this.selectedSkinId = selectedSkinId;
-        localStorage.setItem('arrowClear_progress', JSON.stringify({
+        setAudioSkinId(this.selectedSkinId);
+        saveProgressSnapshot({
             maxUnlockedLevel: cappedUnlocked,
             currentLevel: cappedCurrent,
             coins: Math.max(0, Math.floor(Number(this.coins) || 0)),
             unlockedSkinIds: normalizedUnlockedSkins,
             selectedSkinId
-        }));
+        });
     }
 
     refreshLevelCatalog() {
@@ -317,6 +340,7 @@ export class Game {
         this.coins = Math.max(0, this.getCoins() - cost);
         this.unlockedSkinIds = normalizeUnlockedSkins([...this.unlockedSkinIds, skin.id]);
         this.selectedSkinId = skin.id;
+        setAudioSkinId(this.selectedSkinId);
         this.saveProgress();
         this.rebuildPixelScene();
         this.updateHUD();
@@ -337,6 +361,7 @@ export class Game {
             return true;
         }
         this.selectedSkinId = skin.id;
+        setAudioSkinId(this.selectedSkinId);
         this.saveProgress();
         this.rebuildPixelScene();
         this.updateHUD();
@@ -419,6 +444,7 @@ export class Game {
         this.combo = 0;
         this.bestComboThisLevel = 0;
         this.lastComboReleaseAt = 0;
+        this.releaseSfxScoreEventCount = 0;
         this.hasTimer = !!config.hasTimer && Number(config.timerSeconds) > 0;
         this.maxTimeRemaining = this.hasTimer ? Math.max(1, Number(config.timerSeconds) || 0) : 0;
         this.timeRemaining = this.maxTimeRemaining;
@@ -707,6 +733,7 @@ export class Game {
             lineId: line.id,
             combo: this.combo,
             lastComboReleaseAt: this.lastComboReleaseAt,
+            releaseSfxScoreEventCount: this.releaseSfxScoreEventCount,
             score: this.score,
             lives: this.lives,
             timeRemaining: this.timeRemaining,
@@ -717,27 +744,95 @@ export class Game {
         this.combo = nextCombo;
         this.bestComboThisLevel = Math.max(this.bestComboThisLevel, this.combo);
         this.lastComboReleaseAt = currentMs;
-        const points = 100 * this.combo;
-        this.score += points;
-        playClearSound(this.combo - 1);
+        playReleaseScaleSound(this.combo - 1);
 
         const headPos = this.grid.gridToScreen(line.headCell.col, line.headCell.row);
+        const boardLeft = this.grid.offsetX;
+        const boardTop = this.grid.offsetY;
+        const boardRight = boardLeft + this.grid.cols * this.grid.cellSize;
+        const boardBottom = boardTop + this.grid.rows * this.grid.cellSize;
+        const headDirection = typeof line.getHeadDirection === 'function' ? line.getHeadDirection() : (line.direction || 'right');
+        const removeDir = headDirection === 'left'
+            ? { dx: -1, dy: 0 }
+            : headDirection === 'up'
+                ? { dx: 0, dy: -1 }
+                : headDirection === 'down'
+                    ? { dx: 0, dy: 1 }
+                    : { dx: 1, dy: 0 };
+        const borderOutPad = Math.max(3, this.grid.cellSize * 0.08);
+        const floatingYPad = Math.max(14, this.grid.cellSize * 0.32);
         if (typeof line.pokeSoft === 'function') {
             line.pokeSoft(1.4);
         }
-        if (this.onScoreGain) {
-            this.onScoreGain({
-                gained: points,
-                score: this.score,
-                combo: this.combo
-            });
-        } else {
-            this.animations.addFloatingText(headPos.x, headPos.y, `+${points}`, '#ffffff', 22);
-        }
+
         if (comboTimerReward > 0) {
             this.emitTimerEnergyFromPoint(headPos, energyBatchId, line.id, comboTimerReward);
         }
-        this.animations.startRemoveAnimation(line, this.grid, () => this.checkLevelComplete());
+        this.animations.startRemoveAnimation(line, this.grid, {
+            onSegment: (source) => {
+                const sourceX = Number(source?.x) || headPos.x;
+                const sourceY = Number(source?.y) || headPos.y;
+
+                let edgeX = sourceX;
+                let edgeY = sourceY;
+                if (removeDir.dx > 0) {
+                    edgeX = boardRight;
+                } else if (removeDir.dx < 0) {
+                    edgeX = boardLeft;
+                } else if (removeDir.dy > 0) {
+                    edgeY = boardBottom;
+                } else if (removeDir.dy < 0) {
+                    edgeY = boardTop;
+                }
+
+                const burstX = edgeX + removeDir.dx * borderOutPad;
+                const burstY = edgeY + removeDir.dy * borderOutPad;
+                const textX = burstX + removeDir.dx * Math.max(4, this.grid.cellSize * 0.06);
+                const textY = burstY - floatingYPad;
+
+                this.score += SCORE_PER_BODY_SEGMENT;
+                this.releaseSfxScoreEventCount += 1;
+                const shouldPlayReleaseSfx = (this.releaseSfxScoreEventCount % RELEASE_SFX_EVERY_N_SCORE_EVENTS) === 0;
+                if (shouldPlayReleaseSfx) {
+                    playClearSound();
+                }
+                // Release SFX playback is throttled by gameplay parameter releaseSfxEveryNScoreEvents.
+                this.animations.addFloatingText(textX, textY, `+${SCORE_PER_BODY_SEGMENT}`, '#fffbea', 20, {
+                    life: 0.88,
+                    vy: -36,
+                    scale: 1.08,
+                    scaleDecay: 0.985
+                });
+                this.animations.addConfetti(
+                    burstX,
+                    burstY,
+                    SCORE_BURST_STAR_COUNT,
+                    SCORE_BURST_STAR_COLORS,
+                    'star',
+                    {
+                        speedMin: 42,
+                        speedMax: 96,
+                        riseBias: 72,
+                        sizeMin: 2.2,
+                        sizeMax: 4.6,
+                        lifeMin: 0.36,
+                        lifeMax: 0.72,
+                        rotationSpeed: 6
+                    }
+                );
+
+                if (this.onScoreGain) {
+                    this.onScoreGain({
+                        gained: SCORE_PER_BODY_SEGMENT,
+                        score: this.score,
+                        combo: this.combo
+                    });
+                } else {
+                    this.updateHUD();
+                }
+            },
+            onComplete: () => this.checkLevelComplete()
+        });
 
         this.hintLine = null;
         this.updateHUD();
@@ -767,7 +862,7 @@ export class Game {
                 this.animations.addFloatingText(center.x, center.y, `-${formatPenaltySecondsLabel(deducted)}`, '#8b2f4f', 18, {
                     pill: true,
                     pillColor: '#ffe1eb',
-                    life: 0.9,
+                    life: MISCLICK_PENALTY_TEXT_DURATION_SECONDS,
                     vy: -30,
                     stroke: false
                 });
@@ -807,8 +902,11 @@ export class Game {
         // Only settle rewards once while actively playing.
         if (this.state !== 'PLAYING') return;
 
-        const remaining = this.lines.filter((line) => line.state === 'active');
-        if (remaining.length !== 0) return;
+        // Wait until every snake has fully finished remove animation and score emission.
+        // If we only check `active`, settlement may pop while the last snake is still in
+        // `removing` state, causing final score/coin undercount.
+        const unfinished = this.lines.filter((line) => line.state !== 'removed');
+        if (unfinished.length !== 0) return;
 
         this.refreshLevelCatalog();
         this.state = 'LEVEL_COMPLETE';
@@ -887,6 +985,7 @@ export class Game {
         this.grid.registerLine(line);
         this.combo = undo.combo;
         this.lastComboReleaseAt = Number(undo.lastComboReleaseAt) || 0;
+        this.releaseSfxScoreEventCount = Math.max(0, Math.floor(Number(undo.releaseSfxScoreEventCount) || 0));
         this.score = undo.score;
         this.lives = undo.lives;
         if (typeof undo.energyBatchId === 'number') {
@@ -1622,6 +1721,14 @@ function distanceToSegment(px, py, start, end) {
     const projY = start.y + t * dy;
     return distance(px, py, projX, projY);
 }
+
+
+
+
+
+
+
+
 
 
 

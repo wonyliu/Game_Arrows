@@ -1,149 +1,868 @@
-<!doctype html>
-<html lang="en">
+﻿<!doctype html>
+<html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arrow Clear Admin</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=42">
+    <link rel="stylesheet" href="css/admin.css?v=61">
 </head>
 <body>
-    <main class="admin-shell">
-        <section class="controls">
-            <h1>Arrow Clear Admin</h1>
-            <p class="sub">Configure level grid and arrow length, then generate/save.</p>
-            <p class="sub"><a href="skin-fit-tool.html" target="_blank" rel="noopener">Open Skin Fit Tool</a></p>
+    <main class="admin-hub">
+        <header class="admin-hub-header">
+            <div class="admin-hub-title">
+                <h1>Arrow Clear Admin</h1>
+                <p class="sub">统一管理后台：关卡管理、皮肤管理、音效工坊、参数管理。</p>
+            </div>
+            <nav class="admin-tabbar" role="tablist" aria-label="管理页签">
+                <button id="tabBtnLevels" class="tab-btn is-active" type="button" data-tab-target="levels" role="tab" aria-selected="true">关卡管理</button>
+                <button id="tabBtnSkins" class="tab-btn" type="button" data-tab-target="skins" role="tab" aria-selected="false">皮肤管理</button>
+                <button id="tabBtnMusicSfx" class="tab-btn" type="button" data-tab-target="music-sfx" role="tab" aria-selected="false">音乐音效</button>
+                <button id="tabBtnParams" class="tab-btn" type="button" data-tab-target="params" role="tab" aria-selected="false">参数管理</button>
+            </nav>
+        </header>
 
-            <label class="field">
-                <span>Level</span>
-                <select id="levelSelect"></select>
-            </label>
+        <section class="tab-panel is-active" data-tab-panel="levels" role="tabpanel" aria-labelledby="tabBtnLevels">
+            <div class="admin-shell">
+                <section class="controls">
+                    <h2>关卡管理</h2>
+                    <p class="sub">Configure level grid and arrow length, then generate/save.</p>
+                    <p class="sub"><a href="index.html" target="_blank" rel="noopener">Open Game</a></p>
 
-            <div class="field">
-                <span>Campaign level counts</span>
-                <div class="catalog-row">
-                    <label class="catalog-item">
-                        <span>Normal</span>
-                        <div class="catalog-control">
-                            <button id="btnNormalLevelMinus" type="button" aria-label="Decrease normal levels">-</button>
-                            <input id="normalLevelCount" type="number" min="1" max="1000" step="1">
-                            <button id="btnNormalLevelPlus" type="button" aria-label="Increase normal levels">+</button>
-                        </div>
+                    <label class="field">
+                        <span>Level</span>
+                        <select id="levelSelect"></select>
                     </label>
-                    <label class="catalog-item">
-                        <span>Reward</span>
-                        <div class="catalog-control">
-                            <button id="btnRewardLevelMinus" type="button" aria-label="Decrease reward levels">-</button>
-                            <input id="rewardLevelCount" type="number" min="0" max="200" step="1">
-                            <button id="btnRewardLevelPlus" type="button" aria-label="Increase reward levels">+</button>
+
+                    <div class="field">
+                        <span>Campaign level counts</span>
+                        <div class="catalog-row">
+                            <label class="catalog-item">
+                                <span>Normal</span>
+                                <div class="catalog-control">
+                                    <button id="btnNormalLevelMinus" type="button" aria-label="Decrease normal levels">-</button>
+                                    <input id="normalLevelCount" type="number" min="1" max="1000" step="1">
+                                    <button id="btnNormalLevelPlus" type="button" aria-label="Increase normal levels">+</button>
+                                </div>
+                            </label>
+                            <label class="catalog-item">
+                                <span>Reward</span>
+                                <div class="catalog-control">
+                                    <button id="btnRewardLevelMinus" type="button" aria-label="Decrease reward levels">-</button>
+                                    <input id="rewardLevelCount" type="number" min="0" max="200" step="1">
+                                    <button id="btnRewardLevelPlus" type="button" aria-label="Increase reward levels">+</button>
+                                </div>
+                            </label>
                         </div>
+                        <button id="btnSaveLevelCatalog" type="button">Save level counts</button>
+                    </div>
+
+                    <label class="field" id="levelDisplayNameField" style="display:none;">
+                        <span>Reward stage name</span>
+                        <input id="levelDisplayName" type="text" maxlength="28" placeholder="e.g. Reward Rush">
                     </label>
-                </div>
-                <button id="btnSaveLevelCatalog" type="button">Save level counts</button>
+
+                    <label class="field">
+                        <span>Dimension mode</span>
+                        <select id="dimensionMode">
+                            <option value="rows">Rows fixed</option>
+                            <option value="cols">Cols fixed</option>
+                            <option value="custom">Custom (manual)</option>
+                        </select>
+                    </label>
+
+                    <label class="field">
+                        <span>Dimension value</span>
+                        <input id="dimensionValue" type="number" min="4" max="40" step="1">
+                    </label>
+
+                    <label class="field">
+                        <span>Min arrow length</span>
+                        <input id="minLen" type="number" min="2" max="12" step="1">
+                    </label>
+
+                    <label class="field">
+                        <span>Max arrow length</span>
+                        <input id="maxLen" type="number" min="2" max="999" step="1">
+                    </label>
+
+                    <label class="field">
+                        <span>Level timer (seconds, 0 = off)</span>
+                        <input id="timerSeconds" type="number" min="0" max="7200" step="1">
+                    </label>
+
+                    <label class="field">
+                        <span>Wrong tap penalty (seconds)</span>
+                        <input id="misclickPenaltySeconds" type="number" min="0" max="120" step="1">
+                    </label>
+
+                    <div class="meta">
+                        <div>Grid: <strong id="gridText">-</strong></div>
+                        <div>Estimated lines: <strong id="lineText">-</strong></div>
+                        <div>Coverage: <strong id="coverageText">-</strong></div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="btnGenerate" class="primary" type="button">Generate</button>
+                        <button id="btnGenerate2" class="primary" type="button">Generate 2</button>
+                        <button id="btnGenerate3" class="primary" type="button">Generate 3</button>
+                        <button id="btnGenerate4" class="primary" type="button">Generate 4</button>
+                        <button id="btnRestPreview" type="button">restpreview</button>
+                        <button id="btnHint" type="button">Hint</button>
+                        <button id="btnSave" type="button">Save</button>
+                        <button id="btnReset" type="button">Reset</button>
+                    </div>
+
+                    <div class="gen-progress">
+                        <div id="genProgressText" class="gen-progress-text">Ready</div>
+                        <div class="gen-progress-track">
+                            <div id="genProgressFill" class="gen-progress-fill"></div>
+                        </div>
+                    </div>
+
+                    <p id="status" class="status">Ready.</p>
+                    <ul id="stats"></ul>
+                </section>
+
+                <section class="preview">
+                    <div class="preview-header">
+                        <h2 id="previewTitle">Preview</h2>
+                        <div class="preview-tools">
+                            <div id="generate4Tools" class="generate4-tools hidden">
+                                <label class="mini-field">
+                                    <span>W</span>
+                                    <input id="manualGridCols" type="number" min="4" max="40" step="1" value="18">
+                                </label>
+                                <label class="mini-field">
+                                    <span>H</span>
+                                    <input id="manualGridRows" type="number" min="4" max="40" step="1" value="26">
+                                </label>
+                                <button id="btnApplyGridSize" class="mini-btn" type="button">Apply</button>
+                            </div>
+                            <button id="btnPatternSeed" class="icon-btn hidden" type="button" title="Generate a symmetric pattern (Generate4)">
+                                <span class="icon-flower" aria-hidden="true">&#10047;</span>
+                            </button>
+                            <button id="togglePath" class="icon-btn" type="button" title="Toggle Hamiltonian Path (Generate2 Mode)">
+                                <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <canvas id="previewCanvas" width="430" height="664"></canvas>
+                </section>
             </div>
-
-            <label class="field" id="levelDisplayNameField" style="display:none;">
-                <span>Reward stage name</span>
-                <input id="levelDisplayName" type="text" maxlength="28" placeholder="e.g. Reward Rush">
-            </label>
-
-            <label class="field">
-                <span>Dimension mode</span>
-                <select id="dimensionMode">
-                    <option value="rows">Rows fixed</option>
-                    <option value="cols">Cols fixed</option>
-                    <option value="custom">Custom (manual)</option>
-                </select>
-            </label>
-
-            <label class="field">
-                <span>Dimension value</span>
-                <input id="dimensionValue" type="number" min="4" max="40" step="1">
-            </label>
-
-            <label class="field">
-                <span>Min arrow length</span>
-                <input id="minLen" type="number" min="2" max="12" step="1">
-            </label>
-
-            <label class="field">
-                <span>Max arrow length</span>
-                <input id="maxLen" type="number" min="2" max="999" step="1">
-            </label>
-
-            <label class="field">
-                <span>Level timer (seconds, 0 = off)</span>
-                <input id="timerSeconds" type="number" min="0" max="7200" step="1">
-            </label>
-
-            <label class="field">
-                <span>Wrong tap penalty (seconds)</span>
-                <input id="misclickPenaltySeconds" type="number" min="0" max="120" step="1">
-            </label>
-
-            <div class="meta">
-                <div>Grid: <strong id="gridText">-</strong></div>
-                <div>Estimated lines: <strong id="lineText">-</strong></div>
-                <div>Coverage: <strong id="coverageText">-</strong></div>
-            </div>
-
-            <div class="actions">
-                <button id="btnGenerate" class="primary" type="button">Generate</button>
-                <button id="btnGenerate2" class="primary" type="button">Generate 2</button>
-                <button id="btnGenerate3" class="primary" type="button">Generate 3</button>
-                <button id="btnGenerate4" class="primary" type="button">Generate 4</button>
-                <button id="btnRestPreview" type="button">restpreview</button>
-                <button id="btnHint" type="button">Hint</button>
-                <button id="btnSave" type="button">Save</button>
-                <button id="btnReset" type="button">Reset</button>
-            </div>
-
-            <div class="gen-progress">
-                <div id="genProgressText" class="gen-progress-text">Ready</div>
-                <div class="gen-progress-track">
-                    <div id="genProgressFill" class="gen-progress-fill"></div>
-                </div>
-            </div>
-
-            <div class="links">
-                <a href="index.html">Open game</a>
-            </div>
-
-            <p id="status" class="status">Ready.</p>
-            <ul id="stats"></ul>
         </section>
 
-        <section class="preview">
-            <div class="preview-header">
-                <h2 id="previewTitle">Preview</h2>
-                <div class="preview-tools">
-                    <div id="generate4Tools" class="generate4-tools hidden">
-                        <label class="mini-field">
-                            <span>W</span>
-                            <input id="manualGridCols" type="number" min="4" max="40" step="1" value="18">
-                        </label>
-                        <label class="mini-field">
-                            <span>H</span>
-                            <input id="manualGridRows" type="number" min="4" max="40" step="1" value="26">
-                        </label>
-                        <button id="btnApplyGridSize" class="mini-btn" type="button">Apply</button>
+        <section class="tab-panel" data-tab-panel="skins" role="tabpanel" aria-labelledby="tabBtnSkins">
+            <div class="skin-manage-shell">
+                <aside class="controls skin-library-panel">
+                    <h2>皮肤库</h2>
+                    <p class="sub">按列表切换皮肤。可修改当前皮肤名称、介绍和价格，点击配件打开微调窗口。</p>
+
+                    <div class="skin-library-actions">
+                        <button id="btnShowSkinGenView" class="primary" type="button">创建新皮肤</button>
+                        <button id="btnSkinRefreshList" type="button">刷新列表</button>
                     </div>
-                    <button id="btnPatternSeed" class="icon-btn hidden" type="button" title="Generate a symmetric pattern (Generate4)">
-                        <span class="icon-flower" aria-hidden="true">&#10047;</span>
-                    </button>
-                    <button id="togglePath" class="icon-btn" type="button" title="Toggle Hamiltonian Path (Generate2 Mode)">
-                        <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                        <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                    </button>
+
+                    <label class="field">
+                        <span>搜索（中文名 / ID）</span>
+                                                <input id="skinLibrarySearch" type="text" placeholder="Search by name or ID">
+                    </label>
+
+                    <div id="skinLibraryList" class="skin-library-list"></div>
+                    <p id="skinLibraryStatus" class="status">Ready.</p>
+
+                    <label class="field skin-hidden-select">
+                        <span>当前皮肤（内部同步）</span>
+                        <select id="skinPriceSelect"></select>
+                    </label>
+                </aside>
+
+                <section class="preview skin-workspace-panel">
+                    <div class="skin-workspace-head">
+                        <h2 id="skinWorkspaceTitle">皮肤详情</h2>
+                    </div>
+
+                    <div id="skinDetailView" class="skin-workspace-view is-active">
+                        <div class="skin-detail-grid">
+                            <section class="skin-meta-card">
+                                <h3>基础信息</h3>
+                                <p class="hint">保存后刷新游戏页面即可验证效果</p>
+
+                                <label class="field">
+                                    <span>皮肤 ID</span>
+                                    <input id="skinMetaSkinId" type="text" readonly>
+                                </label>
+                                <label class="field">
+                                    <span>中文名</span>
+                                                                        <input id="skinMetaNameZh" type="text" maxlength="24" placeholder="例如：洞穴经典">
+                                </label>
+                                <label class="field">
+                                    <span>英文名</span>
+                                    <input id="skinMetaNameEn" type="text" maxlength="32" placeholder="例如：Classic Burrow">
+                                </label>
+                                <label class="field">
+                                    <span>中文介绍</span>
+                                                                        <textarea id="skinMetaDescZh" rows="3" maxlength="180" placeholder="例如：默认外观，拥有随机色调变化。"></textarea>
+                                </label>
+                                <label class="field">
+                                    <span>英文介绍</span>
+                                    <textarea id="skinMetaDescEn" rows="3" maxlength="220" placeholder="Example: Default look with per-line hue variation."></textarea>
+                                </label>
+
+                                <div class="meta">
+                                    <div>当前价格: <strong id="skinPriceCurrent">-</strong></div>
+                                </div>
+
+                                <label class="field">
+                                    <span>新价格（金币）</span>
+                                    <input id="skinPriceInput" type="number" min="0" max="99999" step="1" value="0">
+                                </label>
+
+                                <div class="actions">
+                                    <button id="btnSaveSkinMeta" class="primary" type="button">保存名称、介绍与价格</button>
+                                    <button id="btnDeleteLocalSkin" type="button">删除当前皮肤</button>
+                                </div>
+
+                                <details class="skin-advanced">
+                                    <summary>高级配置（JSON）</summary>
+                                    <label class="field">
+                                        <span>价格覆盖 JSON</span>
+                                        <textarea id="skinPriceJson" spellcheck="false" rows="8"></textarea>
+                                    </label>
+                                    <div class="actions">
+                                        <button id="btnImportSkinPriceJson" type="button">导入价格 JSON</button>
+                                        <button id="btnCopySkinPriceJson" type="button">复制价格 JSON</button>
+                                        <button id="btnResetAllSkinPrices" type="button">清空全部价格覆盖</button>
+                                        <span></span>
+                                    </div>
+                                </details>
+
+                                <p id="skinPriceStatus" class="status">Ready.</p>
+                                <button id="btnSaveSkinPrice" class="hidden" type="button" aria-hidden="true" tabindex="-1"></button>
+                                <button id="btnResetSkinPrice" class="hidden" type="button" aria-hidden="true" tabindex="-1"></button>
+                            </section>
+
+                            <section class="skin-parts-card">
+                                <div class="skin-parts-head">
+                                    <h3>皮肤配件</h3>
+                                    <p class="hint">点击“微调”会打开对齐窗口。</p>
+                                </div>
+                                <div id="skinPartList" class="skin-part-list"></div>
+                            </section>
+                        </div>
+                    </div>
+
+                    <div id="skinGenView" class="skin-workspace-view">
+                        <section class="skin-gen-panel">
+                            <div class="skin-gen-header">
+                                <div>
+                                    <h3>新建皮肤</h3>
+                                    <p class="hint">可连续提交任务。选中任务后可后处理并保存到本地正式皮肤。</p>
+                                </div>
+                                <button id="btnCloseSkinGenView" class="skin-gen-close-btn" type="button" aria-label="关闭新建皮肤界面">×</button>
+                            </div>
+
+                            <section class="skin-gen-card skin-gen-queue-strip">
+                                <div class="skin-gen-queue-head">
+                                    <h4>任务队列</h4>
+                                    <p class="hint">显示任务封面与进度。点击任务卡可查看该任务详情。</p>
+                                </div>
+                                <div id="skinGenTaskList" class="skin-gen-task-list"></div>
+                            </section>
+
+                            <div class="skin-gen-workflow">
+                                <section class="skin-gen-card skin-gen-setup">
+                                    <h4>生成配置</h4>
+
+                                    <label class="field">
+                                        <span>形状模板皮肤（内置 + 本地已生成）</span>
+                                        <select id="skinGenTemplateSelect"></select>
+                                    </label>
+                                    <div class="actions skin-gen-actions-single">
+                                        <button id="btnSkinGenDeleteTemplateSkin" type="button">删除当前模板皮肤</button>
+                                    </div>
+
+                                    <label class="field">
+                                        <span>样式参考图（可选）</span>
+                                        <input id="skinGenStyleRefFile" type="file" accept="image/png,image/jpeg,image/webp">
+                                    </label>
+                                    <div class="skin-gen-style-row">
+                                        <button id="btnSkinGenStylePreview" class="skin-gen-style-preview" type="button" aria-label="点击重新裁切样式参考图">
+                                            <img id="skinGenStylePreview" alt="样式参缩略图" hidden>
+                                            <span id="skinGenStylePreviewEmpty">未上传参考图</span>
+                                        </button>
+                                        <div class="skin-gen-style-buttons">
+                                            <button id="btnSkinGenRecropStyle" type="button">重新裁切</button>
+                                            <button id="btnSkinGenClearStyle" type="button">清除参考图</button>
+                                        </div>
+                                    </div>
+
+                                    <label class="field">
+                                        <span>全局设计说明（可选）</span>
+                                                                                <textarea id="skinGenGlobalNote" rows="3" placeholder="例如：整体更通透，保留经典表情，减少复杂杂纹。"></textarea>
+                                    </label>
+                                    <label class="field">
+                                        <span>补充提示（可选）</span>
+                                                                                <textarea id="skinGenPromptExtra" rows="3" placeholder="例如：高光集中在左上，不要外轮廓白边。"></textarea>
+                                    </label>
+                                    <label class="field">
+                                        <span>发送给 Nano Banana 的长文本提示（系统自动翻译英文并拆分到各配件）</span>
+                                                                                <textarea id="skinGenMasterPrompt" rows="8" placeholder="例如：参考图是果冻方糖风格，保持洞穴经典形状，只替换颜色和纹理。"></textarea>
+                                    </label>
+                                    <label class="field">
+                                        <span>系统生成的英文提示（只读预览）</span>
+                                        <textarea id="skinGenPromptPreview" rows="5" readonly></textarea>
+                                    </label>
+
+                                    <div class="skin-gen-inline-fields">
+                                        <label class="field">
+                                            <span>纯色背景（用于抠图）</span>
+                                            <input id="skinGenSolidBg" type="text" value="#00ff00" maxlength="7">
+                                        </label>
+                                        <label class="field">
+                                            <span>默认抠图容差</span>
+                                            <input id="skinGenBgTolerance" type="number" min="0" max="441" step="1" value="42">
+                                        </label>
+                                    </div>
+
+                                    <div class="actions skin-gen-actions">
+                                        <button id="btnSkinGenQueueTask" class="primary" type="button">加入生成队列</button>
+                                        <button id="btnSkinGenClearDraft" type="button">清空当前输入</button>
+                                    </div>
+                                    <p id="skinGenStatus" class="status">Ready.</p>
+                                </section>
+
+                                <section class="skin-gen-card skin-gen-post">
+                                    <h4>后处理与保存</h4>
+                                    <div class="skin-gen-existing-row">
+                                        <label class="field">
+                                            <span>现有皮肤（重新抠图）</span>
+                                            <select id="skinGenExistingSkinSelect"></select>
+                                        </label>
+                                        <div class="actions skin-gen-actions-single">
+                                            <button id="btnSkinGenLoadExistingSkin" type="button">加载到后处理</button>
+                                        </div>
+                                    </div>
+                                    <div id="skinGenTaskMeta" class="skin-gen-task-meta">未选择任务。</div>
+
+                                    <div class="skin-gen-post-body">
+                                        <div class="skin-gen-post-settings">
+                                            <div class="skin-gen-post-controls">
+                                                <label class="field">
+                                                    <span>抠图容差</span>
+                                                    <input id="skinGenPostTolerance" type="number" min="0" max="441" step="1" value="42">
+                                                </label>
+                                            </div>
+
+                                            <div class="actions skin-gen-actions skin-gen-post-actions">
+                                                <button id="btnSkinGenApplyPost" type="button">应用抠图预览</button>
+                                            </div>
+                                        </div>
+
+                                        <div class="skin-gen-preview-columns">
+                                            <section class="skin-gen-result">
+                                                <h5>生成原图</h5>
+                                                <div id="skinGenRawGrid" class="skin-gen-result-grid"></div>
+                                            </section>
+                                            <section class="skin-gen-result">
+                                                <h5>后处理预览（将保存）</h5>
+                                                <div id="skinGenPostGrid" class="skin-gen-result-grid"></div>
+                                            </section>
+                                        </div>
+
+                                    </div>
+                                </section>
+
+                                <section class="skin-gen-card skin-gen-variant-step">
+                                    <h4>生成整套颜色（最后一步）</h4>
+                                    <p class="hint">先完成上方后处理，再在这里上传颜色参考图，批量生成同款不同色并保存正式皮肤</p>
+                                    <label class="field">
+                                        <span>颜色变体参考图（可多张，可选）</span>
+                                        <input id="skinGenVariantRefFiles" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+                                    </label>
+                                    <div id="skinGenVariantRefList" class="skin-gen-variant-ref-list"></div>
+                                    <label class="skin-gen-variant-save-toggle">
+                                        <input id="skinGenSaveAllVariants" type="checkbox">
+                                        <span>保存时同时写入全部颜色变体（归属当前皮肤，游戏内随机显示，不新增皮肤中心条目）</span>
+                                    </label>
+                                    <div class="actions skin-gen-actions">
+                                        <button id="btnSkinGenGenerateVariants" type="button">基于当前任务生成颜色变体（整套）</button>
+                                        <button id="btnSkinGenSaveFinal" class="primary" type="button">保存为正式皮肤（最终）</button>
+                                    </div>
+                                    <section class="skin-gen-variant-result-wrap">
+                                        <h5>颜色变体结果（仅头像）</h5>
+                                        <div id="skinGenVariantResultList" class="skin-gen-variant-result-list"></div>
+                                    </section>
+                                </section>
+                            </div>
+                        </section>
+                    </div>
+                </section>
+            </div>
+
+            <div id="skinGenCropModal" class="skin-gen-crop-modal" hidden>
+                <div class="skin-gen-crop-backdrop" data-skin-crop-close="true"></div>
+                <section class="skin-gen-crop-dialog" role="dialog" aria-modal="true" aria-labelledby="skinGenCropTitle">
+                    <div class="skin-gen-crop-head">
+                        <h3 id="skinGenCropTitle">裁切样式参考图</h3>
+                        <button id="btnSkinGenCropCancel" type="button">关闭</button>
+                    </div>
+                    <p class="hint">拖拽选择要保留的区域，确认后会更新为缩略图参考</p>
+                    <div class="skin-gen-crop-stage-wrap">
+                        <div id="skinGenCropStage" class="skin-gen-crop-stage">
+                            <img id="skinGenCropImage" alt="style crop preview">
+                            <div id="skinGenCropSelection" class="skin-gen-crop-selection"></div>
+                        </div>
+                    </div>
+                    <div class="actions skin-gen-crop-actions">
+                        <button id="btnSkinGenCropReset" type="button">重置选区</button>
+                        <button id="btnSkinGenCropConfirm" class="primary" type="button">确认裁切</button>
+                    </div>
+                </section>
+            </div>
+
+            <div id="skinGenApiLogModal" class="skin-gen-api-log-modal" hidden>
+                <div id="skinGenApiLogBackdrop" class="skin-gen-api-log-backdrop"></div>
+                <section class="skin-gen-api-log-dialog" role="dialog" aria-modal="true" aria-labelledby="skinGenApiLogTitle">
+                    <div class="skin-gen-api-log-head">
+                        <h3 id="skinGenApiLogTitle">任务 API 日志</h3>
+                        <div class="actions skin-gen-api-log-actions">
+                            <button id="btnSkinGenApiLogCopy" type="button">复制日志</button>
+                            <button id="btnSkinGenApiLogClose" class="primary" type="button">关闭</button>
+                        </div>
+                    </div>
+                    <p class="hint">显示该任务发送给 API 的请求信息（请求体/响应状态/响应体）。</p>
+                    <textarea id="skinGenApiLogContent" rows="22" readonly spellcheck="false"></textarea>
+                </section>
+            </div>
+
+            <div id="skinFitModal" class="skin-fit-modal" hidden>
+                <div class="skin-fit-modal-backdrop" data-fit-modal-close="true"></div>
+                <section class="skin-fit-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="skinFitModalTitle">
+                    <div class="skin-fit-modal-head">
+                        <h3 id="skinFitModalTitle">配件微调</h3>
+                        <button id="fitBtnCloseModal" type="button">关闭</button>
+                    </div>
+
+                    <div class="skin-fit-grid">
+                        <section class="skin-fit-controls">
+                            <h3>对齐调试工具</h3>
+                            <p class="hint">调节 scale / x / y，保存当前皮肤当前配件的覆盖参数。</p>
+                            <p id="fitSelectionHint" class="hint"></p>
+
+                            <label for="fitPartSelect">部件</label>
+                            <select id="fitPartSelect"></select>
+
+                            <label>Scale</label>
+                            <div class="row">
+                                <input id="fitScaleRange" type="range" min="0.8" max="1.4" step="0.002">
+                                <input id="fitScaleNumber" type="number" min="0.8" max="1.4" step="0.002">
+                            </div>
+
+                            <label>Offset X（相对宽度）</label>
+                            <div class="row">
+                                <input id="fitOffsetXRange" type="range" min="-0.35" max="0.35" step="0.002">
+                                <input id="fitOffsetXNumber" type="number" min="-0.35" max="0.35" step="0.002">
+                            </div>
+
+                            <label>Offset Y（相对高度）</label>
+                            <div class="row">
+                                <input id="fitOffsetYRange" type="range" min="-0.35" max="0.35" step="0.002">
+                                <input id="fitOffsetYNumber" type="number" min="-0.35" max="0.35" step="0.002">
+                            </div>
+
+                            <label>轮廓遮罩透明度（0-100）</label>
+                            <div class="row">
+                                <input id="fitMaskAlphaRange" type="range" min="0" max="100" step="1">
+                                <input id="fitMaskAlphaNumber" type="number" min="0" max="100" step="1">
+                            </div>
+
+                            <div class="fit-actions">
+                                <button id="fitBtnLoadConfig" type="button">加载配置默认参数</button>
+                                <button id="fitBtnLoadEffective" type="button">加载当前生效参数</button>
+                                <button id="fitBtnSavePart" class="primary" type="button">保存当前部件覆盖</button>
+                                <button id="fitBtnResetPart" type="button">重置当前部件覆盖</button>
+                                <button id="fitBtnResetSkin" type="button">清空当前皮肤覆盖</button>
+                            </div>
+
+                            <details class="skin-advanced">
+                                <summary>覆盖配置 JSON（可编辑）</summary>
+                                <label for="fitOverrideOutput">覆盖配置 JSON</label>
+                                <textarea id="fitOverrideOutput" spellcheck="false" rows="8"></textarea>
+                                <div class="fit-actions">
+                                    <button id="fitBtnImportJson" type="button">导入 JSON</button>
+                                    <button id="fitBtnCopyJson" type="button">复制 JSON</button>
+                                </div>
+                            </details>
+                            <p id="fitStatusText" class="status">Ready.</p>
+                        </section>
+
+                        <section class="skin-fit-preview-wrap">
+                            <p class="hint">右侧预览：白色线条为经典轮廓，蓝色区域为遮罩。通过调参让当前配件尽量贴合轮廓。</p>
+                            <canvas id="fitPreviewCanvas" width="960" height="620"></canvas>
+                        </section>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="music-sfx" role="tabpanel" aria-labelledby="tabBtnMusicSfx">
+            <div class="music-sfx-shell">
+                <div class="music-sfx-subtabs" role="tablist" aria-label="音乐音效子页签">
+                    <button id="musicSfxTabBtnLab" class="tab-btn is-active" type="button" data-music-sfx-tab-target="sfx-lab" role="tab" aria-selected="true">音效工坊</button>
+                    <button id="musicSfxTabBtnSkin" class="tab-btn" type="button" data-music-sfx-tab-target="skin-sfx" role="tab" aria-selected="false">皮肤音效管理</button>
+                    <button id="musicSfxTabBtnGameSfx" class="tab-btn" type="button" data-music-sfx-tab-target="game-sfx" role="tab" aria-selected="false">游戏音效管理</button>
+                    <button id="musicSfxTabBtnGameMusic" class="tab-btn" type="button" data-music-sfx-tab-target="game-music" role="tab" aria-selected="false">游戏音乐管理</button>
+                </div>
+
+                <div class="music-sfx-subpanel is-active" data-music-sfx-tab-panel="sfx-lab" role="tabpanel" aria-labelledby="musicSfxTabBtnLab">
+                    <div class="sfx-admin-shell">
+                        <section class="controls sfx-controls-panel">
+                    <h2>音效工坊</h2>
+                    <p class="sub">流程：1) 选来源并导入音效 2) 保存到自定义模板 3) 到“皮肤音效管理”给皮肤绑定模板</p>
+
+                    <label class="field">
+                        <span>音效模板</span>
+                        <select id="sfxPresetSelect"></select>
+                    </label>
+
+                    <section class="sfx-source-workbench">
+                        <h3>音效来源（免费/开源）</h3>
+                        <label class="field">
+                            <span>来源模式</span>
+                            <select id="sfxSourceMode">
+                                <option value="synth">合成器（当前内置）</option>
+                                <option value="upload">本地采样上传</option>
+                                <option value="freesound">Freesound 检索（免费）</option>
+                                <option value="stable-audio">Stable Audio（fal.ai 推荐）</option>
+                            </select>
+                        </label>
+
+                        <div id="sfxSourceSynthPanel" class="sfx-source-panel is-active">
+                            <p class="hint">使用下方参数合成器实时生成，适合快速迭代和细调。</p>
+                        </div>
+
+                        <div id="sfxSourceUploadPanel" class="sfx-source-panel">
+                            <label class="field">
+                                <span>上传音频文件（wav/mp3/ogg）</span>
+                                <input id="sfxSampleFile" type="file" accept="audio/wav,audio/mpeg,audio/ogg,audio/mp3,audio/*">
+                            </label>
+                            <p class="hint">上传后可直接试听并用于当前工坊测试。</p>
+                        </div>
+
+                        <div id="sfxSourceFreesoundPanel" class="sfx-source-panel">
+                            <div class="sfx-source-inline">
+                                <label class="field">
+                                    <span>关键词</span>
+                                    <input id="sfxFsQuery" type="text" maxlength="80" placeholder="例如：candy crunch bite">
+                                </label>
+                                <label class="field">
+                                    <span>许可证</span>
+                                    <select id="sfxFsLicense">
+                                        <option value="all">全部</option>
+                                        <option value="cc0">CC0</option>
+                                        <option value="cc-by">CC-BY</option>
+                                        <option value="exclude-nc">排除 NC</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <div class="actions sfx-actions">
+                                <button id="btnSfxFsSearch" type="button">搜索 Freesound</button>
+                            </div>
+                            <div id="sfxFsStatus" class="status">Ready.</div>
+                            <div id="sfxFsResults" class="sfx-source-result-list"></div>
+                        </div>
+
+                        <div id="sfxSourceStablePanel" class="sfx-source-panel">
+                            <label class="field">
+                                <span>文本提示词</span>
+                                <textarea id="sfxAiPrompt" rows="3" maxlength="240" placeholder="例如：close-up crunchy candy shell bite, sticky gummy interior, short game SFX"></textarea>
+                            </label>
+                            <div class="sfx-source-inline">
+                                <label class="field">
+                                    <span>时长（秒）</span>
+                                    <input id="sfxAiDuration" type="number" min="1" max="10" step="1" value="2">
+                                </label>
+                            </div>
+                            <div class="actions sfx-actions">
+                                <button id="btnSfxAiGenerate" type="button">生成音效（Stable Audio）</button>
+                            </div>
+                            <div id="sfxAiStatus" class="status">Ready.</div>
+                        </div>
+
+                        <div id="sfxExternalPreviewWrap" class="sfx-external-preview" hidden>
+                            <div class="meta">
+                                <div>当前采样来源：<strong id="sfxExternalSourceLabel">-</strong></div>
+                            </div>
+                            <audio id="sfxExternalPreviewAudio" controls preload="none"></audio>
+                            <div class="sfx-source-inline">
+                                <label class="field">
+                                    <span>裁切开始（秒）</span>
+                                    <input id="sfxTrimStart" type="number" min="0" step="0.01" value="0">
+                                </label>
+                                <label class="field">
+                                    <span>裁切结束（秒）</span>
+                                    <input id="sfxTrimEnd" type="number" min="0" step="0.01" value="0">
+                                </label>
+                            </div>
+                            <div class="actions sfx-actions">
+                                <button id="btnSfxApplyTrim" type="button">应用裁切</button>
+                                <button id="btnSfxResetTrim" type="button">重置裁切</button>
+                                <button id="btnSfxUseExternalAsPreview" type="button">使用该采样进行试听/导出</button>
+                                <button id="btnSfxBindExternalToPreset" class="primary" type="button">保存到当前自定义模板</button>
+                                <button id="btnSfxClearExternal" type="button">清除采样并回到合成器</button>
+                            </div>
+                            <p id="sfxTrimStatus" class="status">未裁切。</p>
+                        </div>
+                    </section>
+
+                    <div class="sfx-param-grid">
+                        <div class="sfx-param-row">
+                            <label for="sfxImpactRange">力度</label>
+                            <input id="sfxImpactRange" type="range" min="0.1" max="1.8" step="0.01">
+                            <input id="sfxImpactNumber" type="number" min="0.1" max="1.8" step="0.01">
+                        </div>
+                        <div class="sfx-param-row">
+                            <label for="sfxPitchRange">音高偏移</label>
+                            <input id="sfxPitchRange" type="range" min="-24" max="24" step="1">
+                            <input id="sfxPitchNumber" type="number" min="-24" max="24" step="1">
+                        </div>
+                        <div class="sfx-param-row">
+                            <label for="sfxLengthRange">时长倍率</label>
+                            <input id="sfxLengthRange" type="range" min="0.35" max="2.2" step="0.01">
+                            <input id="sfxLengthNumber" type="number" min="0.35" max="2.2" step="0.01">
+                        </div>
+                        <div class="sfx-param-row">
+                            <label for="sfxRandomnessRange">随机度</label>
+                            <input id="sfxRandomnessRange" type="range" min="0" max="1" step="0.01">
+                            <input id="sfxRandomnessNumber" type="number" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="sfx-param-row">
+                            <label for="sfxBounceRange">回弹感</label>
+                            <input id="sfxBounceRange" type="range" min="0" max="1" step="0.01">
+                            <input id="sfxBounceNumber" type="number" min="0" max="1" step="0.01">
+                        </div>
+                        <div class="sfx-param-row">
+                            <label for="sfxRepeatsRange">连击次数</label>
+                            <input id="sfxRepeatsRange" type="range" min="1" max="6" step="1">
+                            <input id="sfxRepeatsNumber" type="number" min="1" max="6" step="1">
+                        </div>
+                    </div>
+
+                    <div class="actions sfx-actions">
+                        <button id="btnSfxPlay" class="primary" type="button">试听</button>
+                        <button id="btnSfxPlayBurst" type="button">连播 3 个变体</button>
+                        <button id="btnSfxDownloadWav" type="button">下载 WAV</button>
+                        <button id="btnSfxDownloadPack" type="button">下载 5 个变体</button>
+                        <button id="btnSfxReset" type="button">恢复模板默认</button>
+                    </div>
+
+                    <section class="sfx-custom-editor">
+                        <h3>新增/编辑音效模板</h3>
+                        <p class="hint">提示：只有“自定义模板”可以保存外部采样（Freesound/上传/AI生成）。</p>
+                        <label class="field">
+                            <span>模板名称</span>
+                                                        <input id="sfxCustomName" type="text" maxlength="36" placeholder="例如：玻璃清脆">
+                        </label>
+                        <label class="field">
+                            <span>说明（可选）</span>
+                                                        <textarea id="sfxCustomDesc" rows="3" maxlength="180" placeholder="例如：清脆高频，尾音短，适合轻快风格皮肤。"></textarea>
+                        </label>
+                        <div class="actions sfx-actions">
+                            <button id="btnSfxSaveAsNewPreset" class="primary" type="button">保存为新音效模板</button>
+                            <button id="btnSfxUpdatePreset" type="button">更新当前自定义模板</button>
+                            <button id="btnSfxDeletePreset" type="button">删除当前自定义模板</button>
+                        </div>
+                    </section>
+
+                        <p id="sfxStatus" class="status">Ready.</p>
+                        </section>
+
+                        <section class="preview sfx-library-panel">
+                            <div class="preview-header">
+                                <h2>音效模板库</h2>
+                            </div>
+                            <p class="sub">内置模板 + 你保存的自定义模板。点击模板后可直接在左侧调参试听。</p>
+                            <div id="sfxPresetLibraryList" class="sfx-preset-library-list"></div>
+                            <div class="meta sfx-meta">
+                                <div id="sfxPresetHint">-</div>
+                                <div>预估时长：<strong id="sfxEstimatedDuration">-</strong></div>
+                                <div>导出规格：48kHz / 16-bit PCM WAV</div>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="music-sfx-subpanel" data-music-sfx-tab-panel="skin-sfx" role="tabpanel" aria-labelledby="musicSfxTabBtnSkin">
+                    <div class="sfx-admin-shell">
+                        <section class="controls skin-sfx-controls-panel">
+                    <h2>皮肤音效配置</h2>
+                    <p class="sub">为每套皮肤绑定音效模板保存后游戏内切换到该皮肤会使用对应音色风格</p>
+
+                    <label class="field">
+                        <span>皮肤</span>
+                        <select id="skinSfxSkinSelect"></select>
+                    </label>
+                    <label class="field">
+                        <span>音效模板</span>
+                        <select id="skinSfxPresetSelect"></select>
+                    </label>
+
+                    <div class="actions sfx-actions">
+                        <button id="btnSkinSfxSave" class="primary" type="button">保存当前皮肤音效</button>
+                        <button id="btnSkinSfxReset" type="button">恢复默认音效</button>
+                    </div>
+
+                        <p id="skinSfxStatus" class="status">Ready.</p>
+                        </section>
+
+                        <section class="preview skin-sfx-list-panel">
+                            <div class="preview-header">
+                                <h2>皮肤音效列表</h2>
+                            </div>
+                            <p class="sub">列表中可直接切换每套皮肤绑定的音效模板，并支持试听。</p>
+                            <div id="skinSfxBindingList" class="skin-sfx-binding-list"></div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="music-sfx-subpanel" data-music-sfx-tab-panel="game-sfx" role="tabpanel" aria-labelledby="musicSfxTabBtnGameSfx">
+                    <div class="sfx-admin-shell">
+                        <section class="controls skin-sfx-controls-panel">
+                            <h2>游戏音效管理</h2>
+                            <p class="sub">游戏功能音效独立配置，不受皮肤音效影响。</p>
+
+                            <label class="field">
+                                <span>点击反馈音效</span>
+                                <select id="gameSfxClickPresetSelect"></select>
+                            </label>
+                            <label class="field">
+                                <span>金币获得音效</span>
+                                <select id="gameSfxCoinPresetSelect"></select>
+                            </label>
+                            <label class="field">
+                                <span>错误/惩罚音效</span>
+                                <select id="gameSfxErrorPresetSelect"></select>
+                            </label>
+                            <label class="field">
+                                <span>通关音效</span>
+                                <select id="gameSfxLevelCompletePresetSelect"></select>
+                            </label>
+                            <label class="field">
+                                <span>失败音效</span>
+                                <select id="gameSfxGameOverPresetSelect"></select>
+                            </label>
+
+                            <div class="actions sfx-actions">
+                                <button id="btnGameSfxSave" class="primary" type="button">保存游戏音效配置</button>
+                                <button id="btnGameSfxReset" type="button">恢复默认游戏音效</button>
+                            </div>
+                            <p id="gameSfxStatus" class="status">Ready.</p>
+                        </section>
+
+                        <section class="preview skin-sfx-list-panel">
+                            <div class="preview-header">
+                                <h2>快速试听</h2>
+                            </div>
+                            <p class="sub">不进入游戏即可试听各功能音效。</p>
+                            <div class="actions sfx-actions">
+                                <button id="btnGameSfxPreviewClick" type="button">试听：点击反馈</button>
+                                <button id="btnGameSfxPreviewCoin" type="button">试听：金币获得</button>
+                                <button id="btnGameSfxPreviewError" type="button">试听：错误惩罚</button>
+                                <button id="btnGameSfxPreviewLevelComplete" type="button">试听：通关</button>
+                                <button id="btnGameSfxPreviewGameOver" type="button">试听：失败</button>
+                            </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="music-sfx-subpanel" data-music-sfx-tab-panel="game-music" role="tabpanel" aria-labelledby="musicSfxTabBtnGameMusic">
+                    <section class="controls skin-sfx-controls-panel">
+                        <h2>游戏音乐管理</h2>
+                        <p class="sub">该页用于后续接入 BGM 生成、导入与场景音乐绑定。</p>
+                        <p id="gameMusicStatus" class="status">已预留页面结构，下一步可继续开发 BGM 生成与管理功能。</p>
+                    </section>
                 </div>
             </div>
-            <canvas id="previewCanvas" width="430" height="664"></canvas>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="params" role="tabpanel" aria-labelledby="tabBtnParams">
+            <div class="params-admin-shell">
+                <section class="controls params-panel">
+                    <h2>参数管理</h2>
+                    <p class="sub">管理全局游戏参数。保存后刷新游戏页面生效。</p>
+
+                    <label class="field">
+                        <span>积分换算金币系数 (scorePerCoin)</span>
+                        <input id="paramScorePerCoin" type="number" min="1" max="100000" step="1">
+                    </label>
+                    <label class="field">
+                        <span>每节蛇身获得积分 (scorePerBodySegment)</span>
+                        <input id="paramScorePerBodySegment" type="number" min="1" max="10000" step="1">
+                    </label>
+                    <label class="field">
+                        <span>每 n 次计分播放一次释放音效 (releaseSfxEveryNScoreEvents)</span>
+                        <input id="paramReleaseSfxEveryNScoreEvents" type="number" min="1" max="1000" step="1">
+                    </label>
+                    <label class="field">
+                        <span>星星粒子数量 (scoreBurstStarCount)</span>
+                        <input id="paramScoreBurstStarCount" type="number" min="0" max="20" step="1">
+                    </label>
+                    <label class="field">
+                        <span>蛇移除速度倍率 (snakeRemoveSpeedMultiplier)</span>
+                        <input id="paramSnakeRemoveSpeedMultiplier" type="number" min="0.2" max="5" step="0.05">
+                    </label>
+                    <label class="field">
+                        <span>蛇移除加速度倍率 (snakeRemoveAccelMultiplier)</span>
+                        <input id="paramSnakeRemoveAccelMultiplier" type="number" min="0.2" max="5" step="0.05">
+                    </label>
+                    <label class="field">
+                        <span>连击窗口毫秒 (comboWindowMs)</span>
+                        <input id="paramComboWindowMs" type="number" min="100" max="15000" step="50">
+                    </label>
+                    <label class="field">
+                        <span>奖励关卡连击阈值 (rewardComboThreshold)</span>
+                        <input id="paramRewardComboThreshold" type="number" min="1" max="1000" step="1">
+                    </label>
+                    <label class="field">
+                        <span>惩罚提示显示时长（秒）(misclickPenaltyTextDurationSeconds)</span>
+                        <input id="paramMisclickPenaltyTextDurationSeconds" type="number" min="0.2" max="6" step="0.1">
+                    </label>
+
+                    <div class="actions">
+                        <button id="btnSaveGameParams" class="primary" type="button">保存参数</button>
+                        <button id="btnResetGameParams" type="button">恢复默认参数</button>
+                    </div>
+
+                    <p id="paramStatus" class="status">Ready.</p>
+                </section>
+
+                <section class="preview params-json-panel">
+                    <div class="preview-header">
+                        <h2>参数 JSON</h2>
+                    </div>
+                    <label class="field">
+                        <span>可编辑 JSON</span>
+                        <textarea id="gameParamJson" spellcheck="false" rows="18"></textarea>
+                    </label>
+                    <div class="actions">
+                        <button id="btnImportGameParamJson" type="button">导入参数 JSON</button>
+                        <button id="btnCopyGameParamJson" type="button">复制参数 JSON</button>
+                    </div>
+                    <div class="meta">
+                        <div>提示：参数用于线上调优，建议每次改动后做一局完整验证。</div>
+                    </div>
+                </section>
+            </div>
         </section>
     </main>
 
     <script type="module" src="js/admin.js?v=67"></script>
+<script type="module" src="js/admin-hub.js?v=10"></script>
+<script type="module" src="js/admin-skin-manager.js?v=7"></script>
+<script type="module" src="js/admin-skin-fit.js?v=13"></script>
+    <script type="module" src="js/admin-skin-gen.js?v=44"></script>
+    <script type="module" src="js/admin-sfx-lab.js?v=16"></script>
 </body>
 </html>
-
-
-

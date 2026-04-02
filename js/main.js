@@ -1,8 +1,8 @@
-/**
+﻿/**
  * Main - game entry
  */
-import { Game } from './game.js?v=80';
-import { UI } from './ui.js?v=54';
+import { Game } from './game.js?v=117';
+import { UI } from './ui.js?v=59';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -11,10 +11,16 @@ import {
 } from './level-preload.js?v=9';
 import { initLevelStorage } from './level-storage.js?v=55';
 import { initUiTheme } from './ui-theme.js?v=2';
+import { initProgressStorage } from './progress-storage.js?v=1';
+import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
+import { initSfxStorage } from './sfx-storage.js?v=5';
+import { isLegacyColorVariantSkinId } from './skins.js?v=23';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
+const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
+const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 
 let gameRef = null;
 let uiRef = null;
@@ -27,6 +33,7 @@ let bootPreloadFillEl = null;
 let bootPreloadTextEl = null;
 let bootPreloadTipEl = null;
 let forcedZeroCanvasResizeLogged = false;
+let skinCatalogSyncPromise = null;
 
 function nowMs() {
     return typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -52,6 +59,185 @@ function formatLogDetails(value) {
     } catch {
         return String(value);
     }
+}
+
+function sanitizeLocalSkinId(rawId) {
+    return `${rawId || ''}`
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9_-]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+function normalizeText(raw, fallback = '') {
+    const text = `${raw || ''}`.replace(/\s+/g, ' ').trim();
+    return text || fallback;
+}
+
+function normalizeSavedSkinRows(rawRows) {
+    const rows = Array.isArray(rawRows) ? rawRows : [];
+    const candidateBaseIdSet = new Set(rows.map((row) => sanitizeLocalSkinId(row?.id)).filter(Boolean));
+    candidateBaseIdSet.add('classic-burrow');
+    const seen = new Set();
+    const out = [];
+
+    for (const row of rows) {
+        const id = sanitizeLocalSkinId(row?.id);
+        if (!id || id === 'classic-burrow' || seen.has(id) || row?.complete !== true) {
+            continue;
+        }
+        if (isLegacyColorVariantSkinId(id, candidateBaseIdSet) || isLegacyColorVariantSkinId(id)) {
+            continue;
+        }
+        const fallbackPreview = `/assets/skins/${id}/snake_head.png`;
+        out.push({
+            id,
+            nameZh: normalizeText(row?.nameZh, id),
+            nameEn: id,
+            descriptionZh: 'AI generated skin.',
+            descriptionEn: 'AI generated skin.',
+            preview: normalizeText(row?.preview, fallbackPreview),
+            coinCost: 0
+        });
+        seen.add(id);
+    }
+    return out;
+}
+
+function normalizeVisibleSkinIds(rawRows) {
+    const rows = Array.isArray(rawRows) ? rawRows : [];
+    const candidateBaseIdSet = new Set(rows.map((row) => sanitizeLocalSkinId(row?.id)).filter(Boolean));
+    candidateBaseIdSet.add('classic-burrow');
+    const visible = new Set(['classic-burrow']);
+    for (const row of rows) {
+        const id = sanitizeLocalSkinId(row?.id);
+        if (!id || row?.complete !== true) {
+            continue;
+        }
+        if (isLegacyColorVariantSkinId(id, candidateBaseIdSet) || isLegacyColorVariantSkinId(id)) {
+            continue;
+        }
+        visible.add(id);
+    }
+    return Array.from(visible.values());
+}
+
+function readLocalSkinCatalogRows() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return [];
+    }
+    try {
+        const raw = localStorage.getItem(LOCAL_SKIN_CATALOG_STORAGE_KEY);
+        if (!raw) {
+            return [];
+        }
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
+
+function writeLocalSkinCatalogRows(rows) {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return;
+    }
+    localStorage.setItem(LOCAL_SKIN_CATALOG_STORAGE_KEY, JSON.stringify(Array.isArray(rows) ? rows : [], null, 2));
+}
+
+function mergeLocalSkinCatalogRows(existingRows, incomingRows) {
+    const existing = Array.isArray(existingRows) ? existingRows : [];
+    const incoming = Array.isArray(incomingRows) ? incomingRows : [];
+    const existingById = new Map();
+    for (const row of existing) {
+        const id = sanitizeLocalSkinId(row?.id);
+        if (!id || id === 'classic-burrow') {
+            continue;
+        }
+        existingById.set(id, {
+            id,
+            nameZh: normalizeText(row?.nameZh, id),
+            nameEn: normalizeText(row?.nameEn, id),
+            descriptionZh: normalizeText(row?.descriptionZh, 'AI generated skin.'),
+            descriptionEn: normalizeText(row?.descriptionEn, 'AI generated skin.'),
+            preview: normalizeText(row?.preview, `/assets/skins/${id}/snake_head.png`),
+            coinCost: Math.max(0, Math.floor(Number(row?.coinCost) || 0))
+        });
+    }
+
+    const merged = [];
+    for (const row of incoming) {
+        const id = sanitizeLocalSkinId(row?.id);
+        if (!id) {
+            continue;
+        }
+        const prev = existingById.get(id);
+        merged.push({
+            id,
+            nameZh: normalizeText(prev?.nameZh, normalizeText(row?.nameZh, id)),
+            nameEn: normalizeText(prev?.nameEn, normalizeText(row?.nameEn, id)),
+            descriptionZh: normalizeText(prev?.descriptionZh, normalizeText(row?.descriptionZh, 'AI generated skin.')),
+            descriptionEn: normalizeText(prev?.descriptionEn, normalizeText(row?.descriptionEn, 'AI generated skin.')),
+            preview: normalizeText(row?.preview, normalizeText(prev?.preview, `/assets/skins/${id}/snake_head.png`)),
+            coinCost: Math.max(0, Math.floor(Number(prev?.coinCost) || Number(row?.coinCost) || 0))
+        });
+    }
+
+    merged.sort((a, b) => a.id.localeCompare(b.id));
+    return merged;
+}
+
+async function syncLocalSkinCatalogFromServer() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return { ok: false, reason: 'no_local_storage' };
+    }
+    if (skinCatalogSyncPromise) {
+        return skinCatalogSyncPromise;
+    }
+
+    skinCatalogSyncPromise = (async () => {
+        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        const timeoutId = setTimeout(() => {
+            if (controller) {
+                controller.abort();
+            }
+        }, 1500);
+
+        try {
+            const response = await fetch('/api/skin-gen/saved-skins', {
+                method: 'GET',
+                cache: 'no-store',
+                signal: controller ? controller.signal : undefined
+            });
+            if (!response.ok) {
+                return { ok: false, reason: `http_${response.status}` };
+            }
+
+            const payload = await response.json().catch(() => ({}));
+            const visibleIds = normalizeVisibleSkinIds(payload?.skins);
+            localStorage.setItem(SKIN_VISIBLE_IDS_STORAGE_KEY, JSON.stringify(visibleIds, null, 2));
+
+            const incoming = normalizeSavedSkinRows(payload?.skins);
+            const merged = mergeLocalSkinCatalogRows(readLocalSkinCatalogRows(), incoming);
+            writeLocalSkinCatalogRows(merged);
+            logBoot('skin catalog synced', { skinCount: merged.length, visibleCount: visibleIds.length });
+            return { ok: true, skinCount: merged.length, visibleCount: visibleIds.length };
+        } catch (error) {
+            if (error?.name !== 'AbortError') {
+                console.warn('[main] sync local skin catalog failed', error);
+            }
+            return { ok: false, reason: error?.name || 'sync_failed' };
+        } finally {
+            clearTimeout(timeoutId);
+            skinCatalogSyncPromise = null;
+        }
+    })();
+
+    return skinCatalogSyncPromise;
+}
+
+if (typeof window !== 'undefined') {
+    window.__arrowSyncSkinCatalogFromServer = syncLocalSkinCatalogFromServer;
 }
 
 function readViewportSize() {
@@ -164,10 +350,22 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
 
         try {
             const storageStartedAt = nowMs();
-            await initLevelStorage().catch((error) => {
-                console.warn('[main] level storage init failed', error);
-            });
-            logBoot('level storage initialized', { durationMs: Math.round(nowMs() - storageStartedAt) });
+            await Promise.all([
+                initLevelStorage().catch((error) => {
+                    console.warn('[main] level storage init failed', error);
+                }),
+                initProgressStorage().catch((error) => {
+                    console.warn('[main] progress storage init failed', error);
+                }),
+                initSkinPartFitStorage().catch((error) => {
+                    console.warn('[main] skin part fit storage init failed', error);
+                }),
+                initSfxStorage().catch((error) => {
+                    console.warn('[main] sfx storage init failed', error);
+                })
+            ]);
+            await syncLocalSkinCatalogFromServer();
+            logBoot('storages initialized', { durationMs: Math.round(nowMs() - storageStartedAt) });
             updateBootPreloadProgress(26, 'Initializing game...');
 
             const themeInitTask = initUiTheme('design-v5')
@@ -235,6 +433,10 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
+
+
+
+
 
 
 

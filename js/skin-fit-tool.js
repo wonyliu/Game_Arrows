@@ -1,6 +1,13 @@
-import { getSkinById, getSkinCatalog } from './skins.js?v=6';
+﻿import { getSkinById, getSkinCatalog } from './skins.js?v=23';
+import {
+    initSkinPartFitStorage,
+    readSkinPartFitOverrides,
+    saveSkinPartFitOverrides,
+    SKIN_PART_FIT_STORAGE_KEY
+} from './skin-fit-storage.js?v=1';
 
-const STORAGE_KEY = 'arrowClear_skinPartFitOverrides';
+const STORAGE_KEY = SKIN_PART_FIT_STORAGE_KEY;
+const GAME_PROGRESS_KEY = 'arrowClear_progress';
 const DEFAULT_SKIN_ID = 'classic-burrow';
 const DEFAULT_FIT = Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 });
 const PREVIEW_MASK_ALPHA_KEY = 'arrowClear_skinFitPreviewMaskAlpha';
@@ -29,6 +36,7 @@ const state = {
 const imageCache = new Map();
 const el = {
     skinSelect: document.getElementById('skinSelect'),
+    selectionHint: document.getElementById('selectionHint'),
     partSelect: document.getElementById('partSelect'),
     scaleRange: document.getElementById('scaleRange'),
     scaleNumber: document.getElementById('scaleNumber'),
@@ -64,18 +72,11 @@ function normalizeFit(raw, fallback = DEFAULT_FIT) {
 }
 
 function readOverrides() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) return {};
-        const parsed = JSON.parse(raw);
-        return parsed && typeof parsed === 'object' ? parsed : {};
-    } catch {
-        return {};
-    }
+    return readSkinPartFitOverrides();
 }
 
 function writeOverrides(overrides) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(overrides));
+    void saveSkinPartFitOverrides(overrides);
 }
 
 function readMaskAlpha() {
@@ -94,6 +95,62 @@ function writeMaskAlpha(value) {
     localStorage.setItem(PREVIEW_MASK_ALPHA_KEY, String(clamp(value, 0, 100)));
 }
 
+function readGameProgress() {
+    try {
+        const raw = localStorage.getItem(GAME_PROGRESS_KEY);
+        if (!raw) return {};
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function getSelectionState() {
+    const progress = readGameProgress();
+    const gameSkinId = `${progress?.selectedSkinId || ''}`.trim() || DEFAULT_SKIN_ID;
+    const editingSkinId = `${state.skinId || ''}`.trim() || DEFAULT_SKIN_ID;
+    const unlockedSkinIds = Array.isArray(progress?.unlockedSkinIds) ? progress.unlockedSkinIds : [DEFAULT_SKIN_ID];
+    const editingSkinUnlocked = editingSkinId === DEFAULT_SKIN_ID || unlockedSkinIds.includes(editingSkinId);
+    return {
+        gameSkinId,
+        editingSkinId,
+        unlockedSkinIds,
+        editingSkinUnlocked
+    };
+}
+
+function getSkinLabel(skinId) {
+    const skin = getSkinById(skinId);
+    return `${skin?.name?.['zh-CN'] || skin?.id || skinId} (${skin?.id || skinId})`;
+}
+
+function updateSelectionHint() {
+    if (!el.selectionHint) {
+        return;
+    }
+
+    const selection = getSelectionState();
+    const { gameSkinId, editingSkinId, editingSkinUnlocked } = selection;
+    const gameSkinLabel = getSkinLabel(gameSkinId);
+    const editingSkinLabel = getSkinLabel(editingSkinId);
+
+    if (!editingSkinUnlocked) {
+        el.selectionHint.textContent = `\u6b63\u5728\u7f16\u8f91\uff1a${editingSkinLabel}\u3002\u8be5\u76ae\u80a4\u5728\u6e38\u620f\u5b58\u6863\u4e2d\u672a\u89e3\u9501\uff0c\u5b9e\u673a\u4e0d\u4f1a\u663e\u793a\u3002`;
+        el.selectionHint.style.color = '#ffcf93';
+        return;
+    }
+
+    if (gameSkinId === editingSkinId) {
+        el.selectionHint.textContent = `\u6e38\u620f\u5f53\u524d\u76ae\u80a4\uff1a${gameSkinLabel}\uff08\u4e0e\u6b63\u5728\u7f16\u8f91\u4e00\u81f4\uff09\u3002`;
+        el.selectionHint.style.color = 'var(--muted)';
+        return;
+    }
+
+    el.selectionHint.textContent = `\u6e38\u620f\u5f53\u524d\u76ae\u80a4\uff1a${gameSkinLabel}\uff1b\u6b63\u5728\u7f16\u8f91\uff1a${editingSkinLabel}\u3002\u5207\u6362\u5230\u8be5\u76ae\u80a4\u540e\u624d\u4f1a\u770b\u5230\u6539\u52a8\u3002`;
+    el.selectionHint.style.color = '#ffcf93';
+}
+
 function setStatus(text, isError = false) {
     el.status.textContent = text || '';
     el.status.style.color = isError ? '#ff96ad' : '#9df2c0';
@@ -107,14 +164,41 @@ function getConfiguredPartFit(skin, partKey) {
     return normalizeFit(skin?.renderProfile?.partFit?.[partKey], DEFAULT_FIT);
 }
 
+function isShapeLockedSkin(skin) {
+    return skin?.lockClassicPartShape === true;
+}
+
 function getOverridePartFit(skinId, partKey) {
     return normalizeFit(state.overrides?.[skinId]?.[partKey], DEFAULT_FIT);
 }
 
 function getEffectivePartFit(skin, partKey) {
     const configured = getConfiguredPartFit(skin, partKey);
+    if (isShapeLockedSkin(skin)) {
+        return configured;
+    }
     const overrideRaw = state.overrides?.[skin.id]?.[partKey];
     return overrideRaw ? normalizeFit(overrideRaw, configured) : configured;
+}
+
+function applyFitLockState(skin) {
+    const locked = isShapeLockedSkin(skin);
+    const fitControls = [
+        el.scaleRange,
+        el.scaleNumber,
+        el.offsetXRange,
+        el.offsetXNumber,
+        el.offsetYRange,
+        el.offsetYNumber
+    ];
+    for (const control of fitControls) {
+        if (control) {
+            control.disabled = locked;
+        }
+    }
+    if (el.btnSavePart) {
+        el.btnSavePart.disabled = locked;
+    }
 }
 
 function setFitInputs(fit) {
@@ -231,6 +315,32 @@ async function loadImage(path) {
     return promise;
 }
 
+function toOpaqueImageSurface(image) {
+    if (!image?.width || !image?.height) {
+        return image;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = image.height;
+    const localCtx = canvas.getContext('2d');
+    localCtx.drawImage(image, 0, 0);
+    const imageData = localCtx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let changed = false;
+    for (let i = 3; i < data.length; i += 4) {
+        const alpha = data[i];
+        if (alpha === 0 || alpha === 255) {
+            continue;
+        }
+        data[i] = 255;
+        changed = true;
+    }
+    if (changed) {
+        localCtx.putImageData(imageData, 0, 0);
+    }
+    return canvas;
+}
+
 async function loadPartImages() {
     const skin = getSkinById(state.skinId);
     const maskSkin = getSkinById(DEFAULT_SKIN_ID);
@@ -241,7 +351,10 @@ async function loadPartImages() {
         throw new Error(`Missing asset path for part: ${part.key}`);
     }
 
-    const [skinImage, maskImage] = await Promise.all([loadImage(skinPath), loadImage(maskPath)]);
+    const [skinImageRaw, maskImage] = await Promise.all([loadImage(skinPath), loadImage(maskPath)]);
+    const skinImage = skin?.forceOpaqueSnakeParts === true
+        ? toOpaqueImageSurface(skinImageRaw)
+        : skinImageRaw;
     state.images.skin = skinImage;
     state.images.mask = maskImage;
     state.images.maskLayers = buildMaskLayers(maskImage);
@@ -255,7 +368,10 @@ function drawPreview() {
         return;
     }
 
-    const fit = getFitFromInputs();
+    const skin = getSkinById(state.skinId);
+    const fit = isShapeLockedSkin(skin)
+        ? getConfiguredPartFit(skin, state.partKey)
+        : getFitFromInputs();
     const canvasWidth = el.canvas.width;
     const canvasHeight = el.canvas.height;
     drawCheckerboard(canvasWidth, canvasHeight);
@@ -277,9 +393,21 @@ function drawPreview() {
     const drawX = drawCenterX - drawWidth * 0.5;
     const drawY = drawCenterY - drawHeight * 0.5;
 
+    // Use an intermediate layer so preview shows true masked result (same as runtime).
+    const maskedLayer = document.createElement('canvas');
+    maskedLayer.width = canvasWidth;
+    maskedLayer.height = canvasHeight;
+    const maskedCtx = maskedLayer.getContext('2d');
+    maskedCtx.imageSmoothingEnabled = true;
+    maskedCtx.imageSmoothingQuality = 'high';
+    maskedCtx.drawImage(skinImage, drawX, drawY, drawWidth, drawHeight);
+    maskedCtx.globalCompositeOperation = 'destination-in';
+    maskedCtx.drawImage(maskImage, maskX, maskY, maskWidth, maskHeight);
+    maskedCtx.globalCompositeOperation = 'source-over';
+
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(skinImage, drawX, drawY, drawWidth, drawHeight);
+    ctx.drawImage(maskedLayer, 0, 0);
 
     ctx.globalAlpha = clamp(state.maskAlpha, 0, 100) / 100;
     ctx.drawImage(layers.tintCanvas, maskX, maskY, maskWidth, maskHeight);
@@ -314,15 +442,40 @@ function setSelectionFitToEffective() {
     drawPreview();
 }
 
+
 function saveCurrentPartOverride() {
+    if (!state.skinId || !state.partKey) {
+        setStatus('Please select a skin and a part first.', true);
+        return;
+    }
+    const skin = getSkinById(state.skinId);
+    if (isShapeLockedSkin(skin)) {
+        if (state.overrides[state.skinId]) {
+            delete state.overrides[state.skinId];
+            writeOverrides(state.overrides);
+            refreshOutput();
+            updateSelectionHint();
+        }
+        setSelectionFitToConfig();
+        setStatus('该皮肤形状已锁定为洞穴经典，禁止保存 scale/x/y 覆盖。');
+        return;
+    }
+
     const fit = getFitFromInputs();
     const skinOverrides = state.overrides[state.skinId] || {};
     skinOverrides[state.partKey] = fit;
     state.overrides[state.skinId] = skinOverrides;
     writeOverrides(state.overrides);
     refreshOutput();
-    setStatus(`已保存 ${state.skinId} / ${state.partKey}`);
+    updateSelectionHint();
+    const selection = getSelectionState();
+    if (selection.gameSkinId !== selection.editingSkinId) {
+        setStatus(`\u5df2\u4fdd\u5b58 ${state.skinId} / ${state.partKey}\u3002\u5f53\u524d\u6e38\u620f\u76ae\u80a4\u4e0d\u662f\u8be5\u76ae\u80a4\uff0c\u8fdb\u6e38\u620f\u5207\u6362\u540e\u624d\u4f1a\u751f\u6548\u3002`);
+        return;
+    }
+    setStatus(`\u5df2\u4fdd\u5b58 ${state.skinId} / ${state.partKey}\uff0c\u56de\u5230\u6e38\u620f\u5237\u65b0\u5373\u53ef\u770b\u5230\u6548\u679c\u3002`);
 }
+
 
 function resetCurrentPartOverride() {
     if (state.overrides[state.skinId]) {
@@ -334,25 +487,29 @@ function resetCurrentPartOverride() {
     writeOverrides(state.overrides);
     refreshOutput();
     setSelectionFitToEffective();
-    setStatus(`已重置 ${state.skinId} / ${state.partKey}`);
+    updateSelectionHint();
+    setStatus(`Reset ${state.skinId} / ${state.partKey}`);
 }
+
 
 function resetCurrentSkinOverride() {
     delete state.overrides[state.skinId];
     writeOverrides(state.overrides);
     refreshOutput();
     setSelectionFitToEffective();
-    setStatus(`已清空 ${state.skinId} 覆盖`);
+    updateSelectionHint();
+    setStatus(`Cleared overrides for ${state.skinId}`);
 }
 
 async function copyOutputJson() {
     try {
         await navigator.clipboard.writeText(el.output.value);
-        setStatus('JSON 已复制');
+        setStatus('JSON copied.');
     } catch {
-        setStatus('复制失败，请手动复制文本框内容', true);
+        setStatus('Copy failed. Please copy from the textbox manually.', true);
     }
 }
+
 
 function importOutputJson() {
     try {
@@ -364,26 +521,42 @@ function importOutputJson() {
         writeOverrides(state.overrides);
         refreshOutput();
         setSelectionFitToEffective();
-        setStatus('已导入并保存 JSON');
+        updateSelectionHint();
+        setStatus('JSON imported and saved.');
     } catch {
-        setStatus('JSON 格式错误，导入失败', true);
+        setStatus('Invalid JSON format. Import failed.', true);
     }
 }
 
 async function refreshSelectedPart() {
-    state.skinId = el.skinSelect.value;
+    state.skinId = el.skinSelect.value || DEFAULT_SKIN_ID;
     state.partKey = el.partSelect.value;
+    const skin = getSkinById(state.skinId);
+    if (isShapeLockedSkin(skin) && state.overrides[state.skinId]) {
+        delete state.overrides[state.skinId];
+        writeOverrides(state.overrides);
+        refreshOutput();
+    }
+    applyFitLockState(skin);
+    updateSelectionHint();
     try {
         await loadPartImages();
         setSelectionFitToEffective();
         drawPreview();
     } catch (error) {
-        setStatus(error?.message || '图片加载失败', true);
+        setStatus(error?.message || 'Failed to load images.', true);
     }
 }
 
+
 function initSelections() {
-    const skins = getSkinCatalog().filter((skin) => skin?.id && skin.id !== DEFAULT_SKIN_ID);
+    const catalog = Array.isArray(getSkinCatalog()) ? getSkinCatalog() : [];
+    const allSkins = catalog.filter((skin) => skin?.id);
+    const preferredSkins = allSkins.filter((skin) => skin.id !== DEFAULT_SKIN_ID);
+    const skins = preferredSkins.length > 0
+        ? preferredSkins
+        : allSkins.filter((skin) => skin.id === DEFAULT_SKIN_ID);
+
     for (const skin of skins) {
         const option = document.createElement('option');
         option.value = skin.id;
@@ -398,12 +571,27 @@ function initSelections() {
         el.partSelect.appendChild(option);
     }
 
-    if (!skins.some((skin) => skin.id === state.skinId) && skins.length > 0) {
+    const progress = readGameProgress();
+    const preferredSkinId = `${progress?.selectedSkinId || ''}`.trim();
+
+    if (skins.length === 0) {
+        const fallbackSkin = getSkinById(DEFAULT_SKIN_ID);
+        const option = document.createElement('option');
+        option.value = fallbackSkin.id;
+        option.textContent = `${fallbackSkin.name?.['zh-CN'] || fallbackSkin.id} (${fallbackSkin.id})`;
+        el.skinSelect.appendChild(option);
+        state.skinId = fallbackSkin.id;
+    } else if (preferredSkinId && skins.some((skin) => skin.id === preferredSkinId)) {
+        state.skinId = preferredSkinId;
+    } else if (!skins.some((skin) => skin.id === state.skinId)) {
         state.skinId = skins[0].id;
     }
+
     el.skinSelect.value = state.skinId;
     el.partSelect.value = state.partKey;
+    updateSelectionHint();
 }
+
 
 function bindEvents() {
     syncInputPair(el.scaleRange, el.scaleNumber);
@@ -426,11 +614,11 @@ function bindEvents() {
     el.partSelect.addEventListener('change', refreshSelectedPart);
     el.btnLoadConfig.addEventListener('click', () => {
         setSelectionFitToConfig();
-        setStatus('已加载配置默认参数');
+        setStatus('Loaded default config values.');
     });
     el.btnLoadEffective.addEventListener('click', () => {
         setSelectionFitToEffective();
-        setStatus('已加载当前生效参数');
+        setStatus('Loaded effective values.');
     });
     el.btnSavePart.addEventListener('click', saveCurrentPartOverride);
     el.btnResetPart.addEventListener('click', resetCurrentPartOverride);
@@ -439,15 +627,22 @@ function bindEvents() {
     el.btnCopyJson.addEventListener('click', copyOutputJson);
 
     window.addEventListener('storage', (event) => {
-        if (event.key !== STORAGE_KEY) return;
-        state.overrides = readOverrides();
-        refreshOutput();
-        setSelectionFitToEffective();
-        setStatus('检测到覆盖参数变更，已刷新');
+        if (event.key === STORAGE_KEY) {
+            state.overrides = readOverrides();
+            refreshOutput();
+            setSelectionFitToEffective();
+            updateSelectionHint();
+            setStatus('Override data changed and refreshed.');
+            return;
+        }
+        if (event.key === GAME_PROGRESS_KEY) {
+            updateSelectionHint();
+        }
     });
 }
 
 async function init() {
+    await initSkinPartFitStorage();
     state.overrides = readOverrides();
     state.maskAlpha = readMaskAlpha();
     initSelections();
@@ -456,9 +651,22 @@ async function init() {
     el.maskAlphaNumber.value = state.maskAlpha.toFixed(0);
     refreshOutput();
     await refreshSelectedPart();
-    setStatus('就绪：调完点击“保存当前部件”，回游戏刷新即可生效');
+    setStatus('Ready: adjust values, save override, then refresh game to see changes.');
 }
+
+
 
 init().catch((error) => {
     setStatus(error?.message || '初始化失败', true);
 });
+
+
+
+
+
+
+
+
+
+
+

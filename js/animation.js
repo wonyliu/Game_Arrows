@@ -1,4 +1,9 @@
-import { drawPixelParticle } from './pixel-art.js?v=29';
+import { drawPixelParticle } from './pixel-art.js?v=48';
+import { readGameplayParams } from './game-params.js?v=3';
+
+const GAMEPLAY_PARAMS = readGameplayParams();
+const REMOVE_SPEED_MULTIPLIER = GAMEPLAY_PARAMS.snakeRemoveSpeedMultiplier;
+const REMOVE_ACCEL_MULTIPLIER = GAMEPLAY_PARAMS.snakeRemoveAccelMultiplier;
 
 const DIR_VEC = {
     up: { dx: 0, dy: -1 },
@@ -30,14 +35,20 @@ export class AnimationManager {
 
         const cellSize = grid.cellSize;
         const segmentSources = line.getScreenPoints(grid).slice().reverse();
+        const headDirection = typeof line.getHeadDirection === 'function'
+            ? line.getHeadDirection()
+            : 'right';
+        const directionVec = DIR_VEC[headDirection] || DIR_VEC.right;
+        const headSource = segmentSources[0] || null;
         line._removeAnim = {
-            speed: cellSize * 4.5,
-            accel: cellSize * 2.2,
+            speed: cellSize * 4.5 * REMOVE_SPEED_MULTIPLIER,
+            accel: cellSize * 2.2 * REMOVE_ACCEL_MULTIPLIER,
             maxDist: Math.max(grid.cols, grid.rows) * cellSize + line.cells.length * cellSize + cellSize * 4,
             dist: 0,
             onComplete,
             onSegment,
             segmentStepDist: Math.max(1, cellSize * 0.9),
+            segmentExitStartDist: computeSegmentExitStartDist(headSource, directionVec, grid, cellSize),
             segmentSources,
             emittedSegments: 0
         };
@@ -109,7 +120,7 @@ export class AnimationManager {
                 if (typeof animation.onSegment === 'function' && Array.isArray(animation.segmentSources)) {
                     while (
                         animation.emittedSegments < animation.segmentSources.length &&
-                        animation.dist >= animation.emittedSegments * animation.segmentStepDist
+                        animation.dist >= animation.segmentExitStartDist + animation.emittedSegments * animation.segmentStepDist
                     ) {
                         const segmentIndex = animation.emittedSegments;
                         const source = animation.segmentSources[segmentIndex];
@@ -230,20 +241,36 @@ export class AnimationManager {
         }
     }
 
-    addConfetti(x, y, count = 50, colors = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b'], type = 'confetti') {
+    addConfetti(
+        x,
+        y,
+        count = 50,
+        colors = ['#ef4444', '#10b981', '#3b82f6', '#f59e0b'],
+        type = 'confetti',
+        options = {}
+    ) {
+        const speedMin = Math.max(1, Number(options.speedMin) || 150);
+        const speedMax = Math.max(speedMin, Number(options.speedMax) || 550);
+        const riseBias = Number(options.riseBias) || 200;
+        const sizeMin = Math.max(0.5, Number(options.sizeMin) || 6);
+        const sizeMax = Math.max(sizeMin, Number(options.sizeMax) || 14);
+        const lifeMin = Math.max(0.08, Number(options.lifeMin) || 1.5);
+        const lifeMax = Math.max(lifeMin, Number(options.lifeMax) || 3.0);
+        const rotationSpeed = Number(options.rotationSpeed) || 10;
+
         for (let i = 0; i < count; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const speed = 150 + Math.random() * 400;
+            const speed = speedMin + Math.random() * (speedMax - speedMin);
             this.particles.push({
                 x,
                 y,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 200,
+                vy: Math.sin(angle) * speed - riseBias,
                 color: colors[Math.floor(Math.random() * colors.length)],
-                size: 6 + Math.random() * 8,
+                size: sizeMin + Math.random() * (sizeMax - sizeMin),
                 rotation: Math.random() * Math.PI * 2,
-                vr: (Math.random() - 0.5) * 10,
-                life: 1.5 + Math.random() * 1.5,
+                vr: (Math.random() - 0.5) * rotationSpeed,
+                life: lifeMin + Math.random() * (lifeMax - lifeMin),
                 type
             });
         }
@@ -304,6 +331,35 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.arcTo(x, y + height, x, y, radius);
     ctx.arcTo(x, y, x + width, y, radius);
     ctx.closePath();
+}
+
+function computeSegmentExitStartDist(headPoint, direction, grid, cellSize) {
+    if (!headPoint || !direction || !grid) {
+        return 0;
+    }
+
+    const minX = Number(grid.offsetX) || 0;
+    const minY = Number(grid.offsetY) || 0;
+    const spanX = Math.max(0, (Number(grid.cols) || 0) * (Number(grid.cellSize) || Number(cellSize) || 0));
+    const spanY = Math.max(0, (Number(grid.rows) || 0) * (Number(grid.cellSize) || Number(cellSize) || 0));
+    const maxX = minX + spanX;
+    const maxY = minY + spanY;
+    const x = Number(headPoint.x) || 0;
+    const y = Number(headPoint.y) || 0;
+
+    let dist = 0;
+    if (direction.dx > 0) {
+        dist = maxX - x;
+    } else if (direction.dx < 0) {
+        dist = x - minX;
+    } else if (direction.dy > 0) {
+        dist = maxY - y;
+    } else if (direction.dy < 0) {
+        dist = y - minY;
+    }
+
+    const outPadding = Math.max(1, (Number(cellSize) || 0) * 0.08);
+    return Math.max(0, dist + outPadding);
 }
 
 

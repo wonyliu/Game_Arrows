@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=63">
+    <link rel="stylesheet" href="css/style.css?v=70">
 </head>
 <body>
     <div class="app-container">
@@ -27,8 +27,8 @@
 
         <div id="bootPreloadOverlay" class="boot-preload-overlay">
             <div class="boot-preload-panel">
-                <div class="boot-preload-title">加载中</div>
-                <div id="bootPreloadTip" class="boot-preload-tip">准备关卡数据...</div>
+                <div class="boot-preload-title">氓聤聽猫陆陆盲赂</div>
+                <div id="bootPreloadTip" class="boot-preload-tip">氓聡聠氓陇聡氓聟鲁氓聧隆忙聲掳忙聧庐...</div>
                 <div class="boot-preload-track">
                     <div id="bootPreloadFill" class="boot-preload-fill"></div>
                 </div>
@@ -41,6 +41,10 @@
                 <button id="btnHudSettings" class="hud-settings-btn" type="button" aria-label="settings">
                     <img class="hud-settings-icon" src="assets/design-v2/clean/icon_settings.png" alt="settings">
                 </button>
+                <div class="coin-chip hud-coin-chip" id="hudCoinDisplay" aria-label="coins">
+                    <img class="coin-chip-icon" src="assets/design-v5/clean/icon_coin.png" alt="coin">
+                    <strong id="hudCoinValue" class="coin-chip-value">0</strong>
+                </div>
                 <div class="hud-center">
                     <div id="levelInfo" class="hud-level">Burrow 1</div>
                     <div id="lives" class="hud-lives"></div>
@@ -54,6 +58,10 @@
                         <div id="comboDisplay" class="hud-combo hidden">5 combo</div>
                     </div>
                 </div>
+            </div>
+            <div id="hudScorePulse" class="hud-score-pulse" aria-live="polite" aria-atomic="true">
+                <div id="hudScoreValue" class="hud-score-value">0</div>
+                <div id="hudScoreGain" class="hud-score-gain hidden"></div>
             </div>
 
             <div class="hud-bottom">
@@ -79,13 +87,13 @@
         <div id="menuOverlay" class="overlay">
             <div class="menu-content menu-content-v2">
                 <section class="menu-home-hero">
-                    <h1 class="menu-home-title" data-i18n="home.menuTitle">蛇蛇大冒险</h1>
+                    <h1 class="menu-home-title" data-i18n="home.menuTitle">猫聸聡猫聸聡氓陇搂氓聠聮茅聶</h1>
                     <div class="play-area play-area-v2">
-                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">开始冒险</button>
-                        <button id="btnLevels" class="current-level-tag" type="button" aria-label="洞穴入口">
+                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">氓录聙氓搂聥氓聠聮茅聶</button>
+                        <button id="btnLevels" class="current-level-tag" type="button" aria-label="忙麓聻莽漏麓氓聟楼氓聫拢">
                             <span class="level-tag-icon" aria-hidden="true"></span>
-                            <span class="level-tag-label" data-i18n="home.burrowEntry">洞穴入口</span>
-                            <span id="menuLevelTagValue" class="level-tag-value">洞穴 1</span>
+                            <span class="level-tag-label" data-i18n="home.burrowEntry">忙麓聻莽漏麓氓聟楼氓聫拢</span>
+                            <span id="menuLevelTagValue" class="level-tag-value">忙麓聻莽漏麓 1</span>
                         </button>
                     </div>
                 </section>
@@ -119,10 +127,14 @@
                         </button>
                         <button id="btnMore" class="feature-card feature-card-placeholder" type="button" disabled>
                             <img class="feature-icon" data-icon-slot="icon.home" src="assets/design-v2/clean/icon_home.png" alt="more">
-                            <span class="feature-label" data-i18n="feature.more">功能入口</span>
+                            <span class="feature-label" data-i18n="feature.more">氓聤聼猫聝陆氓聟楼氓聫拢</span>
                         </button>
                     </div>
                 </section>
+            </div>
+            <div class="coin-chip menu-coin-chip" id="menuCoinDisplay" aria-label="coins">
+                <img class="coin-chip-icon" src="assets/design-v5/clean/icon_coin.png" alt="coin">
+                <strong id="menuCoinValue" class="coin-chip-value">0</strong>
             </div>
         </div>
 
@@ -139,7 +151,7 @@
                             <div class="setting-desc" data-i18n="panel.settings.languageDesc">Switch UI language without affecting save data.</div>
                         </div>
                         <div class="locale-switch">
-                            <button id="btnLocaleZh" class="locale-chip" type="button" data-i18n="settings.locale.zh">简体中文</button>
+                            <button id="btnLocaleZh" class="locale-chip" type="button" data-i18n="settings.locale.zh">莽庐聙盲陆聯盲赂颅忙聳</button>
                             <button id="btnLocaleEn" class="locale-chip" type="button" data-i18n="settings.locale.en">English</button>
                         </div>
                     </div>
@@ -148,11 +160,11 @@
                         <div class="setting-desc" data-i18n="panel.settings.audioDesc">Detailed controls will be available in a future update.</div>
                         <div class="setting-control audio-stack">
                             <label class="audio-row">
-                                <span data-i18n="panel.settings.music">音乐</span>
+                                <span data-i18n="panel.settings.music">茅聼鲁盲鹿聬</span>
                                 <input type="range" min="0" max="100" value="65" disabled>
                             </label>
                             <label class="audio-row">
-                                <span data-i18n="panel.settings.sfx">音效</span>
+                                <span data-i18n="panel.settings.sfx">茅聼鲁忙聲聢</span>
                                 <input type="range" min="0" max="100" value="55" disabled>
                             </label>
                         </div>
@@ -161,9 +173,9 @@
                         <div class="setting-title" data-i18n="panel.settings.graphics">Graphics</div>
                         <div class="setting-desc" data-i18n="panel.settings.graphicsDesc">Performance presets will be available in a future update.</div>
                         <div class="setting-control graphics-switch" role="group" aria-label="graphics-quality">
-                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsLow">低</button>
-                            <button class="graphics-option active" type="button" disabled data-i18n="panel.settings.graphicsMid">中</button>
-                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsHigh">高</button>
+                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsLow">盲陆</button>
+                            <button class="graphics-option active" type="button" disabled data-i18n="panel.settings.graphicsMid">盲赂</button>
+                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsHigh">茅芦</button>
                         </div>
                     </div>
                     <div class="setting-row setting-row-reset">
@@ -206,15 +218,14 @@
                     <button id="btnBackFromSkins" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
                 </div>
                 <div class="panel-body">
-                    <div class="skin-grid">
-                        <div class="skin-card">A</div>
-                        <div class="skin-card">B</div>
-                        <div class="skin-card">C</div>
-                        <div class="skin-card">D</div>
-                        <div class="skin-card">E</div>
-                        <div class="skin-card">F</div>
+                    <div class="skin-center-meta">
+                        <div class="skin-coin-pill">
+                            <img id="skinsCoinIcon" class="skin-coin-icon" src="assets/design-v5/clean/icon_coin.png" alt="coin">
+                            <strong id="skinsCoinValue" class="skin-coin-value">0</strong>
+                        </div>
+                        <div id="skinsRateValue" class="skin-rate"></div>
                     </div>
-                    <p class="empty-state" data-i18n="panel.skins.empty">Skin system is under development. Cards are placeholders.</p>
+                    <div id="skinList" class="skin-grid"></div>
                 </div>
             </div>
         </div>
@@ -282,10 +293,10 @@
                 <div class="panel-body">
                     <div class="level-select-meta">
                         <div class="level-select-start">
-                            <span class="level-select-label" data-i18n="panel.levelSelect.startFrom">默认从以下关卡开始</span>
-                            <strong id="levelSelectCurrent" class="level-select-value">洞穴 1</strong>
+                            <span class="level-select-label" data-i18n="panel.levelSelect.startFrom">茅禄聵猫庐陇盲禄聨盲禄楼盲赂聥氓聟鲁氓聧隆氓录聙氓搂</span>
+                            <strong id="levelSelectCurrent" class="level-select-value">忙麓聻莽漏麓 1</strong>
                         </div>
-                        <p class="level-select-tip" data-i18n="panel.levelSelect.tip">可点击已解锁关卡直接进入游戏。</p>
+                        <p class="level-select-tip" data-i18n="panel.levelSelect.tip">氓聫炉莽聜鹿氓聡禄氓路虏猫搂拢茅聰聛氓聟鲁氓聧隆莽聸麓忙聨楼猫驴聸氓聟楼忙赂赂忙聢聫茫聙</p>
                     </div>
                     <div id="levelGrid" class="level-grid"></div>
                 </div>
@@ -296,6 +307,7 @@
             <div class="popup-box">
                 <h2 class="popup-title" data-i18n="panel.complete.title">All Cleared</h2>
                 <div id="levelScore" class="popup-score">Score: 0</div>
+                <div id="levelCoinReward" class="popup-coins">Coins +0 (Total 0)</div>
                 <div class="popup-buttons">
                     <button id="btnNext" class="btn-popup-primary" type="button" data-i18n="common.next">Next</button>
                     <button id="btnMenuFromComplete" class="btn-popup-secondary" type="button" data-i18n="common.menu">Back to Menu</button>
@@ -317,7 +329,11 @@
         <div id="errorVignette" class="error-vignette"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=104"></script>
+    <script type="module" src="js/main.js?v=143"></script>
 </body>
 </html>
+
+
+
+
 

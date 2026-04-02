@@ -1,4 +1,4 @@
-import { playClickSound, resumeAudio } from './audio.js?v=20';
+import { playClickSound, playCoinPopSound, resumeAudio } from './audio.js?v=30';
 import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=5';
 import { getUiAsset } from './ui-theme.js?v=2';
 
@@ -44,6 +44,10 @@ const SETTINGS_CONFIRM_MODE = Object.freeze({
     END_RUN: 'end-run'
 });
 
+const LEVEL_SETTLE_MIN_MS = 700;
+const LEVEL_SETTLE_MAX_MS = 1800;
+const LEVEL_SETTLE_PER_POINT_MS = 0.4;
+
 export class UI {
     constructor(game) {
         this.game = game;
@@ -63,8 +67,12 @@ export class UI {
         this.timerFillEl = document.getElementById('timerFill');
         this.timerLabelEl = document.getElementById('timerLabel');
         this.comboDisplayEl = document.getElementById('comboDisplay');
+        this.hudScoreValueEl = document.getElementById('hudScoreValue');
+        this.hudScoreGainEl = document.getElementById('hudScoreGain');
         this.hudEnergyLayerEl = document.getElementById('hudEnergyLayer');
         this.energyOrbNodes = new Set();
+        this.scorePulseAnimation = null;
+        this.scoreGainAnimation = null;
 
         this.menuOverlay = document.getElementById('menuOverlay');
         this.settingsOverlay = document.getElementById('settingsOverlay');
@@ -79,6 +87,7 @@ export class UI {
         this.levelSelectOverlay = document.getElementById('levelSelectOverlay');
         this.levelCompleteTitleEl = document.querySelector('#levelCompleteOverlay .popup-title');
         this.levelCompleteNextButton = document.getElementById('btnNext');
+        this.levelCompleteButtonsEl = document.querySelector('#levelCompleteOverlay .popup-buttons');
 
         this.levelScore = document.getElementById('levelScore');
         this.levelGrid = document.getElementById('levelGrid');
@@ -93,6 +102,13 @@ export class UI {
         this.settingsConfirmTitleEl = document.getElementById('settingsConfirmTitle');
         this.settingsConfirmDescEl = document.getElementById('settingsConfirmDesc');
         this.settingsConfirmActionBtn = document.getElementById('btnResetProgressConfirm');
+        this.menuCoinValue = document.getElementById('menuCoinValue');
+        this.hudCoinValue = document.getElementById('hudCoinValue');
+        this.skinList = document.getElementById('skinList');
+        this.skinsCoinValue = document.getElementById('skinsCoinValue');
+        this.levelCoinReward = document.getElementById('levelCoinReward');
+        this.levelSettleAnimFrame = 0;
+        this.isLevelSettleAnimating = false;
 
         this.bindEvents();
         this.bindGameCallbacks();
@@ -219,6 +235,7 @@ export class UI {
 
     bindGameCallbacks() {
         this.game.onHUDUpdate = () => this.updateHUD();
+        this.game.onScoreGain = (payload) => this.showScorePulse(payload);
         this.game.onTimerUpdate = () => this.updateTimer();
         this.game.onTimerEnergyEmit = (payload) => this.spawnTimerEnergyOrb(payload);
         this.game.onTimerEnergyBatchCancel = (batchId) => this.cancelTimerEnergyBatch(batchId);
@@ -333,6 +350,7 @@ export class UI {
             this.game.state = 'MENU';
             this.settingsEntry = SETTINGS_ENTRY.MENU;
             this.settingsConfirmMode = SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
+            this.updateCoinDisplays();
         }
 
         if (target === MENU_PANEL.LEVEL_SELECT) {
@@ -355,6 +373,8 @@ export class UI {
         if (target === MENU_PANEL.SKINS) {
             this.skinsOverlay.classList.remove('hidden');
             this.game.state = 'SKINS';
+            this.renderSkinCenter();
+            void this.syncSkinCatalogForSkinCenter();
         }
 
         if (target === MENU_PANEL.CHECKIN) {
@@ -378,6 +398,26 @@ export class UI {
         this.applyLocalizedText();
         this.refreshMenuLevelTag();
         this.renderFeatureCards();
+    }
+
+    async syncSkinCatalogForSkinCenter() {
+        const syncFn = typeof window !== 'undefined'
+            ? window.__arrowSyncSkinCatalogFromServer
+            : null;
+        if (typeof syncFn !== 'function') {
+            return;
+        }
+        try {
+            await syncFn();
+            if (this.game && typeof this.game.saveProgress === 'function') {
+                this.game.saveProgress();
+            }
+            if (this.menuState === MENU_PANEL.SKINS) {
+                this.renderSkinCenter();
+            }
+        } catch (error) {
+            console.warn('[ui] skin catalog sync failed', error);
+        }
     }
 
     closeMenuPanel() {
@@ -419,7 +459,32 @@ export class UI {
         appContainer?.classList.toggle('menu-mode', !!_visible);
     }
 
+    toggleLevelCompleteButtons(visible) {
+        if (!this.levelCompleteButtonsEl) return;
+        this.levelCompleteButtonsEl.classList.toggle('hidden', !visible);
+    }
+
+    stopLevelSettleAnimation() {
+        if (this.levelSettleAnimFrame && typeof cancelAnimationFrame === 'function') {
+            cancelAnimationFrame(this.levelSettleAnimFrame);
+        }
+        this.levelSettleAnimFrame = 0;
+        this.isLevelSettleAnimating = false;
+    }
+
     hideAll() {
+        this.stopLevelSettleAnimation();
+        this.toggleLevelCompleteButtons(true);
+        if (this.scorePulseAnimation && typeof this.scorePulseAnimation.cancel === 'function') {
+            this.scorePulseAnimation.cancel();
+        }
+        if (this.scoreGainAnimation && typeof this.scoreGainAnimation.cancel === 'function') {
+            this.scoreGainAnimation.cancel();
+        }
+        if (this.hudScoreGainEl) {
+            this.hudScoreGainEl.classList.add('hidden');
+            this.hudScoreGainEl.textContent = '';
+        }
         this.hud.classList.add('hidden');
         this.menuOverlay.classList.add('hidden');
         this.settingsOverlay.classList.add('hidden');
@@ -477,6 +542,23 @@ export class UI {
         }
     }
 
+    updateCoinDisplays() {
+        const coins = typeof this.game.getCoins === 'function'
+            ? this.game.getCoins()
+            : 0;
+        const valueText = String(Math.max(0, Math.floor(Number(coins) || 0)));
+
+        if (this.menuCoinValue) {
+            this.menuCoinValue.textContent = valueText;
+        }
+        if (this.hudCoinValue) {
+            this.hudCoinValue.textContent = valueText;
+        }
+        if (this.skinsCoinValue) {
+            this.skinsCoinValue.textContent = valueText;
+        }
+    }
+
     applyLocalizedText() {
         document.documentElement.lang = this.locale;
         document.title = t(this.locale, 'app.title');
@@ -497,6 +579,8 @@ export class UI {
         this.renderFeatureCards();
         this.updateSettingsActionRows();
         this.updateSettingsConfirmDialogText();
+        this.renderSkinCenter();
+        this.updateCoinDisplays();
     }
 
     updateLocaleButtons() {
@@ -619,6 +703,144 @@ export class UI {
         this.updateComboDisplay();
         this.updateToolButtons();
         this.refreshMenuLevelTag();
+        this.updateCoinDisplays();
+        this.syncScorePulse();
+    }
+
+    syncScorePulse() {
+        const totalScore = Math.max(0, Math.floor(Number(this.game?.score) || 0));
+        this.updateScorePulseVisual(totalScore, false, 0, Number(this.game?.combo) || 0);
+    }
+
+    showScorePulse(payload = {}) {
+        const gained = Math.max(0, Math.floor(Number(payload?.gained) || 0));
+        const totalScore = Math.max(0, Math.floor(Number(payload?.score) || Number(this.game?.score) || 0));
+        const combo = Math.max(0, Math.floor(Number(payload?.combo) || Number(this.game?.combo) || 0));
+        this.updateScorePulseVisual(totalScore, gained > 0, gained, combo);
+    }
+
+    resolveScorePulseStyle(totalScore) {
+        if (totalScore >= 12000) {
+            return {
+                scale: 1.38,
+                color: '#ff77c1',
+                shadow: '0 2px 0 rgba(56, 23, 37, 0.68), 0 0 12px rgba(255, 103, 186, 0.56), 0 0 24px rgba(255, 89, 176, 0.34)',
+                gainColor: '#ffe8f6'
+            };
+        }
+        if (totalScore >= 8000) {
+            return {
+                scale: 1.30,
+                color: '#ff9766',
+                shadow: '0 2px 0 rgba(63, 35, 20, 0.65), 0 0 10px rgba(255, 143, 92, 0.46), 0 0 20px rgba(255, 129, 73, 0.26)',
+                gainColor: '#fff0d9'
+            };
+        }
+        if (totalScore >= 5000) {
+            return {
+                scale: 1.22,
+                color: '#ffcb72',
+                shadow: '0 2px 0 rgba(66, 42, 21, 0.62), 0 0 8px rgba(255, 206, 117, 0.42), 0 0 18px rgba(255, 176, 77, 0.22)',
+                gainColor: '#fff2c8'
+            };
+        }
+        if (totalScore >= 2500) {
+            return {
+                scale: 1.15,
+                color: '#ffe592',
+                shadow: '0 2px 0 rgba(62, 43, 22, 0.6), 0 0 8px rgba(255, 234, 162, 0.36)',
+                gainColor: '#fff4cf'
+            };
+        }
+        if (totalScore >= 1000) {
+            return {
+                scale: 1.08,
+                color: '#f0ffd2',
+                shadow: '0 2px 0 rgba(45, 30, 20, 0.58), 0 0 6px rgba(225, 255, 166, 0.3)',
+                gainColor: '#f8ffd9'
+            };
+        }
+        return {
+            scale: 1,
+            color: '#e6f4d4',
+            shadow: '0 2px 0 rgba(45, 30, 20, 0.58), 0 6px 12px rgba(38, 23, 16, 0.28)',
+            gainColor: '#fff4cf'
+        };
+    }
+
+    updateScorePulseVisual(totalScore, animate = false, gained = 0, combo = 0) {
+        if (!this.hudScoreValueEl) {
+            return;
+        }
+
+        const style = this.resolveScorePulseStyle(totalScore);
+        const locale = this.locale === 'en-US' ? 'en-US' : 'zh-CN';
+        this.hudScoreValueEl.textContent = new Intl.NumberFormat(locale).format(totalScore);
+        this.hudScoreValueEl.style.color = style.color;
+        this.hudScoreValueEl.style.textShadow = style.shadow;
+        this.hudScoreValueEl.style.setProperty('--score-base-scale', style.scale.toFixed(3));
+
+        if (animate && typeof this.hudScoreValueEl.animate === 'function') {
+            if (this.scorePulseAnimation && typeof this.scorePulseAnimation.cancel === 'function') {
+                this.scorePulseAnimation.cancel();
+            }
+            const pulseBoost = Math.min(0.34, 0.1 + (Math.min(1800, gained) / 1800) * 0.12 + Math.min(0.12, combo * 0.01));
+            const baseScale = style.scale;
+            this.scorePulseAnimation = this.hudScoreValueEl.animate([
+                { transform: `scale(${(baseScale * 0.82).toFixed(3)})` },
+                { offset: 0.45, transform: `scale(${(baseScale * (1 + pulseBoost)).toFixed(3)})` },
+                { transform: `scale(${baseScale.toFixed(3)})` }
+            ], {
+                duration: Math.round(320 + Math.min(260, combo * 14)),
+                easing: 'cubic-bezier(0.2, 0.9, 0.22, 1)',
+                fill: 'forwards'
+            });
+            this.scorePulseAnimation.onfinish = () => {
+                this.scorePulseAnimation = null;
+            };
+            this.scorePulseAnimation.oncancel = () => {
+                this.scorePulseAnimation = null;
+            };
+        }
+
+        if (!this.hudScoreGainEl) {
+            return;
+        }
+        if (gained <= 0) {
+            this.hudScoreGainEl.classList.add('hidden');
+            this.hudScoreGainEl.textContent = '';
+            return;
+        }
+
+        this.hudScoreGainEl.textContent = `+${gained}`;
+        this.hudScoreGainEl.style.color = style.gainColor;
+        this.hudScoreGainEl.classList.remove('hidden');
+
+        if (this.scoreGainAnimation && typeof this.scoreGainAnimation.cancel === 'function') {
+            this.scoreGainAnimation.cancel();
+        }
+        if (typeof this.hudScoreGainEl.animate !== 'function') {
+            return;
+        }
+        this.scoreGainAnimation = this.hudScoreGainEl.animate([
+            { opacity: 0, transform: 'translateY(6px) scale(0.84)' },
+            { offset: 0.25, opacity: 1, transform: 'translateY(0px) scale(1.06)' },
+            { opacity: 0, transform: 'translateY(-16px) scale(1.1)' }
+        ], {
+            duration: 520,
+            easing: 'cubic-bezier(0.18, 0.84, 0.2, 1)',
+            fill: 'forwards'
+        });
+        this.scoreGainAnimation.onfinish = () => {
+            this.hudScoreGainEl?.classList.add('hidden');
+            if (this.hudScoreGainEl) {
+                this.hudScoreGainEl.textContent = '';
+            }
+            this.scoreGainAnimation = null;
+        };
+        this.scoreGainAnimation.oncancel = () => {
+            this.scoreGainAnimation = null;
+        };
     }
 
     updateToolButtons() {
@@ -684,27 +906,21 @@ export class UI {
         const combo = Math.max(0, Math.floor(Number(this.game.combo) || 0));
         const shouldShow = combo >= 5;
         this.comboDisplayEl.classList.toggle('hidden', !shouldShow);
+        this.comboDisplayEl.classList.remove('combo-tier-1', 'combo-tier-2', 'combo-tier-3', 'combo-tier-4');
         if (!shouldShow) {
-            this.comboDisplayEl.textContent = '';
-            this.comboDisplayEl.classList.remove('combo-tier-1', 'combo-tier-2', 'combo-tier-3', 'combo-tier-4');
+            this.comboDisplayEl.replaceChildren();
             return;
         }
 
-        this.comboDisplayEl.textContent = `${combo} combo`;
-        this.comboDisplayEl.classList.remove('combo-tier-1', 'combo-tier-2', 'combo-tier-3', 'combo-tier-4');
-        if (combo >= 100) {
-            this.comboDisplayEl.classList.add('combo-tier-4');
-            return;
-        }
-        if (combo >= 50) {
-            this.comboDisplayEl.classList.add('combo-tier-3');
-            return;
-        }
-        if (combo >= 10) {
-            this.comboDisplayEl.classList.add('combo-tier-2');
-            return;
-        }
-        this.comboDisplayEl.classList.add('combo-tier-1');
+        const countEl = document.createElement('span');
+        countEl.className = 'hud-combo-count';
+        countEl.textContent = `${combo}`;
+
+        const labelEl = document.createElement('span');
+        labelEl.className = 'hud-combo-label';
+        labelEl.textContent = 'combo';
+
+        this.comboDisplayEl.replaceChildren(countEl, labelEl);
     }
 
     spawnTimerEnergyOrb(payload = {}) {
@@ -925,8 +1141,130 @@ export class UI {
         animation.oncancel = () => popup.remove();
     }
 
+    getLocaleText(zhText, enText) {
+        return this.locale === 'en-US' ? enText : zhText;
+    }
+
+    getSkinLocaleValue(mapLike, fallback = '') {
+        if (!mapLike || typeof mapLike !== 'object') {
+            return fallback;
+        }
+        return mapLike[this.locale] || mapLike['en-US'] || fallback;
+    }
+
+    renderSkinCenter() {
+        if (!this.skinList) {
+            return;
+        }
+
+        const skins = typeof this.game.getSkinCatalog === 'function'
+            ? this.game.getSkinCatalog()
+            : [];
+        const selectedSkinId = typeof this.game.getSelectedSkinId === 'function'
+            ? this.game.getSelectedSkinId()
+            : '';
+
+        this.updateCoinDisplays();
+
+        this.skinList.innerHTML = '';
+
+        for (const skin of skins) {
+            const unlocked = typeof this.game.isSkinUnlocked === 'function'
+                ? this.game.isSkinUnlocked(skin.id)
+                : Number(skin.coinCost) <= 0;
+            const selected = unlocked && selectedSkinId === skin.id;
+            const canUnlock = !unlocked && typeof this.game.canUnlockSkin === 'function'
+                ? this.game.canUnlockSkin(skin.id)
+                : false;
+
+            const card = document.createElement('article');
+            card.className = 'skin-card';
+            if (selected) {
+                card.classList.add('skin-card-selected');
+            }
+            if (!unlocked) {
+                card.classList.add('skin-card-locked');
+            }
+
+            const preview = document.createElement('img');
+            preview.className = 'skin-preview';
+            preview.src = skin.preview;
+            preview.alt = this.getSkinLocaleValue(skin.name, skin.id);
+            preview.loading = 'lazy';
+            preview.addEventListener('error', () => {
+                if (preview.dataset.fallbackApplied === '1') {
+                    return;
+                }
+                preview.dataset.fallbackApplied = '1';
+                preview.src = 'assets/skins/classic-burrow/snake_head.png';
+            });
+
+            const meta = document.createElement('div');
+            meta.className = 'skin-meta';
+
+            const title = document.createElement('h3');
+            title.className = 'skin-name';
+            title.textContent = this.getSkinLocaleValue(skin.name, skin.id);
+
+            const desc = document.createElement('p');
+            desc.className = 'skin-desc';
+            desc.textContent = this.getSkinLocaleValue(skin.description, '');
+
+            const status = document.createElement('p');
+            status.className = 'skin-status';
+            if (selected) {
+                status.textContent = this.getLocaleText('\u4f7f\u7528\u4e2d', 'In Use');
+            } else if (unlocked) {
+                status.textContent = this.getLocaleText('\u5df2\u89e3\u9501', 'Unlocked');
+            } else {
+                status.textContent = this.getLocaleText(
+                    `\u4ef7\u683c ${skin.coinCost} \u91d1\u5e01`,
+                    `${skin.coinCost} coins`
+                );
+            }
+
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = 'skin-action-btn';
+            if (selected) {
+                action.textContent = this.getLocaleText('\u5df2\u88c5\u5907', 'Equipped');
+                action.disabled = true;
+            } else if (unlocked) {
+                action.textContent = this.getLocaleText('\u88c5\u5907', 'Use');
+                action.addEventListener('click', () => {
+                    if (this.game.selectSkin(skin.id)) {
+                        this.renderSkinCenter();
+                    }
+                });
+            } else {
+                action.textContent = this.getLocaleText(
+                    `\u89e3\u9501 (${skin.coinCost})`,
+                    `Unlock (${skin.coinCost})`
+                );
+                action.disabled = !canUnlock;
+                action.addEventListener('click', () => {
+                    const result = this.game.unlockSkin(skin.id);
+                    if (result?.ok) {
+                        this.renderSkinCenter();
+                    }
+                });
+            }
+
+            meta.appendChild(title);
+            meta.appendChild(desc);
+            meta.appendChild(status);
+            card.appendChild(preview);
+            card.appendChild(meta);
+            card.appendChild(action);
+            this.skinList.appendChild(card);
+        }
+    }
     showLevelCompletePopup() {
         this.levelCompleteOverlay.classList.remove('hidden');
+        this.updateCoinDisplays();
+        if (typeof this.game.playLevelCompleteCelebration === 'function') {
+            this.game.playLevelCompleteCelebration();
+        }
         const isCampaignComplete = typeof this.game.isCampaignCompleted === 'function'
             && this.game.isCampaignCompleted();
         if (this.levelCompleteNextButton) {
@@ -942,6 +1280,18 @@ export class UI {
         }
         if (this.levelScore) {
             this.levelScore.textContent = t(this.locale, 'common.score', { score: this.game.score });
+        }
+        if (this.levelCoinReward) {
+            const earnedCoins = typeof this.game.getLastCoinReward === 'function'
+                ? this.game.getLastCoinReward()
+                : 0;
+            const totalCoins = typeof this.game.getCoins === 'function'
+                ? this.game.getCoins()
+                : 0;
+            this.levelCoinReward.textContent = this.getLocaleText(
+                `\u91d1\u5e01 +${earnedCoins}\uff08\u603b\u8ba1 ${totalCoins}\uff09`,
+                `Coins +${earnedCoins} (Total ${totalCoins})`
+            );
         }
     }
 
@@ -1033,4 +1383,3 @@ export class UI {
 }
 
 export { MENU_PANEL };
-

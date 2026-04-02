@@ -1,13 +1,11 @@
 ﻿{
   "skinId": "candy-dream",
-  "generatedAt": "2026-03-25T15:45:00+08:00",
-  "source": "User exact style reference screenshot + Gemini completion + silhouette lock",
+  "generatedAt": "2026-03-25T21:41:00+08:00",
+  "variant": "v10-pure-white-with-facial-lines-binary-bw",
+  "source": "Pure white base with restored facial features on head parts; gameplay uses binary white/black inversion.",
   "inputs": {
-    "styleRef": "temp/skins/candy-dream/style_ref_user_exact.png",
-    "defaultHeadFromRef": "temp/skins/candy-dream/head_from_user_ref_locked.png",
-    "headExpressionsRawDir": "temp/skins/candy-dream/v2_raw_userref",
-    "nonHeadRawDir": "temp/skins/candy-dream/v2_nonhead_smooth_raw",
-    "baseGeometryDir": "assets/design-v4/clean"
+    "baseGeometryDir": "assets/design-v4/clean",
+    "method": "alpha lock + white fill + head facial-line extraction"
   },
   "outputs": [
     "snake_head.png",
@@ -19,5 +17,5 @@
     "snake_tail_base.png",
     "snake_tail_tip.png"
   ],
-  "notes": "All parts are alpha-masked to classic silhouette and passed IoU threshold 0.90."
+  "notes": "Body parts stay pure white; head parts keep black facial details. Black variant inverts to white facial details on black body."
 }

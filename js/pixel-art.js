@@ -1,4 +1,4 @@
-import { getSkinById } from './skins.js?v=6';
+﻿import { getDefaultSkinId, getSkinById } from './skins.js?v=23';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -146,6 +146,8 @@ const EXPRESSIONS = ['goofy', 'smirk', 'sleepy', 'grin'];
 const SPRITE_CACHE = new Map();
 const RASTER_SPRITE_CACHE = new Map();
 const SNAKE_VARIANT_SPRITE_CACHE = new Map();
+const MASKED_SNAKE_SPRITE_CACHE = new Map();
+const SPRITE_ALPHA_BOUNDS_CACHE = new WeakMap();
 const CARDINAL_VECTORS = {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
@@ -171,7 +173,7 @@ const DEFAULT_SNAKE_RENDER_PROFILE = Object.freeze({
     headShadowOffsetY: 1,
     spriteScale: 1
 });
-const SKIN_PART_FIT_STORAGE_KEY = 'arrowClear_skinPartFitOverrides';
+const SKIN_PART_FIT_STORAGE_KEY = 'arrowClear_skinPartFitOverrides_v2';
 const SNAKE_PART_FIT_KEYS = Object.freeze([
     'headDefault',
     'headCurious',
@@ -190,6 +192,15 @@ const DEFAULT_SNAKE_PART_FIT = Object.freeze({
     segB: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
     tailTip: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
 });
+const SNAKE_PART_MASK_SPECS = Object.freeze([
+    Object.freeze({ spriteKey: 'snakeHead', fitKey: 'headDefault', maskAssetKey: 'snakeHead' }),
+    Object.freeze({ spriteKey: 'snakeHeadCurious', fitKey: 'headCurious', maskAssetKey: 'snakeHeadCurious' }),
+    Object.freeze({ spriteKey: 'snakeHeadSleepy', fitKey: 'headSleepy', maskAssetKey: 'snakeHeadSleepy' }),
+    Object.freeze({ spriteKey: 'snakeHeadSurprised', fitKey: 'headSurprised', maskAssetKey: 'snakeHeadSurprised' }),
+    Object.freeze({ spriteKey: 'snakeSegA', fitKey: 'segA', maskAssetKey: 'snakeSegA' }),
+    Object.freeze({ spriteKey: 'snakeSegB', fitKey: 'segB', maskAssetKey: 'snakeSegB' }),
+    Object.freeze({ spriteKey: 'snakeTailTip', fitKey: 'tailTip', maskAssetKey: 'snakeTailTip' })
+]);
 const ENABLE_RUNTIME_SNAKE_SHADOW = false;
 
 function normalizeHue(value) {
@@ -270,6 +281,14 @@ function readClampedNumber(value, fallback, min, max) {
     return clamp(parsed, min, max);
 }
 
+function readOptionalClampedNumber(value, min, max) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return null;
+    }
+    return clamp(parsed, min, max);
+}
+
 function normalizeSnakeColorVariant(rawVariant, fallbackVariant, index = 0) {
     const fallback = fallbackVariant || DEFAULT_SNAKE_COLOR_VARIANTS[index % DEFAULT_SNAKE_COLOR_VARIANTS.length];
     const id = `${rawVariant?.id || fallback.id || `variant-${index}`}`.trim() || `variant-${index}`;
@@ -278,7 +297,16 @@ function normalizeSnakeColorVariant(rawVariant, fallbackVariant, index = 0) {
         hueShift: readClampedNumber(rawVariant?.hueShift, fallback.hueShift, -360, 360),
         saturation: readClampedNumber(rawVariant?.saturation, fallback.saturation, 0.6, 2.2),
         lightness: readClampedNumber(rawVariant?.lightness, fallback.lightness, 0.7, 1.3),
-        contrast: readClampedNumber(rawVariant?.contrast, fallback.contrast, 0.8, 1.4)
+        contrast: readClampedNumber(rawVariant?.contrast, fallback.contrast, 0.8, 1.4),
+        neutralTintStrength: readClampedNumber(rawVariant?.neutralTintStrength, 0, 0, 1),
+        neutralLightnessTarget: readOptionalClampedNumber(rawVariant?.neutralLightnessTarget, 0, 1),
+        neutralLightnessThreshold: readClampedNumber(rawVariant?.neutralLightnessThreshold, 0.56, 0, 1),
+        neutralSaturationThreshold: readClampedNumber(rawVariant?.neutralSaturationThreshold, 0.22, 0, 1),
+        forceMonochrome: rawVariant?.forceMonochrome === true,
+        monochromeLightness: readClampedNumber(rawVariant?.monochromeLightness, 0.5, 0, 1),
+        forceBinaryMonochrome: rawVariant?.forceBinaryMonochrome === true,
+        invertBinaryMonochrome: rawVariant?.invertBinaryMonochrome === true,
+        monochromeThreshold: readClampedNumber(rawVariant?.monochromeThreshold, 0.62, 0, 1)
     };
 }
 
@@ -382,6 +410,9 @@ function readSkinPartFitOverrides() {
 
 function resolveSkinPartFit(skin) {
     const baseFit = normalizeSnakePartFit(skin?.renderProfile?.partFit);
+    if (skin?.lockClassicPartShape === true) {
+        return baseFit;
+    }
     const overrides = readSkinPartFitOverrides();
     const overrideFit = overrides?.[skin?.id];
     if (!overrideFit || typeof overrideFit !== 'object') {
@@ -393,6 +424,186 @@ function resolveSkinPartFit(skin) {
         merged[key] = normalizeSnakePartFitEntry(overrideFit?.[key], baseFit[key]);
     }
     return merged;
+}
+
+function getSpriteAlphaBounds(sprite) {
+    const fallbackWidth = Math.max(1, Number(sprite?.width) || Number(sprite?.canvas?.width) || 1);
+    const fallbackHeight = Math.max(1, Number(sprite?.height) || Number(sprite?.canvas?.height) || 1);
+    const fallbackBounds = {
+        x: 0,
+        y: 0,
+        width: fallbackWidth,
+        height: fallbackHeight
+    };
+    if (!sprite?.canvas) {
+        return fallbackBounds;
+    }
+    const cached = SPRITE_ALPHA_BOUNDS_CACHE.get(sprite);
+    if (cached) {
+        return cached;
+    }
+
+    const width = Math.max(1, Number(sprite.canvas.width) || fallbackWidth);
+    const height = Math.max(1, Number(sprite.canvas.height) || fallbackHeight);
+    let bounds = fallbackBounds;
+    try {
+        const ctx = sprite.canvas.getContext('2d', { willReadFrequently: true }) || sprite.canvas.getContext('2d');
+        if (ctx) {
+            const data = ctx.getImageData(0, 0, width, height).data;
+            let minX = width;
+            let minY = height;
+            let maxX = -1;
+            let maxY = -1;
+            for (let y = 0; y < height; y += 1) {
+                const rowOffset = y * width * 4;
+                for (let x = 0; x < width; x += 1) {
+                    const alpha = data[rowOffset + x * 4 + 3];
+                    if (alpha <= 0) {
+                        continue;
+                    }
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+            if (maxX >= minX && maxY >= minY) {
+                bounds = {
+                    x: minX,
+                    y: minY,
+                    width: maxX - minX + 1,
+                    height: maxY - minY + 1
+                };
+            }
+        }
+    } catch {
+        bounds = fallbackBounds;
+    }
+
+    SPRITE_ALPHA_BOUNDS_CACHE.set(sprite, bounds);
+    return bounds;
+}
+
+function maskedSpriteCacheKey(sourceSprite, maskSprite, fit, options = {}) {
+    const safeFit = normalizeSnakePartFitEntry(fit, { scale: 1, offsetX: 0, offsetY: 0 });
+    return [
+        sourceSprite?.name || 'source',
+        maskSprite?.name || 'mask',
+        safeFit.scale.toFixed(4),
+        safeFit.offsetX.toFixed(4),
+        safeFit.offsetY.toFixed(4),
+        options?.forceOpaque === true ? 'opaque' : 'soft'
+    ].join('|');
+}
+
+function createMaskedSnakeSprite(sourceSprite, maskSprite, fit, options = {}) {
+    if (!sourceSprite?.canvas || !maskSprite?.canvas) {
+        return sourceSprite || null;
+    }
+
+    const safeFit = normalizeSnakePartFitEntry(fit, { scale: 1, offsetX: 0, offsetY: 0 });
+    const forceOpaque = options?.forceOpaque === true;
+    const cacheKey = maskedSpriteCacheKey(sourceSprite, maskSprite, safeFit, { forceOpaque });
+    const cached = MASKED_SNAKE_SPRITE_CACHE.get(cacheKey);
+    if (cached) {
+        return cached;
+    }
+
+    const canvas = createSurface(maskSprite.width, maskSprite.height);
+    const ctx = getSurfaceContext(canvas, true);
+    if (!ctx) {
+        return sourceSprite;
+    }
+
+    const sourceBounds = getSpriteAlphaBounds(sourceSprite);
+    const maskBounds = getSpriteAlphaBounds(maskSprite);
+    const sourceWidth = Math.max(1, Number(sourceBounds.width) || 1);
+    const sourceHeight = Math.max(1, Number(sourceBounds.height) || 1);
+    const maskWidth = Math.max(1, Number(maskBounds.width) || Number(canvas.width) || 1);
+    const maskHeight = Math.max(1, Number(maskBounds.height) || Number(canvas.height) || 1);
+    const containScale = Math.min(maskWidth / sourceWidth, maskHeight / sourceHeight);
+    const baseScale = clamp(containScale, 0.05, 8);
+    const scaledWidth = sourceWidth * baseScale * safeFit.scale;
+    const scaledHeight = sourceHeight * baseScale * safeFit.scale;
+    const drawX = maskBounds.x + (maskWidth - scaledWidth) * 0.5 + scaledWidth * safeFit.offsetX;
+    const drawY = maskBounds.y + (maskHeight - scaledHeight) * 0.5 + scaledHeight * safeFit.offsetY;
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(
+        sourceSprite.canvas,
+        sourceBounds.x,
+        sourceBounds.y,
+        sourceWidth,
+        sourceHeight,
+        drawX,
+        drawY,
+        scaledWidth,
+        scaledHeight
+    );
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.drawImage(maskSprite.canvas, 0, 0, canvas.width, canvas.height);
+    ctx.globalCompositeOperation = 'source-over';
+    bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
+    if (isSnakeHeadSpriteName(sourceSprite.name || '')) {
+        reduceOuterBrightHalo(ctx, canvas.width, canvas.height);
+    }
+    if (forceOpaque) {
+        forceOpaqueAlpha(ctx, canvas.width, canvas.height);
+    }
+
+    const maskedSprite = {
+        name: `${sourceSprite.name || 'snake-part'}-masked`,
+        canvas,
+        width: canvas.width,
+        height: canvas.height
+    };
+    MASKED_SNAKE_SPRITE_CACHE.set(cacheKey, maskedSprite);
+    return maskedSprite;
+}
+
+function ensureSnakeMaskSprites(atlas) {
+    const defaultSkin = getSkinById(getDefaultSkinId());
+    const maskPrefix = `snake-mask-${defaultSkin.id}`;
+    const maskAssets = defaultSkin?.assets || {};
+
+    atlas.maskSprites = atlas.maskSprites || {};
+    for (const spec of SNAKE_PART_MASK_SPECS) {
+        const key = spec.maskAssetKey;
+        const current = atlas.maskSprites[key];
+        atlas.maskSprites[key] = current || loadRasterSprite(`${maskPrefix}-${key}`, maskAssets[key]);
+    }
+
+    return SNAKE_PART_MASK_SPECS.every((spec) => {
+        const key = spec.maskAssetKey;
+        return Boolean(atlas.maskSprites?.[key]?.canvas);
+    });
+}
+
+function ensureMaskedSnakeSprites(atlas) {
+    if (!atlas?.sprites) {
+        return false;
+    }
+    if (!ensureSnakeMaskSprites(atlas)) {
+        return false;
+    }
+
+    const nextMaskedSprites = {};
+    for (const spec of SNAKE_PART_MASK_SPECS) {
+        const sourceSprite = atlas.sprites[spec.spriteKey];
+        const maskSprite = atlas.maskSprites[spec.maskAssetKey];
+        const fit = atlas.skinPartFit?.[spec.fitKey] || DEFAULT_SNAKE_PART_FIT[spec.fitKey];
+        const maskedSprite = createMaskedSnakeSprite(sourceSprite, maskSprite, fit, {
+            forceOpaque: atlas.forceOpaqueSnakeParts === true
+        });
+        if (!maskedSprite?.canvas) {
+            return false;
+        }
+        nextMaskedSprites[spec.spriteKey] = maskedSprite;
+    }
+
+    atlas.maskedSnakeSprites = nextMaskedSprites;
+    return true;
 }
 
 function getSnakeColorVariant(atlas, lineId = 0, preferredVariantIndex = null) {
@@ -417,7 +628,10 @@ function makeSnakeVariantSprite(sprite, variant) {
     }
 
     const canvas = createSurface(sprite.width, sprite.height);
-    const ctx = canvas.getContext('2d');
+    const ctx = getSurfaceContext(canvas, true);
+    if (!ctx) {
+        return sprite;
+    }
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(sprite.canvas, 0, 0);
 
@@ -428,11 +642,59 @@ function makeSnakeVariantSprite(sprite, variant) {
         const alpha = data[i + 3];
         if (alpha === 0) continue;
 
+        if (variant.forceBinaryMonochrome) {
+            const luma = (
+                data[i] * 0.2126
+                + data[i + 1] * 0.7152
+                + data[i + 2] * 0.0722
+            ) / 255;
+            const isDark = luma < variant.monochromeThreshold;
+            const outputIsLight = variant.invertBinaryMonochrome ? isDark : !isDark;
+            const monoLightness = outputIsLight ? 1 : 0;
+            const [r, g, b] = hslToRgb(0, 0, monoLightness);
+            data[i] = r;
+            data[i + 1] = g;
+            data[i + 2] = b;
+            continue;
+        }
+
         const hsl = rgbToHsl(data[i], data[i + 1], data[i + 2]);
-        const preserveDetail = hsl.s < 0.08 || hsl.l < 0.08 || hsl.l > 0.96;
+        if (variant.forceMonochrome) {
+            const monoLightness = variant.monochromeLightness;
+            const [r, g, b] = hslToRgb(0, 0, monoLightness);
+            data[i] = r;
+            data[i + 1] = g;
+            data[i + 2] = b;
+            continue;
+        }
+
+        const shouldRemapNeutralLightness =
+            Number.isFinite(variant.neutralLightnessTarget)
+            && hsl.s <= variant.neutralSaturationThreshold
+            && hsl.l >= variant.neutralLightnessThreshold;
+
+        if (shouldRemapNeutralLightness) {
+            // Darken/lighten only neutral bright body areas; keep dark line art untouched.
+            const highlightRange = Math.max(0.0001, 1 - variant.neutralLightnessThreshold);
+            const highlight = clamp((hsl.l - variant.neutralLightnessThreshold) / highlightRange, 0, 1);
+            const shapedHighlight = Math.pow(highlight, 1.15);
+            hsl.l = clamp(variant.neutralLightnessTarget + shapedHighlight * 0.18, 0, 1);
+            hsl.s = Math.min(hsl.s, 0.08);
+        }
+
+        const preserveDetail = shouldRemapNeutralLightness || hsl.s < 0.08 || hsl.l < 0.08 || hsl.l > 0.96;
+        const canTintNeutral =
+            !shouldRemapNeutralLightness
+            && variant.neutralTintStrength > 0
+            && hsl.l > 0.12
+            && hsl.l < 0.9;
 
         if (!preserveDetail) {
             hsl.h = normalizeHue(hsl.h + variant.hueShift);
+        } else if (canTintNeutral) {
+            // Tint near-grayscale body regions so monochrome skins can still separate by line color.
+            hsl.h = normalizeHue(hsl.h + variant.hueShift);
+            hsl.s = Math.max(hsl.s, 0.14 + variant.neutralTintStrength * 0.30);
         }
 
         const saturationBoost = preserveDetail ? Math.min(1.1, variant.saturation) : variant.saturation;
@@ -473,12 +735,211 @@ function createSurface(width, height) {
     return canvas;
 }
 
+function getSurfaceContext(canvas, preferReadback = false) {
+    if (!canvas) return null;
+    if (!preferReadback) {
+        return canvas.getContext('2d');
+    }
+    return canvas.getContext('2d', { willReadFrequently: true }) || canvas.getContext('2d');
+}
+
 function spriteCacheKey(name, scale, paletteKey) {
     return `${name}:${scale}:${paletteKey}`;
 }
 
 function rasterCacheKey(name, path) {
     return `${name}:${path}`;
+}
+
+function bleedTransparentEdgePixels(ctx, width, height, passes = 2) {
+    if (!ctx || width <= 0 || height <= 0) {
+        return;
+    }
+
+    const passCount = Math.max(1, Math.min(3, Math.trunc(passes) || 1));
+    for (let pass = 0; pass < passCount; pass++) {
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        const next = new Uint8ClampedArray(data);
+        let changed = false;
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const index = (y * width + x) * 4;
+                if (data[index + 3] !== 0) {
+                    continue;
+                }
+
+                let r = 0;
+                let g = 0;
+                let b = 0;
+                let count = 0;
+
+                const minY = Math.max(0, y - 1);
+                const maxY = Math.min(height - 1, y + 1);
+                const minX = Math.max(0, x - 1);
+                const maxX = Math.min(width - 1, x + 1);
+                for (let ny = minY; ny <= maxY; ny++) {
+                    for (let nx = minX; nx <= maxX; nx++) {
+                        if (nx === x && ny === y) continue;
+                        const nIndex = (ny * width + nx) * 4;
+                        if (data[nIndex + 3] === 0) {
+                            continue;
+                        }
+                        r += data[nIndex];
+                        g += data[nIndex + 1];
+                        b += data[nIndex + 2];
+                        count++;
+                    }
+                }
+
+                if (count <= 0) {
+                    continue;
+                }
+
+                next[index] = Math.round(r / count);
+                next[index + 1] = Math.round(g / count);
+                next[index + 2] = Math.round(b / count);
+                changed = true;
+            }
+        }
+
+        if (!changed) {
+            break;
+        }
+        imageData.data.set(next);
+        ctx.putImageData(imageData, 0, 0);
+    }
+}
+
+function isSnakeHeadSpriteName(name) {
+    return typeof name === 'string' && (name.endsWith('-head') || name.includes('-head-'));
+}
+
+function reduceOuterBrightHalo(ctx, width, height) {
+    if (!ctx || width <= 0 || height <= 0) {
+        return;
+    }
+
+    const passCount = 3;
+    for (let pass = 0; pass < passCount; pass++) {
+        const imageData = ctx.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        const next = new Uint8ClampedArray(data);
+        let changed = false;
+
+        const indexOf = (x, y) => (y * width + x) * 4;
+        const alphaAt = (x, y) => {
+            if (x < 0 || y < 0 || x >= width || y >= height) {
+                return 0;
+            }
+            return data[indexOf(x, y) + 3];
+        };
+        const isBrightNeutral = (r, g, b) => {
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            return max >= 208 && ((r + g + b) / 3) >= 200 && (max - min) <= 60;
+        };
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const index = indexOf(x, y);
+                const alpha = data[index + 3];
+                if (alpha === 0) {
+                    continue;
+                }
+
+                const r = data[index];
+                const g = data[index + 1];
+                const b = data[index + 2];
+                if (!isBrightNeutral(r, g, b)) {
+                    continue;
+                }
+
+                let nearTransparent = false;
+                const boundaryRadius = 4;
+                for (let oy = -boundaryRadius; oy <= boundaryRadius && !nearTransparent; oy++) {
+                    for (let ox = -boundaryRadius; ox <= boundaryRadius; ox++) {
+                        if (ox === 0 && oy === 0) continue;
+                        if (alphaAt(x + ox, y + oy) === 0) {
+                            nearTransparent = true;
+                            break;
+                        }
+                    }
+                }
+                if (!nearTransparent) {
+                    continue;
+                }
+
+                let sumR = 0;
+                let sumG = 0;
+                let sumB = 0;
+                let count = 0;
+
+                const sampleRadius = 3;
+                const minY = Math.max(0, y - sampleRadius);
+                const maxY = Math.min(height - 1, y + sampleRadius);
+                const minX = Math.max(0, x - sampleRadius);
+                const maxX = Math.min(width - 1, x + sampleRadius);
+                for (let ny = minY; ny <= maxY; ny++) {
+                    for (let nx = minX; nx <= maxX; nx++) {
+                        if (nx === x && ny === y) continue;
+                        const neighborIndex = indexOf(nx, ny);
+                        const neighborAlpha = data[neighborIndex + 3];
+                        if (neighborAlpha === 0) {
+                            continue;
+                        }
+                        const nr = data[neighborIndex];
+                        const ng = data[neighborIndex + 1];
+                        const nb = data[neighborIndex + 2];
+                        if (isBrightNeutral(nr, ng, nb)) {
+                            continue;
+                        }
+                        sumR += nr;
+                        sumG += ng;
+                        sumB += nb;
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    next[index] = Math.round(sumR / count);
+                    next[index + 1] = Math.round(sumG / count);
+                    next[index + 2] = Math.round(sumB / count);
+                    next[index + 3] = Math.round(alpha * 0.68);
+                } else {
+                    next[index + 3] = Math.round(alpha * 0.4);
+                }
+                changed = true;
+            }
+        }
+
+        if (!changed) {
+            break;
+        }
+        imageData.data.set(next);
+        ctx.putImageData(imageData, 0, 0);
+    }
+}
+
+function forceOpaqueAlpha(ctx, width, height) {
+    if (!ctx || width <= 0 || height <= 0) {
+        return;
+    }
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    let changed = false;
+    for (let i = 3; i < data.length; i += 4) {
+        const alpha = data[i];
+        if (alpha === 0 || alpha === 255) {
+            continue;
+        }
+        data[i] = 255;
+        changed = true;
+    }
+    if (changed) {
+        ctx.putImageData(imageData, 0, 0);
+    }
 }
 
 function loadRasterSprite(name, path) {
@@ -496,9 +957,22 @@ function loadRasterSprite(name, path) {
 
         image.onload = () => {
             const canvas = createSurface(image.naturalWidth, image.naturalHeight);
-            const ctx = canvas.getContext('2d');
+            const ctx = getSurfaceContext(canvas, true);
+            if (!ctx) {
+                record.status = 'error';
+                return;
+            }
             ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(image, 0, 0);
+            // Some AI-exported heads carry bright outer fringe that becomes a white ring
+            // after runtime downscale/rotation. Soften only snake-head outer boundary.
+            if (isSnakeHeadSpriteName(name)) {
+                reduceOuterBrightHalo(ctx, canvas.width, canvas.height);
+            }
+            // Fill RGB in fully transparent edge pixels to avoid dark fringe shimmer
+            // when sprites are continuously rotated/scaled in animation.
+            bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
             record.status = 'ready';
             record.sprite = {
                 name,
@@ -534,7 +1008,7 @@ function ensureSnakeImageSprites(atlas) {
     atlas.sprites.snakeTailBase = atlas.sprites.snakeTailBase || loadRasterSprite(`${cachePrefix}-tail-base`, assets.snakeTailBase);
     atlas.sprites.snakeTailTip = atlas.sprites.snakeTailTip || loadRasterSprite(`${cachePrefix}-tail-tip`, assets.snakeTailTip);
 
-    return Boolean(
+    const baseReady = Boolean(
         atlas.sprites.snakeHead &&
         atlas.sprites.snakeHeadCurious &&
         atlas.sprites.snakeHeadSleepy &&
@@ -544,6 +1018,18 @@ function ensureSnakeImageSprites(atlas) {
         atlas.sprites.snakeTailBase &&
         atlas.sprites.snakeTailTip
     );
+
+    if (!baseReady) {
+        return false;
+    }
+
+    const maskedReady = ensureMaskedSnakeSprites(atlas);
+    if (maskedReady) {
+        return true;
+    }
+
+    // If mask layers are still loading, fallback to raw sprites temporarily.
+    return true;
 }
 
 export function getThemePalette(themeName = 'moleFamily') {
@@ -722,7 +1208,7 @@ function directionToHeadPose(direction) {
 }
 
 function pickSnakeHeadSprite(atlas, expression = 'default') {
-    const sprites = atlas?.sprites || {};
+    const sprites = atlas?.maskedSnakeSprites || atlas?.sprites || {};
     switch (expression) {
         case 'curious':
             return sprites.snakeHeadCurious || sprites.snakeHead || null;
@@ -771,7 +1257,12 @@ function applyPartFitTransform(x, y, width, height, rotation, fit, flipX = false
 }
 
 function shouldSmoothSnakeSprite(scale) {
-    return Number.isFinite(scale) && scale >= 0.62;
+    if (!Number.isFinite(scale)) {
+        return true;
+    }
+    // Snake assets are raster paintings, not pixel art. They are usually rendered
+    // at a strong downscale ratio; nearest-neighbor introduces dark pixel shimmer.
+    return scale <= 1.35;
 }
 
 function drawSnakeHeadSprite(ctx, sprite, x, y, options = {}) {
@@ -853,7 +1344,11 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     const thickness = clamp(atlas.cellSize * 0.9, 18, 34);
     const renderProfile = atlas.skinRenderProfile || DEFAULT_SNAKE_RENDER_PROFILE;
     const spriteScale = renderProfile.spriteScale || 1;
-    const partFit = atlas.skinPartFit || DEFAULT_SNAKE_PART_FIT;
+    const useMaskedSnakeSprites = !!atlas.maskedSnakeSprites;
+    const partFit = useMaskedSnakeSprites
+        ? DEFAULT_SNAKE_PART_FIT
+        : (atlas.skinPartFit || DEFAULT_SNAKE_PART_FIT);
+    const spriteSet = atlas.maskedSnakeSprites || atlas.sprites;
     const allowShadow = ENABLE_RUNTIME_SNAKE_SHADOW && style !== 'remove' && style !== 'error';
     const segmentShadowColor = allowShadow ? renderProfile.segmentShadowColor : null;
     const segmentShadowBlur = allowShadow ? renderProfile.segmentShadowBlur : 0;
@@ -866,9 +1361,9 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     const colorVariant = atlas.skinAllowHueVariants === false
         ? null
         : getSnakeColorVariant(atlas, lineId, colorVariantIndex);
-    const segASprite = getSnakeVariantSprite(atlas.sprites.snakeSegA, colorVariant);
-    const segBSprite = getSnakeVariantSprite(atlas.sprites.snakeSegB, colorVariant);
-    const tailTipSprite = getSnakeVariantSprite(atlas.sprites.snakeTailTip, colorVariant);
+    const segASprite = getSnakeVariantSprite(spriteSet.snakeSegA, colorVariant);
+    const segBSprite = getSnakeVariantSprite(spriteSet.snakeSegB, colorVariant);
+    const tailTipSprite = getSnakeVariantSprite(spriteSet.snakeTailTip, colorVariant);
 
     const bodyPoints = [];
     for (const point of sampled) {
@@ -902,7 +1397,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
         false
     );
     drawSprite(ctx, tailTipSprite, tailRender.x, tailRender.y, {
-        alpha: alpha * 0.96,
+        alpha,
         rotation: tailAngle,
         scale: tailTipScale,
         tint: styleTint,
@@ -942,7 +1437,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
         );
 
         drawSprite(ctx, sprite, segmentRender.x, segmentRender.y, {
-            alpha: alpha * (0.84 + t * 0.12),
+            alpha,
             rotation: angle,
             scale,
             tint: styleTint,
@@ -987,7 +1482,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
         false
     );
     drawSprite(ctx, segASprite, neckFitRender.x, neckFitRender.y, {
-        alpha: alpha * 0.96,
+        alpha,
         rotation: headPose.angle,
         scale: neckScale,
         tint: styleTint,
@@ -1316,6 +1811,7 @@ export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily'
         scale,
         theme,
         skinId: skin.id,
+        forceOpaqueSnakeParts: skin.forceOpaqueSnakeParts === true,
         skinAllowHueVariants: skin.allowHueVariants !== false,
         snakeColorVariants,
         skinRenderProfile,
@@ -1429,4 +1925,12 @@ export function hashPoint(x, y, seed = 0) {
     value = (value ^ (value >> 13)) * 1274126177;
     return (value >>> 0) / 0xffffffff;
 }
+
+
+
+
+
+
+
+
 
