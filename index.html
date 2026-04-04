@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=70">
+    <link rel="stylesheet" href="css/style.css?v=100">
 </head>
 <body>
     <div class="app-container">
@@ -27,8 +27,8 @@
 
         <div id="bootPreloadOverlay" class="boot-preload-overlay">
             <div class="boot-preload-panel">
-                <div class="boot-preload-title">氓聤聽猫陆陆盲赂</div>
-                <div id="bootPreloadTip" class="boot-preload-tip">氓聡聠氓陇聡氓聟鲁氓聧隆忙聲掳忙聧庐...</div>
+                <div class="boot-preload-title">正在加载资源</div>
+                <div id="bootPreloadTip" class="boot-preload-tip">正在初始化游戏组件...</div>
                 <div class="boot-preload-track">
                     <div id="bootPreloadFill" class="boot-preload-fill"></div>
                 </div>
@@ -39,7 +39,7 @@
         <div id="hud" class="hidden">
             <div class="hud-top">
                 <button id="btnHudSettings" class="hud-settings-btn" type="button" aria-label="settings">
-                    <img class="hud-settings-icon" src="assets/design-v2/clean/icon_settings.png" alt="settings">
+                    <img class="hud-settings-icon" src="assets/design-v2/clean/icon_settings_plain.png" alt="settings">
                 </button>
                 <div class="coin-chip hud-coin-chip" id="hudCoinDisplay" aria-label="coins">
                     <img class="coin-chip-icon" src="assets/design-v5/clean/icon_coin.png" alt="coin">
@@ -56,6 +56,15 @@
                             <div id="timerLabel" class="hud-timer-label">10m00s</div>
                         </div>
                         <div id="comboDisplay" class="hud-combo hidden">5 combo</div>
+                        <div id="rewardUnlockToast" class="hud-reward-toast hidden" aria-live="polite">
+                            <img
+                                id="rewardUnlockToastImage"
+                                class="hud-reward-toast-image hidden"
+                                src="assets/design-v6/combo/reward_unlock_banner.png"
+                                alt="奖励关达成"
+                            >
+                            <span id="rewardUnlockToastText" class="hud-reward-toast-text">奖励关达成</span>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -87,12 +96,12 @@
         <div id="menuOverlay" class="overlay">
             <div class="menu-content menu-content-v2">
                 <section class="menu-home-hero">
-                    <h1 class="menu-home-title" data-i18n="home.menuTitle">猫聸聡猫聸聡氓陇搂氓聠聮茅聶</h1>
+                    <h1 class="menu-home-title" data-i18n="home.menuTitle">蛇蛇大冒险</h1>
                     <div class="play-area play-area-v2">
-                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">氓录聙氓搂聥氓聠聮茅聶</button>
-                        <button id="btnLevels" class="current-level-tag" type="button" aria-label="忙麓聻莽漏麓氓聟楼氓聫拢">
+                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">开始冒险</button>
+                        <button id="btnLevels" class="current-level-tag" type="button" aria-label="洞穴入口">
                             <span class="level-tag-icon" aria-hidden="true"></span>
-                            <span class="level-tag-label" data-i18n="home.burrowEntry">忙麓聻莽漏麓氓聟楼氓聫拢</span>
+                            <span class="level-tag-label" data-i18n="home.burrowEntry">洞穴入口</span>
                             <span id="menuLevelTagValue" class="level-tag-value">忙麓聻莽漏麓 1</span>
                         </button>
                     </div>
@@ -127,7 +136,7 @@
                         </button>
                         <button id="btnMore" class="feature-card feature-card-placeholder" type="button" disabled>
                             <img class="feature-icon" data-icon-slot="icon.home" src="assets/design-v2/clean/icon_home.png" alt="more">
-                            <span class="feature-label" data-i18n="feature.more">氓聤聼猫聝陆氓聟楼氓聫拢</span>
+                            <span class="feature-label" data-i18n="feature.more">更多</span>
                         </button>
                     </div>
                 </section>
@@ -231,22 +240,59 @@
         </div>
 
         <div id="checkinOverlay" class="overlay menu-panel-overlay hidden">
-            <div class="panel-shell">
+            <button id="btnBackFromCheckin" class="panel-back-btn checkin-back-btn" type="button" data-i18n="common.back">Back</button>
+            <div class="checkin-scene">
+                <div class="checkin-card checkin-card-notebook">
+                    <div class="checkin-ribbon">
+                        <span class="checkin-ribbon-title">签到</span>
+                    </div>
+                    <div id="checkinWeekGrid" class="checkin-grid"></div>
+                    <div id="checkinRewardTooltip" class="checkin-reward-tooltip hidden"></div>
+                    <p id="checkinStatus" class="empty-state">-</p>
+                    <img class="checkin-mascot-snake" src="assets/design-v6/checkin/checkin_mascot_snake_cut.png" alt="snake mascot">
+                </div>
+            </div>
+        </div>
+
+        <div id="checkinRewardSettleOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell panel-shell-sm checkin-settle-shell">
                 <div class="panel-head">
-                    <h2 class="panel-title" data-i18n="panel.checkin.title">Daily Check-In</h2>
-                    <button id="btnBackFromCheckin" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                    <h2 class="panel-title">签到奖励</h2>
                 </div>
                 <div class="panel-body">
-                    <div class="checkin-grid">
-                        <div class="checkin-day">1</div>
-                        <div class="checkin-day">2</div>
-                        <div class="checkin-day">3</div>
-                        <div class="checkin-day">4</div>
-                        <div class="checkin-day">5</div>
-                        <div class="checkin-day">6</div>
-                        <div class="checkin-day">7</div>
+                    <p id="checkinRewardSettleDesc" class="exit-desc">签到成功，奖励如下：</p>
+                    <div id="checkinRewardCoinHero" class="checkin-settle-coin-hero hidden">
+                        <img id="checkinRewardCoinHeroIcon" class="checkin-settle-coin-icon" src="assets/design-v6/checkin/icon_coin_pile.png" alt="coin reward">
+                        <strong id="checkinRewardCoinHeroAmount" class="checkin-settle-coin-amount">+0</strong>
                     </div>
-                    <p class="empty-state" data-i18n="panel.checkin.empty">Reward flow is under development and will connect to backend later.</p>
+                    <div id="checkinRewardSettleList" class="online-settle-list"></div>
+                    <div class="exit-actions">
+                        <button id="btnCheckinRewardConfirm" class="btn-popup-primary" type="button">确定</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="onlineRewardDock" class="online-reward-dock hidden">
+            <button id="btnOnlineRewardChest" class="online-reward-chest" type="button" aria-label="在线奖励">
+                <img src="assets/design-v2/clean/icon_gift_plain.png" alt="reward chest">
+            </button>
+            <div id="onlineDockText" class="online-reward-text">--</div>
+            <div id="onlineRewardPreviewBubble" class="online-reward-preview hidden"></div>
+        </div>
+
+        <div id="onlineRewardSettleOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell panel-shell-sm">
+                <div class="panel-head">
+                    <h2 class="panel-title">在线奖励</h2>
+                    <button id="btnOnlineRewardSettleCloseTop" class="panel-back-btn" type="button" data-i18n="common.close">Close</button>
+                </div>
+                <div class="panel-body">
+                    <p id="onlineRewardSettleDesc" class="exit-desc">本次领取：</p>
+                    <div id="onlineRewardSettleList" class="online-settle-list"></div>
+                    <div class="exit-actions">
+                        <button id="btnOnlineRewardSettleClose" class="btn-popup-primary" type="button">确定</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -293,10 +339,10 @@
                 <div class="panel-body">
                     <div class="level-select-meta">
                         <div class="level-select-start">
-                            <span class="level-select-label" data-i18n="panel.levelSelect.startFrom">茅禄聵猫庐陇盲禄聨盲禄楼盲赂聥氓聟鲁氓聧隆氓录聙氓搂</span>
+                            <span class="level-select-label" data-i18n="panel.levelSelect.startFrom">默认从以下关卡开始</span>
                             <strong id="levelSelectCurrent" class="level-select-value">忙麓聻莽漏麓 1</strong>
                         </div>
-                        <p class="level-select-tip" data-i18n="panel.levelSelect.tip">氓聫炉莽聜鹿氓聡禄氓路虏猫搂拢茅聰聛氓聟鲁氓聧隆莽聸麓忙聨楼猫驴聸氓聟楼忙赂赂忙聢聫茫聙</p>
+                        <p class="level-select-tip" data-i18n="panel.levelSelect.tip">可点击已解锁关卡直接进入游戏。</p>
                     </div>
                     <div id="levelGrid" class="level-grid"></div>
                 </div>
@@ -310,7 +356,6 @@
                 <div id="levelCoinReward" class="popup-coins">Coins +0 (Total 0)</div>
                 <div class="popup-buttons">
                     <button id="btnNext" class="btn-popup-primary" type="button" data-i18n="common.next">Next</button>
-                    <button id="btnMenuFromComplete" class="btn-popup-secondary" type="button" data-i18n="common.menu">Back to Menu</button>
                 </div>
             </div>
         </div>
@@ -327,9 +372,10 @@
         </div>
 
         <div id="errorVignette" class="error-vignette"></div>
+        <div id="rewardFlyLayer" class="reward-fly-layer hidden" aria-hidden="true"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=143"></script>
+    <script type="module" src="js/main.js?v=166"></script>
 </body>
 </html>
 

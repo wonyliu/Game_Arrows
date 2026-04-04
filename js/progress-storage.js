@@ -133,6 +133,7 @@ function normalizeProgress(value, options = {}) {
     const fallbackCoins = clampCoins(fallback.coins);
     const fallbackSelectedSkinId = `${fallback.selectedSkinId || ''}`.trim();
     const fallbackUnlockedSkins = sanitizeSkinIdList(fallback.unlockedSkinIds);
+    const fallbackNextRewardLevelIndex = clampPositiveInt(fallback.nextRewardLevelIndex, 1);
     const fallbackVersion = clampProgressLevel(fallback.version, PROGRESS_SCHEMA_VERSION);
 
     const maxUnlockedLevel = clampProgressLevel(raw.maxUnlockedLevel, fallbackMaxUnlocked);
@@ -142,6 +143,10 @@ function normalizeProgress(value, options = {}) {
     const unlockedSkinIds = sanitizeSkinIdList(raw.unlockedSkinIds).length > 0
         ? sanitizeSkinIdList(raw.unlockedSkinIds)
         : fallbackUnlockedSkins;
+    const nextRewardLevelIndex = clampPositiveInt(
+        raw.nextRewardLevelIndex,
+        fallbackNextRewardLevelIndex
+    );
     const version = clampProgressLevel(raw.version, fallbackVersion || PROGRESS_SCHEMA_VERSION);
     const updatedAt = resolveUpdatedAt(raw.updatedAt, fallback.updatedAt, !!options.forceTouchUpdatedAt);
 
@@ -152,7 +157,8 @@ function normalizeProgress(value, options = {}) {
         currentLevel,
         coins,
         unlockedSkinIds,
-        selectedSkinId
+        selectedSkinId,
+        nextRewardLevelIndex
     };
 }
 
@@ -269,6 +275,14 @@ function clampCoins(value) {
         return 0;
     }
     return Math.max(0, Math.floor(parsed));
+}
+
+function clampPositiveInt(value, fallback = 1) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return Math.max(1, Math.floor(Number(fallback) || 1));
+    }
+    return Math.max(1, Math.floor(parsed));
 }
 
 function canUseApiStorage() {

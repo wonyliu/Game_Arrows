@@ -1,8 +1,8 @@
 ﻿/**
  * Main - game entry
  */
-import { Game } from './game.js?v=117';
-import { UI } from './ui.js?v=59';
+import { Game } from './game.js?v=123';
+import { UI } from './ui.js?v=81';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -13,7 +13,8 @@ import { initLevelStorage } from './level-storage.js?v=55';
 import { initUiTheme } from './ui-theme.js?v=2';
 import { initProgressStorage } from './progress-storage.js?v=1';
 import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
-import { initSfxStorage } from './sfx-storage.js?v=5';
+import { initSfxStorage } from './sfx-storage.js?v=6';
+import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { isLegacyColorVariantSkinId } from './skins.js?v=23';
 
 const DESIGN_WIDTH = 430;
@@ -21,6 +22,16 @@ const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
+const UI_EDITOR_PREVIEW_PARAMS = (() => {
+    if (typeof window === 'undefined') {
+        return { enabled: false, panel: 'checkin' };
+    }
+    const params = new URLSearchParams(window.location.search);
+    return {
+        enabled: params.get('uiEditorPreview') === '1',
+        panel: params.get('uiEditorPanel') || 'checkin'
+    };
+})();
 
 let gameRef = null;
 let uiRef = null;
@@ -362,6 +373,9 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
                 }),
                 initSfxStorage().catch((error) => {
                     console.warn('[main] sfx storage init failed', error);
+                }),
+                initLiveOpsStorage().catch((error) => {
+                    console.warn('[main] liveops storage init failed', error);
                 })
             ]);
             await syncLocalSkinCatalogFromServer();
@@ -395,10 +409,26 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
                 durationMs: Math.round(nowMs() - preloadStartedAt)
             });
 
-            uiRef = new UI(gameRef);
+            uiRef = new UI(gameRef, {
+                uiEditorPreview: UI_EDITOR_PREVIEW_PARAMS
+            });
             gameRef.start();
             applyAdaptiveLayout(true);
             updateBootPreloadProgress(100, 'Ready');
+
+            if (UI_EDITOR_PREVIEW_PARAMS.enabled && typeof window !== 'undefined') {
+                window.__arrowUiEditorPreview = {
+                    render(override = {}) {
+                        uiRef?.setUiEditorPreviewState?.(override);
+                    },
+                    getMeta() {
+                        return uiRef?.getUiEditorPreviewMeta?.() || { width: DESIGN_WIDTH, height: DESIGN_HEIGHT };
+                    },
+                    getElementRect(elementId) {
+                        return uiRef?.getUiEditorElementRect?.(elementId) || null;
+                    }
+                };
+            }
 
             startNextUnlockPreload(
                 () => gameRef?.maxUnlockedLevel || 1,

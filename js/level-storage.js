@@ -10,6 +10,7 @@ const STORAGE_API_BASE = '/api/storage';
 const VALID_DIRECTIONS = new Set(['up', 'down', 'left', 'right']);
 const MAX_LEVEL_DISPLAY_NAME_LENGTH = 28;
 const MAX_ARROW_LENGTH = 999;
+const MAX_REWARD_SCORE_PER_BODY_SEGMENT = 100000;
 const DEFAULT_LEVEL_CATALOG = Object.freeze({
     normalCount: 100,
     rewardCount: 1
@@ -95,6 +96,15 @@ export function buildStoredSettings(baseConfig, overrides = {}) {
         120
     );
     const displayName = sanitizeLevelDisplayName(overrides.displayName ?? baseConfig.displayName ?? '');
+    const rewardScorePerBodySegment = clamp(
+        Math.round(Number(
+            overrides.rewardScorePerBodySegment
+            ?? baseConfig.rewardScorePerBodySegment
+            ?? 1000
+        ) || 1000),
+        1,
+        MAX_REWARD_SCORE_PER_BODY_SEGMENT
+    );
 
     return {
         level: baseConfig.level,
@@ -108,6 +118,7 @@ export function buildStoredSettings(baseConfig, overrides = {}) {
         maxLen,
         timerSeconds,
         misclickPenaltySeconds,
+        rewardScorePerBodySegment,
         displayName
     };
 }
@@ -127,6 +138,7 @@ export function applyStoredSettings(baseConfig, storedSettings = null) {
         hasTimer: settings.timerSeconds > 0,
         timerSeconds: settings.timerSeconds,
         misclickPenaltySeconds: settings.misclickPenaltySeconds,
+        rewardScorePerBodySegment: settings.rewardScorePerBodySegment,
         lineCount: estimateLineCount(settings.gridCols, settings.gridRows, settings.minLen, settings.maxLen),
         fillRatio: 1,
         maxCellUsage: 1

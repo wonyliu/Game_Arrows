@@ -45,6 +45,7 @@ const el = {
     maxLen: document.getElementById('maxLen'),
     timerSeconds: document.getElementById('timerSeconds'),
     misclickPenaltySeconds: document.getElementById('misclickPenaltySeconds'),
+    rewardScorePerBodySegment: document.getElementById('rewardScorePerBodySegment'),
     gridText: document.getElementById('gridText'),
     lineText: document.getElementById('lineText'),
     coverageText: document.getElementById('coverageText'),
@@ -96,7 +97,7 @@ let levelCatalog = {
 
 init().catch((error) => {
     console.error(error);
-    setStatus(`Admin init failed: ${error?.message || 'unknown error'}`);
+    setStatus(`管理后台初始化失败：${error?.message || '未知错误'}`);
 });
 
 async function init() {
@@ -153,9 +154,9 @@ function getLevel() {
 function formatLevelLabel(level) {
     if (isRewardLevel(level)) {
         const rewardIndex = rewardIndexFromLevelId(level);
-        return rewardIndex > 0 ? `Reward ${rewardIndex}` : 'Reward';
+        return rewardIndex > 0 ? `奖励关 ${rewardIndex}` : '奖励关';
     }
-    return `Level ${level}`;
+    return `关卡 ${level}`;
 }
 
 function updateLevelDisplayNameField(level, value = '') {
@@ -165,6 +166,9 @@ function updateLevelDisplayNameField(level, value = '') {
     const rewardStage = isRewardLevel(level);
     el.levelDisplayNameField.style.display = rewardStage ? '' : 'none';
     el.levelDisplayName.value = rewardStage ? `${value || ''}` : '';
+    if (el.rewardScorePerBodySegment) {
+        el.rewardScorePerBodySegment.disabled = !rewardStage;
+    }
 }
 
 function normalizeCatalog(catalog) {
@@ -210,14 +214,14 @@ function rebuildLevelSelect(preferredLevel = null) {
     for (let level = 1; level <= catalogSnapshot.normalCount; level++) {
         const option = document.createElement('option');
         option.value = String(level);
-        option.textContent = `Level ${level}`;
+        option.textContent = `关卡 ${level}`;
         el.levelSelect.appendChild(option);
     }
 
     for (let rewardIndex = 1; rewardIndex <= catalogSnapshot.rewardCount; rewardIndex++) {
         const option = document.createElement('option');
         option.value = String(toRewardLevelId(rewardIndex));
-        option.textContent = `Reward ${rewardIndex}`;
+        option.textContent = `奖励关 ${rewardIndex}`;
         el.levelSelect.appendChild(option);
     }
 
@@ -264,7 +268,7 @@ async function onSaveLevelCatalog() {
         || prevCatalog.rewardCount !== nextCatalog.rewardCount;
 
     if (!changed) {
-        setStatus(`Level catalog unchanged. Normal=${prevCatalog.normalCount}, Reward=${prevCatalog.rewardCount}.`);
+        setStatus(`关卡数量未变化。普通关=${prevCatalog.normalCount}，奖励关=${prevCatalog.rewardCount}。`);
         return;
     }
 
@@ -275,12 +279,12 @@ async function onSaveLevelCatalog() {
     loadLevelState();
 
     const removedText = removedLevelIds.length > 0
-        ? ` ${removedLevelIds.length} level record(s) are now out of range and ignored.`
+        ? ` 其中 ${removedLevelIds.length} 条超出范围的关卡记录将被忽略。`
         : '';
     if (savedToDisk) {
-        setStatus(`Level catalog saved. Normal=${levelCatalog.normalCount}, Reward=${levelCatalog.rewardCount}.${removedText}`);
+        setStatus(`关卡数量已保存。普通关=${levelCatalog.normalCount}，奖励关=${levelCatalog.rewardCount}。${removedText}`);
     } else {
-        setStatus(`Level catalog saved to browser cache only (disk sync unavailable).${removedText}`);
+        setStatus(`关卡数量仅保存到浏览器缓存（磁盘同步不可用）。${removedText}`);
     }
 }
 
@@ -355,32 +359,39 @@ function loadLevelState() {
     el.maxLen.value = String(settings.maxLen);
     el.timerSeconds.value = String(settings.timerSeconds ?? base.timerSeconds ?? 0);
     el.misclickPenaltySeconds.value = String(settings.misclickPenaltySeconds ?? base.misclickPenaltySeconds ?? 1);
+    if (el.rewardScorePerBodySegment) {
+        el.rewardScorePerBodySegment.value = String(
+            settings.rewardScorePerBodySegment
+            ?? base.rewardScorePerBodySegment
+            ?? 1000
+        );
+    }
     syncManualGridInputs(
         settings.customGridCols ?? settings.gridCols ?? base.gridCols,
         settings.customGridRows ?? settings.gridRows ?? base.gridRows
     );
     updateLevelDisplayNameField(level, settings.displayName || base.displayName || '');
-    el.previewTitle.textContent = `Preview - ${levelLabel}`;
+    el.previewTitle.textContent = `预览 - ${levelLabel}`;
     previewRecord = record || null;
     renderedLevelData = record?.data ? cloneLevelData(record.data) : null;
     resetPreviewPlayState();
 
     if (record?.data) {
         drawPreviewState();
-        setStatus(`Loaded saved record for ${levelLabel}.`);
+        setStatus(`已加载 ${levelLabel} 的已保存记录。`);
         drawStats(record);
     } else {
         clearCanvas();
         if (preview?.data) {
-            setStatus(`No saved record for ${levelLabel}. Legacy preview exists but is ignored. Click Save after Generate to persist.`);
+            setStatus(`${levelLabel} 暂无已保存记录。检测到旧预览数据但已忽略，请生成后点击“保存”。`);
         } else {
-            setStatus(`No saved record for ${levelLabel}.`);
+            setStatus(`${levelLabel} 暂无已保存记录。`);
         }
         drawStats(null);
     }
 
     updateDerived();
-    setGenerateProgress(0, 'Ready');
+    setGenerateProgress(0, '就绪');
     
     // Reset edit modes on level change
     setGenerateMode('normal');
@@ -417,6 +428,7 @@ function collectConfig() {
         maxLen: Number(el.maxLen.value || 0),
         timerSeconds: Number(el.timerSeconds.value || 0),
         misclickPenaltySeconds: Number(el.misclickPenaltySeconds.value || 0),
+        rewardScorePerBodySegment: Number(el.rewardScorePerBodySegment?.value || 0),
         displayName
     });
     return {
@@ -525,10 +537,10 @@ async function onGenerate(mode = 1) {
         updateDerived();
         setGenerateProgress(100, 'Done');
         const modeLabel = mode === 3 ? 'bent' : 'straight';
-        setStatus(`${levelLabel} generated in memory only. Click Save to persist. Mode=${mode} (${modeLabel}).`);
+        setStatus(`${levelLabel} 已生成到内存预览。点击“保存”后才会持久化。模式=${mode} (${modeLabel})。`);
     } catch (error) {
         setGenerateProgress(0, 'Generation failed');
-        setStatus(`Generate failed: ${error?.message || 'unknown error'}`);
+        setStatus(`生成失败：${error?.message || '未知错误'}`);
     } finally {
         setButtonsDisabled(false);
         isGenerating = false;
@@ -544,11 +556,11 @@ async function onGenerate2() {
     previewRecord = null;
     resetPreviewPlayState();
     
-    setStatus('Generating Hamiltonian Path...');
+    setStatus('正在生成哈密顿路径...');
     activeHamiltonianPath = buildWeavePath(config.gridCols, config.gridRows);
     
     drawPreviewState();
-    setStatus('Generate2 Mode: Hold Right Mouse Button to brush, then press ASDW to create an arrow. Right click to flip.');
+    setStatus('Generate2 模式：按住右键刷选，再按 ASDW 创建箭头。右键可翻转。');
 }
 
 function onGenerate4() {
@@ -571,7 +583,7 @@ function onGenerate4() {
     drawPreviewState();
     updateDerived();
     syncEyeButtonState();
-    setStatus('Generate4 Mode: Free manual edit enabled. Drag left mouse to draw arrows, right mouse to erase.');
+    setStatus('Generate4 模式：已启用自由编辑。左键拖拽绘制箭头，右键擦除。');
 }
 
 function onGenerate4GridInputChange() {
@@ -585,7 +597,7 @@ function onGenerate4GridInputChange() {
 
 function onApplyGenerate4GridSize() {
     if (!isGenerate4Mode) {
-        setStatus('Switch to Generate4 mode first.');
+        setStatus('请先切换到 Generate4 模式。');
         return;
     }
     const { config } = collectConfig();
@@ -602,12 +614,12 @@ function onApplyGenerate4GridSize() {
     drawPreviewState();
     updateDerived();
     syncEyeButtonState();
-    setStatus(`Generate4 grid applied: ${config.gridCols} x ${config.gridRows}.`);
+    setStatus(`Generate4 网格已应用：${config.gridCols} x ${config.gridRows}。`);
 }
 
 function onGenerate4Pattern() {
     if (!isGenerate4Mode) {
-        setStatus('Pattern generator is only available in Generate4 mode.');
+        setStatus('图案生成功能仅在 Generate4 模式可用。');
         return;
     }
     const { config, settings } = collectConfig();
@@ -626,7 +638,7 @@ function onGenerate4Pattern() {
     }
 
     if (!selected) {
-        setStatus('Failed to build a valid pattern for current grid/length settings.');
+        setStatus('按当前网格/长度设置无法生成有效图案。');
         return;
     }
 
@@ -657,7 +669,7 @@ function onGenerate4Pattern() {
     drawPreviewState();
     drawStats(previewRecord);
     updateDerived();
-    setStatus(`Generate4 pattern ready: ${selected.name}. Lines: ${selected.lines.length}.`);
+    setStatus(`Generate4 图案已就绪：${selected.name}，线条数 ${selected.lines.length}。`);
 }
 
 function buildGenerate4RayPattern(config) {
@@ -907,20 +919,20 @@ function finishLifting() {
     // Direction Check
     const finalDir = inferDirectionFromCells(segment);
     if (finalDir !== currentKeyDir) {
-        setStatus(`Invalid direction! Path segment leads ${finalDir}, but you held ${currentKeyDir}.`);
+        setStatus(`方向不匹配：路径段方向为 ${finalDir}，你按下的是 ${currentKeyDir}。`);
         return;
     }
 
     const { config } = collectConfig();
     if (segment.length < config.minLen || segment.length > config.maxLen) {
-        setStatus(`Invalid length! Segment is ${segment.length} cells, need ${config.minLen}-${config.maxLen}.`);
+        setStatus(`长度不合法：当前 ${segment.length} 格，要求 ${config.minLen}-${config.maxLen} 格。`);
         return;
     }
 
     // Check occupation
     const isOccupied = segment.some(s => findLineByCell(renderedLevelData, s.col, s.row));
     if (isOccupied) {
-        setStatus('Space already occupied.');
+        setStatus('目标区域已被占用。');
         return;
     }
 
@@ -952,28 +964,28 @@ function finishLifting() {
     drawStats(previewRecord);
     resetPreviewPlayState();
     drawPreviewState();
-    setStatus(`Successfully "brushed" an arrow. Total lines: ${renderedLevelData.lines.length}`);
+    setStatus(`已成功刷出一条箭头。当前总线条：${renderedLevelData.lines.length}`);
 }
 
 function onRestPreview() {
     if (!renderedLevelData) {
-        setStatus('No preview data. Generate first.');
+        setStatus('暂无预览数据，请先生成。');
         return;
     }
     resetPreviewPlayState();
     drawPreviewState();
-    setStatus('Preview reset. Left click to play, right click to flip.');
+    setStatus('预览已重置。左键试玩，右键翻转。');
 }
 
 function onHint() {
     console.log('Hint button clicked'); // debug only
     try {
         if (!previewPlayState) {
-            setStatus('No preview data. Click "Generate" first.');
+            setStatus('暂无预览数据，请先点击“生成”。');
             return;
         }
 
-        setStatus('Checking for movable arrows...');
+        setStatus('正在检查可移动箭头...');
         
         const movableLines = previewPlayState.lines.filter((line) => {
             if (line.state !== 'active') return false;
@@ -981,7 +993,7 @@ function onHint() {
         });
 
         if (movableLines.length === 0) {
-            setStatus('鈿狅笍 No movable arrows found in current state.');
+            setStatus('当前状态下没有可移动箭头。');
             return;
         }
 
@@ -992,7 +1004,7 @@ function onHint() {
         }
         console.log("Movable Arrow IDs:", movableLines.map(l => l.id));
         drawPreviewState();
-        setStatus(`Highlighted ${movableLines.length} movable arrow(s). It will last 4s.`);
+        setStatus(`已高亮 ${movableLines.length} 条可移动箭头，持续 4 秒。`);
 
         // Clear highlight after 4 seconds
         if (window._hintTimeout) clearTimeout(window._hintTimeout);
@@ -1001,11 +1013,11 @@ function onHint() {
                 line.isHighlighted = false;
             }
             drawPreviewState();
-            setStatus('Hint cleared.');
+            setStatus('提示已清除。');
         }, 4000);
     } catch (err) {
         console.error('Hint error:', err);
-        setStatus(`Hint failed: ${err.message}`);
+        setStatus(`提示失败：${err.message}`);
     }
 }
 
@@ -1021,7 +1033,7 @@ async function onSave() {
 
     const recordToSave = buildRecordForSave();
     if (!recordToSave) {
-        setStatus(`${levelLabel} has no valid preview data to save.`);
+        setStatus(`${levelLabel} 没有可保存的有效预览数据。`);
         return;
     }
 
@@ -1031,9 +1043,9 @@ async function onSave() {
         saveSavedLevelRecord(level, recordToSave)
     ]);
     if (savedOk && previewOk) {
-        setStatus(`${levelLabel} saved permanently to local file. Game will load this record first.`);
+        setStatus(`${levelLabel} 已永久保存到本地文件，游戏将优先读取该记录。`);
     } else {
-        setStatus(`${levelLabel} saved to browser cache only (disk sync unavailable).`);
+        setStatus(`${levelLabel} 仅保存到浏览器缓存（磁盘同步不可用）。`);
     }
 }
 
@@ -1074,9 +1086,9 @@ async function onReset() {
     previewPlayState = null;
     loadLevelState();
     if (previewDeleted && savedDeleted) {
-        setStatus(`${levelLabel} reset and removed from local files.`);
+        setStatus(`${levelLabel} 已重置并从本地文件删除。`);
     } else {
-        setStatus(`${levelLabel} reset in browser cache only (disk sync unavailable).`);
+        setStatus(`${levelLabel} 仅在浏览器缓存中重置（磁盘同步不可用）。`);
     }
 }
 
@@ -1183,7 +1195,7 @@ function deleteLine(lineId) {
         updatePreviewRecord();
         resetPreviewPlayState();
         drawPreviewState();
-        setStatus(`Deleted line ${lineId}.`);
+        setStatus(`已删除线条 ${lineId}。`);
     }
 }
 
@@ -1342,14 +1354,14 @@ function appendGenerate4ManualLine(segment) {
 
     const { config } = collectConfig();
     if (segment.length < config.minLen || segment.length > config.maxLen) {
-        setStatus(`Invalid length! Segment is ${segment.length} cells, need ${config.minLen}-${config.maxLen}.`);
+        setStatus(`长度不合法：当前 ${segment.length} 格，要求 ${config.minLen}-${config.maxLen} 格。`);
         drawPreviewState();
         return;
     }
 
     const isOccupied = segment.some((cell) => findLineByCell(renderedLevelData, cell.col, cell.row));
     if (isOccupied) {
-        setStatus('Space already occupied.');
+        setStatus('目标区域已被占用。');
         drawPreviewState();
         return;
     }
@@ -1367,7 +1379,7 @@ function appendGenerate4ManualLine(segment) {
     updatePreviewRecord();
     resetPreviewPlayState();
     drawPreviewState();
-    setStatus(`Generate4: added line ${lineId}. Total lines: ${renderedLevelData.lines.length}.`);
+    setStatus(`Generate4：已新增线条 ${lineId}。当前总线条：${renderedLevelData.lines.length}。`);
 }
 
 function onCanvasGenerate2Click(event) {
@@ -1425,14 +1437,14 @@ function onCanvasGenerate2Click(event) {
     let segment = tryBuildAt(pathIdx, false) || tryBuildAt(pathIdx, true);
 
     if (!segment) {
-        setStatus(`Cannot create ${currentKeyDir} arrow here using the path.`);
+        setStatus(`无法在该位置按路径创建 ${currentKeyDir} 方向箭头。`);
         return;
     }
 
     // Check if any cell in segment is already occupied by an existing line
     const isOccupied = segment.some(s => findLineByCell(renderedLevelData, s.col, s.row));
     if (isOccupied) {
-        setStatus('Space already occupied.');
+        setStatus('目标区域已被占用。');
         return;
     }
 
@@ -1463,12 +1475,12 @@ function onCanvasGenerate2Click(event) {
     };
     resetPreviewPlayState();
     drawPreviewState();
-    setStatus(`Added ${currentKeyDir} arrow. Total lines: ${renderedLevelData.lines.length}`);
+    setStatus(`已添加 ${currentKeyDir} 方向箭头。当前总线条：${renderedLevelData.lines.length}`);
 }
 
 function onCanvasFlip(event) {
     if (!renderedLevelData?.lines?.length) {
-        setStatus('No preview data to edit. Generate first.');
+        setStatus('暂无可编辑的预览数据，请先生成。');
         return;
     }
 
@@ -1477,13 +1489,13 @@ function onCanvasFlip(event) {
     grid.resize(el.canvas.width, el.canvas.height);
     const cell = grid.screenToGrid(point.x, point.y);
     if (!cell) {
-        setStatus('Clicked outside grid.');
+        setStatus('点击位置不在网格内。');
         return;
     }
 
     const target = findLineByCell(renderedLevelData, cell.col, cell.row);
     if (!target) {
-        setStatus(`No line at cell (${cell.col}, ${cell.row}).`);
+        setStatus(`格子 (${cell.col}, ${cell.row}) 上没有线条。`);
         return;
     }
 
@@ -1511,19 +1523,19 @@ function onCanvasFlip(event) {
     drawPreviewState();
     drawStats(previewRecord);
     updateDerived();
-    setStatus(`Flipped line ${target.id}. Unsaved changes in preview.`);
+    setStatus(`已翻转线条 ${target.id}，当前改动尚未保存。`);
 }
 
 function onCanvasPlay(event) {
     if (!previewPlayState) {
-        setStatus('No preview state. Generate first.');
+        setStatus('暂无预览状态，请先生成。');
         return;
     }
 
     const point = getCanvasPoint(event);
     const clickedLine = findTopLineAtPoint(previewPlayState, point.x, point.y);
     if (!clickedLine) {
-        setStatus('No selectable line at this point.');
+        setStatus('该位置没有可选中的线条。');
         return;
     }
 
@@ -1535,12 +1547,12 @@ function onCanvasPlay(event) {
 
         const remaining = previewPlayState.lines.filter((line) => line.state === 'active').length;
         if (remaining === 0) {
-            setStatus('Preview cleared. Click restpreview to play again.');
+            setStatus('预览已清空，点击“重置预览”可再次试玩。');
         } else {
-            setStatus(`Cleared line ${clickedLine.id}. Remaining: ${remaining}`);
+            setStatus(`已清除线条 ${clickedLine.id}，剩余：${remaining}`);
         }
     } else {
-        setStatus(`Blocked line ${clickedLine.id}. Need exit space.`);
+        setStatus(`线条 ${clickedLine.id} 当前不可移动，需要出口空间。`);
     }
 }
 
@@ -1568,24 +1580,24 @@ function setButtonsDisabled(disabled) {
 function drawStats(record) {
     el.stats.innerHTML = '';
     if (!record?.stats) {
-        pushStat('Cells: 0 / 0');
-        pushStat('Lines: 0');
-        pushStat('Timer: Off');
-        pushStat('Wrong Tap Penalty: 1s');
-        pushStat('Updated: -');
+        pushStat('格子覆盖：0 / 0');
+        pushStat('线条数量：0');
+        pushStat('计时器：关闭');
+        pushStat('误触惩罚：1秒');
+        pushStat('更新时间：-');
         return;
     }
     const total = record.stats.totalCells;
     const covered = record.stats.coveredCells;
     const pct = Math.round((covered / total) * 100);
     if (record.settings?.displayName) {
-        pushStat(`Stage Name: ${record.settings.displayName}`);
+        pushStat(`关卡名称：${record.settings.displayName}`);
     }
-    pushStat(`Sys: v6.0 | Pct: ${pct}%`);
-    pushStat(`Lines: ${record.stats.lineCount}`);
-    pushStat(`Timer: ${formatSeconds(record.settings?.timerSeconds ?? 0)}`);
-    pushStat(`Wrong Tap Penalty: ${formatPenaltySeconds(record.settings?.misclickPenaltySeconds ?? 1)}`);
-    pushStat(`Updated: ${formatTime(record.updatedAt)}`);
+    pushStat(`系统：v6.0 | 覆盖率：${pct}%`);
+    pushStat(`线条数量：${record.stats.lineCount}`);
+    pushStat(`计时器：${formatSeconds(record.settings?.timerSeconds ?? 0)}`);
+    pushStat(`误触惩罚：${formatPenaltySeconds(record.settings?.misclickPenaltySeconds ?? 1)}`);
+    pushStat(`更新时间：${formatTime(record.updatedAt)}`);
 }
 
 function pushStat(text) {
@@ -1869,14 +1881,14 @@ function onTogglePath() {
             isPathVisible = false;
             syncEyeButtonState();
             drawPreviewState();
-            setStatus('Generate4 has no helper path. Use the flower button to generate a pattern first.');
+            setStatus('Generate4 当前没有辅助路径，请先点击花形按钮生成图案。');
             return;
         }
 
         isPathVisible = !isPathVisible;
         syncEyeButtonState();
         drawPreviewState();
-        setStatus(isPathVisible ? 'Generate4 helper path visible.' : 'Generate4 helper path hidden.');
+        setStatus(isPathVisible ? 'Generate4 辅助路径已显示。' : 'Generate4 辅助路径已隐藏。');
         return;
     }
 
@@ -1898,7 +1910,7 @@ function onTogglePath() {
     isPathVisible = !isPathVisible;
     syncEyeButtonState();
     drawPreviewState();
-    setStatus(isPathVisible ? 'Helper mode ON: Hamiltonian path visible.' : 'Normal mode: Helper path hidden.');
+    setStatus(isPathVisible ? '辅助模式已开启：哈密顿路径可见。' : '普通模式：辅助路径已隐藏。');
 }
 function nextFrame() {
     return new Promise((resolve) => requestAnimationFrame(() => resolve()));
@@ -1944,19 +1956,19 @@ function formatTime(value) {
 function formatSeconds(value) {
     const seconds = Math.max(0, Math.round(Number(value) || 0));
     if (seconds <= 0) {
-        return 'Off';
+        return '关闭';
     }
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins}m${secs.toString().padStart(2, '0')}s`;
+    return `${mins}分${secs.toString().padStart(2, '0')}秒`;
 }
 
 function formatPenaltySeconds(value) {
     const seconds = Math.max(0, Math.round(Number(value) || 0));
     if (seconds <= 0) {
-        return '0s (Off)';
+        return '0秒（关闭）';
     }
-    return `${seconds}s`;
+    return `${seconds}秒`;
 }
 
 function clampInt(value, min, max, fallback) {

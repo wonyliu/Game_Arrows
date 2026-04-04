@@ -1,5 +1,13 @@
-import { playClickSound, playCoinPopSound, resumeAudio } from './audio.js?v=30';
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=5';
+﻿import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=6';
+import {
+    BGM_SCENE_KEYS,
+    playBgmForScene,
+    playClickSound as playClickSoundV31,
+    resumeAudio as resumeAudioV31,
+    playCheckinRewardCoinSound
+} from './audio.js?v=32';
+import { getSkinDescription, getSkinDisplayName } from './skins.js?v=23';
+import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=3';
 import { getUiAsset } from './ui-theme.js?v=2';
 
 const MENU_PANEL = Object.freeze({
@@ -47,10 +55,14 @@ const SETTINGS_CONFIRM_MODE = Object.freeze({
 const LEVEL_SETTLE_MIN_MS = 700;
 const LEVEL_SETTLE_MAX_MS = 1800;
 const LEVEL_SETTLE_PER_POINT_MS = 0.4;
+const CHECKIN_COIN_FLY_COUNT = 6;
+const CHECKIN_COIN_FLY_DURATION_MS = 920;
+const CHECKIN_COIN_COUNTER_DURATION_MS = 1040;
 
 export class UI {
-    constructor(game) {
+    constructor(game, options = {}) {
         this.game = game;
+        this.options = options || {};
         this.locale = detectInitialLocale();
         this.menuState = MENU_PANEL.HOME;
         this.settingsEntry = SETTINGS_ENTRY.MENU;
@@ -67,6 +79,10 @@ export class UI {
         this.timerFillEl = document.getElementById('timerFill');
         this.timerLabelEl = document.getElementById('timerLabel');
         this.comboDisplayEl = document.getElementById('comboDisplay');
+        this.rewardUnlockToastEl = document.getElementById('rewardUnlockToast');
+        this.rewardUnlockToastImageEl = document.getElementById('rewardUnlockToastImage');
+        this.rewardUnlockToastTextEl = document.getElementById('rewardUnlockToastText');
+        this.rewardUnlockToastTimer = 0;
         this.hudScoreValueEl = document.getElementById('hudScoreValue');
         this.hudScoreGainEl = document.getElementById('hudScoreGain');
         this.hudEnergyLayerEl = document.getElementById('hudEnergyLayer');
@@ -79,6 +95,12 @@ export class UI {
         this.leaderboardOverlay = document.getElementById('leaderboardOverlay');
         this.skinsOverlay = document.getElementById('skinsOverlay');
         this.checkinOverlay = document.getElementById('checkinOverlay');
+        this.checkinSceneEl = this.checkinOverlay?.querySelector('.checkin-scene') || null;
+        this.checkinBackButtonEl = document.getElementById('btnBackFromCheckin');
+        this.checkinCardEl = this.checkinOverlay?.querySelector('.checkin-card-notebook') || null;
+        this.checkinRibbonEl = this.checkinOverlay?.querySelector('.checkin-ribbon') || null;
+        this.checkinRibbonTitleEl = this.checkinOverlay?.querySelector('.checkin-ribbon-title') || null;
+        this.checkinMascotEl = this.checkinOverlay?.querySelector('.checkin-mascot-snake') || null;
         this.exitOverlay = document.getElementById('exitOverlay');
         this.resetProgressOverlay = document.getElementById('resetProgressOverlay');
 
@@ -104,22 +126,72 @@ export class UI {
         this.settingsConfirmActionBtn = document.getElementById('btnResetProgressConfirm');
         this.menuCoinValue = document.getElementById('menuCoinValue');
         this.hudCoinValue = document.getElementById('hudCoinValue');
+        this.menuCoinDisplay = document.getElementById('menuCoinDisplay');
+        this.menuCoinFlyRestore = null;
         this.skinList = document.getElementById('skinList');
         this.skinsCoinValue = document.getElementById('skinsCoinValue');
         this.levelCoinReward = document.getElementById('levelCoinReward');
         this.levelSettleAnimFrame = 0;
         this.isLevelSettleAnimating = false;
+        this.checkinWeekGridEl = document.getElementById('checkinWeekGrid');
+        this.checkinStatusEl = document.getElementById('checkinStatus');
+        this.checkinRewardTooltipEl = document.getElementById('checkinRewardTooltip');
+        this.activeCheckinTooltipDay = 0;
+        this.onlineRewardDockEl = document.getElementById('onlineRewardDock');
+        this.btnOnlineRewardChest = document.getElementById('btnOnlineRewardChest');
+        this.onlineDockTextEl = document.getElementById('onlineDockText');
+        this.onlineRewardPreviewBubbleEl = document.getElementById('onlineRewardPreviewBubble');
+        this.onlineRewardSettleOverlay = document.getElementById('onlineRewardSettleOverlay');
+        this.onlineRewardSettleDescEl = document.getElementById('onlineRewardSettleDesc');
+        this.onlineRewardSettleListEl = document.getElementById('onlineRewardSettleList');
+        this.btnOnlineRewardSettleCloseTop = document.getElementById('btnOnlineRewardSettleCloseTop');
+        this.btnOnlineRewardSettleClose = document.getElementById('btnOnlineRewardSettleClose');
+        this.checkinRewardSettleOverlay = document.getElementById('checkinRewardSettleOverlay');
+        this.checkinRewardSettleDescEl = document.getElementById('checkinRewardSettleDesc');
+        this.checkinRewardSettleListEl = document.getElementById('checkinRewardSettleList');
+        this.checkinRewardCoinHeroEl = document.getElementById('checkinRewardCoinHero');
+        this.checkinRewardCoinHeroIconEl = document.getElementById('checkinRewardCoinHeroIcon');
+        this.checkinRewardCoinHeroAmountEl = document.getElementById('checkinRewardCoinHeroAmount');
+        this.btnCheckinRewardConfirm = document.getElementById('btnCheckinRewardConfirm');
+        this.rewardFlyLayerEl = document.getElementById('rewardFlyLayer');
+        this.appContainerEl = document.querySelector('.app-container');
+        this.coinDisplayOverride = null;
+        this.checkinCoinCounterFrame = 0;
+        this.pendingCheckinRewardPayload = null;
+        this.pendingOnlineRewardPayload = null;
+        this.onlineRewardSettleCoinIconEl = null;
+        this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
+        this.uiEditorPreviewOverride = null;
+        this.uiLayoutConfig = readUiLayoutConfig();
+        this.releaseUiLayoutSubscription = subscribeUiLayoutConfig((nextConfig) => {
+            this.uiLayoutConfig = nextConfig;
+            this.applyCheckinLayoutConfig();
+            this.refreshCheckinPanel(false);
+            this.updateCheckinSceneScale();
+        });
 
         this.bindEvents();
         this.bindGameCallbacks();
         this.applyThemeAssets();
+        this.applyCheckinLayoutConfig();
+        this.markUiEditorElements();
         this.setMenuBadges(this.menuBadges);
         this.applyLocalizedText();
+        this.refreshCheckinPanel();
+        this.updateCheckinSceneScale();
+        this.onlineDockTicker = setInterval(() => {
+            this.refreshOnlineRewardDock();
+        }, 1000);
+        window.addEventListener('resize', () => this.updateCheckinSceneScale());
 
         if (this.game.isPlaytestMode) {
             this.startSpecificLevel(this.game.currentLevel);
         } else {
             this.goToMenu();
+        }
+
+        if (this.uiEditorPreviewOptions.enabled) {
+            this.activateUiEditorPreview();
         }
     }
 
@@ -147,6 +219,22 @@ export class UI {
         this.bindButton('btnSkins', () => this.openMenuPanel(MENU_PANEL.SKINS));
         this.bindButton('btnCheckin', () => this.openMenuPanel(MENU_PANEL.CHECKIN));
         this.bindButton('btnExit', () => this.openMenuPanel(MENU_PANEL.EXIT_CONFIRM));
+        this.bindButton('btnOnlineRewardSettleCloseTop', () => this.closeOnlineRewardSettle(true));
+        this.bindButton('btnOnlineRewardSettleClose', () => {
+            void this.confirmOnlineRewardSettle();
+        });
+        this.bindButton('btnCheckinRewardConfirm', () => {
+            void this.confirmCheckinRewardSettle();
+        });
+
+        if (this.btnOnlineRewardChest) {
+            this.btnOnlineRewardChest.addEventListener('click', () => this.onClickOnlineChest());
+            const hide = () => this.hideOnlineRewardPreview();
+            this.btnOnlineRewardChest.addEventListener('pointerdown', () => this.onPressOnlineChest());
+            this.btnOnlineRewardChest.addEventListener('pointerup', hide);
+            this.btnOnlineRewardChest.addEventListener('pointercancel', hide);
+            this.btnOnlineRewardChest.addEventListener('pointerleave', hide);
+        }
 
         this.bindButton('btnExitCancelTop', () => this.closeMenuPanel());
         this.bindButton('btnExitCancel', () => this.closeMenuPanel());
@@ -176,8 +264,8 @@ export class UI {
             lastTriggerAt = now;
 
             try {
-                resumeAudio();
-                playClickSound();
+                resumeAudioV31();
+                playClickSoundV31();
             } catch (error) {
                 console.warn(`Audio click failed for #${id}:`, error);
             }
@@ -240,9 +328,22 @@ export class UI {
         this.game.onTimerEnergyEmit = (payload) => this.spawnTimerEnergyOrb(payload);
         this.game.onTimerEnergyBatchCancel = (batchId) => this.cancelTimerEnergyBatch(batchId);
         this.game.onTimerEnergyClear = () => this.clearTimerEnergyOrbs();
+        this.game.onRewardStageUnlocked = () => this.showRewardUnlockToast();
         this.game.onLevelComplete = () => this.showLevelCompletePopup();
         this.game.onGameOver = (reason) => this.showGameOverPopup(reason);
         this.game.onCollision = () => this.triggerErrorVignette();
+        this.game.onLiveOpsUpdate = () => this.refreshCheckinPanel();
+    }
+
+    syncGameplayBgm(restart = false) {
+        if (!this.game || this.game.state !== 'PLAYING') {
+            return;
+        }
+        const isRewardStage = this.game.isRewardStage === true;
+        playBgmForScene(
+            isRewardStage ? BGM_SCENE_KEYS.REWARD : BGM_SCENE_KEYS.NORMAL,
+            { restart }
+        );
     }
 
     startGame() {
@@ -259,6 +360,7 @@ export class UI {
         }
         requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
+        this.syncGameplayBgm(true);
     }
 
     startSpecificLevel(level) {
@@ -274,6 +376,7 @@ export class UI {
         }
         requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
+        this.syncGameplayBgm(true);
     }
 
     forceGameCanvasResize() {
@@ -296,6 +399,7 @@ export class UI {
             this.game.startNextStage();
             requestAnimationFrame(() => this.forceGameCanvasResize());
             this.updateHUD();
+            this.syncGameplayBgm(true);
             return;
         }
         this.startSpecificLevel(this.game.currentLevel + 1);
@@ -311,6 +415,7 @@ export class UI {
             this.game.retryCurrentStage();
             requestAnimationFrame(() => this.forceGameCanvasResize());
             this.updateHUD();
+            this.syncGameplayBgm(true);
             return;
         }
         this.startSpecificLevel(this.game.currentLevel);
@@ -351,6 +456,7 @@ export class UI {
             this.settingsEntry = SETTINGS_ENTRY.MENU;
             this.settingsConfirmMode = SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
             this.updateCoinDisplays();
+            playBgmForScene(BGM_SCENE_KEYS.HOME);
         }
 
         if (target === MENU_PANEL.LEVEL_SELECT) {
@@ -380,6 +486,8 @@ export class UI {
         if (target === MENU_PANEL.CHECKIN) {
             this.checkinOverlay.classList.remove('hidden');
             this.game.state = 'CHECKIN';
+            this.refreshCheckinPanel();
+            this.updateCheckinSceneScale();
         }
 
         if (target === MENU_PANEL.EXIT_CONFIRM) {
@@ -398,6 +506,8 @@ export class UI {
         this.applyLocalizedText();
         this.refreshMenuLevelTag();
         this.renderFeatureCards();
+        this.refreshCheckinPanel();
+        this.refreshOnlineRewardDock();
     }
 
     async syncSkinCatalogForSkinCenter() {
@@ -496,6 +606,104 @@ export class UI {
         this.levelCompleteOverlay.classList.add('hidden');
         this.gameOverOverlay.classList.add('hidden');
         this.levelSelectOverlay.classList.add('hidden');
+        this.onlineRewardSettleOverlay?.classList.add('hidden');
+        this.checkinRewardSettleOverlay?.classList.add('hidden');
+        this.rewardFlyLayerEl?.classList.add('hidden');
+        if (this.rewardFlyLayerEl) {
+            this.rewardFlyLayerEl.innerHTML = '';
+        }
+        this.hideOnlineRewardPreview();
+        this.hideCheckinRewardTooltip();
+        this.pendingCheckinRewardPayload = null;
+        this.pendingOnlineRewardPayload = null;
+        this.onlineRewardSettleCoinIconEl = null;
+        if (this.rewardUnlockToastTimer) {
+            clearTimeout(this.rewardUnlockToastTimer);
+            this.rewardUnlockToastTimer = 0;
+        }
+        if (this.rewardUnlockToastEl) {
+            this.rewardUnlockToastEl.classList.add('hidden');
+            this.rewardUnlockToastEl.classList.remove('is-playing');
+        }
+        this.stopCheckinCoinCounter();
+        this.clearCoinDisplayOverride();
+        this.updateCheckinSceneScale();
+    }
+
+    updateCheckinSceneScale() {
+        if (!this.checkinSceneEl) {
+            return;
+        }
+        const layout = this.getCheckinLayoutConfig();
+        const designW = Math.max(320, Number(layout?.notebook?.width) || 980);
+        const designH = Math.max(320, Number(layout?.notebook?.height) || 760);
+        const host = this.checkinOverlay || this.checkinSceneEl.parentElement;
+        const vw = Math.max(320, host?.clientWidth || window.innerWidth || designW);
+        const vh = Math.max(420, host?.clientHeight || window.innerHeight || designH);
+        const padding = 8;
+        const scale = Math.min(1, (vw - padding) / designW, (vh - padding) / designH);
+        const multiplier = Math.max(0.2, Number(layout?.scene?.scaleMultiplier) || 1);
+        const safeScale = Math.max(0.24, scale * multiplier);
+        this.checkinSceneEl.style.transform = `scale(${safeScale})`;
+        this.checkinSceneEl.style.marginBottom = '0px';
+    }
+
+    markUiEditorElements() {
+        this.checkinBackButtonEl?.setAttribute('data-ui-editor-id', 'backButton');
+        this.checkinCardEl?.setAttribute('data-ui-editor-id', 'notebook');
+        this.checkinRibbonEl?.setAttribute('data-ui-editor-id', 'ribbon');
+        this.checkinRibbonTitleEl?.setAttribute('data-ui-editor-id', 'ribbonTitle');
+        this.checkinMascotEl?.setAttribute('data-ui-editor-id', 'mascot');
+        this.checkinRewardTooltipEl?.setAttribute('data-ui-editor-id', 'rewardTooltip');
+        this.checkinStatusEl?.setAttribute('data-ui-editor-id', 'status');
+    }
+
+    getCheckinLayoutConfig() {
+        return this.uiLayoutConfig?.checkin || readUiLayoutConfig().checkin;
+    }
+
+    applyCheckinLayoutConfig() {
+        const layout = this.getCheckinLayoutConfig();
+        if (this.checkinBackButtonEl) {
+            this.checkinBackButtonEl.style.left = `${layout.backButton.x}px`;
+            this.checkinBackButtonEl.style.top = `${layout.backButton.y}px`;
+            this.checkinBackButtonEl.style.minWidth = `${layout.backButton.width}px`;
+            this.checkinBackButtonEl.style.height = `${layout.backButton.height}px`;
+            this.checkinBackButtonEl.style.fontSize = `${layout.backButton.fontSize}px`;
+            this.checkinBackButtonEl.style.display = layout.backButton.visible === false ? 'none' : '';
+        }
+        if (this.checkinCardEl) {
+            this.checkinCardEl.style.width = `${layout.notebook.width}px`;
+            this.checkinCardEl.style.height = `${layout.notebook.height}px`;
+            this.checkinCardEl.style.paddingTop = `${layout.notebook.paddingTop}px`;
+            this.checkinCardEl.style.display = layout.notebook.visible === false ? 'none' : '';
+        }
+        if (this.checkinRibbonEl) {
+            this.checkinRibbonEl.style.left = `${layout.ribbon.x}px`;
+            this.checkinRibbonEl.style.top = `${layout.ribbon.y}px`;
+            this.checkinRibbonEl.style.width = `${layout.ribbon.width}px`;
+            this.checkinRibbonEl.style.height = `${layout.ribbon.height}px`;
+            this.checkinRibbonEl.style.display = layout.ribbon.visible === false ? 'none' : '';
+        }
+        if (this.checkinRibbonTitleEl) {
+            this.checkinRibbonTitleEl.style.fontSize = `${layout.ribbonTitle.fontSize}px`;
+            this.checkinRibbonTitleEl.style.transform = `translate(${layout.ribbonTitle.x}px, ${layout.ribbonTitle.y}px)`;
+            this.checkinRibbonTitleEl.style.display = layout.ribbonTitle.visible === false ? 'none' : '';
+        }
+        if (this.checkinMascotEl) {
+            this.checkinMascotEl.style.left = `${layout.mascot.x}px`;
+            this.checkinMascotEl.style.top = `${layout.mascot.y}px`;
+            this.checkinMascotEl.style.width = `${layout.mascot.width}px`;
+            this.checkinMascotEl.style.height = `${layout.mascot.height}px`;
+            this.checkinMascotEl.style.display = layout.mascot.visible === true ? 'block' : 'none';
+        }
+        if (this.checkinStatusEl) {
+            this.checkinStatusEl.style.left = `${layout.status.x}px`;
+            this.checkinStatusEl.style.top = `${layout.status.y}px`;
+            this.checkinStatusEl.style.width = `${layout.status.width}px`;
+            this.checkinStatusEl.style.fontSize = `${layout.status.fontSize}px`;
+            this.checkinStatusEl.style.display = layout.status.visible === true ? 'block' : 'none';
+        }
     }
 
     getDefaultStartLevel() {
@@ -543,9 +751,10 @@ export class UI {
     }
 
     updateCoinDisplays() {
-        const coins = typeof this.game.getCoins === 'function'
-            ? this.game.getCoins()
-            : 0;
+        const override = Number.isFinite(this.coinDisplayOverride) ? this.coinDisplayOverride : null;
+        const coins = override !== null
+            ? override
+            : (typeof this.game.getCoins === 'function' ? this.game.getCoins() : 0);
         const valueText = String(Math.max(0, Math.floor(Number(coins) || 0)));
 
         if (this.menuCoinValue) {
@@ -557,6 +766,16 @@ export class UI {
         if (this.skinsCoinValue) {
             this.skinsCoinValue.textContent = valueText;
         }
+    }
+
+    setCoinDisplayOverride(value) {
+        this.coinDisplayOverride = Math.max(0, Math.floor(Number(value) || 0));
+        this.updateCoinDisplays();
+    }
+
+    clearCoinDisplayOverride() {
+        this.coinDisplayOverride = null;
+        this.updateCoinDisplays();
     }
 
     applyLocalizedText() {
@@ -581,6 +800,7 @@ export class UI {
         this.updateSettingsConfirmDialogText();
         this.renderSkinCenter();
         this.updateCoinDisplays();
+        this.refreshCheckinPanel(false);
     }
 
     updateLocaleButtons() {
@@ -627,6 +847,7 @@ export class UI {
         this.menuState = MENU_PANEL.HOME;
         this.forceGameCanvasResize();
         this.updateHUD();
+        this.syncGameplayBgm(false);
     }
 
     renderFeatureCards() {
@@ -705,6 +926,916 @@ export class UI {
         this.refreshMenuLevelTag();
         this.updateCoinDisplays();
         this.syncScorePulse();
+        this.refreshCheckinPanel(false);
+        this.refreshOnlineRewardDock();
+    }
+
+    formatRewardList(rewards = []) {
+        const rows = Array.isArray(rewards) ? rewards : [];
+        if (rows.length === 0) {
+            return this.locale === 'zh-CN' ? '\u65e0\u5956\u52b1' : 'No reward';
+        }
+        return rows
+            .map((row) => {
+                const meta = this.getRewardMeta(row);
+                return `${meta.name} x${Math.max(0, Math.floor(Number(row?.amount) || 0))}`;
+            })
+            .join(' / ');
+    }
+
+    getRewardMeta(reward) {
+        const itemId = `${reward?.itemId || reward || ''}`.trim().toLowerCase();
+        const itemDef = this.game?.getLiveOpsItemDefinition?.(itemId) || null;
+        const isZh = this.locale === 'zh-CN';
+        const builtinNames = {
+            coin: isZh ? '\u91d1\u5e01' : 'Coin',
+            skin_fragment: isZh ? '\u76ae\u80a4\u788e\u7247' : 'Skin Fragment',
+            hint: isZh ? '\u63d0\u793a' : 'Hint',
+            undo: isZh ? '\u64a4\u9500' : 'Undo',
+            shuffle: isZh ? '\u91cd\u6392' : 'Shuffle',
+            skin: isZh ? '\u76ae\u80a4' : 'Skin'
+        };
+        const builtinDesc = {
+            coin: isZh ? '\u7528\u4e8e\u89e3\u9501\u76ae\u80a4\u6216\u6d3b\u52a8\u6d88\u8017\u3002' : 'Used to unlock skins or spend in activities.',
+            skin_fragment: isZh ? '\u7528\u4e8e\u540e\u7eed\u76ae\u80a4\u76f8\u5173\u6d3b\u52a8\u9053\u5177\u3002' : 'Used in future skin-related activities.',
+            hint: isZh ? '\u6e38\u620f\u5185\u53ef\u76f4\u63a5\u4f7f\u7528\u7684\u63d0\u793a\u9053\u5177\u3002' : 'Usable hint item during gameplay.',
+            undo: isZh ? '\u6e38\u620f\u5185\u53ef\u64a4\u56de\u4e00\u6b21\u64cd\u4f5c\u3002' : 'Undo one move during gameplay.',
+            shuffle: isZh ? '\u6e38\u620f\u5185\u91cd\u65b0\u6253\u4e71\u76d8\u9762\u3002' : 'Shuffle the board during gameplay.',
+            skin: isZh ? '\u968f\u673a\u89e3\u9501\u4e00\u6b3e\u672a\u62e5\u6709\u76ae\u80a4\u3002' : 'Unlock one random skin you do not own yet.'
+        };
+        if (itemDef?.type === 'skin' && itemId && itemId !== 'skin') {
+            const skin = (this.game?.getSkinCatalog?.() || []).find((entry) => `${entry?.id || ''}`.trim().toLowerCase() === itemId)
+                || null;
+            return {
+                itemId,
+                type: 'skin',
+                name: getSkinDisplayName(skin, isZh ? 'zh-CN' : 'en-US') || (itemDef?.nameZh || itemDef?.nameEn || itemId),
+                description: getSkinDescription(skin, isZh ? 'zh-CN' : 'en-US') || (isZh ? '\u89e3\u9501\u6307\u5b9a\u76ae\u80a4\u3002' : 'Unlock this specific skin.'),
+                icon: skin?.preview || 'assets/design-v2/clean/icon_gift.png'
+            };
+        }
+        return {
+            itemId,
+            type: itemDef?.type || 'item',
+            name: isZh
+                ? (itemDef?.nameZh || builtinNames[itemId] || itemId)
+                : (itemDef?.nameEn || builtinNames[itemId] || itemId),
+            description: builtinDesc[itemId] || (isZh ? '\u5956\u52b1\u9053\u5177\u3002' : 'Reward item.'),
+            icon: this.getRewardIconByItemId(itemId)
+        };
+    }
+
+    getRewardIconByItemId(itemId) {
+        const id = `${itemId || ''}`.trim().toLowerCase();
+        const itemDef = this.game?.getLiveOpsItemDefinition?.(id) || null;
+        if (itemDef?.type === 'skin' && id && id !== 'skin') {
+            const skin = (this.game?.getSkinCatalog?.() || []).find((entry) => `${entry?.id || ''}`.trim().toLowerCase() === id)
+                || null;
+            return skin?.preview || 'assets/design-v2/clean/icon_gift.png';
+        }
+        if (id === 'coin') return 'assets/design-v6/checkin/icon_coin_pile.png';
+        if (id === 'hint') return 'assets/design-v2/clean/icon_hint.png';
+        if (id === 'undo') return 'assets/design-v2/clean/icon_undo.png';
+        if (id === 'shuffle') return 'assets/design-v2/clean/icon_shuffle.png';
+        if (id === 'skin_fragment') return 'assets/design-v2/clean/icon_theme.png';
+        if (id === 'skin') return 'assets/design-v2/clean/icon_theme.png';
+        return 'assets/design-v2/clean/icon_gift.png';
+    }
+
+    showCheckinRewardTooltip(anchorEl, day, rewards = [], pointerEvent = null) {
+        if (!this.checkinRewardTooltipEl || !anchorEl || !Array.isArray(rewards) || rewards.length === 0) {
+            return;
+        }
+        const tooltipLayout = this.getCheckinLayoutConfig()?.rewardTooltip || null;
+        const title = this.locale === 'zh-CN' ? `第${day}天奖励` : `Day ${day} Reward`;
+        this.checkinRewardTooltipEl.innerHTML = '';
+        const titleEl = document.createElement('div');
+        titleEl.className = 'checkin-reward-tooltip-title';
+        titleEl.textContent = title;
+        this.checkinRewardTooltipEl.appendChild(titleEl);
+
+        const list = document.createElement('div');
+        list.className = 'checkin-reward-tooltip-list';
+        for (const reward of rewards) {
+            const meta = this.getRewardMeta(reward);
+            const row = document.createElement('div');
+            row.className = 'checkin-reward-tooltip-item';
+            const icon = document.createElement('img');
+            icon.src = meta.icon;
+            icon.alt = meta.name;
+            const text = document.createElement('div');
+            text.className = 'checkin-reward-tooltip-item-text';
+            text.textContent = `${meta.name} x${Math.max(0, Math.floor(Number(reward?.amount) || 0))}`;
+            row.appendChild(icon);
+            row.appendChild(text);
+            list.appendChild(row);
+        }
+        this.checkinRewardTooltipEl.appendChild(list);
+
+        const primaryMeta = this.getRewardMeta(rewards[0]);
+        if (primaryMeta.description) {
+            const desc = document.createElement('div');
+            desc.className = 'checkin-reward-tooltip-desc';
+            desc.textContent = primaryMeta.description;
+            this.checkinRewardTooltipEl.appendChild(desc);
+        }
+
+        this.checkinRewardTooltipEl.classList.remove('hidden');
+        if (tooltipLayout?.width) {
+            this.checkinRewardTooltipEl.style.width = `${tooltipLayout.width}px`;
+            this.checkinRewardTooltipEl.style.maxWidth = `${tooltipLayout.width}px`;
+        } else {
+            this.checkinRewardTooltipEl.style.width = '';
+            this.checkinRewardTooltipEl.style.maxWidth = '';
+        }
+        this.checkinRewardTooltipEl.style.left = '0px';
+        this.checkinRewardTooltipEl.style.top = '0px';
+        const bubbleWidth = this.checkinRewardTooltipEl.offsetWidth;
+        const bubbleHeight = this.checkinRewardTooltipEl.offsetHeight;
+        const anchorCenterX = anchorEl.offsetLeft + (anchorEl.offsetWidth / 2);
+        const autoLeft = Math.max(16, Math.min(980 - bubbleWidth - 16, anchorCenterX - (bubbleWidth / 2)));
+        const preferredTop = anchorEl.offsetTop - bubbleHeight - 12;
+        const autoTop = preferredTop >= 18 ? preferredTop : Math.min(760 - bubbleHeight - 16, anchorEl.offsetTop + anchorEl.offsetHeight + 8);
+        let left = Number.isFinite(Number(tooltipLayout?.x)) ? Number(tooltipLayout.x) : autoLeft;
+        let top = Number.isFinite(Number(tooltipLayout?.y)) ? Number(tooltipLayout.y) : autoTop;
+        if (tooltipLayout?.followMouse) {
+            const offsetParent = anchorEl.offsetParent instanceof HTMLElement ? anchorEl.offsetParent : anchorEl.parentElement;
+            const parentRect = offsetParent instanceof HTMLElement ? offsetParent.getBoundingClientRect() : null;
+            const parentWidth = offsetParent instanceof HTMLElement ? offsetParent.offsetWidth : 980;
+            const parentHeight = offsetParent instanceof HTMLElement ? offsetParent.offsetHeight : 760;
+            const pointerX = Number(pointerEvent?.clientX);
+            const pointerY = Number(pointerEvent?.clientY);
+            let localX = anchorCenterX;
+            let localY = anchorEl.offsetTop + (anchorEl.offsetHeight / 2);
+            if (parentRect && Number.isFinite(pointerX) && Number.isFinite(pointerY) && parentRect.width > 0 && parentRect.height > 0) {
+                const scaleX = parentWidth / parentRect.width;
+                const scaleY = parentHeight / parentRect.height;
+                localX = (pointerX - parentRect.left) * scaleX;
+                localY = (pointerY - parentRect.top) * scaleY;
+            }
+            left = Math.max(16, Math.min(parentWidth - bubbleWidth - 16, localX + Number(tooltipLayout.x || 0)));
+            top = Math.max(18, Math.min(parentHeight - bubbleHeight - 16, localY + Number(tooltipLayout.y || 0)));
+        }
+        this.checkinRewardTooltipEl.style.left = `${Math.round(left)}px`;
+        this.checkinRewardTooltipEl.style.top = `${Math.round(top)}px`;
+        this.activeCheckinTooltipDay = day;
+    }
+
+    hideCheckinRewardTooltip() {
+        this.activeCheckinTooltipDay = 0;
+        this.checkinRewardTooltipEl?.classList.add('hidden');
+    }
+
+    getCheckinCardLayout(day) {
+        const layout = this.getCheckinLayoutConfig();
+        const dayLayout = layout?.days?.[day] || layout?.days?.[`${day}`];
+        const fallback = layout?.days?.[1] || layout?.days?.['1'];
+        return dayLayout?.card || fallback?.card;
+    }
+
+    getCheckinCardPartLayout(day) {
+        const layout = this.getCheckinLayoutConfig();
+        return layout?.days?.[day] || layout?.days?.[`${day}`] || layout?.days?.[1] || layout?.days?.['1'];
+    }
+
+    isCheckinPartVisible(partConfig) {
+        return partConfig?.visible !== false;
+    }
+
+    createCheckinRewardNode(day, rewards, isClaimableDay, isClaimedDay) {
+        const node = document.createElement('div');
+        node.className = 'checkin-day';
+        if (day === 7) {
+            node.classList.add('day-7');
+        }
+        const layout = this.getCheckinCardLayout(day);
+        const partLayout = this.getCheckinCardPartLayout(day);
+        node.style.left = `${layout.x}px`;
+        node.style.top = `${layout.y}px`;
+        node.style.width = `${layout.width}px`;
+        node.style.height = `${layout.height}px`;
+        node.style.display = this.isCheckinPartVisible(layout) ? '' : 'none';
+        if (isClaimedDay) {
+            node.classList.add('is-claimed');
+        } else if (isClaimableDay) {
+            node.classList.add('is-next');
+        }
+        node.dataset.uiEditorId = `day${day}-card`;
+        node.dataset.day = `${day}`;
+        node.setAttribute('aria-label', this.locale === 'zh-CN'
+            ? `第${day}天签到奖励：${this.formatRewardList(rewards)}`
+            : `Day ${day} check-in reward: ${this.formatRewardList(rewards)}`);
+
+        const title = document.createElement('div');
+        title.className = 'checkin-day-title';
+        title.textContent = this.locale === 'zh-CN' ? `第${day}天` : `Day ${day}`;
+        title.style.left = partLayout.title.align === 'left'
+            ? `${partLayout.title.x}px`
+            : `${partLayout.title.x - (partLayout.title.width / 2)}px`;
+        title.style.top = `${partLayout.title.y}px`;
+        title.style.width = `${partLayout.title.width}px`;
+        title.style.fontSize = `${partLayout.title.fontSize}px`;
+        title.style.textAlign = partLayout.title.align;
+        title.style.display = this.isCheckinPartVisible(partLayout.title) ? '' : 'none';
+        title.dataset.uiEditorId = `day${day}-title`;
+        node.appendChild(title);
+
+        const primaryReward = Array.isArray(rewards) ? rewards[0] : null;
+        if (primaryReward) {
+            const meta = this.getRewardMeta(primaryReward);
+            const icon = document.createElement('img');
+            icon.className = 'checkin-reward-icon';
+            icon.src = meta.icon;
+            icon.alt = meta.name;
+            icon.style.left = `${partLayout.icon.x}px`;
+            icon.style.top = `${partLayout.icon.y}px`;
+            icon.style.width = `${partLayout.icon.width}px`;
+            icon.style.height = `${partLayout.icon.height}px`;
+            icon.style.display = this.isCheckinPartVisible(partLayout.icon) ? '' : 'none';
+            icon.dataset.uiEditorId = `day${day}-icon`;
+
+            const amount = document.createElement('div');
+            amount.className = 'checkin-reward-amount';
+            amount.textContent = `x${Math.max(0, Math.floor(Number(primaryReward?.amount) || 0))}`;
+            amount.style.left = `${partLayout.amount.x}px`;
+            amount.style.top = `${partLayout.amount.y}px`;
+            amount.style.fontSize = `${partLayout.amount.fontSize}px`;
+            amount.style.display = this.isCheckinPartVisible(partLayout.amount) ? '' : 'none';
+            amount.dataset.uiEditorId = `day${day}-amount`;
+
+            node.appendChild(icon);
+            node.appendChild(amount);
+        }
+
+        if (isClaimedDay) {
+            const badge = document.createElement('div');
+            badge.className = 'checkin-claimed-badge';
+            badge.textContent = '\u2713';
+            badge.setAttribute('aria-hidden', 'true');
+            badge.style.left = `${partLayout.badge.x}px`;
+            badge.style.top = `${partLayout.badge.y}px`;
+            badge.style.width = `${partLayout.badge.size}px`;
+            badge.style.height = `${partLayout.badge.size}px`;
+            badge.style.fontSize = `${Math.round(partLayout.badge.size * 0.57)}px`;
+            badge.style.display = this.isCheckinPartVisible(partLayout.badge) ? '' : 'none';
+            badge.dataset.uiEditorId = `day${day}-badge`;
+            node.appendChild(badge);
+        }
+
+        const showPreview = (event) => this.showCheckinRewardTooltip(node, day, rewards, event);
+        const movePreview = (event) => {
+            if (this.getCheckinLayoutConfig()?.rewardTooltip?.followMouse) {
+                this.showCheckinRewardTooltip(node, day, rewards, event);
+            }
+        };
+        const hidePreview = () => {
+            if (this.activeCheckinTooltipDay === day) {
+                this.hideCheckinRewardTooltip();
+            }
+        };
+        node.addEventListener('mouseenter', showPreview);
+        node.addEventListener('mousemove', movePreview);
+        node.addEventListener('mouseleave', hidePreview);
+        node.addEventListener('pointerdown', showPreview);
+        node.addEventListener('pointermove', movePreview);
+        node.addEventListener('pointerup', hidePreview);
+        node.addEventListener('pointercancel', hidePreview);
+        node.addEventListener('pointerleave', hidePreview);
+        return node;
+    }
+
+    getCheckinSnapshotForRender() {
+        if (!this.game || typeof this.game.getCheckinSnapshot !== 'function') {
+            return null;
+        }
+        const base = this.game.getCheckinSnapshot();
+        if (!this.uiEditorPreviewOptions.enabled || !this.uiEditorPreviewOverride) {
+            return base;
+        }
+        const cycleDays = Math.max(1, Number(base?.cycleDays) || 7);
+        const claimedInCycle = Math.max(
+            0,
+            Math.min(cycleDays, Math.round(Number(this.uiEditorPreviewOverride.claimedDays) || 0))
+        );
+        const nextDayIndex = Math.max(
+            1,
+            Math.min(cycleDays, Math.round(Number(this.uiEditorPreviewOverride.nextDay) || (claimedInCycle + 1)))
+        );
+        const canClaimToday = `${this.uiEditorPreviewOverride.previewMode || 'claimable'}` === 'claimable';
+        return {
+            ...base,
+            claimedInCycle,
+            claimedCount: claimedInCycle,
+            nextDayIndex,
+            canClaimToday,
+            todayReward: Array.isArray(base?.rewards?.[nextDayIndex - 1]) ? base.rewards[nextDayIndex - 1] : []
+        };
+    }
+
+    refreshCheckinPanel(updateBadge = true) {
+        const checkin = this.getCheckinSnapshotForRender();
+        if (!checkin) {
+            return;
+        }
+        const online = typeof this.game.getOnlineRewardSnapshot === 'function'
+            ? this.game.getOnlineRewardSnapshot()
+            : null;
+        this.hideCheckinRewardTooltip();
+
+        if (this.checkinWeekGridEl) {
+            this.checkinWeekGridEl.innerHTML = '';
+            for (let day = 1; day <= checkin.cycleDays; day += 1) {
+                const rewards = Array.isArray(checkin.rewards?.[day - 1]) ? checkin.rewards[day - 1] : [];
+                const isClaimableDay = checkin.canClaimToday && day === checkin.nextDayIndex;
+                const isClaimedDay = day <= checkin.claimedInCycle;
+                const node = this.createCheckinRewardNode(day, rewards, isClaimableDay, isClaimedDay);
+                if (isClaimableDay) {
+                    node.classList.add('is-clickable');
+                    node.tabIndex = 0;
+                    node.setAttribute('role', 'button');
+                    node.addEventListener('click', () => this.claimCheckinReward());
+                    node.addEventListener('keydown', (event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            this.claimCheckinReward();
+                        }
+                    });
+                }
+                this.checkinWeekGridEl.appendChild(node);
+            }
+        }
+        if (this.checkinStatusEl) {
+            this.checkinStatusEl.textContent = checkin.canClaimToday
+                ? (this.locale === 'zh-CN' ? `点击第${checkin.nextDayIndex}天奖励卡即可领取` : `Tap day ${checkin.nextDayIndex} card to claim`)
+                : (this.locale === 'zh-CN' ? '\u4eca\u65e5\u5df2\u7b7e\u5230\uff0c\u660e\u65e5\u518d\u6765\u3002' : 'Already claimed today.');
+        }
+        if (this.uiEditorPreviewOptions.enabled) {
+            const tooltipLayout = this.getCheckinLayoutConfig()?.rewardTooltip || null;
+            if (tooltipLayout?.visible) {
+                const anchor = this.checkinWeekGridEl?.querySelector(`[data-day="${checkin.nextDayIndex}"]`) || this.checkinWeekGridEl?.firstElementChild;
+                if (anchor instanceof HTMLElement) {
+                    this.showCheckinRewardTooltip(anchor, checkin.nextDayIndex, checkin.todayReward);
+                }
+            } else {
+                this.hideCheckinRewardTooltip();
+            }
+        }
+
+        if (updateBadge) {
+            const hasBadge = checkin.canClaimToday || !!online?.canClaim;
+            this.setMenuBadges({
+                checkin: hasBadge ? '!' : ''
+            });
+        }
+    }
+
+    activateUiEditorPreview() {
+        this.appContainerEl?.classList.add('menu-mode');
+        this.uiEditorPreviewOverride = {
+            previewMode: 'claimable',
+            claimedDays: 0,
+            nextDay: 1
+        };
+        this.openMenuPanel(MENU_PANEL.CHECKIN);
+    }
+
+    setUiEditorPreviewState(override = {}) {
+        if (!this.uiEditorPreviewOptions.enabled) {
+            return;
+        }
+        this.uiEditorPreviewOverride = {
+            ...this.uiEditorPreviewOverride,
+            ...(override || {})
+        };
+        if (this.menuState !== MENU_PANEL.CHECKIN) {
+            this.openMenuPanel(MENU_PANEL.CHECKIN);
+        } else {
+            this.refreshCheckinPanel(false);
+            this.updateCheckinSceneScale();
+        }
+    }
+
+    getUiEditorPreviewMeta() {
+        return {
+            width: 430,
+            height: 932
+        };
+    }
+
+    getUiEditorElementRect(elementId) {
+        if (!elementId) {
+            return null;
+        }
+        const target = document.querySelector(`[data-ui-editor-id="${elementId}"]`);
+        if (!(target instanceof HTMLElement)) {
+            return null;
+        }
+        const rect = target.getBoundingClientRect();
+        return {
+            x: rect.left,
+            y: rect.top,
+            width: rect.width,
+            height: rect.height
+        };
+    }
+
+    claimCheckinReward() {
+        if (!this.game || typeof this.game.claimCheckinReward !== 'function') {
+            return;
+        }
+        const beforeCoins = typeof this.game.getCoins === 'function'
+            ? Math.max(0, Math.floor(Number(this.game.getCoins()) || 0))
+            : 0;
+        const result = this.game.claimCheckinReward();
+        if (this.checkinStatusEl) {
+            this.checkinStatusEl.textContent = result?.ok
+                ? (this.locale === 'zh-CN' ? `\u7b7e\u5230\u6210\u529f\uff1a${this.formatRewardList(result.rewards)}` : `Claimed: ${this.formatRewardList(result.rewards)}`)
+                : (this.locale === 'zh-CN' ? '\u4eca\u65e5\u5df2\u7b7e\u5230\u3002' : 'Already claimed today.');
+        }
+        this.refreshCheckinPanel();
+        if (!result?.ok) {
+            this.updateCoinDisplays();
+            return;
+        }
+        const afterCoins = typeof this.game.getCoins === 'function'
+            ? Math.max(0, Math.floor(Number(this.game.getCoins()) || 0))
+            : beforeCoins;
+        const coinRewardAmount = Math.max(0, afterCoins - beforeCoins);
+        this.openMenuPanel(MENU_PANEL.HOME);
+        this.setCoinDisplayOverride(beforeCoins);
+        this.showCheckinRewardSettle({
+            ...result,
+            beforeCoins,
+            afterCoins,
+            coinRewardAmount
+        });
+    }
+
+    claimOnlineReward() {
+        if (!this.game || typeof this.game.claimOnlineReward !== 'function') {
+            return;
+        }
+        const beforeCoins = typeof this.game.getCoins === 'function'
+            ? Math.max(0, Math.floor(Number(this.game.getCoins()) || 0))
+            : Math.max(0, Math.floor(Number(this.game?.coins) || 0));
+        const result = this.game.claimOnlineReward();
+        if (result?.ok) {
+            const afterCoins = typeof this.game.getCoins === 'function'
+                ? Math.max(0, Math.floor(Number(this.game.getCoins()) || 0))
+                : beforeCoins;
+            const rewards = Array.isArray(result?.rewards) ? result.rewards : [];
+            const coinRewardAmount = rewards.reduce((sum, reward) => {
+                if (`${reward?.itemId || ''}` !== 'coin') {
+                    return sum;
+                }
+                return sum + Math.max(0, Math.floor(Number(reward?.amount) || 0));
+            }, 0);
+            this.setCoinDisplayOverride(beforeCoins);
+            this.showOnlineRewardSettle({
+                ...result,
+                rewards,
+                beforeCoins,
+                afterCoins,
+                coinRewardAmount
+            });
+        }
+        this.refreshCheckinPanel();
+        this.refreshOnlineRewardDock();
+        this.updateCoinDisplays();
+    }
+
+    refreshOnlineRewardDock() {
+        const settleVisible = !!this.onlineRewardSettleOverlay && !this.onlineRewardSettleOverlay.classList.contains('hidden');
+        const checkinSettleVisible = !!this.checkinRewardSettleOverlay && !this.checkinRewardSettleOverlay.classList.contains('hidden');
+        const show = this.menuState === MENU_PANEL.HOME && this.game?.state === 'MENU' && !settleVisible && !checkinSettleVisible;
+        this.onlineRewardDockEl?.classList.toggle('hidden', !show);
+        if (!show || !this.game || typeof this.game.getOnlineRewardSnapshot !== 'function') {
+            return;
+        }
+        const online = this.game.getOnlineRewardSnapshot();
+        if (!this.onlineDockTextEl) {
+            return;
+        }
+        if (!online.enabled) {
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '未开启' : 'Off';
+            return;
+        }
+        if (online.done) {
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '已领完' : 'Done';
+            return;
+        }
+        if (online.canClaim) {
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '可领取' : 'Claim';
+            return;
+        }
+        const remain = Math.max(0, Math.ceil(Number(online.remainingSeconds) || 0));
+        this.onlineDockTextEl.textContent = this.formatCountdown(remain);
+    }
+
+    formatCountdown(totalSeconds) {
+        const seconds = Math.max(0, Math.floor(Number(totalSeconds) || 0));
+        const mm = Math.floor(seconds / 60);
+        const ss = seconds % 60;
+        return `${mm}:${`${ss}`.padStart(2, '0')}`;
+    }
+
+    onClickOnlineChest() {
+        if (!this.game || typeof this.game.getOnlineRewardSnapshot !== 'function') {
+            return;
+        }
+        const online = this.game.getOnlineRewardSnapshot();
+        if (!online.enabled || !online.canClaim) {
+            return;
+        }
+        this.claimOnlineReward();
+    }
+
+    onPressOnlineChest() {
+        if (!this.game || typeof this.game.getOnlineRewardSnapshot !== 'function') {
+            return;
+        }
+        const online = this.game.getOnlineRewardSnapshot();
+        if (!online.enabled || online.done || online.canClaim || !online.currentTier) {
+            return;
+        }
+        const rewards = Array.isArray(online.currentTier.rewards) ? online.currentTier.rewards : [];
+        this.showOnlineRewardPreview(rewards);
+    }
+
+    showOnlineRewardPreview(rewards = []) {
+        if (!this.onlineRewardPreviewBubbleEl) {
+            return;
+        }
+        this.onlineRewardPreviewBubbleEl.innerHTML = '';
+        const rows = Array.isArray(rewards) ? rewards : [];
+        for (const reward of rows) {
+            const item = document.createElement('div');
+            item.className = 'online-reward-preview-item';
+            const img = document.createElement('img');
+            img.src = this.getRewardIconByItemId(reward?.itemId);
+            img.alt = `${reward?.itemId || 'item'}`;
+            const amount = document.createElement('span');
+            amount.className = 'amount';
+            amount.textContent = `x${Math.max(0, Math.floor(Number(reward?.amount) || 0))}`;
+            item.appendChild(img);
+            item.appendChild(amount);
+            this.onlineRewardPreviewBubbleEl.appendChild(item);
+        }
+        this.onlineRewardPreviewBubbleEl.classList.remove('hidden');
+    }
+
+    hideOnlineRewardPreview() {
+        this.onlineRewardPreviewBubbleEl?.classList.add('hidden');
+    }
+
+    showCheckinRewardSettle(payload = {}) {
+        const rewards = Array.isArray(payload?.rewards) ? payload.rewards : [];
+        const coinRewardAmount = Math.max(0, Math.floor(Number(payload?.coinRewardAmount) || 0));
+        this.pendingCheckinRewardPayload = {
+            ...payload,
+            rewards,
+            coinRewardAmount,
+            beforeCoins: Math.max(0, Math.floor(Number(payload?.beforeCoins) || 0)),
+            afterCoins: Math.max(0, Math.floor(Number(payload?.afterCoins) || 0))
+        };
+
+        if (this.checkinRewardSettleDescEl) {
+            this.checkinRewardSettleDescEl.textContent = this.locale === 'zh-CN'
+                ? '签到成功，奖励如下：'
+                : 'Check-in successful. Rewards:';
+        }
+        if (this.checkinRewardCoinHeroEl) {
+            this.checkinRewardCoinHeroEl.classList.toggle('hidden', coinRewardAmount <= 0);
+        }
+        if (this.checkinRewardCoinHeroAmountEl) {
+            this.checkinRewardCoinHeroAmountEl.textContent = `+${coinRewardAmount}`;
+        }
+        if (this.checkinRewardSettleListEl) {
+            this.checkinRewardSettleListEl.innerHTML = '';
+            for (const reward of rewards) {
+                const node = document.createElement('div');
+                node.className = 'online-settle-item';
+                const icon = document.createElement('img');
+                icon.className = 'online-settle-icon';
+                icon.src = this.getRewardIconByItemId(reward?.itemId);
+                icon.alt = `${reward?.itemId || 'item'}`;
+                const text = document.createElement('span');
+                text.textContent = this.formatRewardList([reward]);
+                node.appendChild(icon);
+                node.appendChild(text);
+                this.checkinRewardSettleListEl.appendChild(node);
+            }
+        }
+        if (this.btnCheckinRewardConfirm) {
+            this.btnCheckinRewardConfirm.disabled = false;
+            this.btnCheckinRewardConfirm.textContent = this.locale === 'zh-CN' ? '确定' : 'Confirm';
+        }
+        this.checkinRewardSettleOverlay?.classList.remove('hidden');
+        this.refreshOnlineRewardDock();
+    }
+
+    closeCheckinRewardSettle() {
+        this.checkinRewardSettleOverlay?.classList.add('hidden');
+        this.pendingCheckinRewardPayload = null;
+        this.refreshOnlineRewardDock();
+    }
+
+    async confirmCheckinRewardSettle() {
+        const payload = this.pendingCheckinRewardPayload;
+        if (!payload) {
+            this.closeCheckinRewardSettle();
+            return;
+        }
+        if (this.btnCheckinRewardConfirm) {
+            this.btnCheckinRewardConfirm.disabled = true;
+        }
+        if (payload.coinRewardAmount > 0) {
+            await this.playCheckinCoinFlyAnimation(payload);
+        }
+        this.stopCheckinCoinCounter();
+        this.clearCoinDisplayOverride();
+        this.closeCheckinRewardSettle();
+    }
+
+    stopCheckinCoinCounter() {
+        if (this.checkinCoinCounterFrame && typeof cancelAnimationFrame === 'function') {
+            cancelAnimationFrame(this.checkinCoinCounterFrame);
+        }
+        this.checkinCoinCounterFrame = 0;
+    }
+
+    animateCoinDisplayValue(fromValue, toValue, durationMs = CHECKIN_COIN_COUNTER_DURATION_MS) {
+        const startValue = Math.max(0, Math.floor(Number(fromValue) || 0));
+        const endValue = Math.max(startValue, Math.floor(Number(toValue) || 0));
+        if (endValue <= startValue) {
+            this.setCoinDisplayOverride(endValue);
+            return Promise.resolve();
+        }
+        this.stopCheckinCoinCounter();
+        return new Promise((resolve) => {
+            const startAt = performance.now();
+            const step = (now) => {
+                const elapsed = Math.max(0, now - startAt);
+                const progress = Math.min(1, elapsed / Math.max(1, durationMs));
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const nextValue = Math.min(
+                    endValue,
+                    startValue + Math.floor((endValue - startValue) * eased)
+                );
+                this.setCoinDisplayOverride(nextValue);
+                if (progress >= 1 || nextValue >= endValue) {
+                    this.checkinCoinCounterFrame = 0;
+                    this.setCoinDisplayOverride(endValue);
+                    resolve();
+                    return;
+                }
+                this.checkinCoinCounterFrame = requestAnimationFrame(step);
+            };
+            this.checkinCoinCounterFrame = requestAnimationFrame(step);
+        });
+    }
+
+    getAppSpacePoint(element, anchor = 'center') {
+        if (!(element instanceof HTMLElement) || !this.appContainerEl) {
+            return null;
+        }
+        const appRect = this.appContainerEl.getBoundingClientRect();
+        const rect = element.getBoundingClientRect();
+        const scaleX = appRect.width / Math.max(1, this.appContainerEl.offsetWidth);
+        const scaleY = appRect.height / Math.max(1, this.appContainerEl.offsetHeight);
+        let x = rect.left + (rect.width / 2);
+        let y = rect.top + (rect.height / 2);
+        if (anchor === 'top-right') {
+            x = rect.right - 8;
+            y = rect.top + 10;
+        }
+        return {
+            x: (x - appRect.left) / Math.max(0.0001, scaleX),
+            y: (y - appRect.top) / Math.max(0.0001, scaleY)
+        };
+    }
+
+    getAppSpaceRect(element) {
+        if (!(element instanceof HTMLElement) || !this.appContainerEl) {
+            return null;
+        }
+        const appRect = this.appContainerEl.getBoundingClientRect();
+        const rect = element.getBoundingClientRect();
+        const scaleX = appRect.width / Math.max(1, this.appContainerEl.offsetWidth);
+        const scaleY = appRect.height / Math.max(1, this.appContainerEl.offsetHeight);
+        return {
+            left: (rect.left - appRect.left) / Math.max(0.0001, scaleX),
+            top: (rect.top - appRect.top) / Math.max(0.0001, scaleY),
+            width: rect.width / Math.max(0.0001, scaleX),
+            height: rect.height / Math.max(0.0001, scaleY)
+        };
+    }
+
+    animateSingleFlyCoin(sourcePoint, targetPoint, index) {
+        return new Promise((resolve) => {
+            if (!this.rewardFlyLayerEl || !sourcePoint || !targetPoint) {
+                resolve();
+                return;
+            }
+            const coin = document.createElement('img');
+            coin.className = 'reward-fly-coin';
+            coin.src = 'assets/design-v5/clean/icon_coin.png';
+            coin.alt = '';
+            coin.style.left = `${sourcePoint.x}px`;
+            coin.style.top = `${sourcePoint.y}px`;
+            this.rewardFlyLayerEl.appendChild(coin);
+
+            const dx = targetPoint.x - sourcePoint.x;
+            const dy = targetPoint.y - sourcePoint.y;
+            const arcLift = 26 + (index % 3) * 10;
+            const delay = index * 90;
+            const cleanup = () => {
+                coin.remove();
+                resolve();
+            };
+
+            if (typeof coin.animate !== 'function') {
+                setTimeout(cleanup, CHECKIN_COIN_FLY_DURATION_MS + delay);
+                return;
+            }
+
+            const animation = coin.animate([
+                { transform: 'translate(-50%, -50%) translate(0px, 0px) scale(0.92)', opacity: 0 },
+                { offset: 0.12, transform: 'translate(-50%, -50%) translate(0px, 0px) scale(1.02)', opacity: 1 },
+                {
+                    offset: 0.55,
+                    transform: `translate(-50%, -50%) translate(${Math.round(dx * 0.48)}px, ${Math.round(dy * 0.38 - arcLift)}px) scale(1.05)`,
+                    opacity: 1
+                },
+                {
+                    transform: `translate(-50%, -50%) translate(${Math.round(dx)}px, ${Math.round(dy)}px) scale(0.48)`,
+                    opacity: 0.1
+                }
+            ], {
+                duration: CHECKIN_COIN_FLY_DURATION_MS,
+                delay,
+                easing: 'cubic-bezier(0.2, 0.85, 0.18, 1)',
+                fill: 'forwards'
+            });
+            animation.onfinish = cleanup;
+            animation.oncancel = cleanup;
+        });
+    }
+
+    setMenuCoinFlyFocus(active) {
+        if (!(this.menuCoinDisplay instanceof HTMLElement)) {
+            return;
+        }
+        this.menuCoinDisplay.classList.toggle('coin-chip-fly-focus', !!active);
+    }
+
+    promoteMenuCoinDisplayForFly() {
+        if (!(this.menuCoinDisplay instanceof HTMLElement) || !(this.appContainerEl instanceof HTMLElement) || this.menuCoinFlyRestore) {
+            return;
+        }
+        const rect = this.getAppSpaceRect(this.menuCoinDisplay);
+        const parent = this.menuCoinDisplay.parentElement;
+        if (!rect || !(parent instanceof HTMLElement)) {
+            return;
+        }
+        this.menuCoinFlyRestore = {
+            parent,
+            nextSibling: this.menuCoinDisplay.nextSibling,
+            style: this.menuCoinDisplay.getAttribute('style') || ''
+        };
+        this.menuCoinDisplay.style.position = 'absolute';
+        this.menuCoinDisplay.style.left = `${Math.round(rect.left)}px`;
+        this.menuCoinDisplay.style.top = `${Math.round(rect.top)}px`;
+        this.menuCoinDisplay.style.width = `${Math.round(rect.width)}px`;
+        this.menuCoinDisplay.style.height = `${Math.round(rect.height)}px`;
+        this.menuCoinDisplay.style.right = 'auto';
+        this.menuCoinDisplay.style.zIndex = '96';
+        this.menuCoinDisplay.style.pointerEvents = 'none';
+        this.appContainerEl.appendChild(this.menuCoinDisplay);
+    }
+
+    restoreMenuCoinDisplayAfterFly() {
+        if (!(this.menuCoinDisplay instanceof HTMLElement) || !this.menuCoinFlyRestore) {
+            return;
+        }
+        const restore = this.menuCoinFlyRestore;
+        this.menuCoinFlyRestore = null;
+        if (restore.nextSibling) {
+            restore.parent.insertBefore(this.menuCoinDisplay, restore.nextSibling);
+        } else {
+            restore.parent.appendChild(this.menuCoinDisplay);
+        }
+        if (restore.style) {
+            this.menuCoinDisplay.setAttribute('style', restore.style);
+        } else {
+            this.menuCoinDisplay.removeAttribute('style');
+        }
+    }
+
+    async playRewardCoinFlyAnimation(payload, sourceElement) {
+        const sourcePoint = this.getAppSpacePoint(sourceElement);
+        const targetPoint = this.getAppSpacePoint(this.menuCoinDisplay, 'top-right');
+        if (!sourcePoint || !targetPoint) {
+            this.setCoinDisplayOverride(payload.afterCoins);
+            return;
+        }
+        this.promoteMenuCoinDisplayForFly();
+        this.setMenuCoinFlyFocus(true);
+        this.rewardFlyLayerEl?.classList.remove('hidden');
+        try {
+            const counterPromise = this.animateCoinDisplayValue(payload.beforeCoins, payload.afterCoins);
+            const flights = [];
+            for (let i = 0; i < CHECKIN_COIN_FLY_COUNT; i += 1) {
+                setTimeout(() => {
+                    playCheckinRewardCoinSound();
+                }, i * 90);
+                flights.push(this.animateSingleFlyCoin(sourcePoint, targetPoint, i));
+            }
+            await Promise.all([...flights, counterPromise]);
+        } finally {
+            this.setMenuCoinFlyFocus(false);
+            this.rewardFlyLayerEl?.classList.add('hidden');
+            if (this.rewardFlyLayerEl) {
+                this.rewardFlyLayerEl.innerHTML = '';
+            }
+            this.restoreMenuCoinDisplayAfterFly();
+        }
+    }
+
+    async playCheckinCoinFlyAnimation(payload) {
+        await this.playRewardCoinFlyAnimation(payload, this.checkinRewardCoinHeroIconEl);
+    }
+
+    showOnlineRewardSettle(payload = {}) {
+        const rewards = Array.isArray(payload?.rewards) ? payload.rewards : [];
+        const beforeCoins = Math.max(0, Math.floor(Number(payload?.beforeCoins) || 0));
+        const afterCoins = Math.max(0, Math.floor(Number(payload?.afterCoins) || beforeCoins));
+        const coinRewardAmount = Math.max(0, Math.floor(Number(payload?.coinRewardAmount) || 0));
+        this.pendingOnlineRewardPayload = {
+            ...payload,
+            rewards,
+            beforeCoins,
+            afterCoins,
+            coinRewardAmount
+        };
+        this.onlineRewardSettleCoinIconEl = null;
+        if (this.onlineRewardSettleDescEl) {
+            this.onlineRewardSettleDescEl.textContent = this.locale === 'zh-CN' ? '本次在线奖励：' : 'Online reward:';
+        }
+        if (this.onlineRewardSettleListEl) {
+            this.onlineRewardSettleListEl.innerHTML = '';
+            const rows = Array.isArray(rewards) ? rewards : [];
+            for (const reward of rows) {
+                const node = document.createElement('div');
+                node.className = 'online-settle-item';
+                const icon = document.createElement('img');
+                icon.className = 'online-settle-icon';
+                icon.src = this.getRewardIconByItemId(reward?.itemId);
+                icon.alt = `${reward?.itemId || 'item'}`;
+                if (!this.onlineRewardSettleCoinIconEl && `${reward?.itemId || ''}` === 'coin') {
+                    this.onlineRewardSettleCoinIconEl = icon;
+                }
+                const text = document.createElement('span');
+                text.textContent = this.formatRewardList([reward]);
+                node.appendChild(icon);
+                node.appendChild(text);
+                this.onlineRewardSettleListEl.appendChild(node);
+            }
+        }
+        if (this.btnOnlineRewardSettleClose) {
+            this.btnOnlineRewardSettleClose.disabled = false;
+            this.btnOnlineRewardSettleClose.textContent = this.locale === 'zh-CN' ? '确定' : 'Confirm';
+        }
+        this.onlineRewardSettleOverlay?.classList.remove('hidden');
+    }
+
+    closeOnlineRewardSettle(finalizeCoinDisplay = false) {
+        this.onlineRewardSettleOverlay?.classList.add('hidden');
+        const payload = this.pendingOnlineRewardPayload;
+        this.pendingOnlineRewardPayload = null;
+        this.onlineRewardSettleCoinIconEl = null;
+        if (finalizeCoinDisplay && payload) {
+            this.stopCheckinCoinCounter();
+            this.clearCoinDisplayOverride();
+        }
+        this.refreshOnlineRewardDock();
+    }
+
+    async confirmOnlineRewardSettle() {
+        const payload = this.pendingOnlineRewardPayload;
+        if (!payload) {
+            this.closeOnlineRewardSettle(true);
+            return;
+        }
+        if (this.btnOnlineRewardSettleClose) {
+            this.btnOnlineRewardSettleClose.disabled = true;
+        }
+        if (payload.coinRewardAmount > 0) {
+            await this.playRewardCoinFlyAnimation(payload, this.onlineRewardSettleCoinIconEl);
+        }
+        this.stopCheckinCoinCounter();
+        this.clearCoinDisplayOverride();
+        this.closeOnlineRewardSettle(false);
     }
 
     syncScorePulse() {
@@ -921,6 +2052,45 @@ export class UI {
         labelEl.textContent = 'combo';
 
         this.comboDisplayEl.replaceChildren(countEl, labelEl);
+    }
+
+    showRewardUnlockToast() {
+        if (!this.rewardUnlockToastEl) {
+            return;
+        }
+
+        const imageEl = this.rewardUnlockToastImageEl;
+        const textEl = this.rewardUnlockToastTextEl;
+        if (imageEl) {
+            const hasLoadedImage = imageEl.complete && imageEl.naturalWidth > 0;
+            imageEl.classList.toggle('hidden', !hasLoadedImage);
+            if (!hasLoadedImage && textEl) {
+                imageEl.addEventListener('load', () => {
+                    imageEl.classList.remove('hidden');
+                    textEl.classList.add('hidden');
+                }, { once: true });
+            }
+        }
+        if (textEl) {
+            const showTextFallback = !imageEl || imageEl.classList.contains('hidden');
+            textEl.classList.toggle('hidden', !showTextFallback);
+        }
+
+        if (this.rewardUnlockToastTimer) {
+            clearTimeout(this.rewardUnlockToastTimer);
+            this.rewardUnlockToastTimer = 0;
+        }
+        this.rewardUnlockToastEl.classList.remove('hidden');
+        this.rewardUnlockToastEl.classList.remove('is-playing');
+        void this.rewardUnlockToastEl.offsetWidth;
+        this.rewardUnlockToastEl.classList.add('is-playing');
+
+        this.rewardUnlockToastTimer = setTimeout(() => {
+            if (!this.rewardUnlockToastEl) return;
+            this.rewardUnlockToastEl.classList.remove('is-playing');
+            this.rewardUnlockToastEl.classList.add('hidden');
+            this.rewardUnlockToastTimer = 0;
+        }, 2200);
     }
 
     spawnTimerEnergyOrb(payload = {}) {
@@ -1267,16 +2437,16 @@ export class UI {
         }
         const isCampaignComplete = typeof this.game.isCampaignCompleted === 'function'
             && this.game.isCampaignCompleted();
+        if (isCampaignComplete) {
+            playBgmForScene(BGM_SCENE_KEYS.CAMPAIGN_COMPLETE, { restart: true });
+        } else {
+            this.syncGameplayBgm(false);
+        }
         if (this.levelCompleteNextButton) {
-            this.levelCompleteNextButton.textContent = t(
-                this.locale,
-                isCampaignComplete ? 'common.menu' : 'common.next'
-            );
+            this.levelCompleteNextButton.textContent = '下一关';
         }
         if (this.levelCompleteTitleEl) {
-            this.levelCompleteTitleEl.textContent = isCampaignComplete
-                ? (this.locale === 'en-US' ? 'Congratulations!' : '恭喜通关')
-                : t(this.locale, 'panel.complete.title');
+            this.levelCompleteTitleEl.textContent = '恭喜过关';
         }
         if (this.levelScore) {
             this.levelScore.textContent = t(this.locale, 'common.score', { score: this.game.score });
@@ -1326,8 +2496,8 @@ export class UI {
                 button.textContent = i;
                 button.addEventListener('click', () => {
                     try {
-                        resumeAudio();
-                        playClickSound();
+                        resumeAudioV31();
+                        playClickSoundV31();
                     } catch (error) {
                         console.warn('Audio click failed for level button:', error);
                     }
@@ -1383,3 +2553,6 @@ export class UI {
 }
 
 export { MENU_PANEL };
+
+
+

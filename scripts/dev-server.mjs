@@ -58,6 +58,11 @@ const MIME_TYPES = {
     '.gif': 'image/gif',
     '.webp': 'image/webp',
     '.ico': 'image/x-icon',
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.m4a': 'audio/mp4',
+    '.flac': 'audio/flac',
     '.mp4': 'video/mp4',
     '.txt': 'text/plain; charset=utf-8'
 };
@@ -120,6 +125,10 @@ const server = http.createServer(async (req, res) => {
         }
         if (requestUrl.pathname === '/api/sfx/stable-audio/generate') {
             await handleSfxStableAudioGenerateRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/bgm/list') {
+            await handleBgmListRequest(req, res);
             return;
         }
 
@@ -1554,6 +1563,34 @@ async function handleSfxStableAudioGenerateRequest(req, res) {
         'Cache-Control': 'no-store'
     });
     res.end(audioBuffer);
+}
+
+async function handleBgmListRequest(req, res) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+
+    const bgmDir = path.join(ROOT_DIR, 'assets', 'audio', 'bgm');
+    const entries = await fs.readdir(bgmDir, { withFileTypes: true }).catch(() => []);
+    const tracks = [];
+    for (const entry of entries) {
+        if (!entry?.isFile?.()) {
+            continue;
+        }
+        const ext = path.extname(entry.name || '').toLowerCase();
+        if (!['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac'].includes(ext)) {
+            continue;
+        }
+        const baseName = path.basename(entry.name, ext);
+        tracks.push({
+            fileName: entry.name,
+            name: baseName,
+            url: `/assets/audio/bgm/${encodeURIComponent(entry.name)}`
+        });
+    }
+    tracks.sort((a, b) => a.fileName.localeCompare(b.fileName, 'zh-Hans-CN'));
+    sendJson(res, 200, { ok: true, tracks });
 }
 
 async function serveStaticFile(_req, res, pathname) {

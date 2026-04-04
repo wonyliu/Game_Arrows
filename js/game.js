@@ -16,14 +16,14 @@ import {
     isStoredLevelDataUsable
 } from './level-storage.js?v=55';
 import {
-    playClearSound,
+    playClearSoundExclusive,
     playErrorSound,
     playGameOverSound,
     playLevelCompleteSound,
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=30';
+} from './audio.js?v=32';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=48';
 import {
     ensureSelectedSkin,
@@ -37,6 +37,14 @@ import {
     readProgressSnapshot,
     saveProgressSnapshot
 } from './progress-storage.js?v=1';
+import {
+    getBusinessDayKeyByHour,
+    getLocalDayKey,
+    readLiveOpsConfig,
+    readLiveOpsPlayerState,
+    syncLiveOpsPlayerToServer,
+    writeLiveOpsPlayerState
+} from './liveops-storage.js?v=2';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
@@ -46,6 +54,7 @@ const DEFAULT_TOOL_USES = Object.freeze({
 const GAMEPLAY_PARAMS = readGameplayParams();
 const SCORE_PER_COIN = GAMEPLAY_PARAMS.scorePerCoin;
 const SCORE_PER_BODY_SEGMENT = GAMEPLAY_PARAMS.scorePerBodySegment;
+const DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT = 1000;
 const RELEASE_SFX_EVERY_N_SCORE_EVENTS = Math.max(
     1,
     Math.floor(Number(GAMEPLAY_PARAMS.releaseSfxEveryNScoreEvents) || 1)
@@ -96,6 +105,12 @@ export class Game {
         this.undoStack = [];
         this.defaultToolUses = { ...DEFAULT_TOOL_USES };
         this.toolUses = { ...DEFAULT_TOOL_USES };
+        this.baseToolUsesRemaining = { ...DEFAULT_TOOL_USES };
+        this.toolInventory = {
+            hint: 0,
+            undo: 0,
+            shuffle: 0
+        };
         this.pixelTheme = null;
         this.unlockedSkinIds = [...normalizeUnlockedSkins()];
         this.selectedSkinId = getDefaultSkinId();
@@ -105,11 +120,16 @@ export class Game {
         this.pendingRewardReturnLevel = null;
         this.pendingRewardSourceLevel = null;
         this.currentStageLabel = '';
+        this.currentScorePerBodySegment = SCORE_PER_BODY_SEGMENT;
         this.campaignCompleted = false;
         this.bestComboThisLevel = 0;
         this.dragReleaseActive = false;
         this.dragReleaseLineIds = new Set();
         this.suppressClickUntil = 0;
+        this.liveOpsConfig = readLiveOpsConfig();
+        this.liveOpsPlayer = readLiveOpsPlayerState();
+        this.onlineRewardSaveAccumulator = 0;
+        this.nextRewardLevelIndex = 1;
 
         this.loadProgress();
         setAudioSkinId(this.selectedSkinId);
@@ -145,6 +165,7 @@ export class Game {
             this.coins = Math.max(0, Math.floor(Number(data.coins) || 0));
             this.unlockedSkinIds = normalizeUnlockedSkins(data.unlockedSkinIds);
             this.selectedSkinId = ensureSelectedSkin(data.selectedSkinId, this.unlockedSkinIds);
+            this.nextRewardLevelIndex = Math.max(1, Math.floor(Number(data.nextRewardLevelIndex) || 1));
             this.lastCoinReward = 0;
         } catch {
             this.maxUnlockedLevel = 1;
@@ -153,8 +174,10 @@ export class Game {
             this.lastCoinReward = 0;
             this.unlockedSkinIds = normalizeUnlockedSkins();
             this.selectedSkinId = getDefaultSkinId();
+            this.nextRewardLevelIndex = 1;
         }
         setAudioSkinId(this.selectedSkinId);
+        this.loadLiveOpsState();
     }
 
     saveProgress() {
@@ -174,8 +197,40 @@ export class Game {
             currentLevel: cappedCurrent,
             coins: Math.max(0, Math.floor(Number(this.coins) || 0)),
             unlockedSkinIds: normalizedUnlockedSkins,
-            selectedSkinId
+            selectedSkinId,
+            nextRewardLevelIndex: Math.max(1, Math.floor(Number(this.nextRewardLevelIndex) || 1))
         });
+    }
+
+    loadLiveOpsState() {
+        this.liveOpsConfig = readLiveOpsConfig();
+        this.liveOpsPlayer = readLiveOpsPlayerState();
+        const inv = this.liveOpsPlayer?.inventory || {};
+        this.toolInventory.hint = Math.max(0, Math.floor(Number(inv.hint) || 0));
+        this.toolInventory.undo = Math.max(0, Math.floor(Number(inv.undo) || 0));
+        this.toolInventory.shuffle = Math.max(0, Math.floor(Number(inv.shuffle) || 0));
+        this.resetOnlineRewardDayIfNeeded(true);
+    }
+
+    writeLiveOpsPlayer(options = {}) {
+        const next = {
+            ...this.liveOpsPlayer,
+            inventory: {
+                ...this.liveOpsPlayer.inventory,
+                hint: Math.max(0, Math.floor(Number(this.toolInventory.hint) || 0)),
+                undo: Math.max(0, Math.floor(Number(this.toolInventory.undo) || 0)),
+                shuffle: Math.max(0, Math.floor(Number(this.toolInventory.shuffle) || 0))
+            }
+        };
+        this.liveOpsPlayer = writeLiveOpsPlayerState(next, { syncServer: options.syncServer === true });
+        if (options.syncServer === true) {
+            void syncLiveOpsPlayerToServer();
+        }
+    }
+
+    getLiveOpsConfig() {
+        this.liveOpsConfig = readLiveOpsConfig();
+        return this.liveOpsConfig;
     }
 
     refreshLevelCatalog() {
@@ -188,6 +243,11 @@ export class Game {
         if (this.rewardReturnLevel !== null && this.rewardReturnLevel !== undefined) {
             this.rewardReturnLevel = normalizePlayableLevel(this.rewardReturnLevel, this.normalLevelCount);
         }
+        const maxRewardIndex = Math.max(1, this.rewardLevelCount);
+        this.nextRewardLevelIndex = Math.max(
+            1,
+            Math.min(maxRewardIndex, Math.floor(Number(this.nextRewardLevelIndex) || 1))
+        );
     }
 
     resize() {
@@ -217,11 +277,11 @@ export class Game {
         this.startLevel(targetLevel, { stageType: 'normal' });
     }
 
-    startRewardLevel(returnLevel, rewardSourceLevel = this.currentLevel) {
+    startRewardLevel(returnLevel, rewardSourceLevel = this.currentLevel, fixedRewardLevelId = null) {
         this.refreshLevelCatalog();
         const sourceLevel = normalizePlayableLevel(rewardSourceLevel, this.normalLevelCount);
         const nextNormalLevel = normalizePlayableLevel(returnLevel || (sourceLevel + 1), this.normalLevelCount);
-        const rewardLevelId = this.resolveRewardLevelId(sourceLevel);
+        const rewardLevelId = this.resolveRewardLevelId(sourceLevel, fixedRewardLevelId);
         if (!rewardLevelId) {
             this.startNormalLevel(nextNormalLevel);
             return;
@@ -265,7 +325,8 @@ export class Game {
         if (this.isRewardStage) {
             this.startRewardLevel(
                 this.rewardReturnLevel || normalizePlayableLevel((this.rewardSourceLevel || 1) + 1, this.normalLevelCount),
-                this.rewardSourceLevel || 1
+                this.rewardSourceLevel || 1,
+                this.currentLevel
             );
             return;
         }
@@ -287,6 +348,139 @@ export class Game {
 
     getLastCoinReward() {
         return Math.max(0, Math.floor(Number(this.lastCoinReward) || 0));
+    }
+
+    getItemBalance(itemId) {
+        const id = `${itemId || ''}`.trim().toLowerCase();
+        if (id === 'coin') {
+            return this.getCoins();
+        }
+        if (id === 'hint' || id === 'undo' || id === 'shuffle') {
+            return Math.max(0, Math.floor(Number(this.toolInventory[id]) || 0));
+        }
+        const inv = this.liveOpsPlayer?.inventory || {};
+        return Math.max(0, Math.floor(Number(inv[id]) || 0));
+    }
+
+    getLiveOpsItemDefinition(itemId) {
+        const id = `${itemId || ''}`.trim().toLowerCase();
+        if (!id) {
+            return null;
+        }
+        const config = this.getLiveOpsConfig();
+        const items = Array.isArray(config?.items) ? config.items : [];
+        return items.find((item) => `${item?.id || ''}`.trim().toLowerCase() === id) || null;
+    }
+
+    getCheckinSnapshot() {
+        const config = this.getLiveOpsConfig();
+        const checkinCfg = config?.activities?.checkin || {};
+        const cycleDays = Math.max(1, Math.floor(Number(checkinCfg.cycleDays) || 7));
+        const rewards = Array.isArray(checkinCfg.rewards) ? checkinCfg.rewards : [];
+        const state = this.liveOpsPlayer?.checkin || {};
+        const claimedCount = Math.max(0, Math.floor(Number(state.claimedCount) || 0));
+        const lastClaimDayKey = `${state.lastClaimDayKey || ''}`.trim();
+        const todayKey = getLocalDayKey(new Date());
+        const claimedInCycle = claimedCount % cycleDays;
+        const nextDayIndex = claimedInCycle + 1;
+        const canClaimToday = checkinCfg.enabled !== false && lastClaimDayKey !== todayKey;
+        const todayReward = Array.isArray(rewards[nextDayIndex - 1]) ? rewards[nextDayIndex - 1] : [];
+        return {
+            enabled: checkinCfg.enabled !== false,
+            cycleDays,
+            rewards,
+            claimedCount,
+            claimedInCycle,
+            nextDayIndex,
+            canClaimToday,
+            todayReward
+        };
+    }
+
+    claimCheckinReward() {
+        const snapshot = this.getCheckinSnapshot();
+        if (!snapshot.enabled) {
+            return { ok: false, reason: 'disabled' };
+        }
+        if (!snapshot.canClaimToday) {
+            return { ok: false, reason: 'already-claimed' };
+        }
+        this.applyRewardList(snapshot.todayReward);
+        const todayKey = getLocalDayKey(new Date());
+        this.liveOpsPlayer = {
+            ...this.liveOpsPlayer,
+            checkin: {
+                claimedCount: snapshot.claimedCount + 1,
+                lastClaimDayKey: todayKey
+            }
+        };
+        this.writeLiveOpsPlayer({ syncServer: true });
+        this.updateHUD();
+        this.emitLiveOpsUpdated();
+        return {
+            ok: true,
+            dayIndex: snapshot.nextDayIndex,
+            rewards: snapshot.todayReward
+        };
+    }
+
+    getOnlineRewardSnapshot() {
+        this.resetOnlineRewardDayIfNeeded(false);
+        const cfg = this.getLiveOpsConfig().activities?.onlineReward || {};
+        const tiers = Array.isArray(cfg.tiers) ? cfg.tiers : [];
+        const resetHour = Math.max(0, Math.min(23, Math.floor(Number(cfg.resetHour) || 4)));
+        const dayKey = getBusinessDayKeyByHour(new Date(), resetHour);
+        const online = this.liveOpsPlayer?.onlineReward || {};
+        const tierIndex = Math.max(0, Math.floor(Number(online.tierIndex) || 0));
+        const done = tierIndex >= tiers.length;
+        const currentTier = done ? null : tiers[tierIndex];
+        const storedRemaining = Number(online.remainingSeconds);
+        const tierDefaultSeconds = Math.max(0, Number(currentTier?.seconds) || 0);
+        const remainingSeconds = done
+            ? 0
+            : (Number.isFinite(storedRemaining) ? Math.max(0, storedRemaining) : tierDefaultSeconds);
+        return {
+            enabled: cfg.enabled !== false,
+            resetHour,
+            dayKey,
+            tiers,
+            tierIndex,
+            done,
+            currentTier,
+            remainingSeconds,
+            canClaim: !done && remainingSeconds <= 0
+        };
+    }
+
+    claimOnlineReward() {
+        const snapshot = this.getOnlineRewardSnapshot();
+        if (!snapshot.enabled) {
+            return { ok: false, reason: 'disabled' };
+        }
+        if (!snapshot.canClaim || !snapshot.currentTier) {
+            return { ok: false, reason: 'not-ready' };
+        }
+        this.applyRewardList(snapshot.currentTier.rewards);
+        const nextIndex = snapshot.tierIndex + 1;
+        const nextTier = snapshot.tiers[nextIndex] || null;
+        this.liveOpsPlayer = {
+            ...this.liveOpsPlayer,
+            onlineReward: {
+                ...this.liveOpsPlayer.onlineReward,
+                dayKey: snapshot.dayKey,
+                tierIndex: nextIndex,
+                remainingSeconds: nextTier ? Math.max(0, Number(nextTier.seconds) || 0) : 0
+            }
+        };
+        this.writeLiveOpsPlayer({ syncServer: true });
+        this.emitLiveOpsUpdated();
+        this.updateHUD();
+        return {
+            ok: true,
+            claimedTierIndex: snapshot.tierIndex,
+            rewards: snapshot.currentTier.rewards,
+            nextTierIndex: nextIndex
+        };
     }
 
     getScorePerCoin() {
@@ -386,7 +580,14 @@ export class Game {
         }
 
         const sourceLevel = normalizePlayableLevel(rewardSourceLevel, this.normalLevelCount);
-        const rewardIndex = ((sourceLevel - 1) % this.rewardLevelCount) + 1;
+        if (!sourceLevel) {
+            return null;
+        }
+        const rewardIndex = Math.max(
+            1,
+            Math.min(this.rewardLevelCount, Math.floor(Number(this.nextRewardLevelIndex) || 1))
+        );
+        this.nextRewardLevelIndex = rewardIndex >= this.rewardLevelCount ? 1 : (rewardIndex + 1);
         return toRewardLevelId(rewardIndex);
     }
 
@@ -450,6 +651,7 @@ export class Game {
         this.timeRemaining = this.maxTimeRemaining;
         this.misclickPenaltySeconds = Math.max(0, Math.round(Number(config.misclickPenaltySeconds ?? 1) || 0));
         this.currentStageLabel = this.resolveStageLabel(config);
+        this.currentScorePerBodySegment = this.resolveScorePerBodySegment(config);
         this.hintLine = null;
         this.undoStack = [];
         this.resetToolUses();
@@ -521,7 +723,15 @@ export class Game {
             return '';
         }
         const customName = `${config?.displayName || ''}`.trim();
-        return customName || 'Reward';
+        return customName || '奖励关';
+    }
+
+    resolveScorePerBodySegment(config) {
+        if (!this.isRewardStage) {
+            return SCORE_PER_BODY_SEGMENT;
+        }
+        const configured = Math.floor(Number(config?.rewardScorePerBodySegment) || 0);
+        return Math.max(1, configured || DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT);
     }
 
     handleClick(event) {
@@ -790,14 +1000,15 @@ export class Game {
                 const textX = burstX + removeDir.dx * Math.max(4, this.grid.cellSize * 0.06);
                 const textY = burstY - floatingYPad;
 
-                this.score += SCORE_PER_BODY_SEGMENT;
+                const gainedScore = this.currentScorePerBodySegment;
+                this.score += gainedScore;
                 this.releaseSfxScoreEventCount += 1;
                 const shouldPlayReleaseSfx = (this.releaseSfxScoreEventCount % RELEASE_SFX_EVERY_N_SCORE_EVENTS) === 0;
                 if (shouldPlayReleaseSfx) {
-                    playClearSound();
+                    playClearSoundExclusive();
                 }
                 // Release SFX playback is throttled by gameplay parameter releaseSfxEveryNScoreEvents.
-                this.animations.addFloatingText(textX, textY, `+${SCORE_PER_BODY_SEGMENT}`, '#fffbea', 20, {
+                this.animations.addFloatingText(textX, textY, `+${gainedScore}`, '#fffbea', 20, {
                     life: 0.88,
                     vy: -36,
                     scale: 1.08,
@@ -823,7 +1034,7 @@ export class Game {
 
                 if (this.onScoreGain) {
                     this.onScoreGain({
-                        gained: SCORE_PER_BODY_SEGMENT,
+                        gained: gainedScore,
                         score: this.score,
                         combo: this.combo
                     });
@@ -925,17 +1136,26 @@ export class Game {
             this.campaignCompleted = false;
         } else {
             const isFinalNormalLevel = this.currentLevel >= this.normalLevelCount;
+            let unlockedRewardStage = false;
             if (this.currentLevel >= this.maxUnlockedLevel) {
                 this.maxUnlockedLevel = Math.min(this.normalLevelCount, this.currentLevel + 1);
             }
             if (!isFinalNormalLevel && this.rewardLevelCount > 0 && this.bestComboThisLevel > REWARD_COMBO_THRESHOLD) {
                 this.pendingRewardReturnLevel = normalizePlayableLevel(this.currentLevel + 1, this.normalLevelCount);
                 this.pendingRewardSourceLevel = normalizePlayableLevel(this.currentLevel, this.normalLevelCount);
+                unlockedRewardStage = true;
             } else {
                 this.pendingRewardReturnLevel = null;
                 this.pendingRewardSourceLevel = null;
             }
             this.campaignCompleted = isFinalNormalLevel;
+            if (unlockedRewardStage && typeof this.onRewardStageUnlocked === 'function') {
+                this.onRewardStageUnlocked({
+                    level: this.currentLevel,
+                    combo: this.bestComboThisLevel,
+                    threshold: REWARD_COMBO_THRESHOLD
+                });
+            }
         }
         this.saveProgress();
         this.showLevelComplete();
@@ -954,24 +1174,26 @@ export class Game {
 
     useHint() {
         if (this.state !== 'PLAYING') return;
-        if (!this.consumeToolUse('hint')) return;
+        const source = this.consumeToolUse('hint');
+        if (!source) return;
 
         const movableLines = findMovableLines(this.lines, this.grid);
         this.hintLine = movableLines[0] || null;
         if (!this.hintLine) {
-            this.restoreToolUse('hint');
+            this.restoreToolUse('hint', source);
         }
         this.updateHUD();
     }
 
     useUndo() {
         if (this.state !== 'PLAYING' || this.undoStack.length === 0) return;
-        if (!this.consumeToolUse('undo')) return;
+        const source = this.consumeToolUse('undo');
+        if (!source) return;
 
         const undo = this.undoStack[this.undoStack.length - 1];
         const line = this.lines.find((item) => item.id === undo.lineId);
         if (!line || line.state === 'active') {
-            this.restoreToolUse('undo');
+            this.restoreToolUse('undo', source);
             return;
         }
 
@@ -1000,11 +1222,12 @@ export class Game {
 
     useShuffle() {
         if (this.state !== 'PLAYING') return;
-        if (!this.consumeToolUse('shuffle')) return;
+        const source = this.consumeToolUse('shuffle');
+        if (!source) return;
 
         const activeLines = this.lines.filter((line) => line.state === 'active');
         if (activeLines.length < 2) {
-            this.restoreToolUse('shuffle');
+            this.restoreToolUse('shuffle', source);
             return;
         }
 
@@ -1209,7 +1432,8 @@ export class Game {
     }
 
     resetToolUses() {
-        this.toolUses = { ...this.defaultToolUses };
+        this.baseToolUsesRemaining = { ...this.defaultToolUses };
+        this.syncToolUsesFromPools();
     }
 
     getToolUses(type) {
@@ -1217,24 +1441,204 @@ export class Game {
     }
 
     consumeToolUse(type) {
-        const remaining = this.getToolUses(type);
-        if (remaining <= 0) {
-            return false;
+        const key = `${type || ''}`.trim();
+        const baseRemaining = Math.max(0, Number(this.baseToolUsesRemaining?.[key] || 0));
+        const invRemaining = Math.max(0, Number(this.toolInventory?.[key] || 0));
+        if (baseRemaining <= 0 && invRemaining <= 0) {
+            return null;
         }
-        this.toolUses[type] = remaining - 1;
-        return true;
+        if (baseRemaining > 0) {
+            this.baseToolUsesRemaining[key] = baseRemaining - 1;
+            this.syncToolUsesFromPools();
+            return 'base';
+        }
+        this.toolInventory[key] = invRemaining - 1;
+        this.syncToolUsesFromPools();
+        this.writeLiveOpsPlayer();
+        this.emitLiveOpsUpdated();
+        return 'inventory';
     }
 
-    restoreToolUse(type) {
+    restoreToolUse(type, source = 'base') {
         if (!(type in this.toolUses)) {
             return;
         }
+        if (source === 'inventory') {
+            this.toolInventory[type] = Math.max(0, Math.floor(Number(this.toolInventory[type]) || 0)) + 1;
+            this.syncToolUsesFromPools();
+            this.writeLiveOpsPlayer();
+            this.emitLiveOpsUpdated();
+            return;
+        }
         const limit = Math.max(0, Number(this.defaultToolUses?.[type] || 0));
-        const next = Math.min(limit, this.getToolUses(type) + 1);
-        this.toolUses[type] = next;
+        const base = Math.max(0, Math.floor(Number(this.baseToolUsesRemaining?.[type] || 0)));
+        this.baseToolUsesRemaining[type] = Math.min(limit, base + 1);
+        this.syncToolUsesFromPools();
+    }
+
+    syncToolUsesFromPools() {
+        this.toolUses = {
+            hint: Math.max(0, Math.floor(Number(this.baseToolUsesRemaining.hint) || 0))
+                + Math.max(0, Math.floor(Number(this.toolInventory.hint) || 0)),
+            undo: Math.max(0, Math.floor(Number(this.baseToolUsesRemaining.undo) || 0))
+                + Math.max(0, Math.floor(Number(this.toolInventory.undo) || 0)),
+            shuffle: Math.max(0, Math.floor(Number(this.baseToolUsesRemaining.shuffle) || 0))
+                + Math.max(0, Math.floor(Number(this.toolInventory.shuffle) || 0))
+        };
+    }
+
+    applyRewardList(rewardList) {
+        const rows = Array.isArray(rewardList) ? rewardList : [];
+        let changed = false;
+        let skinChanged = false;
+        for (const row of rows) {
+            const itemId = `${row?.itemId || ''}`.trim().toLowerCase();
+            const amount = Math.max(0, Math.floor(Number(row?.amount) || 0));
+            const itemDef = this.getLiveOpsItemDefinition(itemId);
+            if (!itemId || amount <= 0) {
+                continue;
+            }
+            if (itemId === 'coin') {
+                this.coins += amount;
+                changed = true;
+                continue;
+            }
+            if (itemId === 'hint' || itemId === 'undo' || itemId === 'shuffle') {
+                this.toolInventory[itemId] = Math.max(0, Math.floor(Number(this.toolInventory[itemId]) || 0)) + amount;
+                changed = true;
+                continue;
+            }
+            if (itemId === 'skin') {
+                const catalog = Array.isArray(getSkinCatalogList()) ? getSkinCatalogList() : [];
+                let granted = 0;
+                let firstGrantedSkinId = '';
+                for (const skin of catalog) {
+                    if (granted >= amount) {
+                        break;
+                    }
+                    const skinId = `${skin?.id || ''}`.trim();
+                    if (!skinId || this.unlockedSkinIds.includes(skinId)) {
+                        continue;
+                    }
+                    this.unlockedSkinIds = normalizeUnlockedSkins([...this.unlockedSkinIds, skinId]);
+                    if (!firstGrantedSkinId) {
+                        firstGrantedSkinId = skinId;
+                    }
+                    granted += 1;
+                }
+                if (granted > 0) {
+                    changed = true;
+                    skinChanged = true;
+                    this.selectedSkinId = ensureSelectedSkin(firstGrantedSkinId || this.selectedSkinId, this.unlockedSkinIds);
+                    setAudioSkinId(this.selectedSkinId);
+                }
+                continue;
+            }
+            if (itemDef?.type === 'skin') {
+                const catalog = Array.isArray(getSkinCatalogList()) ? getSkinCatalogList() : [];
+                const skin = catalog.find((entry) => `${entry?.id || ''}`.trim().toLowerCase() === itemId) || null;
+                const skinId = `${skin?.id || ''}`.trim();
+                if (skinId && !this.unlockedSkinIds.includes(skinId)) {
+                    this.unlockedSkinIds = normalizeUnlockedSkins([...this.unlockedSkinIds, skinId]);
+                    this.selectedSkinId = ensureSelectedSkin(skinId, this.unlockedSkinIds);
+                    setAudioSkinId(this.selectedSkinId);
+                    changed = true;
+                    skinChanged = true;
+                }
+                continue;
+            }
+            const inventory = this.liveOpsPlayer?.inventory || {};
+            inventory[itemId] = Math.max(0, Math.floor(Number(inventory[itemId]) || 0)) + amount;
+            this.liveOpsPlayer = {
+                ...this.liveOpsPlayer,
+                inventory
+            };
+            changed = true;
+        }
+        if (!changed) {
+            return;
+        }
+        this.syncToolUsesFromPools();
+        this.writeLiveOpsPlayer();
+        this.saveProgress();
+        if (skinChanged) {
+            this.rebuildPixelScene();
+            this.updateHUD();
+        }
+    }
+
+    resetOnlineRewardDayIfNeeded(forceWrite = false) {
+        const cfg = this.getLiveOpsConfig().activities?.onlineReward || {};
+        const tiers = Array.isArray(cfg.tiers) ? cfg.tiers : [];
+        const resetHour = Math.max(0, Math.min(23, Math.floor(Number(cfg.resetHour) || 4)));
+        const dayKey = getBusinessDayKeyByHour(new Date(), resetHour);
+        const prev = this.liveOpsPlayer?.onlineReward || {};
+        const firstSeconds = Math.max(0, Number(tiers[0]?.seconds) || 0);
+        const changed = forceWrite || prev.dayKey !== dayKey;
+        if (!changed) {
+            return false;
+        }
+        this.liveOpsPlayer = {
+            ...this.liveOpsPlayer,
+            onlineReward: {
+                dayKey,
+                tierIndex: 0,
+                remainingSeconds: firstSeconds
+            }
+        };
+        this.writeLiveOpsPlayer();
+        return true;
+    }
+
+    consumeOnlineRewardTimer(dt) {
+        const cfg = this.getLiveOpsConfig().activities?.onlineReward || {};
+        if (cfg.enabled === false) {
+            return;
+        }
+        if (typeof document !== 'undefined' && document.hidden) {
+            return;
+        }
+        this.resetOnlineRewardDayIfNeeded(false);
+        const tiers = Array.isArray(cfg.tiers) ? cfg.tiers : [];
+        const online = this.liveOpsPlayer?.onlineReward || {};
+        const tierIndex = Math.max(0, Math.floor(Number(online.tierIndex) || 0));
+        if (tierIndex >= tiers.length) {
+            return;
+        }
+        const delta = Math.max(0, Number(dt) || 0);
+        if (delta <= 0) {
+            return;
+        }
+        const storedRemaining = Number(online.remainingSeconds);
+        const tierDefaultSeconds = Math.max(0, Number(tiers[tierIndex]?.seconds) || 0);
+        const previous = Number.isFinite(storedRemaining) ? Math.max(0, storedRemaining) : tierDefaultSeconds;
+        const next = Math.max(0, previous - delta);
+        if (next === previous) {
+            return;
+        }
+        this.liveOpsPlayer = {
+            ...this.liveOpsPlayer,
+            onlineReward: {
+                ...online,
+                remainingSeconds: next
+            }
+        };
+        this.onlineRewardSaveAccumulator += delta;
+        if (next <= 0 || this.onlineRewardSaveAccumulator >= 8) {
+            this.onlineRewardSaveAccumulator = 0;
+            this.writeLiveOpsPlayer();
+            this.emitLiveOpsUpdated();
+        }
+    }
+
+    emitLiveOpsUpdated() {
+        if (typeof this.onLiveOpsUpdate === 'function') {
+            this.onLiveOpsUpdate();
+        }
     }
 
     consumeTimer(dt) {
+        this.consumeOnlineRewardTimer(dt);
         if (!this.hasTimer || this.state !== 'PLAYING') {
             return;
         }
@@ -1252,6 +1656,7 @@ export class Game {
         if (prev > 0 && this.timeRemaining <= 0) {
             this.gameOver('Time is up');
         }
+
     }
 
     updateComboTimeout(currentMs) {

@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arrow Clear Admin</title>
+    <title>箭头消消乐管理后台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=61">
+    <link rel="stylesheet" href="css/admin.css?v=68">
 </head>
 <body>
     <main class="admin-hub">
         <header class="admin-hub-header">
             <div class="admin-hub-title">
-                <h1>Arrow Clear Admin</h1>
+                <h1>箭头消消乐管理后台</h1>
                 <p class="sub">统一管理后台：关卡管理、皮肤管理、音效工坊、参数管理。</p>
             </div>
             <nav class="admin-tabbar" role="tablist" aria-label="管理页签">
                 <button id="tabBtnLevels" class="tab-btn is-active" type="button" data-tab-target="levels" role="tab" aria-selected="true">关卡管理</button>
                 <button id="tabBtnSkins" class="tab-btn" type="button" data-tab-target="skins" role="tab" aria-selected="false">皮肤管理</button>
                 <button id="tabBtnMusicSfx" class="tab-btn" type="button" data-tab-target="music-sfx" role="tab" aria-selected="false">音乐音效</button>
+                <button id="tabBtnEvents" class="tab-btn" type="button" data-tab-target="events" role="tab" aria-selected="false">活动管理</button>
+                <button id="tabBtnUiEditor" class="tab-btn" type="button" data-tab-target="ui-editor" role="tab" aria-selected="false">界面编辑器</button>
+                <button id="tabBtnTools" class="tab-btn" type="button" data-tab-target="tools" role="tab" aria-selected="false">测试工具</button>
                 <button id="tabBtnParams" class="tab-btn" type="button" data-tab-target="params" role="tab" aria-selected="false">参数管理</button>
             </nav>
         </header>
@@ -26,107 +29,112 @@
             <div class="admin-shell">
                 <section class="controls">
                     <h2>关卡管理</h2>
-                    <p class="sub">Configure level grid and arrow length, then generate/save.</p>
-                    <p class="sub"><a href="index.html" target="_blank" rel="noopener">Open Game</a></p>
+                    <p class="sub">配置关卡网格与箭头长度后，可生成并保存。</p>
+                    <p class="sub"><a href="index.html" target="_blank" rel="noopener">打开游戏</a></p>
 
                     <label class="field">
-                        <span>Level</span>
+                        <span>关卡</span>
                         <select id="levelSelect"></select>
                     </label>
 
                     <div class="field">
-                        <span>Campaign level counts</span>
+                        <span>战役关卡数量</span>
                         <div class="catalog-row">
                             <label class="catalog-item">
-                                <span>Normal</span>
+                                <span>普通关</span>
                                 <div class="catalog-control">
-                                    <button id="btnNormalLevelMinus" type="button" aria-label="Decrease normal levels">-</button>
+                                    <button id="btnNormalLevelMinus" type="button" aria-label="减少普通关数量">-</button>
                                     <input id="normalLevelCount" type="number" min="1" max="1000" step="1">
-                                    <button id="btnNormalLevelPlus" type="button" aria-label="Increase normal levels">+</button>
+                                    <button id="btnNormalLevelPlus" type="button" aria-label="增加普通关数量">+</button>
                                 </div>
                             </label>
                             <label class="catalog-item">
-                                <span>Reward</span>
+                                <span>奖励关</span>
                                 <div class="catalog-control">
-                                    <button id="btnRewardLevelMinus" type="button" aria-label="Decrease reward levels">-</button>
+                                    <button id="btnRewardLevelMinus" type="button" aria-label="减少奖励关数量">-</button>
                                     <input id="rewardLevelCount" type="number" min="0" max="200" step="1">
-                                    <button id="btnRewardLevelPlus" type="button" aria-label="Increase reward levels">+</button>
+                                    <button id="btnRewardLevelPlus" type="button" aria-label="增加奖励关数量">+</button>
                                 </div>
                             </label>
                         </div>
-                        <button id="btnSaveLevelCatalog" type="button">Save level counts</button>
+                        <button id="btnSaveLevelCatalog" type="button">保存关卡数量</button>
                     </div>
 
                     <label class="field" id="levelDisplayNameField" style="display:none;">
-                        <span>Reward stage name</span>
-                        <input id="levelDisplayName" type="text" maxlength="28" placeholder="e.g. Reward Rush">
+                        <span>奖励关名称</span>
+                        <input id="levelDisplayName" type="text" maxlength="28" placeholder="例如：奖励冲刺">
                     </label>
 
                     <label class="field">
-                        <span>Dimension mode</span>
+                        <span>奖励关每节蛇身积分</span>
+                        <input id="rewardScorePerBodySegment" type="number" min="1" max="100000" step="1">
+                    </label>
+
+                    <label class="field">
+                        <span>尺寸模式</span>
                         <select id="dimensionMode">
-                            <option value="rows">Rows fixed</option>
-                            <option value="cols">Cols fixed</option>
-                            <option value="custom">Custom (manual)</option>
+                            <option value="rows">固定行数</option>
+                            <option value="cols">固定列数</option>
+                            <option value="custom">自定义（手动）</option>
                         </select>
                     </label>
 
                     <label class="field">
-                        <span>Dimension value</span>
+                        <span>尺寸值</span>
                         <input id="dimensionValue" type="number" min="4" max="40" step="1">
                     </label>
 
                     <label class="field">
-                        <span>Min arrow length</span>
+                        <span>最短箭头长度</span>
                         <input id="minLen" type="number" min="2" max="12" step="1">
                     </label>
 
                     <label class="field">
-                        <span>Max arrow length</span>
+                        <span>最长箭头长度</span>
                         <input id="maxLen" type="number" min="2" max="999" step="1">
                     </label>
 
                     <label class="field">
-                        <span>Level timer (seconds, 0 = off)</span>
+                        <span>关卡计时（秒，0=关闭）</span>
                         <input id="timerSeconds" type="number" min="0" max="7200" step="1">
                     </label>
 
                     <label class="field">
-                        <span>Wrong tap penalty (seconds)</span>
+                        <span>误触惩罚（秒）</span>
                         <input id="misclickPenaltySeconds" type="number" min="0" max="120" step="1">
                     </label>
 
                     <div class="meta">
-                        <div>Grid: <strong id="gridText">-</strong></div>
-                        <div>Estimated lines: <strong id="lineText">-</strong></div>
-                        <div>Coverage: <strong id="coverageText">-</strong></div>
+                        <div>网格：<strong id="gridText">-</strong></div>
+                        <div>预计线条数：<strong id="lineText">-</strong></div>
+                        <div>覆盖率：<strong id="coverageText">-</strong></div>
                     </div>
 
                     <div class="actions">
-                        <button id="btnGenerate" class="primary" type="button">Generate</button>
-                        <button id="btnGenerate2" class="primary" type="button">Generate 2</button>
-                        <button id="btnGenerate3" class="primary" type="button">Generate 3</button>
-                        <button id="btnGenerate4" class="primary" type="button">Generate 4</button>
-                        <button id="btnRestPreview" type="button">restpreview</button>
-                        <button id="btnHint" type="button">Hint</button>
-                        <button id="btnSave" type="button">Save</button>
-                        <button id="btnReset" type="button">Reset</button>
+                        <button id="btnGenerate" class="primary" type="button">生成</button>
+                        <button id="btnGenerate2" class="primary" type="button">生成2</button>
+                        <button id="btnGenerate3" class="primary" type="button">生成3</button>
+                        <button id="btnGenerate4" class="primary" type="button">生成4</button>
+                        <button id="btnRestPreview" type="button">重置预览</button>
+                        <button id="btnHint" type="button">提示</button>
+                        <button id="btnSave" type="button">保存</button>
+                        <button id="btnReset" type="button">重置</button>
                     </div>
 
                     <div class="gen-progress">
-                        <div id="genProgressText" class="gen-progress-text">Ready</div>
+                        <div id="genProgressText" class="gen-progress-text">就绪</div>
                         <div class="gen-progress-track">
                             <div id="genProgressFill" class="gen-progress-fill"></div>
                         </div>
                     </div>
 
-                    <p id="status" class="status">Ready.</p>
+                    <p id="status" class="status">就绪。</p>
                     <ul id="stats"></ul>
                 </section>
 
                 <section class="preview">
                     <div class="preview-header">
-                        <h2 id="previewTitle">Preview</h2>
+                        <h2 id="previewTitle">预览</h2>
                         <div class="preview-tools">
                             <div id="generate4Tools" class="generate4-tools hidden">
                                 <label class="mini-field">
@@ -137,12 +145,12 @@
                                     <span>H</span>
                                     <input id="manualGridRows" type="number" min="4" max="40" step="1" value="26">
                                 </label>
-                                <button id="btnApplyGridSize" class="mini-btn" type="button">Apply</button>
+                                <button id="btnApplyGridSize" class="mini-btn" type="button">应用</button>
                             </div>
-                            <button id="btnPatternSeed" class="icon-btn hidden" type="button" title="Generate a symmetric pattern (Generate4)">
+                            <button id="btnPatternSeed" class="icon-btn hidden" type="button" title="生成对称图案（Generate4）">
                                 <span class="icon-flower" aria-hidden="true">&#10047;</span>
                             </button>
-                            <button id="togglePath" class="icon-btn" type="button" title="Toggle Hamiltonian Path (Generate2 Mode)">
+                            <button id="togglePath" class="icon-btn" type="button" title="显示/隐藏哈密顿路径（Generate2 模式）">
                                 <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                             </button>
@@ -166,11 +174,11 @@
 
                     <label class="field">
                         <span>搜索（中文名 / ID）</span>
-                                                <input id="skinLibrarySearch" type="text" placeholder="Search by name or ID">
+                                                <input id="skinLibrarySearch" type="text" placeholder="按名称或 ID 搜索">
                     </label>
 
                     <div id="skinLibraryList" class="skin-library-list"></div>
-                    <p id="skinLibraryStatus" class="status">Ready.</p>
+                    <p id="skinLibraryStatus" class="status">就绪。</p>
 
                     <label class="field skin-hidden-select">
                         <span>当前皮肤（内部同步）</span>
@@ -238,7 +246,7 @@
                                     </div>
                                 </details>
 
-                                <p id="skinPriceStatus" class="status">Ready.</p>
+                                <p id="skinPriceStatus" class="status">就绪。</p>
                                 <button id="btnSaveSkinPrice" class="hidden" type="button" aria-hidden="true" tabindex="-1"></button>
                                 <button id="btnResetSkinPrice" class="hidden" type="button" aria-hidden="true" tabindex="-1"></button>
                             </section>
@@ -330,7 +338,7 @@
                                         <button id="btnSkinGenQueueTask" class="primary" type="button">加入生成队列</button>
                                         <button id="btnSkinGenClearDraft" type="button">清空当前输入</button>
                                     </div>
-                                    <p id="skinGenStatus" class="status">Ready.</p>
+                                    <p id="skinGenStatus" class="status">就绪。</p>
                                 </section>
 
                                 <section class="skin-gen-card skin-gen-post">
@@ -411,7 +419,7 @@
                     <p class="hint">拖拽选择要保留的区域，确认后会更新为缩略图参考</p>
                     <div class="skin-gen-crop-stage-wrap">
                         <div id="skinGenCropStage" class="skin-gen-crop-stage">
-                            <img id="skinGenCropImage" alt="style crop preview">
+                            <img id="skinGenCropImage" alt="样式裁切预览">
                             <div id="skinGenCropSelection" class="skin-gen-crop-selection"></div>
                         </div>
                     </div>
@@ -448,25 +456,25 @@
                     <div class="skin-fit-grid">
                         <section class="skin-fit-controls">
                             <h3>对齐调试工具</h3>
-                            <p class="hint">调节 scale / x / y，保存当前皮肤当前配件的覆盖参数。</p>
+                            <p class="hint">调节缩放 / x / y，保存当前皮肤当前配件的覆盖参数。</p>
                             <p id="fitSelectionHint" class="hint"></p>
 
                             <label for="fitPartSelect">部件</label>
                             <select id="fitPartSelect"></select>
 
-                            <label>Scale</label>
+                            <label>缩放</label>
                             <div class="row">
                                 <input id="fitScaleRange" type="range" min="0.8" max="1.4" step="0.002">
                                 <input id="fitScaleNumber" type="number" min="0.8" max="1.4" step="0.002">
                             </div>
 
-                            <label>Offset X（相对宽度）</label>
+                            <label>偏移 X（相对宽度）</label>
                             <div class="row">
                                 <input id="fitOffsetXRange" type="range" min="-0.35" max="0.35" step="0.002">
                                 <input id="fitOffsetXNumber" type="number" min="-0.35" max="0.35" step="0.002">
                             </div>
 
-                            <label>Offset Y（相对高度）</label>
+                            <label>偏移 Y（相对高度）</label>
                             <div class="row">
                                 <input id="fitOffsetYRange" type="range" min="-0.35" max="0.35" step="0.002">
                                 <input id="fitOffsetYNumber" type="number" min="-0.35" max="0.35" step="0.002">
@@ -495,7 +503,7 @@
                                     <button id="fitBtnCopyJson" type="button">复制 JSON</button>
                                 </div>
                             </details>
-                            <p id="fitStatusText" class="status">Ready.</p>
+                            <p id="fitStatusText" class="status">就绪。</p>
                         </section>
 
                         <section class="skin-fit-preview-wrap">
@@ -570,7 +578,7 @@
                             <div class="actions sfx-actions">
                                 <button id="btnSfxFsSearch" type="button">搜索 Freesound</button>
                             </div>
-                            <div id="sfxFsStatus" class="status">Ready.</div>
+                            <div id="sfxFsStatus" class="status">就绪。</div>
                             <div id="sfxFsResults" class="sfx-source-result-list"></div>
                         </div>
 
@@ -588,7 +596,7 @@
                             <div class="actions sfx-actions">
                                 <button id="btnSfxAiGenerate" type="button">生成音效（Stable Audio）</button>
                             </div>
-                            <div id="sfxAiStatus" class="status">Ready.</div>
+                            <div id="sfxAiStatus" class="status">就绪。</div>
                         </div>
 
                         <div id="sfxExternalPreviewWrap" class="sfx-external-preview" hidden>
@@ -676,7 +684,7 @@
                         </div>
                     </section>
 
-                        <p id="sfxStatus" class="status">Ready.</p>
+                        <p id="sfxStatus" class="status">就绪。</p>
                         </section>
 
                         <section class="preview sfx-library-panel">
@@ -714,7 +722,7 @@
                         <button id="btnSkinSfxReset" type="button">恢复默认音效</button>
                     </div>
 
-                        <p id="skinSfxStatus" class="status">Ready.</p>
+                        <p id="skinSfxStatus" class="status">就绪。</p>
                         </section>
 
                         <section class="preview skin-sfx-list-panel">
@@ -742,6 +750,10 @@
                                 <select id="gameSfxCoinPresetSelect"></select>
                             </label>
                             <label class="field">
+                                <span>签到飞金币音效</span>
+                                <select id="gameSfxCheckinCoinTrailPresetSelect"></select>
+                            </label>
+                            <label class="field">
                                 <span>错误/惩罚音效</span>
                                 <select id="gameSfxErrorPresetSelect"></select>
                             </label>
@@ -758,7 +770,7 @@
                                 <button id="btnGameSfxSave" class="primary" type="button">保存游戏音效配置</button>
                                 <button id="btnGameSfxReset" type="button">恢复默认游戏音效</button>
                             </div>
-                            <p id="gameSfxStatus" class="status">Ready.</p>
+                            <p id="gameSfxStatus" class="status">就绪。</p>
                         </section>
 
                         <section class="preview skin-sfx-list-panel">
@@ -769,6 +781,7 @@
                             <div class="actions sfx-actions">
                                 <button id="btnGameSfxPreviewClick" type="button">试听：点击反馈</button>
                                 <button id="btnGameSfxPreviewCoin" type="button">试听：金币获得</button>
+                                <button id="btnGameSfxPreviewCheckinCoinTrail" type="button">试听：签到飞金币</button>
                                 <button id="btnGameSfxPreviewError" type="button">试听：错误惩罚</button>
                                 <button id="btnGameSfxPreviewLevelComplete" type="button">试听：通关</button>
                                 <button id="btnGameSfxPreviewGameOver" type="button">试听：失败</button>
@@ -780,10 +793,278 @@
                 <div class="music-sfx-subpanel" data-music-sfx-tab-panel="game-music" role="tabpanel" aria-labelledby="musicSfxTabBtnGameMusic">
                     <section class="controls skin-sfx-controls-panel">
                         <h2>游戏音乐管理</h2>
-                        <p class="sub">该页用于后续接入 BGM 生成、导入与场景音乐绑定。</p>
-                        <p id="gameMusicStatus" class="status">已预留页面结构，下一步可继续开发 BGM 生成与管理功能。</p>
+                        <p class="sub">支持按场景绑定 BGM。单曲=单曲循环，多曲=顺序循环。</p>
+                        <p class="sub">按住 Ctrl/Cmd 可多选。</p>
+
+                        <label class="field">
+                            <span>主界面 BGM（游戏启动后）</span>
+                            <select id="gameMusicHomeTracks" multiple size="5"></select>
+                        </label>
+                        <label class="field">
+                            <span>主界面音量（0-1）</span>
+                            <input id="gameMusicHomeVolume" type="number" min="0" max="1" step="0.01" value="0.65">
+                        </label>
+
+                        <label class="field">
+                            <span>普通关卡 BGM</span>
+                            <select id="gameMusicNormalTracks" multiple size="5"></select>
+                        </label>
+                        <label class="field">
+                            <span>普通关卡音量（0-1）</span>
+                            <input id="gameMusicNormalVolume" type="number" min="0" max="1" step="0.01" value="0.72">
+                        </label>
+
+                        <label class="field">
+                            <span>奖励关卡 BGM</span>
+                            <select id="gameMusicRewardTracks" multiple size="5"></select>
+                        </label>
+                        <label class="field">
+                            <span>奖励关卡音量（0-1）</span>
+                            <input id="gameMusicRewardVolume" type="number" min="0" max="1" step="0.01" value="0.75">
+                        </label>
+
+                        <label class="field">
+                            <span>全部通关 BGM</span>
+                            <select id="gameMusicCompleteTracks" multiple size="5"></select>
+                        </label>
+                        <label class="field">
+                            <span>全部通关音量（0-1）</span>
+                            <input id="gameMusicCompleteVolume" type="number" min="0" max="1" step="0.01" value="0.8">
+                        </label>
+
+                        <div class="actions sfx-actions">
+                            <button id="btnGameMusicRefreshLibrary" type="button">刷新曲库</button>
+                            <button id="btnGameMusicSave" class="primary" type="button">保存音乐配置</button>
+                            <button id="btnGameMusicReset" type="button">恢复默认音乐配置</button>
+                        </div>
+                        <p id="gameMusicLibraryHint" class="status">曲库：加载中...</p>
+                        <p id="gameMusicStatus" class="status">就绪。</p>
                     </section>
                 </div>
+            </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="events" role="tabpanel" aria-labelledby="tabBtnEvents">
+            <div class="events-admin-shell">
+                <section class="controls events-items-panel">
+                    <h2>道具管理</h2>
+                    <p class="sub">可增删改查货币和道具。活动奖励填写道具 ID 后会自动显示名称。</p>
+
+                    <div class="field">
+                        <span>道具列表</span>
+                        <div id="liveopsItemList" class="liveops-item-list"></div>
+                    </div>
+
+                    <div class="liveops-item-editor">
+                        <label class="field">
+                            <span>道具 ID</span>
+                            <input id="liveopsItemId" type="text" placeholder="例如：ticket">
+                        </label>
+                        <label class="field">
+                            <span>中文名</span>
+                            <input id="liveopsItemNameZh" type="text" placeholder="例如：兑换券">
+                        </label>
+                        <label class="field">
+                            <span>英文名</span>
+                            <input id="liveopsItemNameEn" type="text" placeholder="Example: Ticket">
+                        </label>
+                        <label class="field">
+                            <span>类型</span>
+                            <select id="liveopsItemType">
+                                <option value="currency">currency</option>
+                                <option value="item">item</option>
+                                <option value="tool">tool</option>
+                                <option value="skin">skin</option>
+                            </select>
+                        </label>
+                    </div>
+
+                    <div class="actions">
+                        <button id="btnLiveopsItemSave" class="primary" type="button">保存道具</button>
+                        <button id="btnLiveopsItemDelete" type="button">删除道具</button>
+                        <button id="btnLiveopsItemClear" type="button">清空输入</button>
+                    </div>
+                    <p id="liveopsItemStatus" class="status">就绪。</p>
+                </section>
+
+                <section class="preview events-activity-panel">
+                    <div class="preview-header">
+                        <h2>活动管理</h2>
+                    </div>
+                    <div class="events-subtabbar" role="tablist" aria-label="活动分页签">
+                        <button id="eventsSubtabCheckin" class="tab-btn is-active" type="button" data-events-subtab="checkin">每日签到</button>
+                        <button id="eventsSubtabOnline" class="tab-btn" type="button" data-events-subtab="online">在线奖励</button>
+                    </div>
+
+                    <div class="events-subpanel is-active" data-events-subpanel="checkin">
+                        <label class="field">
+                            <span>周期天数 (cycleDays)</span>
+                            <input id="eventCheckinCycleDays" type="number" min="1" max="31" step="1">
+                        </label>
+                        <div class="field">
+                            <span>签到奖励表（可多条）</span>
+                            <div class="liveops-table-wrap">
+                                <table class="liveops-table">
+                                    <thead>
+                                        <tr>
+                                            <th>天数</th>
+                                            <th>奖励道具</th>
+                                            <th>数量</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="checkinRewardRows"></tbody>
+                                </table>
+                            </div>
+                            <div class="actions">
+                                <button id="btnAddCheckinRewardRow" type="button">新增签到奖励</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="events-subpanel" data-events-subpanel="online">
+                        <label class="field">
+                            <span>每日重置小时 (0-23，默认4点)</span>
+                            <input id="eventOnlineResetHour" type="number" min="0" max="23" step="1">
+                        </label>
+                        <div class="field">
+                            <span>在线奖励档位表</span>
+                            <div class="liveops-table-wrap">
+                                <table class="liveops-table">
+                                    <thead>
+                                        <tr>
+                                            <th>档位</th>
+                                            <th>时长(秒)</th>
+                                            <th>奖励道具</th>
+                                            <th>数量</th>
+                                            <th>操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="onlineRewardRows"></tbody>
+                                </table>
+                            </div>
+                            <div class="actions">
+                                <button id="btnAddOnlineRewardRow" type="button">新增在线奖励档位</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="actions">
+                        <button id="btnSaveLiveopsActivities" class="primary" type="button">保存活动配置</button>
+                        <button id="btnResetLiveopsActivities" type="button">恢复默认活动配置</button>
+                    </div>
+                    <p id="liveopsActivityStatus" class="status">就绪。</p>
+                </section>
+            </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="ui-editor" role="tabpanel" aria-labelledby="tabBtnUiEditor">
+            <div class="ui-editor-shell">
+                <aside class="controls ui-editor-controls">
+                    <h2>界面编辑器</h2>
+                    <p class="sub">所见即所得调整界面布局。当前首版支持签到页，拖拽、方向键微调、字号和缩放会直接同步到游戏页。</p>
+
+                    <div class="field">
+                        <span>界面</span>
+                        <select id="uiEditorSceneSelect">
+                            <option value="checkin">签到页</option>
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <span>预览状态</span>
+                        <select id="uiEditorPreviewMode">
+                            <option value="claimable">今天可签到</option>
+                            <option value="claimed">今天已签到</option>
+                        </select>
+                    </div>
+
+                    <div class="catalog-row">
+                        <label class="field">
+                            <span>已签到天数</span>
+                            <input id="uiEditorClaimedDays" type="number" min="0" max="7" value="1">
+                        </label>
+                        <label class="field">
+                            <span>今日天数</span>
+                            <input id="uiEditorNextDay" type="number" min="1" max="7" value="2">
+                        </label>
+                    </div>
+
+                    <div class="field">
+                        <span>元素列表</span>
+                        <select id="uiEditorElementSelect" size="14" multiple></select>
+                    </div>
+
+                    <div id="uiEditorPropertyGrid" class="ui-editor-property-grid"></div>
+
+                    <div class="actions">
+                        <button id="btnUiEditorResetElement" type="button">重置当前元素</button>
+                        <button id="btnUiEditorResetScene" type="button">重置整页</button>
+                        <button id="btnUiEditorCopyJson" class="primary" type="button">复制布局 JSON</button>
+                        <button id="btnUiEditorImportJson" type="button">导入布局 JSON</button>
+                    </div>
+
+                    <label class="field">
+                        <span>布局 JSON</span>
+                        <textarea id="uiEditorJson" rows="12" spellcheck="false"></textarea>
+                    </label>
+                    <p id="uiEditorStatus" class="status">拖拽元素或用方向键移动，修改会立即写入布局配置。</p>
+                </aside>
+
+                <section class="preview ui-editor-preview-panel">
+                    <div class="preview-header">
+                        <div>
+                            <h2>签到页预览</h2>
+                            <p class="sub">点击元素选中后可拖拽。方向键移动 1px，Shift + 方向键移动 10px。</p>
+                        </div>
+                    </div>
+                    <div id="uiEditorPreviewViewport" class="ui-editor-preview-viewport" tabindex="0">
+                        <div id="uiEditorPreviewStageWrap" class="ui-editor-preview-stage-wrap">
+                            <iframe
+                                id="uiEditorPreviewFrame"
+                                class="ui-editor-preview-frame"
+                                src="index.html?uiEditorPreview=1&uiEditorPanel=checkin"
+                                title="界面编辑器预览"
+                            ></iframe>
+                            <div id="uiEditorOverlay" class="ui-editor-overlay"></div>
+                        </div>
+                    </div>
+                    <section id="uiEditorFollowMousePanel" class="ui-editor-follow-mouse-panel" hidden>
+                        <div class="ui-editor-follow-mouse-header">
+                            <h3>鼠标跟随定位</h3>
+                            <p id="uiEditorFollowMouseHint" class="sub">中央箭头代表鼠标位置。</p>
+                        </div>
+                        <div id="uiEditorFollowMouseStage" class="ui-editor-follow-mouse-stage">
+                            <div class="ui-editor-follow-mouse-cursor" aria-hidden="true"></div>
+                            <div id="uiEditorFollowMousePreview" class="ui-editor-follow-mouse-preview"></div>
+                        </div>
+                    </section>
+                </section>
+            </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="tools" role="tabpanel" aria-labelledby="tabBtnTools">
+            <div class="params-admin-shell">
+                <section class="controls params-panel">
+                    <h2>测试工具</h2>
+                    <p class="sub">用于重置活动进度，便于反复测试签到和在线奖励。</p>
+                    <div class="actions">
+                        <button id="btnToolResetCheckin" type="button">重置签到状态</button>
+                        <button id="btnToolResetOnlineReward" type="button">重置在线奖励状态</button>
+                        <button id="btnToolResetLiveopsAll" class="primary" type="button">重置全部活动状态</button>
+                    </div>
+                    <p id="toolStatus" class="status">就绪。</p>
+                </section>
+                <section class="preview params-json-panel">
+                    <div class="preview-header">
+                        <h2>说明</h2>
+                    </div>
+                    <div class="meta">
+                        <div>重置后会立即写入本地与服务端存储。</div>
+                        <div>签到状态重置：可再次领取今日签到。</div>
+                        <div>在线奖励重置：回到第一档并恢复倒计时。</div>
+                    </div>
+                </section>
             </div>
         </section>
 
@@ -835,7 +1116,7 @@
                         <button id="btnResetGameParams" type="button">恢复默认参数</button>
                     </div>
 
-                    <p id="paramStatus" class="status">Ready.</p>
+                    <p id="paramStatus" class="status">就绪。</p>
                 </section>
 
                 <section class="preview params-json-panel">
@@ -858,11 +1139,13 @@
         </section>
     </main>
 
-    <script type="module" src="js/admin.js?v=67"></script>
+    <script type="module" src="js/admin.js?v=68"></script>
 <script type="module" src="js/admin-hub.js?v=10"></script>
 <script type="module" src="js/admin-skin-manager.js?v=7"></script>
 <script type="module" src="js/admin-skin-fit.js?v=13"></script>
     <script type="module" src="js/admin-skin-gen.js?v=44"></script>
-    <script type="module" src="js/admin-sfx-lab.js?v=16"></script>
-</body>
-</html>
+    <script type="module" src="js/admin-sfx-lab.js?v=18"></script>
+    <script type="module" src="js/admin-liveops.js?v=2"></script>
+    <script type="module" src="js/admin-ui-editor.js?v=11"></script>
+  </body>
+  </html>

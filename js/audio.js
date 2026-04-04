@@ -5,14 +5,21 @@ import {
     getSkinSfxPresetId,
     initSfxStorage,
     normalizeRecipe
-} from './sfx-storage.js?v=5';
-import { synthRecipe } from './sfx-synth.js?v=2';
+} from './sfx-storage.js?v=6';
+import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=1';
 
 let audioCtx = null;
 let initPromise = null;
 let currentSkinId = 'classic-burrow';
 const RELEASE_PIANO_SCALE = Object.freeze([261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88, 523.25]);
 const sampleBufferCache = new Map();
+let clearSoundExclusiveUntil = 0;
+let bgmAudioEl = null;
+let bgmSceneKey = '';
+let bgmPlaylist = [];
+let bgmTrackIndex = 0;
+let bgmPlaylistSignature = '';
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -25,6 +32,70 @@ function getAudioContext() {
         });
     }
     return audioCtx;
+}
+
+function getBgmAudioElement() {
+    if (!bgmAudioEl) {
+        bgmAudioEl = new Audio();
+        bgmAudioEl.preload = 'auto';
+        bgmAudioEl.addEventListener('ended', () => {
+            playNextBgmTrack();
+        });
+        bgmAudioEl.addEventListener('error', () => {
+            playNextBgmTrack();
+        });
+    }
+    return bgmAudioEl;
+}
+
+function getBgmSceneConfig(sceneKey) {
+    const config = readBgmConfig();
+    const scenes = config?.scenes || {};
+    const fallbackKey = BGM_SCENE_KEYS.HOME;
+    const key = Object.prototype.hasOwnProperty.call(scenes, sceneKey)
+        ? sceneKey
+        : fallbackKey;
+    const scene = scenes[key] || {};
+    const playlist = Array.isArray(scene.playlist)
+        ? scene.playlist.filter((item) => typeof item === 'string' && item.trim().length > 0)
+        : [];
+    const volume = Math.max(0, Math.min(1, Number(scene.volume) || 0));
+    return {
+        playlist,
+        volume
+    };
+}
+
+function playlistSignature(playlist) {
+    return Array.isArray(playlist) ? playlist.join('\n') : '';
+}
+
+function playCurrentBgmTrack() {
+    if (!bgmPlaylist.length) {
+        return;
+    }
+    const audio = getBgmAudioElement();
+    const safeIndex = Math.max(0, Math.min(bgmPlaylist.length - 1, bgmTrackIndex));
+    const nextSrc = bgmPlaylist[safeIndex];
+    if (!nextSrc) {
+        return;
+    }
+    if (audio.src !== nextSrc) {
+        audio.src = nextSrc;
+        audio.load();
+    }
+    void audio.play().catch(() => {});
+}
+
+function playNextBgmTrack() {
+    if (!bgmPlaylist.length) {
+        return;
+    }
+    bgmTrackIndex = (bgmTrackIndex + 1) % bgmPlaylist.length;
+    const audio = getBgmAudioElement();
+    audio.src = bgmPlaylist[bgmTrackIndex];
+    audio.load();
+    void audio.play().catch(() => {});
 }
 
 function getActiveRecipe() {
@@ -159,10 +230,55 @@ export function setAudioSkinId(skinId) {
 
 export function resumeAudio() {
     void initAudioProfileStorage();
+    void initBgmStorage();
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') {
         void ctx.resume();
     }
+    if (bgmAudioEl && bgmAudioEl.src) {
+        void bgmAudioEl.play().catch(() => {});
+    }
+}
+
+export function stopBgm() {
+    bgmSceneKey = '';
+    bgmPlaylist = [];
+    bgmTrackIndex = 0;
+    bgmPlaylistSignature = '';
+    if (!bgmAudioEl) {
+        return;
+    }
+    bgmAudioEl.pause();
+    bgmAudioEl.removeAttribute('src');
+    bgmAudioEl.load();
+}
+
+export function playBgmForScene(sceneKey, options = {}) {
+    const restart = options?.restart === true;
+    void initBgmStorage();
+    const scene = getBgmSceneConfig(sceneKey);
+    const signature = playlistSignature(scene.playlist);
+    const audio = getBgmAudioElement();
+    audio.volume = scene.volume;
+
+    if (!scene.playlist.length) {
+        stopBgm();
+        return;
+    }
+
+    if (!restart && signature === bgmPlaylistSignature) {
+        bgmSceneKey = sceneKey;
+        if (audio.paused) {
+            void audio.play().catch(() => {});
+        }
+        return;
+    }
+
+    bgmSceneKey = sceneKey;
+    bgmPlaylist = [...scene.playlist];
+    bgmTrackIndex = 0;
+    bgmPlaylistSignature = signature;
+    playCurrentBgmTrack();
 }
 
 export function playClearSound() {
@@ -176,6 +292,29 @@ export function playClearSound() {
     }).catch(() => {
         const ctx = getAudioContext();
         synthRecipe(ctx, recipe, ctx.currentTime + 0.01, Date.now() + 131, 1.05, recipe.presetId);
+    });
+}
+
+export function playClearSoundExclusive() {
+    void initAudioProfileStorage();
+    const recipe = getActiveRecipe();
+    const ctx = getAudioContext();
+    const estimatedDuration = estimateRecipeDuration(recipe, recipe.presetId);
+    if (ctx.currentTime < clearSoundExclusiveUntil) {
+        return;
+    }
+    clearSoundExclusiveUntil = ctx.currentTime + estimatedDuration + 0.03;
+
+    void playPresetSample(recipe, 1.05, 1).then((played) => {
+        if (!played) {
+            const start = ctx.currentTime + 0.01;
+            const endAt = synthRecipe(ctx, recipe, start, Date.now() + 131, 1.05, recipe.presetId);
+            clearSoundExclusiveUntil = Math.max(clearSoundExclusiveUntil, endAt + 0.01);
+        }
+    }).catch(() => {
+        const start = ctx.currentTime + 0.01;
+        const endAt = synthRecipe(ctx, recipe, start, Date.now() + 131, 1.05, recipe.presetId);
+        clearSoundExclusiveUntil = Math.max(clearSoundExclusiveUntil, endAt + 0.01);
     });
 }
 
@@ -307,6 +446,20 @@ export function playCoinPopSound() {
     }).catch(() => {
         const ctx = getAudioContext();
         synthRecipe(ctx, recipe, ctx.currentTime + 0.005, Date.now() + 47, 0.9, recipe.presetId);
+    });
+}
+
+export function playCheckinRewardCoinSound() {
+    void initAudioProfileStorage();
+    const recipe = getGameEventRecipe('checkinCoinTrail', 'syrup-pop');
+    void playPresetSample(recipe, 0.88, 1.06).then((played) => {
+        if (!played) {
+            const ctx = getAudioContext();
+            synthRecipe(ctx, recipe, ctx.currentTime + 0.005, Date.now() + 61, 0.88, recipe.presetId);
+        }
+    }).catch(() => {
+        const ctx = getAudioContext();
+        synthRecipe(ctx, recipe, ctx.currentTime + 0.005, Date.now() + 61, 0.88, recipe.presetId);
     });
 }
 

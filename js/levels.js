@@ -5,7 +5,8 @@ export const MAX_REWARD_LEVEL = 200;
 export const REWARD_LEVEL_ID_BASE = 1001;
 export const BONUS_LEVEL_ID = REWARD_LEVEL_ID_BASE;
 
-const DEFAULT_REWARD_NAME = 'Reward';
+const DEFAULT_REWARD_NAME = '奖励关';
+const DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT = 1000;
 
 export function getNormalLevelCount() {
     const catalog = getLevelCatalog();
@@ -166,6 +167,7 @@ function buildRewardBaseConfig(levelNum, rewardIndex) {
         maxCellUsage: 1,
         isRewardLevel: true,
         rewardIndex,
+        rewardScorePerBodySegment: DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT,
         displayName: rewardIndex === 1 ? DEFAULT_REWARD_NAME : `${DEFAULT_REWARD_NAME} ${rewardIndex}`
     };
 }

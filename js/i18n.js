@@ -1,4 +1,4 @@
-const DEFAULT_LOCALE = 'zh-CN';
+﻿const DEFAULT_LOCALE = 'zh-CN';
 const STORAGE_KEY = 'arrowClear_locale';
 
 const DICTIONARY = {
@@ -13,7 +13,7 @@ const DICTIONARY = {
         'home.start': '开始冒险',
         'home.burrowEntry': '洞穴入口',
         'home.featuresTitle': '功能入口',
-        'home.account': '探险档案',
+        'home.account': '探索档案',
         'home.accountSub': '离线大厅预览',
         'home.coin': '金币',
         'home.energy': '体力',

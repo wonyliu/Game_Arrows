@@ -1,4 +1,4 @@
-import { getSkinCatalog, isLegacyColorVariantSkinId } from './skins.js?v=23';
+﻿import { getSkinCatalog, isLegacyColorVariantSkinId } from './skins.js?v=23';
 import {
     BUILTIN_SFX_PRESETS,
     SFX_PARAM_SCHEMA,
@@ -20,8 +20,9 @@ import {
     writeGameSfxBindings,
     writeSfxLabState,
     writeSkinSfxBindings
-} from './sfx-storage.js?v=5';
+} from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=1';
 
 const EXPORT_SAMPLE_RATE = 48_000;
 const PACK_VARIANT_COUNT = 5;
@@ -63,6 +64,7 @@ const el = {
     skinBindingList: document.getElementById('skinSfxBindingList'),
     gameSfxClickPresetSelect: document.getElementById('gameSfxClickPresetSelect'),
     gameSfxCoinPresetSelect: document.getElementById('gameSfxCoinPresetSelect'),
+    gameSfxCheckinCoinTrailPresetSelect: document.getElementById('gameSfxCheckinCoinTrailPresetSelect'),
     gameSfxErrorPresetSelect: document.getElementById('gameSfxErrorPresetSelect'),
     gameSfxLevelCompletePresetSelect: document.getElementById('gameSfxLevelCompletePresetSelect'),
     gameSfxGameOverPresetSelect: document.getElementById('gameSfxGameOverPresetSelect'),
@@ -71,9 +73,23 @@ const el = {
     gameSfxStatus: document.getElementById('gameSfxStatus'),
     btnGameSfxPreviewClick: document.getElementById('btnGameSfxPreviewClick'),
     btnGameSfxPreviewCoin: document.getElementById('btnGameSfxPreviewCoin'),
+    btnGameSfxPreviewCheckinCoinTrail: document.getElementById('btnGameSfxPreviewCheckinCoinTrail'),
     btnGameSfxPreviewError: document.getElementById('btnGameSfxPreviewError'),
     btnGameSfxPreviewLevelComplete: document.getElementById('btnGameSfxPreviewLevelComplete'),
     btnGameSfxPreviewGameOver: document.getElementById('btnGameSfxPreviewGameOver'),
+    gameMusicHomeTracks: document.getElementById('gameMusicHomeTracks'),
+    gameMusicHomeVolume: document.getElementById('gameMusicHomeVolume'),
+    gameMusicNormalTracks: document.getElementById('gameMusicNormalTracks'),
+    gameMusicNormalVolume: document.getElementById('gameMusicNormalVolume'),
+    gameMusicRewardTracks: document.getElementById('gameMusicRewardTracks'),
+    gameMusicRewardVolume: document.getElementById('gameMusicRewardVolume'),
+    gameMusicCompleteTracks: document.getElementById('gameMusicCompleteTracks'),
+    gameMusicCompleteVolume: document.getElementById('gameMusicCompleteVolume'),
+    btnGameMusicRefreshLibrary: document.getElementById('btnGameMusicRefreshLibrary'),
+    btnGameMusicSave: document.getElementById('btnGameMusicSave'),
+    btnGameMusicReset: document.getElementById('btnGameMusicReset'),
+    gameMusicStatus: document.getElementById('gameMusicStatus'),
+    gameMusicLibraryHint: document.getElementById('gameMusicLibraryHint'),
 
     sourceMode: document.getElementById('sfxSourceMode'),
     sourceSynthPanel: document.getElementById('sfxSourceSynthPanel'),
@@ -125,6 +141,7 @@ const state = {
         stableAudioHf: false,
         stableAudioBackend: ''
     },
+    bgmTrackLibrary: [],
     externalSample: null,
     externalTrim: null
 };
@@ -204,6 +221,12 @@ function setGameSfxStatus(text, isError = false) {
     if (!el.gameSfxStatus) return;
     el.gameSfxStatus.textContent = text || '';
     el.gameSfxStatus.style.color = isError ? '#c21f4e' : '#3f6b22';
+}
+
+function setGameMusicStatus(text, isError = false) {
+    if (!el.gameMusicStatus) return;
+    el.gameMusicStatus.textContent = text || '';
+    el.gameMusicStatus.style.color = isError ? '#c21f4e' : '#3f6b22';
 }
 
 function setFsStatus(text, isError = false) {
@@ -292,7 +315,7 @@ function renderExternalSampleState() {
         if (el.externalSourceLabel) el.externalSourceLabel.textContent = '-';
         if (el.trimStart) el.trimStart.value = '0';
         if (el.trimEnd) el.trimEnd.value = '0';
-        setTrimStatus('未裁切。');
+        setTrimStatus('鏈鍒囥€?);
         return;
     }
     if (el.externalSourceLabel) {
@@ -308,10 +331,10 @@ function renderExternalSampleState() {
     if (el.trimStart) el.trimStart.value = '0';
     if (el.trimEnd) el.trimEnd.value = duration > 0 ? duration.toFixed(2) : '0';
     if (!state.externalTrim) {
-        setTrimStatus(`原始时长：${duration.toFixed(2)}s（未裁切）`);
+        setTrimStatus(`鍘熷鏃堕暱锛?{duration.toFixed(2)}s锛堟湭瑁佸垏锛塦);
     } else {
         const trimmedDuration = Math.max(0, Number(state.externalTrim.end) - Number(state.externalTrim.start));
-        setTrimStatus(`已裁切：${state.externalTrim.start.toFixed(2)}s - ${state.externalTrim.end.toFixed(2)}s（${trimmedDuration.toFixed(2)}s）`);
+        setTrimStatus(`宸茶鍒囷細${state.externalTrim.start.toFixed(2)}s - ${state.externalTrim.end.toFixed(2)}s锛?{trimmedDuration.toFixed(2)}s锛塦);
     }
 }
 
@@ -512,17 +535,17 @@ async function fetchProviderCaps() {
         el.btnAiGenerate.disabled = !state.providerCaps.stableAudioOpen;
     }
     if (!state.providerCaps.freesound) {
-        setFsStatus('Freesound 未配置：请在启动服务时设置 FREESOUND_API_KEY。', true);
+        setFsStatus('Freesound 鏈厤缃細璇峰湪鍚姩鏈嶅姟鏃惰缃?FREESOUND_API_KEY銆?, true);
     } else {
         setFsStatus('Ready.');
     }
     if (!state.providerCaps.stableAudioOpen) {
-        setAiStatus('Stable Audio 未配置：请设置 FAL_KEY（推荐）或 HUGGINGFACE_API_TOKEN。', true);
+        setAiStatus('Stable Audio 鏈厤缃細璇疯缃?FAL_KEY锛堟帹鑽愶級鎴?HUGGINGFACE_API_TOKEN銆?, true);
     } else {
         if (state.providerCaps.stableAudioBackend === 'fal' || state.providerCaps.stableAudioFal) {
-            setAiStatus('Ready. 当前后端：fal.ai');
+            setAiStatus('Ready. 褰撳墠鍚庣锛歠al.ai');
         } else if (state.providerCaps.stableAudioHf) {
-            setAiStatus('Ready. 当前后端：Hugging Face');
+            setAiStatus('Ready. 褰撳墠鍚庣锛欻ugging Face');
         } else {
             setAiStatus('Ready.');
         }
@@ -820,7 +843,7 @@ function buildFilename(presetId, suffix = '') {
 
 async function renderRecipeToWav(recipe, seed) {
     const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!OfflineCtor) throw new Error('当前浏览器不支持 OfflineAudioContext');
+    if (!OfflineCtor) throw new Error('褰撳墠娴忚鍣ㄤ笉鏀寔 OfflineAudioContext');
     const duration = estimateDurationSeconds(recipe) + 0.25;
     const frames = Math.ceil(duration * EXPORT_SAMPLE_RATE);
     const ctx = new OfflineCtor(2, frames, EXPORT_SAMPLE_RATE);
@@ -835,7 +858,7 @@ async function renderExternalToWav(playbackRate = 1) {
         throw new Error('no external sample');
     }
     const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!OfflineCtor) throw new Error('当前浏览器不支持 OfflineAudioContext');
+    if (!OfflineCtor) throw new Error('褰撳墠娴忚鍣ㄤ笉鏀寔 OfflineAudioContext');
     const rate = clamp(Number(playbackRate) || 1, 0.5, 1.8);
     const trim = resolveExternalTrimWindow();
     const baseDuration = trim ? Math.max(0.01, trim.end - trim.start) : sample.buffer.duration;
@@ -862,7 +885,7 @@ async function renderExternalRecipeToWav(recipe, seed = Date.now()) {
         throw new Error('no external sample');
     }
     const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!OfflineCtor) throw new Error('当前浏览器不支持 OfflineAudioContext');
+    if (!OfflineCtor) throw new Error('褰撳墠娴忚鍣ㄤ笉鏀寔 OfflineAudioContext');
     const trim = resolveExternalTrimWindow();
     const partDuration = trim ? Math.max(0.01, trim.end - trim.start) : sample.buffer.duration;
     const offset = trim ? trim.start : 0;
@@ -936,9 +959,9 @@ async function playPresetPreview(presetId, skinLabel = '') {
         if (!samplePlayed) {
             synthRecipe(ctx, recipe, ctx.currentTime + 0.02, Date.now(), 1, recipe.presetId);
         }
-        setSkinStatus(`试听：${skinLabel || preset.id} -> ${preset.name}`);
+        setSkinStatus(`璇曞惉锛?{skinLabel || preset.id} -> ${preset.name}`);
     } catch (error) {
-        setSkinStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
+        setSkinStatus(`璇曞惉澶辫触锛?{error?.message || 'Unknown error'}`, true);
     }
 }
 
@@ -1005,7 +1028,7 @@ async function handleDownloadPack() {
             ? slugifyLabel(state.externalSample?.fileName || state.externalSample?.sourceLabel, 'external-sfx')
             : base.presetId;
         for (let i = 0; i < PACK_VARIANT_COUNT; i += 1) {
-            setStatus(`正在生成变体 ${i + 1}/${PACK_VARIANT_COUNT}...`);
+            setStatus(`姝ｅ湪鐢熸垚鍙樹綋 ${i + 1}/${PACK_VARIANT_COUNT}...`);
             const blob = previewMode === 'external'
                 ? await renderExternalRecipeToWav(createVariantRecipe(base, i + 1), Date.now() + i * 997)
                 : await renderRecipeToWav(createVariantRecipe(base, i + 1), Date.now() + i * 997);
@@ -1023,7 +1046,7 @@ function renderFreesoundResults(rows = []) {
     if (!Array.isArray(rows) || rows.length <= 0) {
         const empty = document.createElement('div');
         empty.className = 'sfx-source-result-item';
-        empty.textContent = '无结果。请尝试更换关键词。';
+        empty.textContent = '鏃犵粨鏋溿€傝灏濊瘯鏇存崲鍏抽敭璇嶃€?;
         el.fsResults.appendChild(empty);
         return;
     }
@@ -1046,7 +1069,7 @@ function renderFreesoundResults(rows = []) {
 
         const btnPreview = document.createElement('button');
         btnPreview.type = 'button';
-        btnPreview.textContent = '试听';
+        btnPreview.textContent = '璇曞惉';
         btnPreview.addEventListener('click', () => {
             if (!row.previewUrl) return;
             const proxyUrl = `/api/sfx/freesound/proxy?url=${encodeURIComponent(row.previewUrl)}`;
@@ -1055,14 +1078,14 @@ function renderFreesoundResults(rows = []) {
                 el.externalPreviewAudio.src = proxyUrl;
                 el.externalPreviewAudio.play().catch(() => {});
             }
-            setFsStatus(`试听：${row.name}`);
+            setFsStatus(`璇曞惉锛?{row.name}`);
         });
         actions.appendChild(btnPreview);
 
         const btnUse = document.createElement('button');
         btnUse.type = 'button';
         btnUse.className = 'primary';
-        btnUse.textContent = '导入工坊';
+        btnUse.textContent = '瀵煎叆宸ュ潑';
         btnUse.addEventListener('click', async () => {
             if (!row.previewUrl) return;
             btnUse.disabled = true;
@@ -1078,10 +1101,10 @@ function renderFreesoundResults(rows = []) {
                     `Freesound: ${row.name} (#${row.id})`,
                     `${slugifyLabel(row.name || `fs-${row.id}`, `freesound-${row.id}`)}.wav`
                 );
-                setFsStatus(`已导入：${row.name}`);
+                setFsStatus(`宸插鍏ワ細${row.name}`);
                 setStatus(`External sample ready: ${row.name}`);
             } catch (error) {
-                setFsStatus(`导入失败：${error?.message || 'Unknown error'}`, true);
+                setFsStatus(`瀵煎叆澶辫触锛?{error?.message || 'Unknown error'}`, true);
             } finally {
                 btnUse.disabled = false;
             }
@@ -1095,26 +1118,26 @@ function renderFreesoundResults(rows = []) {
 
 async function handleFreesoundSearch() {
     if (!state.providerCaps.freesound) {
-        setFsStatus('Freesound 未配置 API Key。', true);
+        setFsStatus('Freesound 鏈厤缃?API Key銆?, true);
         return;
     }
     const query = `${el.fsQuery?.value || ''}`.trim();
     if (!query) {
-        setFsStatus('请输入关键词。', true);
+        setFsStatus('璇疯緭鍏ュ叧閿瘝銆?, true);
         return;
     }
     const license = `${el.fsLicense?.value || 'all'}`.trim();
-    setFsStatus('正在搜索...');
+    setFsStatus('姝ｅ湪鎼滅储...');
     if (el.btnFsSearch) el.btnFsSearch.disabled = true;
     try {
         const url = `/api/sfx/freesound/search?q=${encodeURIComponent(query)}&license=${encodeURIComponent(license)}&page_size=12`;
         const data = await fetchJsonWithError(url);
         const rows = Array.isArray(data?.results) ? data.results : [];
         renderFreesoundResults(rows);
-        setFsStatus(`搜索完成：${rows.length} 条结果。`);
+        setFsStatus(`鎼滅储瀹屾垚锛?{rows.length} 鏉＄粨鏋溿€俙);
     } catch (error) {
         renderFreesoundResults([]);
-        setFsStatus(`搜索失败：${error?.message || 'Unknown error'}`, true);
+        setFsStatus(`鎼滅储澶辫触锛?{error?.message || 'Unknown error'}`, true);
     } finally {
         if (el.btnFsSearch) el.btnFsSearch.disabled = !state.providerCaps.freesound;
     }
@@ -1122,16 +1145,16 @@ async function handleFreesoundSearch() {
 
 async function handleStableAudioGenerate() {
     if (!state.providerCaps.stableAudioOpen) {
-        setAiStatus('Stable Audio 未配置：请设置 FAL_KEY 或 HUGGINGFACE_API_TOKEN。', true);
+        setAiStatus('Stable Audio 鏈厤缃細璇疯缃?FAL_KEY 鎴?HUGGINGFACE_API_TOKEN銆?, true);
         return;
     }
     const prompt = `${el.aiPrompt?.value || ''}`.trim();
     if (!prompt) {
-        setAiStatus('请输入文本提示词。', true);
+        setAiStatus('璇疯緭鍏ユ枃鏈彁绀鸿瘝銆?, true);
         return;
     }
     const durationSeconds = clamp(Number(el.aiDuration?.value || 2), 1, 10);
-    setAiStatus('正在生成...');
+    setAiStatus('姝ｅ湪鐢熸垚...');
     if (el.btnAiGenerate) el.btnAiGenerate.disabled = true;
     try {
         const response = await fetch('/api/sfx/stable-audio/generate', {
@@ -1153,13 +1176,13 @@ async function handleStableAudioGenerate() {
             `${slugifyLabel(prompt.slice(0, 48), 'stable-audio')}.wav`
         );
         if (state.providerCaps.stableAudioBackend === 'fal' || state.providerCaps.stableAudioFal) {
-            setAiStatus('生成成功（fal.ai），已导入工坊。');
+            setAiStatus('鐢熸垚鎴愬姛锛坒al.ai锛夛紝宸插鍏ュ伐鍧娿€?);
         } else {
-            setAiStatus('生成成功，已导入工坊。');
+            setAiStatus('鐢熸垚鎴愬姛锛屽凡瀵煎叆宸ュ潑銆?);
         }
         setStatus('Stable Audio sample ready.');
     } catch (error) {
-        setAiStatus(`生成失败：${error?.message || 'Unknown error'}`, true);
+        setAiStatus(`鐢熸垚澶辫触锛?{error?.message || 'Unknown error'}`, true);
     } finally {
         if (el.btnAiGenerate) el.btnAiGenerate.disabled = !state.providerCaps.stableAudioOpen;
     }
@@ -1168,7 +1191,7 @@ async function handleStableAudioGenerate() {
 async function handleSampleUpload(file) {
     if (!file) return;
     try {
-        await setExternalSampleFromBlob(file, `本地采样: ${file.name}`, file.name);
+        await setExternalSampleFromBlob(file, `鏈湴閲囨牱: ${file.name}`, file.name);
         setStatus(`Loaded local sample: ${file.name}`);
     } catch (error) {
         setStatus(`Load sample failed: ${error?.message || 'Unknown error'}`, true);
@@ -1288,7 +1311,7 @@ function renderSkinBindingList() {
         const btnPreview = document.createElement('button');
         btnPreview.type = 'button';
         btnPreview.className = 'skin-sfx-preview-btn';
-        btnPreview.textContent = '试听';
+        btnPreview.textContent = '璇曞惉';
         btnPreview.addEventListener('click', () => {
             void playPresetPreview(select.value, row.nameZh || row.id);
         });
@@ -1313,6 +1336,7 @@ async function refreshSkinBindingUi() {
 const GAME_SFX_EVENT_FIELD_MAP = Object.freeze({
     click: 'gameSfxClickPresetSelect',
     coin: 'gameSfxCoinPresetSelect',
+    checkinCoinTrail: 'gameSfxCheckinCoinTrailPresetSelect',
     error: 'gameSfxErrorPresetSelect',
     levelComplete: 'gameSfxLevelCompletePresetSelect',
     gameOver: 'gameSfxGameOverPresetSelect'
@@ -1354,14 +1378,158 @@ function saveGameSfxBindingsFromUi() {
         }
         state.gameSfxBindings = setGameSfxPresetId(eventKey, select.value);
     }
-    setGameSfxStatus('已保存游戏音效配置。');
+    setGameSfxStatus('宸蹭繚瀛樻父鎴忛煶鏁堥厤缃€?);
 }
 
 function resetGameSfxBindingsToDefault() {
     state.gameSfxBindings = writeGameSfxBindings({});
     refreshGameSfxState();
     refreshGameSfxPresetOptions();
-    setGameSfxStatus('已恢复默认游戏音效。');
+    setGameSfxStatus('宸叉仮澶嶉粯璁ゆ父鎴忛煶鏁堛€?);
+}
+
+const GAME_MUSIC_SCENE_FIELD_MAP = Object.freeze({
+    [BGM_SCENE_KEYS.HOME]: { tracks: 'gameMusicHomeTracks', volume: 'gameMusicHomeVolume', label: '主界面' },
+    [BGM_SCENE_KEYS.NORMAL]: { tracks: 'gameMusicNormalTracks', volume: 'gameMusicNormalVolume', label: '普通关卡' },
+    [BGM_SCENE_KEYS.REWARD]: { tracks: 'gameMusicRewardTracks', volume: 'gameMusicRewardVolume', label: '奖励关卡' },
+    [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: { tracks: 'gameMusicCompleteTracks', volume: 'gameMusicCompleteVolume', label: '全部通关' }
+});
+
+function clampMusicVolume(value, fallback = 0.7) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+    return Math.max(0, Math.min(1, parsed));
+}
+
+function getSelectedValues(selectEl) {
+    if (!selectEl) {
+        return [];
+    }
+    return Array.from(selectEl.selectedOptions || [])
+        .map((option) => `${option.value || ''}`.trim())
+        .filter(Boolean);
+}
+
+function setSelectedValues(selectEl, values) {
+    if (!selectEl) {
+        return;
+    }
+    const selected = new Set(Array.isArray(values) ? values : []);
+    for (const option of Array.from(selectEl.options || [])) {
+        option.selected = selected.has(option.value);
+    }
+}
+
+async function fetchBgmTrackLibrary() {
+    try {
+        const response = await fetch('/api/bgm/list', {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            return [];
+        }
+        const payload = await response.json().catch(() => ({}));
+        const tracks = Array.isArray(payload?.tracks) ? payload.tracks : [];
+        return tracks
+            .map((track) => {
+                const url = `${track?.url || ''}`.trim();
+                const name = `${track?.name || ''}`.trim();
+                const fileName = `${track?.fileName || ''}`.trim();
+                if (!url) {
+                    return null;
+                }
+                return {
+                    url,
+                    name: name || fileName || url,
+                    fileName: fileName || name || url
+                };
+            })
+            .filter(Boolean);
+    } catch {
+        return [];
+    }
+}
+
+function renderGameMusicTrackOptions() {
+    for (const sceneFields of Object.values(GAME_MUSIC_SCENE_FIELD_MAP)) {
+        const select = el[sceneFields.tracks];
+        if (!select) {
+            continue;
+        }
+        const existingSelected = getSelectedValues(select);
+        select.innerHTML = '';
+        for (const track of state.bgmTrackLibrary) {
+            const option = document.createElement('option');
+            option.value = track.url;
+            option.textContent = track.name;
+            option.title = track.fileName;
+            select.appendChild(option);
+        }
+        setSelectedValues(select, existingSelected);
+    }
+}
+
+function refreshGameMusicUiFromConfig() {
+    const config = readBgmConfig();
+    const scenes = config?.scenes || {};
+    for (const [sceneKey, sceneFields] of Object.entries(GAME_MUSIC_SCENE_FIELD_MAP)) {
+        const select = el[sceneFields.tracks];
+        const volumeInput = el[sceneFields.volume];
+        const scene = scenes[sceneKey] || {};
+        const playlist = Array.isArray(scene.playlist) ? scene.playlist : [];
+        const volume = clampMusicVolume(scene.volume, 0.7);
+        setSelectedValues(select, playlist);
+        if (volumeInput) {
+            volumeInput.value = volume.toFixed(2);
+        }
+    }
+}
+
+function collectGameMusicConfigFromUi() {
+    const current = readBgmConfig();
+    const nextScenes = { ...(current?.scenes || {}) };
+    for (const [sceneKey, sceneFields] of Object.entries(GAME_MUSIC_SCENE_FIELD_MAP)) {
+        const select = el[sceneFields.tracks];
+        const volumeInput = el[sceneFields.volume];
+        nextScenes[sceneKey] = {
+            playlist: getSelectedValues(select),
+            volume: clampMusicVolume(volumeInput?.value, 0.7)
+        };
+    }
+    return {
+        ...current,
+        scenes: nextScenes
+    };
+}
+
+async function refreshGameMusicTrackLibrary() {
+    state.bgmTrackLibrary = await fetchBgmTrackLibrary();
+    renderGameMusicTrackOptions();
+    refreshGameMusicUiFromConfig();
+    if (el.gameMusicLibraryHint) {
+        if (state.bgmTrackLibrary.length > 0) {
+            el.gameMusicLibraryHint.textContent = `曲库：已加载 ${state.bgmTrackLibrary.length} 首`;
+            el.gameMusicLibraryHint.style.color = '#3f6b22';
+        } else {
+            el.gameMusicLibraryHint.textContent = '曲库为空：请先把音乐文件放到 assets/audio/bgm';
+            el.gameMusicLibraryHint.style.color = '#c21f4e';
+        }
+    }
+}
+
+function saveGameMusicConfigFromUi() {
+    const payload = collectGameMusicConfigFromUi();
+    writeBgmConfig(payload);
+    setGameMusicStatus('已保存游戏音乐配置。');
+}
+
+function resetGameMusicConfigToDefault() {
+    writeBgmConfig({});
+    refreshGameMusicUiFromConfig();
+    setGameMusicStatus('已恢复默认音乐配置。');
 }
 
 function saveSelectedSkinBinding() {
@@ -1411,11 +1579,11 @@ function saveAsNewPreset() {
 async function bindExternalSampleToCurrentPreset() {
     const preset = getSfxPresetById(state.presetId);
     if (!preset?.custom) {
-        setStatus('请选择一个自定义模板，再保存外部采样。', true);
+        setStatus('璇烽€夋嫨涓€涓嚜瀹氫箟妯℃澘锛屽啀淇濆瓨澶栭儴閲囨牱銆?, true);
         return;
     }
     if (!state.externalSample?.blob) {
-        setStatus('请先导入外部采样（Freesound/上传/Stable Audio）。', true);
+        setStatus('璇峰厛瀵煎叆澶栭儴閲囨牱锛團reesound/涓婁紶/Stable Audio锛夈€?, true);
         return;
     }
     try {
@@ -1435,9 +1603,9 @@ async function bindExternalSampleToCurrentPreset() {
         refreshGameSfxPresetOptions();
         setPreset(saved.id, true);
         renderSkinBindingList();
-        setStatus(`已保存外部采样到模板：${saved.name}`);
+        setStatus(`宸蹭繚瀛樺閮ㄩ噰鏍峰埌妯℃澘锛?{saved.name}`);
     } catch (error) {
-        setStatus(`保存外部采样失败：${error?.message || 'Unknown error'}`, true);
+        setStatus(`淇濆瓨澶栭儴閲囨牱澶辫触锛?{error?.message || 'Unknown error'}`, true);
     }
 }
 
@@ -1461,11 +1629,11 @@ async function buildExternalSamplePayloadFromState() {
 function applyExternalTrimFromUi() {
     const sample = state.externalSample;
     if (!sample?.buffer) {
-        return setTrimStatus('请先导入外部采样。', true);
+        return setTrimStatus('璇峰厛瀵煎叆澶栭儴閲囨牱銆?, true);
     }
     const duration = Number(sample.buffer.duration || 0);
     if (duration <= 0) {
-        return setTrimStatus('采样时长无效。', true);
+        return setTrimStatus('閲囨牱鏃堕暱鏃犳晥銆?, true);
     }
     const rawStart = Number(el.trimStart?.value || 0);
     const rawEnd = Number(el.trimEnd?.value || duration);
@@ -1474,7 +1642,7 @@ function applyExternalTrimFromUi() {
     state.externalTrim = { start, end };
     if (el.trimStart) el.trimStart.value = start.toFixed(2);
     if (el.trimEnd) el.trimEnd.value = end.toFixed(2);
-    setTrimStatus(`已裁切：${start.toFixed(2)}s - ${end.toFixed(2)}s（${(end - start).toFixed(2)}s）`);
+    setTrimStatus(`宸茶鍒囷細${start.toFixed(2)}s - ${end.toFixed(2)}s锛?{(end - start).toFixed(2)}s锛塦);
 }
 
 function resetExternalTrim() {
@@ -1483,7 +1651,7 @@ function resetExternalTrim() {
     state.externalTrim = null;
     if (el.trimStart) el.trimStart.value = '0';
     if (el.trimEnd) el.trimEnd.value = duration > 0 ? duration.toFixed(2) : '0';
-    setTrimStatus(duration > 0 ? `原始时长：${duration.toFixed(2)}s（未裁切）` : '未裁切。');
+    setTrimStatus(duration > 0 ? `鍘熷鏃堕暱锛?{duration.toFixed(2)}s锛堟湭瑁佸垏锛塦 : '鏈鍒囥€?);
 }
 
 function updateCurrentPreset() {
@@ -1601,25 +1769,40 @@ function bindEvents() {
     el.btnGameSfxSave?.addEventListener('click', saveGameSfxBindingsFromUi);
     el.btnGameSfxReset?.addEventListener('click', resetGameSfxBindingsToDefault);
     el.btnGameSfxPreviewClick?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxClickPresetSelect?.value || getGameSfxPresetId('click'), '点击反馈');
+        void playPresetPreview(el.gameSfxClickPresetSelect?.value || getGameSfxPresetId('click'), '鐐瑰嚮鍙嶉');
     });
     el.btnGameSfxPreviewCoin?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxCoinPresetSelect?.value || getGameSfxPresetId('coin'), '金币获得');
+        void playPresetPreview(el.gameSfxCoinPresetSelect?.value || getGameSfxPresetId('coin'), '閲戝竵鑾峰緱');
+    });
+    el.btnGameSfxPreviewCheckinCoinTrail?.addEventListener('click', () => {
+        void playPresetPreview(
+            el.gameSfxCheckinCoinTrailPresetSelect?.value || getGameSfxPresetId('checkinCoinTrail'),
+            '绛惧埌椋為噾甯?
+        );
     });
     el.btnGameSfxPreviewError?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxErrorPresetSelect?.value || getGameSfxPresetId('error'), '错误惩罚');
+        void playPresetPreview(el.gameSfxErrorPresetSelect?.value || getGameSfxPresetId('error'), '閿欒鎯╃綒');
     });
     el.btnGameSfxPreviewLevelComplete?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxLevelCompletePresetSelect?.value || getGameSfxPresetId('levelComplete'), '通关');
+        void playPresetPreview(el.gameSfxLevelCompletePresetSelect?.value || getGameSfxPresetId('levelComplete'), '閫氬叧');
     });
     el.btnGameSfxPreviewGameOver?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxGameOverPresetSelect?.value || getGameSfxPresetId('gameOver'), '失败');
+        void playPresetPreview(el.gameSfxGameOverPresetSelect?.value || getGameSfxPresetId('gameOver'), '澶辫触');
     });
+
+    el.btnGameMusicRefreshLibrary?.addEventListener('click', () => {
+        void refreshGameMusicTrackLibrary().then(() => {
+            setGameMusicStatus('已刷新曲库。');
+        });
+    });
+    el.btnGameMusicSave?.addEventListener('click', saveGameMusicConfigFromUi);
+    el.btnGameMusicReset?.addEventListener('click', resetGameMusicConfigToDefault);
 }
 
 async function init() {
     if (!el.presetSelect) return;
     await initSfxStorage();
+    await initBgmStorage();
     await fetchProviderCaps();
 
     setMusicSfxSubTab('sfx-lab');
@@ -1627,7 +1810,9 @@ async function init() {
     refreshSkinPresetSelectOptions();
     refreshGameSfxState();
     refreshGameSfxPresetOptions();
+    await refreshGameMusicTrackLibrary();
     await refreshSkinBindingUi();
+    refreshGameMusicUiFromConfig();
     applyRecipe(readSfxLabState(), false);
     setSourceMode(el.sourceMode?.value || state.sourceMode || 'synth');
     renderFreesoundResults([]);
@@ -1641,8 +1826,10 @@ async function init() {
     setStatus('SFX lab ready.');
     setSkinStatus('Skin SFX binding ready.');
     setGameSfxStatus('Game SFX binding ready.');
+    setGameMusicStatus('游戏音乐配置已就绪。');
 }
 
 init();
+
 
 
