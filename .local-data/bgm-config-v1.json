@@ -1,28 +1,28 @@
-﻿{
+{
   "version": 1,
-  "updatedAt": "2026-04-05T10:28:00.000Z",
+  "updatedAt": "2026-04-07T11:29:47.681Z",
   "scenes": {
     "home": {
       "playlist": [
-        "/assets/audio/bgm/小蛇出不去1.mp3"
+        "assets/audio/bgm/小蛇出不去1.mp3"
       ],
-      "volume": 0.65
+      "volume": 1
     },
     "normal": {
       "playlist": [
-        "/assets/audio/bgm/小蛇出不去2.mp3"
+        "assets/audio/bgm/小蛇出不去4.mp3"
       ],
-      "volume": 0.72
+      "volume": 0.4
     },
     "reward": {
       "playlist": [
-        "/assets/audio/bgm/扭扭舞.mp3"
+        "assets/audio/bgm/扭扭舞.mp3"
       ],
       "volume": 0.75
     },
     "campaignComplete": {
       "playlist": [
-        "/assets/audio/bgm/小蛇出不去3.mp3"
+        "assets/audio/bgm/小蛇出不去3.mp3"
       ],
       "volume": 0.8
     }
