@@ -23,7 +23,7 @@ import {
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=32';
+} from './audio.js?v=46';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=48';
 import {
     ensureSelectedSkin,
@@ -209,7 +209,8 @@ export class Game {
         this.toolInventory.hint = Math.max(0, Math.floor(Number(inv.hint) || 0));
         this.toolInventory.undo = Math.max(0, Math.floor(Number(inv.undo) || 0));
         this.toolInventory.shuffle = Math.max(0, Math.floor(Number(inv.shuffle) || 0));
-        this.resetOnlineRewardDayIfNeeded(true);
+        this.resetOnlineRewardDayIfNeeded(false);
+        this.resetOnlineRewardTimerOnSessionStart();
     }
 
     writeLiveOpsPlayer(options = {}) {
@@ -1584,6 +1585,29 @@ export class Game {
                 dayKey,
                 tierIndex: 0,
                 remainingSeconds: firstSeconds
+            }
+        };
+        this.writeLiveOpsPlayer();
+        return true;
+    }
+
+    resetOnlineRewardTimerOnSessionStart() {
+        const cfg = this.getLiveOpsConfig().activities?.onlineReward || {};
+        const tiers = Array.isArray(cfg.tiers) ? cfg.tiers : [];
+        const online = this.liveOpsPlayer?.onlineReward || {};
+        const tierIndex = Math.max(0, Math.floor(Number(online.tierIndex) || 0));
+        if (tierIndex >= tiers.length) {
+            return false;
+        }
+        const defaultSeconds = Math.max(0, Number(tiers[tierIndex]?.seconds) || 0);
+        if (Number(online.remainingSeconds) === defaultSeconds) {
+            return false;
+        }
+        this.liveOpsPlayer = {
+            ...this.liveOpsPlayer,
+            onlineReward: {
+                ...online,
+                remainingSeconds: defaultSeconds
             }
         };
         this.writeLiveOpsPlayer();

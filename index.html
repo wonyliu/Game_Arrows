@@ -102,7 +102,7 @@
                         <button id="btnLevels" class="current-level-tag" type="button" aria-label="洞穴入口">
                             <span class="level-tag-icon" aria-hidden="true"></span>
                             <span class="level-tag-label" data-i18n="home.burrowEntry">洞穴入口</span>
-                            <span id="menuLevelTagValue" class="level-tag-value">忙麓聻莽漏麓 1</span>
+                            <span id="menuLevelTagValue" class="level-tag-value">洞穴 1</span>
                         </button>
                     </div>
                 </section>
@@ -160,21 +160,23 @@
                             <div class="setting-desc" data-i18n="panel.settings.languageDesc">Switch UI language without affecting save data.</div>
                         </div>
                         <div class="locale-switch">
-                            <button id="btnLocaleZh" class="locale-chip" type="button" data-i18n="settings.locale.zh">莽庐聙盲陆聯盲赂颅忙聳</button>
+                            <button id="btnLocaleZh" class="locale-chip" type="button" data-i18n="settings.locale.zh">简体中文</button>
                             <button id="btnLocaleEn" class="locale-chip" type="button" data-i18n="settings.locale.en">English</button>
                         </div>
                     </div>
                     <div class="setting-row">
                         <div class="setting-title" data-i18n="panel.settings.audio">Audio</div>
-                        <div class="setting-desc" data-i18n="panel.settings.audioDesc">Detailed controls will be available in a future update.</div>
+                        <div class="setting-desc" data-i18n="panel.settings.audioDesc">Adjust music and sound effect volume in real time.</div>
                         <div class="setting-control audio-stack">
                             <label class="audio-row">
-                                <span data-i18n="panel.settings.music">茅聼鲁盲鹿聬</span>
-                                <input type="range" min="0" max="100" value="65" disabled>
+                                <span data-i18n="panel.settings.music">音乐</span>
+                                <input id="settingsMusicVolume" type="range" min="0" max="100" value="65" step="1">
+                                <strong id="settingsMusicVolumeValue">65%</strong>
                             </label>
                             <label class="audio-row">
-                                <span data-i18n="panel.settings.sfx">茅聼鲁忙聲聢</span>
-                                <input type="range" min="0" max="100" value="55" disabled>
+                                <span data-i18n="panel.settings.sfx">音效</span>
+                                <input id="settingsSfxVolume" type="range" min="0" max="100" value="55" step="1">
+                                <strong id="settingsSfxVolumeValue">55%</strong>
                             </label>
                         </div>
                     </div>
@@ -182,9 +184,9 @@
                         <div class="setting-title" data-i18n="panel.settings.graphics">Graphics</div>
                         <div class="setting-desc" data-i18n="panel.settings.graphicsDesc">Performance presets will be available in a future update.</div>
                         <div class="setting-control graphics-switch" role="group" aria-label="graphics-quality">
-                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsLow">盲陆</button>
-                            <button class="graphics-option active" type="button" disabled data-i18n="panel.settings.graphicsMid">盲赂</button>
-                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsHigh">茅芦</button>
+                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsLow">低</button>
+                            <button class="graphics-option active" type="button" disabled data-i18n="panel.settings.graphicsMid">中</button>
+                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsHigh">高</button>
                         </div>
                     </div>
                     <div class="setting-row setting-row-reset">
@@ -340,7 +342,7 @@
                     <div class="level-select-meta">
                         <div class="level-select-start">
                             <span class="level-select-label" data-i18n="panel.levelSelect.startFrom">默认从以下关卡开始</span>
-                            <strong id="levelSelectCurrent" class="level-select-value">忙麓聻莽漏麓 1</strong>
+                            <strong id="levelSelectCurrent" class="level-select-value">洞穴 1</strong>
                         </div>
                         <p class="level-select-tip" data-i18n="panel.levelSelect.tip">可点击已解锁关卡直接进入游戏。</p>
                     </div>
@@ -375,9 +377,10 @@
         <div id="rewardFlyLayer" class="reward-fly-layer hidden" aria-hidden="true"></div>
     </div>
 
-    <script type="module" src="js/main.js?v=166"></script>
+<script type="module" src="js/main.js?v=182"></script>
 </body>
 </html>
+
 
 
 

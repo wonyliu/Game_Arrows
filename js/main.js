@@ -1,8 +1,8 @@
-﻿/**
+/**
  * Main - game entry
  */
-import { Game } from './game.js?v=123';
-import { UI } from './ui.js?v=81';
+import { Game } from './game.js?v=137';
+import { UI } from './ui.js?v=96';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -16,6 +16,7 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { isLegacyColorVariantSkinId } from './skins.js?v=23';
+import { earlyBgmBootstrap } from './audio.js?v=46';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
@@ -338,6 +339,10 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
     window.addEventListener('DOMContentLoaded', async () => {
         const bootStartedAt = nowMs();
         logBoot('DOMContentLoaded');
+
+        if (!UI_EDITOR_PREVIEW_PARAMS.enabled) {
+            earlyBgmBootstrap();
+        }
 
         applyAdaptiveLayout(true);
         initBootPreloadDom();
