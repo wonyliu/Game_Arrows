@@ -190,6 +190,10 @@ async function startWebAudioBgmFallback(reason = '') {
         scene: bgmSceneKey,
         playlistSize: bgmPlaylist.length
     });
+    if (isHtmlBgmPlaying()) {
+        logBgm('webaudio fallback skipped: html audio already playing', { reason });
+        return false;
+    }
     if (!bgmPlaylist.length) {
         return false;
     }
@@ -227,6 +231,10 @@ async function startWebAudioBgmFallback(reason = '') {
     const src = bgmPlaylist[safeIndex];
     try {
         const buffer = await decodeBgmBuffer(src);
+        if (isHtmlBgmPlaying()) {
+            logBgm('webaudio fallback skipped after decode: html audio already playing', { src, reason });
+            return false;
+        }
         stopWebAudioBgm();
         const gain = getBgmWebGainNode(ctx);
         gain.gain.setValueAtTime(clamp(bgmSceneVolume * audioMix.music, 0, 1), ctx.currentTime);
@@ -367,6 +375,10 @@ function updateBgmElementVolume() {
     }
 }
 
+function isHtmlBgmPlaying() {
+    return !!(bgmAudioEl && !bgmAudioEl.paused);
+}
+
 function attemptBgmPlayback() {
     if (bgmWebAudioActive) {
         logBgm('skip html audio play: webaudio fallback active');
@@ -389,6 +401,7 @@ function attemptBgmPlayback() {
     const playPromise = audio.play();
     if (playPromise && typeof playPromise.catch === 'function') {
         void playPromise.then(() => {
+            stopWebAudioBgm();
             logBgm('play success', {
                 src: audio.currentSrc || audio.src || '',
                 muted: audio.muted,
