@@ -59,6 +59,12 @@ async function hydrateBgmFromServer() {
     if (!canUseApiStorage()) {
         return;
     }
+    const staticConfig = await fetchJsonFromStaticFile();
+    if (staticConfig) {
+        const normalizedStatic = normalizeBgmConfig(staticConfig);
+        writeLocalJson(BGM_STORAGE_KEY, normalizedStatic);
+        return;
+    }
     const remote = await fetchJsonFromServer(BGM_STORAGE_FILE);
     const remoteNormalized = normalizeBgmConfig(remote);
     const merged = isGitHubPagesHost()

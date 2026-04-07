@@ -7,7 +7,7 @@ import {
     normalizeRecipe
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=5';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=6';
 
 export { BGM_SCENE_KEYS };
 
@@ -847,6 +847,7 @@ export function playBgmForScene(sceneKey, options = {}) {
     const restart = options?.restart === true;
     if (!bgmStorageReady) {
         ensureBgmStorageReadyForReplay(sceneKey);
+        return;
     }
     const scene = getBgmSceneConfig(sceneKey);
     const signature = playlistSignature(scene.playlist);
