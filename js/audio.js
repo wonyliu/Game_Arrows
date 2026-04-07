@@ -7,7 +7,7 @@ import {
     normalizeRecipe
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=4';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=5';
 
 export { BGM_SCENE_KEYS };
 

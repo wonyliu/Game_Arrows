@@ -1,8 +1,8 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=137';
-import { UI } from './ui.js?v=96';
+import { Game } from './game.js?v=138';
+import { UI } from './ui.js?v=97';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -16,12 +16,12 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { isLegacyColorVariantSkinId } from './skins.js?v=23';
-import { earlyBgmBootstrap } from './audio.js?v=48';
+import { earlyBgmBootstrap } from './audio.js?v=49';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.07-185';
+const APP_BUILD_VERSION = 'build 2026.04.07-187';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {

@@ -1,6 +1,7 @@
 const STORAGE_API_BASE = '/api/storage';
 const BGM_STORAGE_KEY = 'arrowClear_bgmConfig_v1';
 const BGM_STORAGE_FILE = 'bgm-config-v1';
+const BGM_STATIC_CONFIG_PATH = '.local-data/bgm-config-v1.json';
 const BGM_SCHEMA_VERSION = 1;
 
 export const BGM_SCENE_KEYS = Object.freeze({
@@ -59,11 +60,11 @@ async function hydrateBgmFromServer() {
         return;
     }
     const remote = await fetchJsonFromServer(BGM_STORAGE_FILE);
-    const merged = mergeByUpdatedAt(
-        normalizeBgmConfig(remote),
-        readBgmConfig()
-    );
-    const repaired = await repairBgmConfigByLibrary(merged);
+    const remoteNormalized = normalizeBgmConfig(remote);
+    const merged = isGitHubPagesHost()
+        ? remoteNormalized
+        : mergeByUpdatedAt(remoteNormalized, readBgmConfig());
+    const repaired = isGitHubPagesHost() ? merged : await repairBgmConfigByLibrary(merged);
     writeLocalJson(BGM_STORAGE_KEY, repaired);
 }
 
@@ -139,6 +140,9 @@ function getPathBaseName(pathValue) {
 }
 
 async function fetchBgmTrackLibrary() {
+    if (isGitHubPagesHost()) {
+        return [];
+    }
     try {
         const response = await fetch('/api/bgm/list', {
             method: 'GET',
@@ -241,8 +245,27 @@ function decodePathCompat(pathValue) {
 }
 
 async function fetchJsonFromServer(fileKey) {
+    if (isGitHubPagesHost()) {
+        return fetchJsonFromStaticFile();
+    }
     try {
         const response = await fetch(`${STORAGE_API_BASE}/${fileKey}`, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            return fetchJsonFromStaticFile();
+        }
+        const data = await response.json();
+        return isPlainObject(data) ? data : null;
+    } catch {
+        return fetchJsonFromStaticFile();
+    }
+}
+
+async function fetchJsonFromStaticFile() {
+    try {
+        const response = await fetch(BGM_STATIC_CONFIG_PATH, {
             method: 'GET',
             cache: 'no-store'
         });
@@ -257,7 +280,7 @@ async function fetchJsonFromServer(fileKey) {
 }
 
 async function persistBgmToServer(config) {
-    if (!canUseApiStorage()) {
+    if (!canUseApiStorage() || isGitHubPagesHost()) {
         return false;
     }
     try {
@@ -338,5 +361,13 @@ function writeLocalJson(key, value) {
 
 function canUseApiStorage() {
     return typeof window !== 'undefined' && typeof window.fetch === 'function';
+}
+
+function isGitHubPagesHost() {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+    const host = `${window.location?.hostname || ''}`.toLowerCase();
+    return host.endsWith('.github.io');
 }
 
