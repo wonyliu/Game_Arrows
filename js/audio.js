@@ -7,7 +7,7 @@ import {
     normalizeRecipe
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=3';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=4';
 
 export { BGM_SCENE_KEYS };
 
@@ -525,7 +525,7 @@ function getBgmAudioElement() {
             });
             bgmConsecutiveErrorCount += 1;
             if (bgmConsecutiveErrorCount >= Math.max(1, bgmPlaylist.length)) {
-                bgmPlaylist = ['/assets/audio/bgm/小蛇出不去1.mp3'];
+                bgmPlaylist = ['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3'];
                 bgmTrackIndex = 0;
                 bgmPlaylistSignature = playlistSignature(bgmPlaylist);
                 bgmConsecutiveErrorCount = 0;
@@ -1057,7 +1057,7 @@ export function earlyBgmBootstrap() {
     }
     earlyBootstrapDone = true;
     logBgm('early bootstrap start');
-    const defaultSrc = '/assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3';
+    const defaultSrc = 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3';
     const audio = getBgmAudioElement();
     bgmSceneKey = 'home';
     bgmPlaylist = [defaultSrc];
@@ -1086,4 +1086,5 @@ export function earlyBgmBootstrap() {
 }
 
 void initAudioProfileStorage();
+
 

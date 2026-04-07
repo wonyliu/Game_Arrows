@@ -22,7 +22,7 @@ import {
     writeSkinSfxBindings
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=3';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=4';
 
 const EXPORT_SAMPLE_RATE = 48_000;
 const PACK_VARIANT_COUNT = 5;

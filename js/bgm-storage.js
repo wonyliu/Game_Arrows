@@ -14,10 +14,10 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
     version: BGM_SCHEMA_VERSION,
     updatedAt: '',
     scenes: Object.freeze({
-        [BGM_SCENE_KEYS.HOME]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/小蛇出不去1.mp3']), volume: 0.65 }),
-        [BGM_SCENE_KEYS.NORMAL]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/小蛇出不去2.mp3']), volume: 0.72 }),
-        [BGM_SCENE_KEYS.REWARD]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/扭扭舞.mp3']), volume: 0.75 }),
-        [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/小蛇出不去3.mp3']), volume: 0.8 })
+        [BGM_SCENE_KEYS.HOME]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3']), volume: 0.65 }),
+        [BGM_SCENE_KEYS.NORMAL]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb2.mp3']), volume: 0.72 }),
+        [BGM_SCENE_KEYS.REWARD]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u626d\u626d\u821e.mp3']), volume: 0.75 }),
+        [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb3.mp3']), volume: 0.8 })
     })
 });
 
@@ -213,10 +213,13 @@ function normalizeTrackPath(rawPath) {
     }
     text = decodePathCompat(text);
     if (text.startsWith('/assets/audio/bgm/')) {
+        return text.slice(1);
+    }
+    if (text.startsWith('assets/audio/bgm/')) {
         return text;
     }
     if (/^[^/\\]+\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(text)) {
-        return `/assets/audio/bgm/${text}`;
+        return `assets/audio/bgm/${text}`;
     }
     return '';
 }
@@ -336,3 +339,4 @@ function writeLocalJson(key, value) {
 function canUseApiStorage() {
     return typeof window !== 'undefined' && typeof window.fetch === 'function';
 }
+

@@ -16,7 +16,7 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { isLegacyColorVariantSkinId } from './skins.js?v=23';
-import { earlyBgmBootstrap } from './audio.js?v=46';
+import { earlyBgmBootstrap } from './audio.js?v=47';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
