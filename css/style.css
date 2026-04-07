@@ -2194,6 +2194,23 @@ textarea {
     overflow: visible;
 }
 
+#menuOverlay .build-version-tag {
+    position: absolute;
+    right: 14px;
+    bottom: 12px;
+    z-index: 6;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(25, 18, 12, 0.62);
+    color: #ffe8bf;
+    font-family: var(--font-ui-clean);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+    pointer-events: none;
+    user-select: text;
+}
+
 #menuOverlay .btn-play {
     position: relative;
     z-index: 6;

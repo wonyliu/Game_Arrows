@@ -21,6 +21,7 @@ import { earlyBgmBootstrap } from './audio.js?v=48';
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
+const APP_BUILD_VERSION = 'build 2026.04.07-185';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {
@@ -339,6 +340,13 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
     window.addEventListener('DOMContentLoaded', async () => {
         const bootStartedAt = nowMs();
         logBoot('DOMContentLoaded');
+        if (typeof window !== 'undefined') {
+            window.__ARROW_BUILD_VERSION__ = APP_BUILD_VERSION;
+        }
+        const buildVersionTagEl = document.getElementById('buildVersionTag');
+        if (buildVersionTagEl) {
+            buildVersionTagEl.textContent = APP_BUILD_VERSION;
+        }
 
         if (!UI_EDITOR_PREVIEW_PARAMS.enabled) {
             earlyBgmBootstrap();
