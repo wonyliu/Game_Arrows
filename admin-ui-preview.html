@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Editor Preview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css?v=98">
+    <style>
+        html, body {
+            margin: 0;
+            width: 980px;
+            height: 760px;
+            overflow: hidden;
+            background: transparent;
+        }
+
+        body {
+            position: relative;
+        }
+
+        #uiEditorPreviewRoot {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+        }
+
+        #uiEditorPreviewRoot .menu-panel-overlay {
+            background: transparent;
+            backdrop-filter: none;
+        }
+
+        #uiEditorPreviewRoot #checkinOverlay {
+            position: absolute;
+            inset: 0;
+            display: block;
+        }
+
+        #uiEditorPreviewRoot .checkin-scene {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform-origin: top left !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="uiEditorPreviewRoot">
+        <div id="checkinOverlay" class="overlay menu-panel-overlay">
+            <button id="btnBackFromCheckin" class="panel-back-btn checkin-back-btn" type="button">Back</button>
+            <div class="checkin-scene">
+                <div class="checkin-card checkin-card-notebook">
+                    <div class="checkin-ribbon">
+                        <span class="checkin-ribbon-title">签到</span>
+                    </div>
+                    <div id="checkinWeekGrid" class="checkin-grid"></div>
+                    <div id="checkinRewardTooltip" class="checkin-reward-tooltip hidden"></div>
+                    <p id="checkinStatus" class="empty-state">-</p>
+                    <img class="checkin-mascot-snake" src="assets/design-v6/checkin/checkin_mascot_snake_cut.png" alt="snake mascot">
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="js/admin-ui-preview.js?v=3"></script>
+</body>
+</html>

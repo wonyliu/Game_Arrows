@@ -2045,6 +2045,83 @@ button.skin-gen-style-preview:hover {
     font-weight: 700;
 }
 
+.game-music-track-list {
+    max-height: 220px;
+    overflow: auto;
+    border: 1px solid rgba(95, 110, 196, 0.24);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.52);
+    padding: 8px;
+    display: grid;
+    gap: 7px;
+}
+
+.game-music-track-row {
+    display: grid;
+    grid-template-columns: 22px minmax(0, 1fr) 74px;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 10px;
+    border: 1px solid rgba(95, 110, 196, 0.22);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.88);
+    cursor: pointer;
+}
+
+.game-music-track-row:hover {
+    border-color: rgba(95, 110, 196, 0.4);
+}
+
+.game-music-track-row.is-selected {
+    border-color: rgba(71, 113, 49, 0.55);
+    background: rgba(227, 248, 218, 0.9);
+}
+
+.game-music-track-row input[type='checkbox'] {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+}
+
+.game-music-track-name {
+    font-size: 14px;
+    line-height: 1.3;
+    color: #2f3768;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.game-music-preview-btn {
+    justify-self: end;
+    min-width: 64px;
+    height: 30px;
+    border: 1px solid rgba(95, 110, 196, 0.35);
+    border-radius: 8px;
+    background: #ffffff;
+    color: #334182;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.game-music-preview-btn:hover {
+    border-color: rgba(95, 110, 196, 0.58);
+}
+
+.game-music-preview-btn.is-active {
+    background: #334182;
+    color: #fff;
+    border-color: #334182;
+}
+
+.game-music-selection-summary {
+    margin-top: 6px;
+    margin-bottom: 2px;
+    font-size: 12px;
+    color: #49507f;
+    line-height: 1.45;
+}
+
 .events-subtabbar {
     display: flex;
     gap: 8px;

@@ -1,0 +1,20 @@
+{
+  "skinId": "prompt-edit-test",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnde324h-tjb5rt/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnde324h-tjb5rt/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnde324h-tjb5rt/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnde324h-tjb5rt/output/snake_head.png",
+      "target": null,
+      "prompt": "CUSTOM_PROMPT_MARKER_31MAR: Keep exact classic shape and make bright jelly highlights.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

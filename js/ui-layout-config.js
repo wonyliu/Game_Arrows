@@ -1,0 +1,255 @@
+const STORAGE_KEY = 'arrowClear_uiLayout_v1';
+
+function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+}
+
+function readNumber(value, fallback) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function readBool(value, fallback) {
+    return typeof value === 'boolean' ? value : fallback;
+}
+
+function createDefaultDayLayout(day) {
+    const cardMap = {
+        1: { x: 267, y: 209, width: 137, height: 154 },
+        2: { x: 412, y: 209, width: 137, height: 154 },
+        3: { x: 558, y: 210, width: 137, height: 154 },
+        4: { x: 267, y: 366, width: 137, height: 154 },
+        5: { x: 412, y: 368, width: 137, height: 154 },
+        6: { x: 558, y: 366, width: 137, height: 154 },
+        7: { x: 264, y: 531, width: 329, height: 154 }
+    };
+    if (day === 7) {
+        return {
+            card: { ...cardMap[7], visible: true },
+            title: { x: 24, y: 18, width: 120, fontSize: 28, align: 'left', visible: true },
+            icon: { x: 160, y: 53, width: 60, height: 60, visible: true },
+            amount: { x: 289, y: 115, fontSize: 23, visible: true },
+            badge: { x: 160, y: 53, size: 32, visible: true }
+        };
+    }
+    return {
+        card: { ...cardMap[day], visible: true },
+        title: { x: 14, y: 12, width: 109, fontSize: 16, align: 'center', visible: true },
+        icon: { x: 68.5, y: 78, width: 46, height: 46, visible: true },
+        amount: { x: 68.5, y: 120, fontSize: 17, visible: true },
+        badge: { x: 68.5, y: 78, size: 28, visible: true }
+    };
+}
+
+function createDefaultCheckinLayout() {
+    const days = {};
+    for (let day = 1; day <= 7; day += 1) {
+        days[day] = createDefaultDayLayout(day);
+    }
+    return {
+        scene: {
+            scaleMultiplier: 1.8
+        },
+        backButton: {
+            x: 16,
+            y: 16,
+            width: 88,
+            height: 42,
+            fontSize: 18,
+            visible: true
+        },
+        notebook: {
+            width: 980,
+            height: 760,
+            paddingTop: 126,
+            visible: true
+        },
+        ribbon: {
+            x: 230,
+            y: 40,
+            width: 520,
+            height: 170,
+            visible: true
+        },
+        ribbonTitle: {
+            x: 0,
+            y: -4,
+            fontSize: 60,
+            visible: true
+        },
+        mascot: {
+            x: 565,
+            y: 506,
+            width: 132,
+            height: 176,
+            visible: false
+        },
+        rewardTooltip: {
+            x: 42,
+            y: 34,
+            width: 220,
+            followMouse: false,
+            visible: false
+        },
+        status: {
+            x: 300,
+            y: 698,
+            width: 380,
+            fontSize: 13,
+            visible: false
+        },
+        days
+    };
+}
+
+export function getDefaultUiLayoutConfig() {
+    return {
+        checkin: createDefaultCheckinLayout()
+    };
+}
+
+function mergeRect(defaultRect, partialRect) {
+    return {
+        x: readNumber(partialRect?.x, defaultRect.x),
+        y: readNumber(partialRect?.y, defaultRect.y),
+        width: readNumber(partialRect?.width, defaultRect.width),
+        height: readNumber(partialRect?.height, defaultRect.height),
+        visible: readBool(partialRect?.visible, defaultRect.visible ?? true)
+    };
+}
+
+function mergeText(defaultText, partialText) {
+    return {
+        x: readNumber(partialText?.x, defaultText.x),
+        y: readNumber(partialText?.y, defaultText.y),
+        width: readNumber(partialText?.width, defaultText.width),
+        fontSize: readNumber(partialText?.fontSize, defaultText.fontSize),
+        align: `${partialText?.align || defaultText.align || 'center'}`.toLowerCase() === 'left' ? 'left' : 'center',
+        visible: readBool(partialText?.visible, defaultText.visible ?? true)
+    };
+}
+
+function mergePointSize(defaultValue, partialValue) {
+    return {
+        x: readNumber(partialValue?.x, defaultValue.x),
+        y: readNumber(partialValue?.y, defaultValue.y),
+        size: readNumber(partialValue?.size, defaultValue.size),
+        visible: readBool(partialValue?.visible, defaultValue.visible ?? true)
+    };
+}
+
+function mergePointText(defaultValue, partialValue) {
+    return {
+        x: readNumber(partialValue?.x, defaultValue.x),
+        y: readNumber(partialValue?.y, defaultValue.y),
+        fontSize: readNumber(partialValue?.fontSize, defaultValue.fontSize),
+        visible: readBool(partialValue?.visible, defaultValue.visible ?? true)
+    };
+}
+
+function normalizeCheckinLayout(layout) {
+    const defaults = createDefaultCheckinLayout();
+    const normalizedDays = {};
+    for (let day = 1; day <= 7; day += 1) {
+        const fallback = defaults.days[day];
+        const partial = layout?.days?.[day] || layout?.days?.[`${day}`] || {};
+        normalizedDays[day] = {
+            card: mergeRect(fallback.card, partial.card),
+            title: mergeText(fallback.title, partial.title),
+            icon: mergeRect(fallback.icon, partial.icon),
+            amount: mergePointText(fallback.amount, partial.amount),
+            badge: mergePointSize(fallback.badge, partial.badge)
+        };
+    }
+
+    return {
+        scene: {
+            scaleMultiplier: readNumber(layout?.scene?.scaleMultiplier, defaults.scene.scaleMultiplier)
+        },
+        backButton: {
+            x: readNumber(layout?.backButton?.x, defaults.backButton.x),
+            y: readNumber(layout?.backButton?.y, defaults.backButton.y),
+            width: readNumber(layout?.backButton?.width, defaults.backButton.width),
+            height: readNumber(layout?.backButton?.height, defaults.backButton.height),
+            fontSize: readNumber(layout?.backButton?.fontSize, defaults.backButton.fontSize),
+            visible: readBool(layout?.backButton?.visible, defaults.backButton.visible)
+        },
+        notebook: {
+            width: readNumber(layout?.notebook?.width, defaults.notebook.width),
+            height: readNumber(layout?.notebook?.height, defaults.notebook.height),
+            paddingTop: readNumber(layout?.notebook?.paddingTop, defaults.notebook.paddingTop),
+            visible: readBool(layout?.notebook?.visible, defaults.notebook.visible)
+        },
+        ribbon: mergeRect(defaults.ribbon, layout?.ribbon),
+        ribbonTitle: {
+            x: readNumber(layout?.ribbonTitle?.x, defaults.ribbonTitle.x),
+            y: readNumber(layout?.ribbonTitle?.y, defaults.ribbonTitle.y),
+            fontSize: readNumber(layout?.ribbonTitle?.fontSize, defaults.ribbonTitle.fontSize),
+            visible: readBool(layout?.ribbonTitle?.visible, defaults.ribbonTitle.visible)
+        },
+        mascot: mergeRect(defaults.mascot, layout?.mascot),
+        rewardTooltip: {
+            x: readNumber(layout?.rewardTooltip?.x, defaults.rewardTooltip.x),
+            y: readNumber(layout?.rewardTooltip?.y, defaults.rewardTooltip.y),
+            width: readNumber(layout?.rewardTooltip?.width, defaults.rewardTooltip.width),
+            followMouse: readBool(layout?.rewardTooltip?.followMouse, defaults.rewardTooltip.followMouse),
+            visible: readBool(layout?.rewardTooltip?.visible, defaults.rewardTooltip.visible)
+        },
+        status: {
+            x: readNumber(layout?.status?.x, defaults.status.x),
+            y: readNumber(layout?.status?.y, defaults.status.y),
+            width: readNumber(layout?.status?.width, defaults.status.width),
+            fontSize: readNumber(layout?.status?.fontSize, defaults.status.fontSize),
+            visible: readBool(layout?.status?.visible, defaults.status.visible)
+        },
+        days: normalizedDays
+    };
+}
+
+export function normalizeUiLayoutConfig(config) {
+    return {
+        checkin: normalizeCheckinLayout(config?.checkin)
+    };
+}
+
+export function readUiLayoutConfig() {
+    try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+            return getDefaultUiLayoutConfig();
+        }
+        return normalizeUiLayoutConfig(JSON.parse(raw));
+    } catch {
+        return getDefaultUiLayoutConfig();
+    }
+}
+
+export function writeUiLayoutConfig(config) {
+    const normalized = normalizeUiLayoutConfig(config);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
+}
+
+export function resetUiLayoutConfig() {
+    const defaults = getDefaultUiLayoutConfig();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
+    return defaults;
+}
+
+export function subscribeUiLayoutConfig(listener) {
+    if (typeof window === 'undefined' || typeof listener !== 'function') {
+        return () => {};
+    }
+    const handleStorage = (event) => {
+        if (event.key !== STORAGE_KEY) {
+            return;
+        }
+        listener(readUiLayoutConfig());
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+}
+
+export function cloneUiLayoutConfig(config) {
+    return clone(normalizeUiLayoutConfig(config));
+}

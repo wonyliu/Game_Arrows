@@ -1,0 +1,34 @@
+{
+  "jelly-duang": {
+    "impact": 0.2,
+    "pitchSemitone": 3,
+    "length": 1.18,
+    "randomness": 0.22,
+    "bounce": 0.86,
+    "repeats": 2
+  },
+  "candy-crunch": {
+    "impact": 1.09,
+    "pitchSemitone": -11,
+    "length": 0.64,
+    "randomness": 0.07,
+    "bounce": 0.71,
+    "repeats": 3
+  },
+  "gummy-stretch": {
+    "impact": 1.57,
+    "pitchSemitone": -6,
+    "length": 2.04,
+    "randomness": 0.44,
+    "bounce": 0.15,
+    "repeats": 1
+  },
+  "custom-ouch": {
+    "impact": 0.18,
+    "pitchSemitone": 4,
+    "length": 0.6,
+    "randomness": 0.63,
+    "bounce": 0.36,
+    "repeats": 1
+  }
+}

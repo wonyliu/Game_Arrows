@@ -1,0 +1,97 @@
+{
+  "skinId": "candy-balala",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_head.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_head.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_head.png 的新颜色和纹理。\n表情保持与模板一致（Head Default）。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_curious.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head_curious_r2.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_curious_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_curious_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_curious.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_head_curious.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_head_curious.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_head_curious.png 的新颜色和纹理。\n表情保持与模板一致（Head Curious）。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_sleepy.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head_sleepy_r2.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_sleepy_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_sleepy_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_sleepy.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_head_sleepy.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_head_sleepy.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_head_sleepy.png 的新颜色和纹理。\n表情保持与模板一致（Head Sleepy）。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_surprised.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head_surprised_r2.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_surprised_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_surprised_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_head_surprised.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_head_surprised.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_head_surprised.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_head_surprised.png 的新颜色和纹理。\n表情保持与模板一致（Head Surprised）。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_a.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_seg_a.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_seg_a_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_seg_a_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_seg_a.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_seg_a.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_seg_a.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_seg_a.png 的新颜色和纹理。\n这是身体/尾巴配件，不要添加眼睛嘴巴等脸部元素。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_b.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_seg_b.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_seg_b_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_seg_b_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_seg_b.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_seg_b.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_seg_b.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_seg_b.png 的新颜色和纹理。\n这是身体/尾巴配件，不要添加眼睛嘴巴等脸部元素。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_base.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_tail_base.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_tail_base_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_tail_base_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_tail_base.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_tail_base.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_tail_base.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_tail_base.png 的新颜色和纹理。\n这是身体/尾巴配件，不要添加眼睛嘴巴等脸部元素。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_tip.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_tail_tip.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_tail_tip_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_tail_tip_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/output/snake_tail_tip.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/candy-balala/snake_tail_tip.png",
+      "prompt": "任务：生成 1 张蛇皮肤配件图（snake_tail_tip.png）。\n参考图2是洞穴经典该配件的形状模板，必须保持轮廓、比例、朝向完全一致。\n参考图3是洞穴经典该配件原图。\n未提供材质参考图，请根据“用户附加提示”直接设计 snake_tail_tip.png 的新颜色和纹理。\n这是身体/尾巴配件，不要添加眼睛嘴巴等脸部元素。\n\n背景色为纯色：#00ff00。\n全局设计说明：无\n部件编辑说明：无\n用户附加提示：无",
+      "overlay": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mndhng4b-4cb0v2/input/snake_tail_tip_overlay.png",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

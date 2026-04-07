@@ -1586,7 +1586,7 @@ async function handleBgmListRequest(req, res) {
         tracks.push({
             fileName: entry.name,
             name: baseName,
-            url: `/assets/audio/bgm/${encodeURIComponent(entry.name)}`
+            url: `/assets/audio/bgm/${entry.name}`
         });
     }
     tracks.sort((a, b) => a.fileName.localeCompare(b.fileName, 'zh-Hans-CN'));

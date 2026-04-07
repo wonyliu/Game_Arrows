@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-04-03T14:00:46",
+  "model": "gemini-2.5-flash-image",
+  "reference": "assets/design-v6/checkin/checkin_day_card_cut.png",
+  "outputs": [
+    "assets/design-v6/checkin/checkin_day_card_solid.png",
+    "assets/design-v6/checkin/checkin_day7_panel.png"
+  ]
+}

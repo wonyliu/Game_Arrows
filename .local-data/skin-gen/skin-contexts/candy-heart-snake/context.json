@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "skinId": "candy-heart-snake",
+  "templateSkinId": "classic-burrow",
+  "globalNote": "",
+  "promptExtra": "",
+  "masterPrompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路。",
+  "solidBg": "#00ff00",
+  "defaultTolerance": 200,
+  "defaultFeather": 1,
+  "colorVariants": [
+    {
+      "id": "base",
+      "hueShift": 0,
+      "saturation": 1,
+      "lightness": 1,
+      "contrast": 1.03
+    },
+    {
+      "id": "c-fd8101",
+      "hueShift": 12,
+      "saturation": 1.0635776913730948,
+      "lightness": 0.7,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-00aafb",
+      "hueShift": -179,
+      "saturation": 1.0718519849110837,
+      "lightness": 0.7,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-fedd03",
+      "hueShift": 33,
+      "saturation": 1.0635449866555533,
+      "lightness": 0.7,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-d900f9",
+      "hueShift": -86,
+      "saturation": 1.0718519849110837,
+      "lightness": 0.7,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-02d500",
+      "hueShift": 101,
+      "saturation": 1.0718519849110837,
+      "lightness": 0.7,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-de0100",
+      "hueShift": -18,
+      "saturation": 1.0718519849110837,
+      "lightness": 0.7,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-fe9eaf",
+      "hueShift": -29,
+      "saturation": 1.050406366965684,
+      "lightness": 1.0465344109723245,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-fec95b",
+      "hueShift": 22,
+      "saturation": 1.059114587585937,
+      "lightness": 0.8824393828067598,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-f00b56",
+      "hueShift": -38,
+      "saturation": 0.979746900667494,
+      "lightness": 0.7,
+      "contrast": 1.06
+    }
+  ],
+  "styleRefFile": "style_ref.png",
+  "updatedAt": "2026-04-02T04:51:17.124Z"
+}

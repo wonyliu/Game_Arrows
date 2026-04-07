@@ -14,10 +14,10 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
     version: BGM_SCHEMA_VERSION,
     updatedAt: '',
     scenes: Object.freeze({
-        [BGM_SCENE_KEYS.HOME]: Object.freeze({ playlist: Object.freeze([]), volume: 0.65 }),
-        [BGM_SCENE_KEYS.NORMAL]: Object.freeze({ playlist: Object.freeze([]), volume: 0.72 }),
-        [BGM_SCENE_KEYS.REWARD]: Object.freeze({ playlist: Object.freeze([]), volume: 0.75 }),
-        [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: Object.freeze({ playlist: Object.freeze([]), volume: 0.8 })
+        [BGM_SCENE_KEYS.HOME]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/小蛇出不去1.mp3']), volume: 0.65 }),
+        [BGM_SCENE_KEYS.NORMAL]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/小蛇出不去2.mp3']), volume: 0.72 }),
+        [BGM_SCENE_KEYS.REWARD]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/扭扭舞.mp3']), volume: 0.75 }),
+        [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: Object.freeze({ playlist: Object.freeze(['/assets/audio/bgm/小蛇出不去3.mp3']), volume: 0.8 })
     })
 });
 
@@ -59,14 +59,103 @@ async function hydrateBgmFromServer() {
         return;
     }
     const remote = await fetchJsonFromServer(BGM_STORAGE_FILE);
-    if (!remote) {
-        return;
-    }
     const merged = mergeByUpdatedAt(
         normalizeBgmConfig(remote),
         readBgmConfig()
     );
-    writeLocalJson(BGM_STORAGE_KEY, merged);
+    const repaired = await repairBgmConfigByLibrary(merged);
+    writeLocalJson(BGM_STORAGE_KEY, repaired);
+}
+
+async function repairBgmConfigByLibrary(config) {
+    const normalized = normalizeBgmConfig(config);
+    const library = await fetchBgmTrackLibrary();
+    if (!Array.isArray(library) || library.length <= 0) {
+        return normalized;
+    }
+    const fallbackTrack = library[0]?.url || '';
+    const knownUrls = new Set(library.map((row) => `${row.url || ''}`.trim().toLowerCase()).filter(Boolean));
+    const knownByFile = new Map(
+        library
+            .map((row) => [normalizeFileName(row.fileName), `${row.url || ''}`.trim()])
+            .filter(([name, url]) => name && url)
+    );
+
+    const next = {
+        ...normalized,
+        scenes: { ...(normalized.scenes || {}) }
+    };
+    let changed = false;
+    for (const sceneKey of Object.values(BGM_SCENE_KEYS)) {
+        const scene = next.scenes[sceneKey] || { playlist: [], volume: 0.7 };
+        const rawList = Array.isArray(scene.playlist) ? scene.playlist : [];
+        const repairedList = [];
+        for (const item of rawList) {
+            const normalizedPath = normalizeTrackPath(item);
+            if (!normalizedPath) {
+                continue;
+            }
+            const lower = normalizedPath.toLowerCase();
+            if (knownUrls.has(lower)) {
+                repairedList.push(normalizedPath);
+                continue;
+            }
+            const fileName = normalizeFileName(getPathBaseName(normalizedPath));
+            const mapped = fileName ? knownByFile.get(fileName) : '';
+            if (mapped) {
+                repairedList.push(mapped);
+                changed = true;
+            } else if (fallbackTrack) {
+                repairedList.push(fallbackTrack);
+                changed = true;
+            }
+        }
+        const unique = Array.from(new Set(repairedList));
+        if (unique.join('\n') !== rawList.join('\n')) {
+            changed = true;
+        }
+        next.scenes[sceneKey] = {
+            ...scene,
+            playlist: unique
+        };
+    }
+    if (changed) {
+        next.updatedAt = new Date().toISOString();
+    }
+    return next;
+}
+
+function normalizeFileName(value) {
+    return decodePathCompat(`${value || ''}`)
+        .replace(/\?/g, '')
+        .trim()
+        .toLowerCase();
+}
+
+function getPathBaseName(pathValue) {
+    const normalized = `${pathValue || ''}`.replace(/\\/g, '/');
+    const parts = normalized.split('/');
+    return parts[parts.length - 1] || '';
+}
+
+async function fetchBgmTrackLibrary() {
+    try {
+        const response = await fetch('/api/bgm/list', {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            return [];
+        }
+        const payload = await response.json().catch(() => ({}));
+        const tracks = Array.isArray(payload?.tracks) ? payload.tracks : [];
+        return tracks.map((track) => ({
+            url: `${track?.url || ''}`.trim(),
+            fileName: `${track?.fileName || track?.name || ''}`.trim()
+        })).filter((row) => row.url);
+    } catch {
+        return [];
+    }
 }
 
 function normalizeBgmConfig(value, options = {}) {
@@ -118,25 +207,34 @@ function normalizePlaylist(input, fallback = []) {
 }
 
 function normalizeTrackPath(rawPath) {
-    const text = `${rawPath || ''}`.trim();
+    let text = `${rawPath || ''}`.trim();
     if (!text) {
         return '';
     }
+    text = decodePathCompat(text);
     if (text.startsWith('/assets/audio/bgm/')) {
-        return encodeUriPath(text);
+        return text;
     }
     if (/^[^/\\]+\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(text)) {
-        return encodeUriPath(`/assets/audio/bgm/${text}`);
+        return `/assets/audio/bgm/${text}`;
     }
     return '';
 }
 
-function encodeUriPath(pathValue) {
-    try {
-        return encodeURI(pathValue);
-    } catch {
-        return pathValue;
+function decodePathCompat(pathValue) {
+    let out = `${pathValue || ''}`;
+    for (let i = 0; i < 2; i += 1) {
+        try {
+            const decoded = decodeURIComponent(out);
+            if (decoded === out) {
+                break;
+            }
+            out = decoded;
+        } catch {
+            break;
+        }
     }
+    return out;
 }
 
 async function fetchJsonFromServer(fileKey) {

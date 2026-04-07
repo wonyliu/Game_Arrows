@@ -715,6 +715,7 @@ textarea {
     line-height: 1;
     text-align: right;
 }
+}
 
 .menu-content-v2 {
     position: absolute;
@@ -1247,7 +1248,7 @@ textarea {
 
 .audio-row {
     display: grid;
-    grid-template-columns: 58px 1fr;
+    grid-template-columns: 58px 1fr 52px;
     align-items: center;
     gap: 8px;
     min-height: 32px;
@@ -1263,6 +1264,13 @@ textarea {
 .audio-row input[type='range'] {
     width: 100%;
     accent-color: #8f5d39;
+}
+
+.audio-row strong {
+    text-align: right;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+    color: #6b4426;
 }
 
 .graphics-switch {

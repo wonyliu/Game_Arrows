@@ -1,0 +1,97 @@
+{
+  "skinId": "fruit-garden-serpent",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_head.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_curious.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_curious.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_curious_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_curious_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_curious.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_head_curious.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_sleepy.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_sleepy.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_sleepy_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_sleepy_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_sleepy.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_head_sleepy.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_surprised.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_surprised.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_surprised_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_surprised_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_head_surprised.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_head_surprised.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_a.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_seg_a.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_seg_a_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_seg_a_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_seg_a.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_seg_a.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_b.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_seg_b.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_seg_b_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_seg_b_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_seg_b.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_seg_b.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_base.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_tail_base.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_tail_base_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_tail_base_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_tail_base.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_tail_base.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_tip.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_tail_tip.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_tail_tip_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_tail_tip_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnhf5tf9-0s0sfu/output/snake_tail_tip.png",
+      "target": null,
+      "prompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路\n4、纯蓝色背景（因为图中有绿色原色，避免抠图困难）\nPart target: snake_tail_tip.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

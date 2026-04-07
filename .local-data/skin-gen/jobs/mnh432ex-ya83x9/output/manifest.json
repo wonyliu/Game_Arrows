@@ -1,0 +1,20 @@
+{
+  "skinId": "aqua-jelly-snake",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh432ex-ya83x9/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh432ex-ya83x9/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh432ex-ya83x9/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh432ex-ya83x9/output/snake_head.png",
+      "target": null,
+      "prompt": "1. Update the classic-burrow prototype with colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Do not use a snakeskin pattern. The texture should reference the style reference image.\nPart target: snake_head.png.\nKeep geometry exactly the same as template classic-burrow.\nBackground must be pure solid color: #00ff00.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "globalNote": "不要增加样式参考图中没有的纹理，如果参考图有多个色彩，可以根据设计决定只用其中一种色彩和纹理，也可以每个部件各用一个样式参考图中的色彩和纹理。要休闲游戏、可爱、美观",
+  "parts": {
+    "snake_head.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mndj47te-dsd23r\\input\\snake_head_overlay.png"
+    },
+    "snake_head_curious.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mndj47te-dsd23r\\input\\snake_head_curious_overlay.png"
+    },
+    "snake_head_sleepy.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mndj47te-dsd23r\\input\\snake_head_sleepy_overlay.png"
+    },
+    "snake_head_surprised.png": {
+      "note": ""
+    },
+    "snake_seg_a.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mndj47te-dsd23r\\input\\snake_seg_a_overlay.png"
+    },
+    "snake_seg_b.png": {
+      "note": ""
+    },
+    "snake_tail_base.png": {
+      "note": ""
+    },
+    "snake_tail_tip.png": {
+      "note": ""
+    }
+  }
+}

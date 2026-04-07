@@ -1,0 +1,97 @@
+{
+  "skinId": "candy-star-snake",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head.png",
+      "target": null,
+      "prompt": "Task: redesign snake_head.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nExpression: both eyes open, slight neutral frown, no tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_curious.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_curious.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_curious_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_curious_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_curious.png",
+      "target": null,
+      "prompt": "Task: redesign snake_head_curious.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head_curious.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nExpression: one eye open + one wink arc, curious smile, no tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_sleepy.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_sleepy.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_sleepy_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_sleepy_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_sleepy.png",
+      "target": null,
+      "prompt": "Task: redesign snake_head_sleepy.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head_sleepy.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nExpression: sleepy eyes / droopy eyelids, no tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_surprised.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_surprised.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_surprised_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_surprised_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_head_surprised.png",
+      "target": null,
+      "prompt": "Task: redesign snake_head_surprised.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head_surprised.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nExpression: surprised, eyes wide open, small mouth with tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_a.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_seg_a.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_seg_a_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_seg_a_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_seg_a.png",
+      "target": null,
+      "prompt": "Task: redesign snake_seg_a.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_seg_a.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_b.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_seg_b.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_seg_b_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_seg_b_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_seg_b.png",
+      "target": null,
+      "prompt": "Task: redesign snake_seg_b.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_seg_b.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_base.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_tail_base.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_tail_base_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_tail_base_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_tail_base.png",
+      "target": null,
+      "prompt": "Task: redesign snake_tail_base.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_tail_base.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_tip.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_tail_tip.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_tail_tip_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_tail_tip_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnfkzl5s-33rqgu/output/snake_tail_tip.png",
+      "target": null,
+      "prompt": "Task: redesign snake_tail_tip.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_tail_tip.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

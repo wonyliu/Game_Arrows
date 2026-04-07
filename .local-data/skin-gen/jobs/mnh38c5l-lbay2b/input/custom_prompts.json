@@ -1,0 +1,3 @@
+{
+  "snake_head.png": "将 snake_head.png 的颜色和纹理替换成参考图中的样式。\n形状严格使用模板 classic-burrow 对应配件，不改轮廓和比例。\n背景色为纯色：#00ff00。\n全局设计说明：无\n主提示词：1.  Update the classic burrow prototype to match the colors and textures of the style reference image. The overall aesthetic should be a cute, refined, chibi-cartoon style suitable for a casual game.\n2.  Keep the classic burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3.  Do not use a snakeskin texture. Refer to the style reference for the texture pattern.\n用户附加提示：无"
+}

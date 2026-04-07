@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>箭头消消乐管理后台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=68">
+    <link rel="stylesheet" href="css/admin.css?v=69">
 </head>
 <body>
     <main class="admin-hub">
@@ -794,11 +794,11 @@
                     <section class="controls skin-sfx-controls-panel">
                         <h2>游戏音乐管理</h2>
                         <p class="sub">支持按场景绑定 BGM。单曲=单曲循环，多曲=顺序循环。</p>
-                        <p class="sub">按住 Ctrl/Cmd 可多选。</p>
+                        <p class="sub">通过复选框勾选曲目。</p>
 
                         <label class="field">
                             <span>主界面 BGM（游戏启动后）</span>
-                            <select id="gameMusicHomeTracks" multiple size="5"></select>
+                            <div id="gameMusicHomeTracks" class="game-music-track-list"></div>
                         </label>
                         <label class="field">
                             <span>主界面音量（0-1）</span>
@@ -807,7 +807,7 @@
 
                         <label class="field">
                             <span>普通关卡 BGM</span>
-                            <select id="gameMusicNormalTracks" multiple size="5"></select>
+                            <div id="gameMusicNormalTracks" class="game-music-track-list"></div>
                         </label>
                         <label class="field">
                             <span>普通关卡音量（0-1）</span>
@@ -816,7 +816,7 @@
 
                         <label class="field">
                             <span>奖励关卡 BGM</span>
-                            <select id="gameMusicRewardTracks" multiple size="5"></select>
+                            <div id="gameMusicRewardTracks" class="game-music-track-list"></div>
                         </label>
                         <label class="field">
                             <span>奖励关卡音量（0-1）</span>
@@ -825,7 +825,7 @@
 
                         <label class="field">
                             <span>全部通关 BGM</span>
-                            <select id="gameMusicCompleteTracks" multiple size="5"></select>
+                            <div id="gameMusicCompleteTracks" class="game-music-track-list"></div>
                         </label>
                         <label class="field">
                             <span>全部通关音量（0-1）</span>
@@ -1144,7 +1144,7 @@
 <script type="module" src="js/admin-skin-manager.js?v=7"></script>
 <script type="module" src="js/admin-skin-fit.js?v=13"></script>
     <script type="module" src="js/admin-skin-gen.js?v=44"></script>
-    <script type="module" src="js/admin-sfx-lab.js?v=18"></script>
+    <script type="module" src="js/admin-sfx-lab.js?v=25"></script>
     <script type="module" src="js/admin-liveops.js?v=2"></script>
     <script type="module" src="js/admin-ui-editor.js?v=11"></script>
   </body>

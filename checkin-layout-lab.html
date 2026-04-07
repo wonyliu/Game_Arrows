@@ -1,0 +1,79 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkin Layout Lab (Synced)</title>
+  <link rel="stylesheet" href="css/style.css?v=82">
+  <style>
+    body { margin: 0; background: #11172a; }
+    .lab-wrap {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 12px;
+      background: radial-gradient(circle at 20% 20%, #2e3f78, #12172b 60%);
+    }
+    .app-mock {
+      position: relative;
+      width: 430px;
+      height: 932px;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.16);
+      box-shadow: 0 20px 48px rgba(0,0,0,.45);
+      background: center/cover no-repeat url('assets/design-v5/clean/ui_app_bg.png');
+    }
+    #checkinOverlay {
+      position: absolute;
+      inset: 0;
+      display: block !important;
+    }
+  </style>
+</head>
+<body>
+  <div class="lab-wrap">
+    <div class="app-mock">
+      <div id="checkinOverlay" class="overlay menu-panel-overlay">
+        <button id="btnBackFromCheckin" class="panel-back-btn checkin-back-btn" type="button">返回</button>
+        <div class="checkin-scene">
+          <div class="checkin-card checkin-card-notebook">
+            <div class="checkin-ribbon">
+              <span class="checkin-ribbon-title">签到</span>
+            </div>
+            <div id="checkinWeekGrid" class="checkin-grid">
+              <div class="checkin-day is-claimed"><div class="checkin-day-title">第1天</div><div class="checkin-day-reward-list"><span class="checkin-day-reward-item"><img src="assets/design-v5/clean/icon_coin.png" alt="coin"><span class="qty">x30</span></span></div></div>
+              <div class="checkin-day is-next"><div class="checkin-day-title">第2天</div><div class="checkin-day-reward-list"><span class="checkin-day-reward-item"><img src="assets/design-v5/clean/icon_coin.png" alt="coin"><span class="qty">x40</span></span></div></div>
+              <div class="checkin-day"><div class="checkin-day-title">第3天</div><div class="checkin-day-reward-list"><span class="checkin-day-reward-item"><img src="assets/design-v5/clean/icon_coin.png" alt="coin"><span class="qty">x50</span></span></div></div>
+              <div class="checkin-day"><div class="checkin-day-title">第4天</div><div class="checkin-day-reward-list"><span class="checkin-day-reward-item"><img src="assets/design-v2/clean/icon_hint.png" alt="hint"><span class="qty">x1</span></span></div></div>
+              <div class="checkin-day"><div class="checkin-day-title">第5天</div><div class="checkin-day-reward-list"><span class="checkin-day-reward-item"><img src="assets/design-v5/clean/icon_coin.png" alt="coin"><span class="qty">x70</span></span></div></div>
+              <div class="checkin-day"><div class="checkin-day-title">第6天</div><div class="checkin-day-reward-list"><span class="checkin-day-reward-item"><img src="assets/design-v2/clean/icon_theme.png" alt="skin"><span class="qty">x2</span></span></div></div>
+              <div class="checkin-day day-7"><div class="checkin-day-title">第7天</div><div class="checkin-day-reward-list"><span class="checkin-day-reward-item"><img src="assets/design-v2/clean/icon_theme.png" alt="skin"><span class="qty">x1</span></span></div></div>
+            </div>
+            <p id="checkinStatus" class="empty-state">可领取第2天奖励</p>
+            <img class="checkin-mascot-snake" src="assets/design-v6/checkin/checkin_mascot_snake_cut.png" alt="snake mascot">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateCheckinSceneScale() {
+      const scene = document.querySelector('.checkin-scene');
+      if (!scene) return;
+      const designW = 980;
+      const designH = 760;
+      const host = document.querySelector('.app-mock');
+      const vw = host ? host.clientWidth : window.innerWidth;
+      const vh = host ? host.clientHeight : window.innerHeight;
+      const scale = Math.min(1, (vw - 20) / designW, (vh - 28) / designH);
+      const safeScale = Math.max(0.34, scale);
+      scene.style.transform = `scale(${safeScale})`;
+      scene.style.marginBottom = `${Math.max(0, designH * (safeScale - 1))}px`;
+    }
+    window.addEventListener('resize', updateCheckinSceneScale);
+    updateCheckinSceneScale();
+  </script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+{
+  "globalNote": "休闲游戏，卡通Q版风格，可爱、有质感。不要蛇鳞、不要还原真实蛇皮质感。\n每个色块对应蛇的一个配件",
+  "parts": {
+    "snake_head.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_head_overlay.png"
+    },
+    "snake_head_curious.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_head_curious_overlay.png"
+    },
+    "snake_head_sleepy.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_head_sleepy_overlay.png"
+    },
+    "snake_head_surprised.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_head_surprised_overlay.png"
+    },
+    "snake_seg_a.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_seg_a_overlay.png"
+    },
+    "snake_seg_b.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_seg_b_overlay.png"
+    },
+    "snake_tail_base.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_tail_base_overlay.png"
+    },
+    "snake_tail_tip.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mne0uoz2-kawxh7\\input\\snake_tail_tip_overlay.png"
+    }
+  }
+}

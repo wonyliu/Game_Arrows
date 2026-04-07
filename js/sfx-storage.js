@@ -15,6 +15,7 @@ const GAME_SFX_BINDINGS_FILE = 'game-sfx-bindings-v1';
 const DEFAULT_GAME_SFX_BINDINGS = Object.freeze({
     click: 'syrup-pop',
     coin: 'syrup-pop',
+    checkinCoinTrail: 'syrup-pop',
     error: 'fail-plop',
     levelComplete: 'candy-crunch',
     gameOver: 'fail-plop'

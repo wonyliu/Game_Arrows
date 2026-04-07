@@ -1,0 +1,20 @@
+{
+  "skinId": "aqua-jelly-snake",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh0k8ij-b6y96l/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh0k8ij-b6y96l/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh0k8ij-b6y96l/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnh0k8ij-b6y96l/output/snake_head.png",
+      "target": null,
+      "prompt": "Task: redesign snake_head.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nExpression: both eyes open, slight neutral frown, no tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic burrow prototype with the colors and textures from the style reference image. The overall style should be casual game, chibi cartoon, cute, and refined.\n2. Retain the classic burrow's expression. Minor adjustments for beautification are allowed, but no major changes.\n3. Do not use a snakeskin texture. The texture should reference the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

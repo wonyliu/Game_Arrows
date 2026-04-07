@@ -3,9 +3,12 @@ import {
     BGM_SCENE_KEYS,
     playBgmForScene,
     playClickSound as playClickSoundV31,
+    readAudioMixConfig,
     resumeAudio as resumeAudioV31,
+    setMusicVolume,
+    setSfxVolume,
     playCheckinRewardCoinSound
-} from './audio.js?v=32';
+} from './audio.js?v=46';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=23';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=3';
 import { getUiAsset } from './ui-theme.js?v=2';
@@ -120,6 +123,10 @@ export class UI {
         this.exitFeedback = document.getElementById('exitFeedback');
         this.localeZhBtn = document.getElementById('btnLocaleZh');
         this.localeEnBtn = document.getElementById('btnLocaleEn');
+        this.settingsMusicVolumeEl = document.getElementById('settingsMusicVolume');
+        this.settingsSfxVolumeEl = document.getElementById('settingsSfxVolume');
+        this.settingsMusicVolumeValueEl = document.getElementById('settingsMusicVolumeValue');
+        this.settingsSfxVolumeValueEl = document.getElementById('settingsSfxVolumeValue');
         this.settingsEndRunRow = document.getElementById('settingsEndRunRow');
         this.settingsConfirmTitleEl = document.getElementById('settingsConfirmTitle');
         this.settingsConfirmDescEl = document.getElementById('settingsConfirmDesc');
@@ -161,6 +168,7 @@ export class UI {
         this.pendingOnlineRewardPayload = null;
         this.onlineRewardSettleCoinIconEl = null;
         this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
+        this.audioEnabled = this.uiEditorPreviewOptions.enabled !== true;
         this.uiEditorPreviewOverride = null;
         this.uiLayoutConfig = readUiLayoutConfig();
         this.releaseUiLayoutSubscription = subscribeUiLayoutConfig((nextConfig) => {
@@ -171,6 +179,10 @@ export class UI {
         });
 
         this.bindEvents();
+        this.initAudioSettingsUi();
+        if (this.audioEnabled) {
+            this.setupAudioAutoUnlock();
+        }
         this.bindGameCallbacks();
         this.applyThemeAssets();
         this.applyCheckinLayoutConfig();
@@ -183,6 +195,9 @@ export class UI {
             this.refreshOnlineRewardDock();
         }, 1000);
         window.addEventListener('resize', () => this.updateCheckinSceneScale());
+        if (this.audioEnabled) {
+            playBgmForScene(BGM_SCENE_KEYS.HOME);
+        }
 
         if (this.game.isPlaytestMode) {
             this.startSpecificLevel(this.game.currentLevel);
@@ -193,6 +208,71 @@ export class UI {
         if (this.uiEditorPreviewOptions.enabled) {
             this.activateUiEditorPreview();
         }
+    }
+
+    setupAudioAutoUnlock() {
+        const unlock = () => {
+            try {
+                resumeAudioV31();
+            } catch (error) {
+                console.warn('Audio resume failed during auto unlock:', error);
+            }
+            playBgmForScene(BGM_SCENE_KEYS.HOME);
+            document.removeEventListener('pointerdown', unlock, true);
+            document.removeEventListener('keydown', unlock, true);
+            document.removeEventListener('touchstart', unlock, true);
+        };
+
+        document.addEventListener('pointerdown', unlock, true);
+        document.addEventListener('keydown', unlock, true);
+        document.addEventListener('touchstart', unlock, true);
+    }
+
+    initAudioSettingsUi() {
+        this.syncAudioSettingsUi();
+        this.bindAudioSlider(this.settingsMusicVolumeEl, (ratio) => {
+            setMusicVolume(ratio);
+            this.updateAudioSliderValueText(this.settingsMusicVolumeValueEl, ratio);
+        });
+        this.bindAudioSlider(this.settingsSfxVolumeEl, (ratio) => {
+            setSfxVolume(ratio);
+            this.updateAudioSliderValueText(this.settingsSfxVolumeValueEl, ratio);
+        });
+    }
+
+    bindAudioSlider(inputEl, onChange) {
+        if (!inputEl || typeof onChange !== 'function') {
+            return;
+        }
+        const apply = () => {
+            const ratio = Math.max(0, Math.min(1, Number(inputEl.value) / 100));
+            onChange(ratio);
+        };
+        inputEl.addEventListener('input', apply);
+        inputEl.addEventListener('change', apply);
+    }
+
+    syncAudioSettingsUi() {
+        const config = readAudioMixConfig();
+        const musicPercent = Math.round(Math.max(0, Math.min(1, Number(config.music) || 0)) * 100);
+        const sfxPercent = Math.round(Math.max(0, Math.min(1, Number(config.sfx) || 0)) * 100);
+
+        if (this.settingsMusicVolumeEl) {
+            this.settingsMusicVolumeEl.value = String(musicPercent);
+        }
+        if (this.settingsSfxVolumeEl) {
+            this.settingsSfxVolumeEl.value = String(sfxPercent);
+        }
+        this.updateAudioSliderValueText(this.settingsMusicVolumeValueEl, musicPercent / 100);
+        this.updateAudioSliderValueText(this.settingsSfxVolumeValueEl, sfxPercent / 100);
+    }
+
+    updateAudioSliderValueText(targetEl, ratio) {
+        if (!targetEl) {
+            return;
+        }
+        const percent = Math.round(Math.max(0, Math.min(1, Number(ratio) || 0)) * 100);
+        targetEl.textContent = `${percent}%`;
     }
 
     bindEvents() {
@@ -264,8 +344,10 @@ export class UI {
             lastTriggerAt = now;
 
             try {
-                resumeAudioV31();
-                playClickSoundV31();
+                if (this.audioEnabled) {
+                    resumeAudioV31();
+                    playClickSoundV31();
+                }
             } catch (error) {
                 console.warn(`Audio click failed for #${id}:`, error);
             }
@@ -336,6 +418,9 @@ export class UI {
     }
 
     syncGameplayBgm(restart = false) {
+        if (!this.audioEnabled) {
+            return;
+        }
         if (!this.game || this.game.state !== 'PLAYING') {
             return;
         }
@@ -456,7 +541,9 @@ export class UI {
             this.settingsEntry = SETTINGS_ENTRY.MENU;
             this.settingsConfirmMode = SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
             this.updateCoinDisplays();
-            playBgmForScene(BGM_SCENE_KEYS.HOME);
+            if (this.audioEnabled) {
+                playBgmForScene(BGM_SCENE_KEYS.HOME);
+            }
         }
 
         if (target === MENU_PANEL.LEVEL_SELECT) {
@@ -468,6 +555,7 @@ export class UI {
         if (target === MENU_PANEL.SETTINGS) {
             this.settingsOverlay.classList.remove('hidden');
             this.game.state = 'SETTINGS';
+            this.syncAudioSettingsUi();
             this.updateSettingsActionRows();
         }
 
@@ -2437,9 +2525,9 @@ export class UI {
         }
         const isCampaignComplete = typeof this.game.isCampaignCompleted === 'function'
             && this.game.isCampaignCompleted();
-        if (isCampaignComplete) {
+        if (this.audioEnabled && isCampaignComplete) {
             playBgmForScene(BGM_SCENE_KEYS.CAMPAIGN_COMPLETE, { restart: true });
-        } else {
+        } else if (this.audioEnabled) {
             this.syncGameplayBgm(false);
         }
         if (this.levelCompleteNextButton) {
@@ -2496,8 +2584,10 @@ export class UI {
                 button.textContent = i;
                 button.addEventListener('click', () => {
                     try {
-                        resumeAudioV31();
-                        playClickSoundV31();
+                        if (this.audioEnabled) {
+                            resumeAudioV31();
+                            playClickSoundV31();
+                        }
                     } catch (error) {
                         console.warn('Audio click failed for level button:', error);
                     }

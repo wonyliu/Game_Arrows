@@ -1,0 +1,71 @@
+{
+  "version": 1,
+  "skinId": "orange-jelly-snake",
+  "templateSkinId": "classic-burrow",
+  "globalNote": "",
+  "promptExtra": "",
+  "masterPrompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路。",
+  "solidBg": "#00ff00",
+  "defaultTolerance": 42,
+  "defaultFeather": 1,
+  "colorVariants": [
+    {
+      "id": "base",
+      "hueShift": 0,
+      "saturation": 1,
+      "lightness": 1,
+      "contrast": 1.03
+    },
+    {
+      "id": "c-8fce0a",
+      "hueShift": 51,
+      "saturation": 0.9165282911064688,
+      "lightness": 0.8851894374282434,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-e2d18a",
+      "hueShift": 20,
+      "saturation": 0.615434567743611,
+      "lightness": 1.3,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-f40008",
+      "hueShift": -31,
+      "saturation": 1.0080347099469709,
+      "lightness": 0.9923459624952162,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-817fef",
+      "hueShift": -148,
+      "saturation": 0.7884193047297658,
+      "lightness": 1.3,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-dde90d",
+      "hueShift": 35,
+      "saturation": 0.9035834806363489,
+      "lightness": 1,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-44c36c",
+      "hueShift": 110,
+      "saturation": 0.6,
+      "lightness": 1.065059318790662,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-7ae89d",
+      "hueShift": 110,
+      "saturation": 0.7166219607164488,
+      "lightness": 1.3,
+      "contrast": 1.06
+    }
+  ],
+  "styleRefFile": "",
+  "updatedAt": "2026-03-31T13:34:09.755Z"
+}

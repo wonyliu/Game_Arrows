@@ -1,0 +1,20 @@
+{
+  "skinId": "orange-jelly-snake",
+  "templateSkinId": "orange-jelly-snake",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_tail_base.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/orange-jelly-snake/snake_tail_base.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mneggasf-kqxn1x/output/snake_tail_base_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mneggasf-kqxn1x/output/snake_tail_base_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mneggasf-kqxn1x/output/snake_tail_base.png",
+      "target": null,
+      "prompt": "Task: redesign snake_tail_base.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template orange-jelly-snake (snake_tail_base.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype to match the style reference image's colors and textures. The overall aesthetic should be casual, cute, refined, and chibi-cartoon.\n2. Keep classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. No snakeskin texture. Use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

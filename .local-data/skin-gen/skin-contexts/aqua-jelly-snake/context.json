@@ -1,0 +1,85 @@
+{
+  "version": 1,
+  "skinId": "aqua-jelly-snake",
+  "templateSkinId": "classic-burrow",
+  "globalNote": "",
+  "promptExtra": "",
+  "masterPrompt": "1、classic-burrow的原型，换成样式参考图的色彩+质感。整体休闲游戏风格，卡通Q版，可爱、精美。\n2、保留classic-burrow的表情（可以微调细节进行美化，不要大改）\n3、不要蛇皮纹路，纹理参照样式参考路的纹路。",
+  "solidBg": "#00ff00",
+  "defaultTolerance": 200,
+  "defaultFeather": 1,
+  "colorVariants": [
+    {
+      "id": "base",
+      "hueShift": 0,
+      "saturation": 1,
+      "lightness": 1,
+      "contrast": 1.03
+    },
+    {
+      "id": "c-fd8101",
+      "hueShift": -161,
+      "saturation": 1.2686815958590134,
+      "lightness": 0.8460571787621741,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-00aafb",
+      "hueShift": 8,
+      "saturation": 1.2785515320334262,
+      "lightness": 0.8366321080741438,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-fedd03",
+      "hueShift": -139,
+      "saturation": 1.2686425842535811,
+      "lightness": 0.8554822494502042,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-d900f9",
+      "hueShift": 101,
+      "saturation": 1.2785515320334262,
+      "lightness": 0.830348727615457,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-02d500",
+      "hueShift": -72,
+      "saturation": 1.2785515320334262,
+      "lightness": 0.7172478793590952,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-de0100",
+      "hueShift": 169,
+      "saturation": 1.2785515320334262,
+      "lightness": 0.7455230914231857,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-fe9eaf",
+      "hueShift": 158,
+      "saturation": 1.2529702688874993,
+      "lightness": 1.3,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-fec95b",
+      "hueShift": -151,
+      "saturation": 1.26335781210433,
+      "lightness": 1.1319509896324222,
+      "contrast": 1.06
+    },
+    {
+      "id": "c-f00b56",
+      "hueShift": 149,
+      "saturation": 1.1686845931039076,
+      "lightness": 0.8366321080741438,
+      "contrast": 1.06
+    }
+  ],
+  "styleRefFile": "style_ref.png",
+  "updatedAt": "2026-04-02T06:50:57.501Z"
+}

@@ -1,0 +1,30 @@
+{
+  "globalNote": "",
+  "parts": {
+    "snake_head.png": {
+      "note": ""
+    },
+    "snake_head_curious.png": {
+      "note": ""
+    },
+    "snake_head_sleepy.png": {
+      "note": ""
+    },
+    "snake_head_surprised.png": {
+      "note": ""
+    },
+    "snake_seg_a.png": {
+      "note": ""
+    },
+    "snake_seg_b.png": {
+      "note": ""
+    },
+    "snake_tail_base.png": {
+      "note": ""
+    },
+    "snake_tail_tip.png": {
+      "note": "",
+      "overlayPath": "D:\\Projects\\Game_Arrows\\.local-data\\skin-gen\\jobs\\mndhng4b-4cb0v2\\input\\snake_tail_tip_overlay.png"
+    }
+  }
+}

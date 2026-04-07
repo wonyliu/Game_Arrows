@@ -1,0 +1,97 @@
+{
+  "skinId": "new-skin",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_head.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\nReference image 4 is user markup overlay (arrows/regions). Follow those edits with high priority.\n\nPart: snake_head.png (Head Default).\nTemplate skin id: classic-burrow.\nExpression strictness: both eyes open, neutral slight frown mouth, no tongue, no wink.\n\nThis part IS a head. Keep template facial topology and expression class clearly readable.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/input/snake_head_overlay.png",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_curious.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head_curious_r2.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_curious_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_curious_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_curious.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_head_curious.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\n\n\nPart: snake_head_curious.png (Head Curious).\nTemplate skin id: classic-burrow.\nExpression strictness: one eye open + one wink arc, curious smile, no tongue.\n\nThis part IS a head. Keep template facial topology and expression class clearly readable.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_sleepy.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head_sleepy_r2.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_sleepy_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_sleepy_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_sleepy.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_head_sleepy.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\n\n\nPart: snake_head_sleepy.png (Head Sleepy).\nTemplate skin id: classic-burrow.\nExpression strictness: sleepy eye mood, heavy eyelids, no tongue.\n\nThis part IS a head. Keep template facial topology and expression class clearly readable.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_surprised.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_head_surprised_r2.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_surprised_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_surprised_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_head_surprised.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_head_surprised.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\n\n\nPart: snake_head_surprised.png (Head Surprised).\nTemplate skin id: classic-burrow.\nExpression strictness: eyes wide open, small open mouth with tongue visible.\n\nThis part IS a head. Keep template facial topology and expression class clearly readable.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_a.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_seg_a.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_seg_a_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_seg_a_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_seg_a.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_seg_a.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\n\n\nPart: snake_seg_a.png (Segment A).\nTemplate skin id: classic-burrow.\n\n\nThis part is NOT a head. Do not draw eyes, mouth, nose, cheeks, ears, or accessories.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_b.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_seg_b.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_seg_b_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_seg_b_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_seg_b.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_seg_b.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\n\n\nPart: snake_seg_b.png (Segment B).\nTemplate skin id: classic-burrow.\n\n\nThis part is NOT a head. Do not draw eyes, mouth, nose, cheeks, ears, or accessories.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_base.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_tail_base.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_tail_base_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_tail_base_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_tail_base.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_tail_base.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\n\n\nPart: snake_tail_base.png (Tail Base).\nTemplate skin id: classic-burrow.\n\n\nThis part is NOT a head. Do not draw eyes, mouth, nose, cheeks, ears, or accessories.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_tip.png",
+      "template": "D:/Projects/Game_Arrows/assets/design-v4/clean/snake_tail_tip.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_tail_tip_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_tail_tip_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnddm86q-b0jsj8/output/snake_tail_tip.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/new-skin/snake_tail_tip.png",
+      "prompt": "Design ONE snake skin part PNG for a 2D puzzle game.\nReference image 1 = style reference image.\nReference image 2 = geometry lock image from template alpha.\nReference image 3 = template original part for expression/feature anchor.\n\n\nPart: snake_tail_tip.png (Tail Tip).\nTemplate skin id: classic-burrow.\n\n\nThis part is NOT a head. Do not draw eyes, mouth, nose, cheeks, ears, or accessories.\n\nHard requirements:\n- Keep exact silhouette/contour from reference image 2.\n- Keep exact canvas size and center alignment from reference image 2.\n- Output with SOLID background color exactly #00ff00 (no checkerboard, no transparency in raw output).\n- Keep all useful visual content inside template shape only.\n- Keep head/body/tail material and palette coherent as one set.\n- Keep facial features large enough to remain readable in tiny gameplay size.\n- Do not add white border ring outside shape.\n- Do not use transparent outer halo as part of asset.\n\nHard negatives:\n- no shape deformation\n- no contour expansion\n- no extra outline rings\n- no accessories\n- no unrelated background objects\n\nGlobal design notes: none\nPart edit notes: none\nAdditional prompt from user: none",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

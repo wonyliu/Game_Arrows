@@ -50,14 +50,14 @@ function shapeTransient(gainParam, startTime, peakGain, attackSeconds, releaseSe
     gainParam.exponentialRampToValueAtTime(0.0001, releaseEnd);
 }
 
-function createMasterBus(ctx, startTime, boost = 1) {
+function createMasterBus(ctx, startTime, boost = 1, outputNode = null) {
     const compressor = ctx.createDynamicsCompressor();
     compressor.threshold.setValueAtTime(-18, startTime);
     compressor.knee.setValueAtTime(12, startTime);
     compressor.ratio.setValueAtTime(4, startTime);
     compressor.attack.setValueAtTime(0.002, startTime);
     compressor.release.setValueAtTime(0.12, startTime);
-    compressor.connect(ctx.destination);
+    compressor.connect(outputNode || ctx.destination);
 
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.88 * clamp(boost, 0.7, 1.5), startTime);
@@ -300,10 +300,18 @@ export function estimateRecipeDuration(recipe, fallbackPresetId = 'candy-crunch'
     return clamp(duration, 0.12, 6.0);
 }
 
-export function synthRecipe(ctx, recipe, startTime = 0, seed = Date.now(), gainBoost = 1, fallbackPresetId = 'candy-crunch') {
+export function synthRecipe(
+    ctx,
+    recipe,
+    startTime = 0,
+    seed = Date.now(),
+    gainBoost = 1,
+    fallbackPresetId = 'candy-crunch',
+    outputNode = null
+) {
     const normalized = normalizeRecipe(recipe, fallbackPresetId);
     const rng = createRng(seed || Date.now());
-    const bus = createMasterBus(ctx, startTime, gainBoost);
+    const bus = createMasterBus(ctx, startTime, gainBoost, outputNode);
     const p = normalized.params;
 
     switch (normalized.presetId) {

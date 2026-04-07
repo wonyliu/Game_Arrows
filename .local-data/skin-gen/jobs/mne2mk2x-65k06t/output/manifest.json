@@ -1,0 +1,97 @@
+{
+  "skinId": "jade-scale-serpent",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_head.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_head.png",
+      "prompt": "Task: redesign snake_head.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nExpression: both eyes open, slight neutral frown, no tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_curious.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_curious.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_curious_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_curious_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_curious.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_head_curious.png",
+      "prompt": "Task: redesign snake_head_curious.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head_curious.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nExpression: one eye open + one wink arc, curious smile, no tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_sleepy.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_sleepy.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_sleepy_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_sleepy_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_sleepy.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_head_sleepy.png",
+      "prompt": "Task: redesign snake_head_sleepy.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head_sleepy.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nExpression: sleepy eyes / droopy eyelids, no tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_head_surprised.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_head_surprised.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_surprised_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_surprised_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_head_surprised.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_head_surprised.png",
+      "prompt": "Task: redesign snake_head_surprised.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_head_surprised.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nExpression: surprised, eyes wide open, small mouth with tongue.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_a.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_seg_a.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_seg_a_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_seg_a_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_seg_a.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_seg_a.png",
+      "prompt": "Task: redesign snake_seg_a.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_seg_a.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_seg_b.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_seg_b.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_seg_b_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_seg_b_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_seg_b.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_seg_b.png",
+      "prompt": "Task: redesign snake_seg_b.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_seg_b.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_base.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_tail_base.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_tail_base_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_tail_base_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_tail_base.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_tail_base.png",
+      "prompt": "Task: redesign snake_tail_base.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_tail_base.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    },
+    {
+      "part": "snake_tail_tip.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_tail_tip.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_tail_tip_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_tail_tip_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mne2mk2x-65k06t/output/snake_tail_tip.png",
+      "target": "D:/Projects/Game_Arrows/assets/skins/jade-scale-serpent/snake_tail_tip.png",
+      "prompt": "Task: redesign snake_tail_tip.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_tail_tip.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nNo style image provided; create new material from text notes.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: none.\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}

@@ -22,7 +22,7 @@ import {
     writeSkinSfxBindings
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=1';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=3';
 
 const EXPORT_SAMPLE_RATE = 48_000;
 const PACK_VARIANT_COUNT = 5;
@@ -142,6 +142,11 @@ const state = {
         stableAudioBackend: ''
     },
     bgmTrackLibrary: [],
+    bgmPreview: {
+        audio: null,
+        trackUrl: '',
+        isPlaying: false
+    },
     externalSample: null,
     externalTrim: null
 };
@@ -315,7 +320,7 @@ function renderExternalSampleState() {
         if (el.externalSourceLabel) el.externalSourceLabel.textContent = '-';
         if (el.trimStart) el.trimStart.value = '0';
         if (el.trimEnd) el.trimEnd.value = '0';
-        setTrimStatus('鏈鍒囥€?);
+        setTrimStatus('未裁切。');
         return;
     }
     if (el.externalSourceLabel) {
@@ -331,10 +336,12 @@ function renderExternalSampleState() {
     if (el.trimStart) el.trimStart.value = '0';
     if (el.trimEnd) el.trimEnd.value = duration > 0 ? duration.toFixed(2) : '0';
     if (!state.externalTrim) {
-        setTrimStatus(`鍘熷鏃堕暱锛?{duration.toFixed(2)}s锛堟湭瑁佸垏锛塦);
+        setTrimStatus(`原始时长：${duration.toFixed(2)}s（未裁切）`);
     } else {
         const trimmedDuration = Math.max(0, Number(state.externalTrim.end) - Number(state.externalTrim.start));
-        setTrimStatus(`宸茶鍒囷細${state.externalTrim.start.toFixed(2)}s - ${state.externalTrim.end.toFixed(2)}s锛?{trimmedDuration.toFixed(2)}s锛塦);
+        setTrimStatus(
+            `已裁切：${state.externalTrim.start.toFixed(2)}s - ${state.externalTrim.end.toFixed(2)}s（${trimmedDuration.toFixed(2)}s）`
+        );
     }
 }
 
@@ -535,20 +542,18 @@ async function fetchProviderCaps() {
         el.btnAiGenerate.disabled = !state.providerCaps.stableAudioOpen;
     }
     if (!state.providerCaps.freesound) {
-        setFsStatus('Freesound 鏈厤缃細璇峰湪鍚姩鏈嶅姟鏃惰缃?FREESOUND_API_KEY銆?, true);
+        setFsStatus('Freesound 未配置：请在启动服务时设置 FREESOUND_API_KEY。', true);
     } else {
-        setFsStatus('Ready.');
+        setFsStatus('就绪。');
     }
     if (!state.providerCaps.stableAudioOpen) {
-        setAiStatus('Stable Audio 鏈厤缃細璇疯缃?FAL_KEY锛堟帹鑽愶級鎴?HUGGINGFACE_API_TOKEN銆?, true);
+        setAiStatus('Stable Audio 未配置：请设置 FAL_KEY（推荐）或 HUGGINGFACE_API_TOKEN。', true);
+    } else if (state.providerCaps.stableAudioBackend === 'fal' || state.providerCaps.stableAudioFal) {
+        setAiStatus('就绪。当前后端：fal.ai');
+    } else if (state.providerCaps.stableAudioHf) {
+        setAiStatus('就绪。当前后端：Hugging Face');
     } else {
-        if (state.providerCaps.stableAudioBackend === 'fal' || state.providerCaps.stableAudioFal) {
-            setAiStatus('Ready. 褰撳墠鍚庣锛歠al.ai');
-        } else if (state.providerCaps.stableAudioHf) {
-            setAiStatus('Ready. 褰撳墠鍚庣锛欻ugging Face');
-        } else {
-            setAiStatus('Ready.');
-        }
+        setAiStatus('就绪。');
     }
 }
 
@@ -843,7 +848,7 @@ function buildFilename(presetId, suffix = '') {
 
 async function renderRecipeToWav(recipe, seed) {
     const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!OfflineCtor) throw new Error('褰撳墠娴忚鍣ㄤ笉鏀寔 OfflineAudioContext');
+    if (!OfflineCtor) throw new Error('当前浏览器不支持 OfflineAudioContext');
     const duration = estimateDurationSeconds(recipe) + 0.25;
     const frames = Math.ceil(duration * EXPORT_SAMPLE_RATE);
     const ctx = new OfflineCtor(2, frames, EXPORT_SAMPLE_RATE);
@@ -858,7 +863,7 @@ async function renderExternalToWav(playbackRate = 1) {
         throw new Error('no external sample');
     }
     const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!OfflineCtor) throw new Error('褰撳墠娴忚鍣ㄤ笉鏀寔 OfflineAudioContext');
+    if (!OfflineCtor) throw new Error('当前浏览器不支持 OfflineAudioContext');
     const rate = clamp(Number(playbackRate) || 1, 0.5, 1.8);
     const trim = resolveExternalTrimWindow();
     const baseDuration = trim ? Math.max(0.01, trim.end - trim.start) : sample.buffer.duration;
@@ -885,7 +890,7 @@ async function renderExternalRecipeToWav(recipe, seed = Date.now()) {
         throw new Error('no external sample');
     }
     const OfflineCtor = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-    if (!OfflineCtor) throw new Error('褰撳墠娴忚鍣ㄤ笉鏀寔 OfflineAudioContext');
+    if (!OfflineCtor) throw new Error('当前浏览器不支持 OfflineAudioContext');
     const trim = resolveExternalTrimWindow();
     const partDuration = trim ? Math.max(0.01, trim.end - trim.start) : sample.buffer.duration;
     const offset = trim ? trim.start : 0;
@@ -959,9 +964,9 @@ async function playPresetPreview(presetId, skinLabel = '') {
         if (!samplePlayed) {
             synthRecipe(ctx, recipe, ctx.currentTime + 0.02, Date.now(), 1, recipe.presetId);
         }
-        setSkinStatus(`璇曞惉锛?{skinLabel || preset.id} -> ${preset.name}`);
+        setSkinStatus(`试听：${skinLabel || preset.id} -> ${preset.name}`);
     } catch (error) {
-        setSkinStatus(`璇曞惉澶辫触锛?{error?.message || 'Unknown error'}`, true);
+        setSkinStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
     }
 }
 
@@ -1028,7 +1033,7 @@ async function handleDownloadPack() {
             ? slugifyLabel(state.externalSample?.fileName || state.externalSample?.sourceLabel, 'external-sfx')
             : base.presetId;
         for (let i = 0; i < PACK_VARIANT_COUNT; i += 1) {
-            setStatus(`姝ｅ湪鐢熸垚鍙樹綋 ${i + 1}/${PACK_VARIANT_COUNT}...`);
+            setStatus(`正在生成变体 ${i + 1}/${PACK_VARIANT_COUNT}...`);
             const blob = previewMode === 'external'
                 ? await renderExternalRecipeToWav(createVariantRecipe(base, i + 1), Date.now() + i * 997)
                 : await renderRecipeToWav(createVariantRecipe(base, i + 1), Date.now() + i * 997);
@@ -1046,7 +1051,7 @@ function renderFreesoundResults(rows = []) {
     if (!Array.isArray(rows) || rows.length <= 0) {
         const empty = document.createElement('div');
         empty.className = 'sfx-source-result-item';
-        empty.textContent = '鏃犵粨鏋溿€傝灏濊瘯鏇存崲鍏抽敭璇嶃€?;
+        empty.textContent = '无结果，请尝试更换关键词。';
         el.fsResults.appendChild(empty);
         return;
     }
@@ -1069,7 +1074,7 @@ function renderFreesoundResults(rows = []) {
 
         const btnPreview = document.createElement('button');
         btnPreview.type = 'button';
-        btnPreview.textContent = '璇曞惉';
+        btnPreview.textContent = '试听';
         btnPreview.addEventListener('click', () => {
             if (!row.previewUrl) return;
             const proxyUrl = `/api/sfx/freesound/proxy?url=${encodeURIComponent(row.previewUrl)}`;
@@ -1078,14 +1083,14 @@ function renderFreesoundResults(rows = []) {
                 el.externalPreviewAudio.src = proxyUrl;
                 el.externalPreviewAudio.play().catch(() => {});
             }
-            setFsStatus(`璇曞惉锛?{row.name}`);
+            setFsStatus(`试听：${row.name}`);
         });
         actions.appendChild(btnPreview);
 
         const btnUse = document.createElement('button');
         btnUse.type = 'button';
         btnUse.className = 'primary';
-        btnUse.textContent = '瀵煎叆宸ュ潑';
+        btnUse.textContent = '导入工坊';
         btnUse.addEventListener('click', async () => {
             if (!row.previewUrl) return;
             btnUse.disabled = true;
@@ -1101,10 +1106,10 @@ function renderFreesoundResults(rows = []) {
                     `Freesound: ${row.name} (#${row.id})`,
                     `${slugifyLabel(row.name || `fs-${row.id}`, `freesound-${row.id}`)}.wav`
                 );
-                setFsStatus(`宸插鍏ワ細${row.name}`);
+                setFsStatus(`已导入：${row.name}`);
                 setStatus(`External sample ready: ${row.name}`);
             } catch (error) {
-                setFsStatus(`瀵煎叆澶辫触锛?{error?.message || 'Unknown error'}`, true);
+                setFsStatus(`导入失败：${error?.message || 'Unknown error'}`, true);
             } finally {
                 btnUse.disabled = false;
             }
@@ -1118,26 +1123,26 @@ function renderFreesoundResults(rows = []) {
 
 async function handleFreesoundSearch() {
     if (!state.providerCaps.freesound) {
-        setFsStatus('Freesound 鏈厤缃?API Key銆?, true);
+        setFsStatus('Freesound 未配置 API Key。', true);
         return;
     }
     const query = `${el.fsQuery?.value || ''}`.trim();
     if (!query) {
-        setFsStatus('璇疯緭鍏ュ叧閿瘝銆?, true);
+        setFsStatus('请输入关键词。', true);
         return;
     }
     const license = `${el.fsLicense?.value || 'all'}`.trim();
-    setFsStatus('姝ｅ湪鎼滅储...');
+    setFsStatus('正在搜索...');
     if (el.btnFsSearch) el.btnFsSearch.disabled = true;
     try {
         const url = `/api/sfx/freesound/search?q=${encodeURIComponent(query)}&license=${encodeURIComponent(license)}&page_size=12`;
         const data = await fetchJsonWithError(url);
         const rows = Array.isArray(data?.results) ? data.results : [];
         renderFreesoundResults(rows);
-        setFsStatus(`鎼滅储瀹屾垚锛?{rows.length} 鏉＄粨鏋溿€俙);
+        setFsStatus(`搜索完成：${rows.length} 条结果。`);
     } catch (error) {
         renderFreesoundResults([]);
-        setFsStatus(`鎼滅储澶辫触锛?{error?.message || 'Unknown error'}`, true);
+        setFsStatus(`搜索失败：${error?.message || 'Unknown error'}`, true);
     } finally {
         if (el.btnFsSearch) el.btnFsSearch.disabled = !state.providerCaps.freesound;
     }
@@ -1145,16 +1150,16 @@ async function handleFreesoundSearch() {
 
 async function handleStableAudioGenerate() {
     if (!state.providerCaps.stableAudioOpen) {
-        setAiStatus('Stable Audio 鏈厤缃細璇疯缃?FAL_KEY 鎴?HUGGINGFACE_API_TOKEN銆?, true);
+        setAiStatus('Stable Audio 未配置：请设置 FAL_KEY 或 HUGGINGFACE_API_TOKEN。', true);
         return;
     }
     const prompt = `${el.aiPrompt?.value || ''}`.trim();
     if (!prompt) {
-        setAiStatus('璇疯緭鍏ユ枃鏈彁绀鸿瘝銆?, true);
+        setAiStatus('请输入文本提示词。', true);
         return;
     }
     const durationSeconds = clamp(Number(el.aiDuration?.value || 2), 1, 10);
-    setAiStatus('姝ｅ湪鐢熸垚...');
+    setAiStatus('正在生成...');
     if (el.btnAiGenerate) el.btnAiGenerate.disabled = true;
     try {
         const response = await fetch('/api/sfx/stable-audio/generate', {
@@ -1176,13 +1181,13 @@ async function handleStableAudioGenerate() {
             `${slugifyLabel(prompt.slice(0, 48), 'stable-audio')}.wav`
         );
         if (state.providerCaps.stableAudioBackend === 'fal' || state.providerCaps.stableAudioFal) {
-            setAiStatus('鐢熸垚鎴愬姛锛坒al.ai锛夛紝宸插鍏ュ伐鍧娿€?);
+            setAiStatus('生成成功（fal.ai），已导入工坊。');
         } else {
-            setAiStatus('鐢熸垚鎴愬姛锛屽凡瀵煎叆宸ュ潑銆?);
+            setAiStatus('生成成功，已导入工坊。');
         }
         setStatus('Stable Audio sample ready.');
     } catch (error) {
-        setAiStatus(`鐢熸垚澶辫触锛?{error?.message || 'Unknown error'}`, true);
+        setAiStatus(`生成失败：${error?.message || 'Unknown error'}`, true);
     } finally {
         if (el.btnAiGenerate) el.btnAiGenerate.disabled = !state.providerCaps.stableAudioOpen;
     }
@@ -1191,7 +1196,7 @@ async function handleStableAudioGenerate() {
 async function handleSampleUpload(file) {
     if (!file) return;
     try {
-        await setExternalSampleFromBlob(file, `鏈湴閲囨牱: ${file.name}`, file.name);
+        await setExternalSampleFromBlob(file, `本地采样: ${file.name}`, file.name);
         setStatus(`Loaded local sample: ${file.name}`);
     } catch (error) {
         setStatus(`Load sample failed: ${error?.message || 'Unknown error'}`, true);
@@ -1311,7 +1316,7 @@ function renderSkinBindingList() {
         const btnPreview = document.createElement('button');
         btnPreview.type = 'button';
         btnPreview.className = 'skin-sfx-preview-btn';
-        btnPreview.textContent = '璇曞惉';
+        btnPreview.textContent = '试听';
         btnPreview.addEventListener('click', () => {
             void playPresetPreview(select.value, row.nameZh || row.id);
         });
@@ -1378,14 +1383,14 @@ function saveGameSfxBindingsFromUi() {
         }
         state.gameSfxBindings = setGameSfxPresetId(eventKey, select.value);
     }
-    setGameSfxStatus('宸蹭繚瀛樻父鎴忛煶鏁堥厤缃€?);
+    setGameSfxStatus('已保存游戏音效配置。');
 }
 
 function resetGameSfxBindingsToDefault() {
     state.gameSfxBindings = writeGameSfxBindings({});
     refreshGameSfxState();
     refreshGameSfxPresetOptions();
-    setGameSfxStatus('宸叉仮澶嶉粯璁ゆ父鎴忛煶鏁堛€?);
+    setGameSfxStatus('已恢复默认游戏音效。');
 }
 
 const GAME_MUSIC_SCENE_FIELD_MAP = Object.freeze({
@@ -1403,23 +1408,100 @@ function clampMusicVolume(value, fallback = 0.7) {
     return Math.max(0, Math.min(1, parsed));
 }
 
-function getSelectedValues(selectEl) {
-    if (!selectEl) {
+function decodeUriLoose(text) {
+    let out = `${text || ''}`.trim();
+    for (let i = 0; i < 2; i += 1) {
+        try {
+            const next = decodeURIComponent(out);
+            if (next === out) {
+                break;
+            }
+            out = next;
+        } catch {
+            break;
+        }
+    }
+    return out;
+}
+
+function normalizeTrackValueForMatch(value) {
+    let text = decodeUriLoose(value).replace(/\\/g, '/').trim();
+    if (!text) {
+        return '';
+    }
+    if (/^https?:\/\//i.test(text)) {
+        try {
+            const parsed = new URL(text, window.location.origin);
+            text = parsed.pathname || text;
+        } catch {
+            // keep original text
+        }
+    }
+    return text;
+}
+
+function getTrackBaseName(value) {
+    const normalized = normalizeTrackValueForMatch(value);
+    if (!normalized) {
+        return '';
+    }
+    const chunks = normalized.split('/');
+    return chunks[chunks.length - 1] || '';
+}
+
+function buildTrackMatchKeys(value) {
+    const normalized = normalizeTrackValueForMatch(value);
+    if (!normalized) {
         return [];
     }
-    return Array.from(selectEl.selectedOptions || [])
-        .map((option) => `${option.value || ''}`.trim())
+    const baseName = getTrackBaseName(normalized);
+    const keys = [normalized];
+    if (baseName) {
+        keys.push(baseName);
+    }
+    return Array.from(new Set(keys.map((item) => item.toLowerCase())));
+}
+
+function formatTrackLabel(value) {
+    const baseName = decodeUriLoose(getTrackBaseName(value));
+    return baseName || decodeUriLoose(value);
+}
+
+function getSelectedValues(containerEl) {
+    if (!containerEl || !(containerEl instanceof HTMLElement)) {
+        return [];
+    }
+    return Array.from(containerEl.querySelectorAll('input[type="checkbox"][data-track-url]'))
+        .filter((input) => input.checked)
+        .map((input) => `${input.getAttribute('data-track-url') || ''}`.trim())
         .filter(Boolean);
 }
 
-function setSelectedValues(selectEl, values) {
-    if (!selectEl) {
-        return;
+function setSelectedValues(containerEl, values) {
+    if (!containerEl || !(containerEl instanceof HTMLElement)) {
+        return [];
     }
-    const selected = new Set(Array.isArray(values) ? values : []);
-    for (const option of Array.from(selectEl.options || [])) {
-        option.selected = selected.has(option.value);
+    const rawValues = Array.isArray(values) ? values.map((item) => `${item || ''}`.trim()).filter(Boolean) : [];
+    const selected = new Set(rawValues.flatMap((item) => buildTrackMatchKeys(item)));
+    const matchedRawValues = new Set();
+    for (const input of Array.from(containerEl.querySelectorAll('input[type="checkbox"][data-track-url]'))) {
+        const trackUrl = `${input.getAttribute('data-track-url') || ''}`.trim();
+        const trackFile = `${input.getAttribute('data-track-file') || ''}`.trim();
+        const row = input.closest('.game-music-track-row');
+        const keys = [...buildTrackMatchKeys(trackUrl), ...buildTrackMatchKeys(trackFile)];
+        const isMatched = keys.some((key) => selected.has(key));
+        input.checked = isMatched;
+        row?.classList.toggle('is-selected', isMatched);
+        if (isMatched) {
+            for (const raw of rawValues) {
+                const rawKeys = buildTrackMatchKeys(raw);
+                if (rawKeys.some((key) => keys.includes(key))) {
+                    matchedRawValues.add(raw);
+                }
+            }
+        }
     }
+    return rawValues.filter((item) => !matchedRawValues.has(item));
 }
 
 async function fetchBgmTrackLibrary() {
@@ -1455,20 +1537,166 @@ async function fetchBgmTrackLibrary() {
 
 function renderGameMusicTrackOptions() {
     for (const sceneFields of Object.values(GAME_MUSIC_SCENE_FIELD_MAP)) {
-        const select = el[sceneFields.tracks];
-        if (!select) {
+        const container = el[sceneFields.tracks];
+        if (!container || !(container instanceof HTMLElement)) {
             continue;
         }
-        const existingSelected = getSelectedValues(select);
-        select.innerHTML = '';
+        const existingSelected = getSelectedValues(container);
+        container.innerHTML = '';
         for (const track of state.bgmTrackLibrary) {
-            const option = document.createElement('option');
-            option.value = track.url;
-            option.textContent = track.name;
-            option.title = track.fileName;
-            select.appendChild(option);
+            const row = document.createElement('label');
+            row.className = 'game-music-track-row';
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.setAttribute('data-track-url', track.url);
+            checkbox.setAttribute('data-track-file', track.fileName || track.name || '');
+            checkbox.value = track.url;
+            checkbox.checked = existingSelected.includes(track.url);
+            checkbox.addEventListener('change', () => {
+                row.classList.toggle('is-selected', checkbox.checked);
+                refreshGameMusicSelectionSummary();
+            });
+            const name = document.createElement('span');
+            name.className = 'game-music-track-name';
+            name.textContent = track.name;
+            name.title = track.fileName;
+            const previewBtn = document.createElement('button');
+            previewBtn.type = 'button';
+            previewBtn.className = 'game-music-preview-btn';
+            previewBtn.setAttribute('data-track-url', track.url);
+            previewBtn.textContent = '试听';
+            previewBtn.addEventListener('click', async (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                await toggleBgmTrackPreview(track.url);
+            });
+            row.appendChild(checkbox);
+            row.appendChild(name);
+            row.appendChild(previewBtn);
+            container.appendChild(row);
         }
-        setSelectedValues(select, existingSelected);
+        setSelectedValues(container, existingSelected);
+    }
+    refreshBgmPreviewButtons();
+}
+
+function ensureGameMusicSceneSummary(container) {
+    if (!container || !(container instanceof HTMLElement)) {
+        return null;
+    }
+    let summary = container.parentElement?.querySelector('.game-music-selection-summary');
+    if (!summary) {
+        summary = document.createElement('div');
+        summary.className = 'game-music-selection-summary';
+        container.insertAdjacentElement('afterend', summary);
+    }
+    return summary;
+}
+
+function refreshGameMusicSelectionSummary() {
+    for (const sceneFields of Object.values(GAME_MUSIC_SCENE_FIELD_MAP)) {
+        const container = el[sceneFields.tracks];
+        const summary = ensureGameMusicSceneSummary(container);
+        if (!container || !summary) {
+            continue;
+        }
+        const checkedLabels = Array.from(container.querySelectorAll('input[type="checkbox"][data-track-url]'))
+            .filter((input) => input.checked)
+            .map((input) => {
+                const row = input.closest('.game-music-track-row');
+                const label = row?.querySelector('.game-music-track-name')?.textContent || '';
+                return `${label}`.trim() || formatTrackLabel(input.getAttribute('data-track-url') || '');
+            })
+            .filter(Boolean);
+        const unmatched = `${container.dataset.unmatchedTracks || ''}`
+            .split('\n')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        const selectedText = checkedLabels.length > 0
+            ? `当前已选：${checkedLabels.join('、')}`
+            : '当前已选：无';
+        const unmatchedText = unmatched.length > 0
+            ? `；未匹配到曲库：${unmatched.map((item) => formatTrackLabel(item)).join('、')}`
+            : '';
+        summary.textContent = `${selectedText}${unmatchedText}`;
+    }
+}
+
+function getBgmPreviewAudio() {
+    if (state.bgmPreview.audio) {
+        return state.bgmPreview.audio;
+    }
+    const audio = new Audio();
+    audio.preload = 'none';
+    audio.autoplay = false;
+    audio.loop = false;
+    audio.addEventListener('ended', () => {
+        state.bgmPreview.isPlaying = false;
+        state.bgmPreview.trackUrl = '';
+        refreshBgmPreviewButtons();
+    });
+    state.bgmPreview.audio = audio;
+    return audio;
+}
+
+function stopBgmTrackPreview() {
+    const audio = state.bgmPreview.audio;
+    if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.removeAttribute('src');
+        audio.load();
+    }
+    state.bgmPreview.trackUrl = '';
+    state.bgmPreview.isPlaying = false;
+    refreshBgmPreviewButtons();
+}
+
+async function toggleBgmTrackPreview(trackUrl) {
+    const safeUrl = `${trackUrl || ''}`.trim();
+    if (!safeUrl) {
+        return;
+    }
+    const audio = getBgmPreviewAudio();
+    if (state.bgmPreview.trackUrl === safeUrl) {
+        if (state.bgmPreview.isPlaying) {
+            audio.pause();
+            state.bgmPreview.isPlaying = false;
+        } else {
+            try {
+                await audio.play();
+                state.bgmPreview.isPlaying = true;
+            } catch (error) {
+                setGameMusicStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
+                state.bgmPreview.isPlaying = false;
+            }
+        }
+        refreshBgmPreviewButtons();
+        return;
+    }
+    audio.pause();
+    audio.currentTime = 0;
+    audio.src = safeUrl;
+    state.bgmPreview.trackUrl = safeUrl;
+    try {
+        await audio.play();
+        state.bgmPreview.isPlaying = true;
+        setGameMusicStatus(`正在试听：${formatTrackLabel(safeUrl)}`);
+    } catch (error) {
+        state.bgmPreview.isPlaying = false;
+        setGameMusicStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
+    }
+    refreshBgmPreviewButtons();
+}
+
+function refreshBgmPreviewButtons() {
+    const allButtons = Array.from(document.querySelectorAll('.game-music-preview-btn'));
+    for (const button of allButtons) {
+        const url = `${button.getAttribute('data-track-url') || ''}`.trim();
+        const isCurrent = url && url === state.bgmPreview.trackUrl;
+        const isPlaying = isCurrent && state.bgmPreview.isPlaying;
+        button.textContent = isPlaying ? '暂停' : (isCurrent ? '继续' : '试听');
+        button.classList.toggle('is-active', isPlaying);
     }
 }
 
@@ -1476,26 +1704,30 @@ function refreshGameMusicUiFromConfig() {
     const config = readBgmConfig();
     const scenes = config?.scenes || {};
     for (const [sceneKey, sceneFields] of Object.entries(GAME_MUSIC_SCENE_FIELD_MAP)) {
-        const select = el[sceneFields.tracks];
+        const container = el[sceneFields.tracks];
         const volumeInput = el[sceneFields.volume];
         const scene = scenes[sceneKey] || {};
         const playlist = Array.isArray(scene.playlist) ? scene.playlist : [];
         const volume = clampMusicVolume(scene.volume, 0.7);
-        setSelectedValues(select, playlist);
+        const unmatchedTracks = setSelectedValues(container, playlist);
+        if (container) {
+            container.dataset.unmatchedTracks = unmatchedTracks.join('\n');
+        }
         if (volumeInput) {
             volumeInput.value = volume.toFixed(2);
         }
     }
+    refreshGameMusicSelectionSummary();
 }
 
 function collectGameMusicConfigFromUi() {
     const current = readBgmConfig();
     const nextScenes = { ...(current?.scenes || {}) };
     for (const [sceneKey, sceneFields] of Object.entries(GAME_MUSIC_SCENE_FIELD_MAP)) {
-        const select = el[sceneFields.tracks];
+        const container = el[sceneFields.tracks];
         const volumeInput = el[sceneFields.volume];
         nextScenes[sceneKey] = {
-            playlist: getSelectedValues(select),
+            playlist: getSelectedValues(container),
             volume: clampMusicVolume(volumeInput?.value, 0.7)
         };
     }
@@ -1579,11 +1811,11 @@ function saveAsNewPreset() {
 async function bindExternalSampleToCurrentPreset() {
     const preset = getSfxPresetById(state.presetId);
     if (!preset?.custom) {
-        setStatus('璇烽€夋嫨涓€涓嚜瀹氫箟妯℃澘锛屽啀淇濆瓨澶栭儴閲囨牱銆?, true);
+        setStatus('请选择一个自定义模板，再保存外部采样。', true);
         return;
     }
     if (!state.externalSample?.blob) {
-        setStatus('璇峰厛瀵煎叆澶栭儴閲囨牱锛團reesound/涓婁紶/Stable Audio锛夈€?, true);
+        setStatus('请先导入外部采样（Freesound/上传/Stable Audio）。', true);
         return;
     }
     try {
@@ -1603,9 +1835,9 @@ async function bindExternalSampleToCurrentPreset() {
         refreshGameSfxPresetOptions();
         setPreset(saved.id, true);
         renderSkinBindingList();
-        setStatus(`宸蹭繚瀛樺閮ㄩ噰鏍峰埌妯℃澘锛?{saved.name}`);
+        setStatus(`已保存外部采样到模板：${saved.name}`);
     } catch (error) {
-        setStatus(`淇濆瓨澶栭儴閲囨牱澶辫触锛?{error?.message || 'Unknown error'}`, true);
+        setStatus(`保存外部采样失败：${error?.message || 'Unknown error'}`, true);
     }
 }
 
@@ -1629,11 +1861,11 @@ async function buildExternalSamplePayloadFromState() {
 function applyExternalTrimFromUi() {
     const sample = state.externalSample;
     if (!sample?.buffer) {
-        return setTrimStatus('璇峰厛瀵煎叆澶栭儴閲囨牱銆?, true);
+        return setTrimStatus('请先导入外部采样。', true);
     }
     const duration = Number(sample.buffer.duration || 0);
     if (duration <= 0) {
-        return setTrimStatus('閲囨牱鏃堕暱鏃犳晥銆?, true);
+        return setTrimStatus('采样时长无效。', true);
     }
     const rawStart = Number(el.trimStart?.value || 0);
     const rawEnd = Number(el.trimEnd?.value || duration);
@@ -1642,7 +1874,7 @@ function applyExternalTrimFromUi() {
     state.externalTrim = { start, end };
     if (el.trimStart) el.trimStart.value = start.toFixed(2);
     if (el.trimEnd) el.trimEnd.value = end.toFixed(2);
-    setTrimStatus(`宸茶鍒囷細${start.toFixed(2)}s - ${end.toFixed(2)}s锛?{(end - start).toFixed(2)}s锛塦);
+    setTrimStatus(`已裁切：${start.toFixed(2)}s - ${end.toFixed(2)}s（${(end - start).toFixed(2)}s）`);
 }
 
 function resetExternalTrim() {
@@ -1651,7 +1883,7 @@ function resetExternalTrim() {
     state.externalTrim = null;
     if (el.trimStart) el.trimStart.value = '0';
     if (el.trimEnd) el.trimEnd.value = duration > 0 ? duration.toFixed(2) : '0';
-    setTrimStatus(duration > 0 ? `鍘熷鏃堕暱锛?{duration.toFixed(2)}s锛堟湭瑁佸垏锛塦 : '鏈鍒囥€?);
+    setTrimStatus(duration > 0 ? `原始时长：${duration.toFixed(2)}s（未裁切）` : '未裁切。');
 }
 
 function updateCurrentPreset() {
@@ -1769,25 +2001,25 @@ function bindEvents() {
     el.btnGameSfxSave?.addEventListener('click', saveGameSfxBindingsFromUi);
     el.btnGameSfxReset?.addEventListener('click', resetGameSfxBindingsToDefault);
     el.btnGameSfxPreviewClick?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxClickPresetSelect?.value || getGameSfxPresetId('click'), '鐐瑰嚮鍙嶉');
+        void playPresetPreview(el.gameSfxClickPresetSelect?.value || getGameSfxPresetId('click'), '点击反馈');
     });
     el.btnGameSfxPreviewCoin?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxCoinPresetSelect?.value || getGameSfxPresetId('coin'), '閲戝竵鑾峰緱');
+        void playPresetPreview(el.gameSfxCoinPresetSelect?.value || getGameSfxPresetId('coin'), '金币获得');
     });
     el.btnGameSfxPreviewCheckinCoinTrail?.addEventListener('click', () => {
         void playPresetPreview(
             el.gameSfxCheckinCoinTrailPresetSelect?.value || getGameSfxPresetId('checkinCoinTrail'),
-            '绛惧埌椋為噾甯?
+            '签到飞金币'
         );
     });
     el.btnGameSfxPreviewError?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxErrorPresetSelect?.value || getGameSfxPresetId('error'), '閿欒鎯╃綒');
+        void playPresetPreview(el.gameSfxErrorPresetSelect?.value || getGameSfxPresetId('error'), '错误惩罚');
     });
     el.btnGameSfxPreviewLevelComplete?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxLevelCompletePresetSelect?.value || getGameSfxPresetId('levelComplete'), '閫氬叧');
+        void playPresetPreview(el.gameSfxLevelCompletePresetSelect?.value || getGameSfxPresetId('levelComplete'), '通关');
     });
     el.btnGameSfxPreviewGameOver?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxGameOverPresetSelect?.value || getGameSfxPresetId('gameOver'), '澶辫触');
+        void playPresetPreview(el.gameSfxGameOverPresetSelect?.value || getGameSfxPresetId('gameOver'), '失败');
     });
 
     el.btnGameMusicRefreshLibrary?.addEventListener('click', () => {
@@ -1797,6 +2029,15 @@ function bindEvents() {
     });
     el.btnGameMusicSave?.addEventListener('click', saveGameMusicConfigFromUi);
     el.btnGameMusicReset?.addEventListener('click', resetGameMusicConfigToDefault);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            stopBgmTrackPreview();
+        }
+    });
+    window.addEventListener('beforeunload', () => {
+        stopBgmTrackPreview();
+    });
 }
 
 async function init() {
@@ -1818,6 +2059,7 @@ async function init() {
     renderFreesoundResults([]);
     renderExternalSampleState();
     bindEvents();
+    stopBgmTrackPreview();
 
     window.addEventListener('admin-skin-catalog-updated', () => {
         void refreshSkinBindingUi();

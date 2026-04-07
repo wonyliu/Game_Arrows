@@ -1,0 +1,20 @@
+{
+  "skinId": "candy-star-snake",
+  "templateSkinId": "classic-burrow",
+  "model": "gemini-2.5-flash-image",
+  "styleRef": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnflogyv-1zbfm9/input/style_ref.png",
+  "solidBackground": "#00ff00",
+  "parts": [
+    {
+      "part": "snake_tail_base.png",
+      "template": "D:/Projects/Game_Arrows/assets/skins/classic-burrow/snake_tail_base.png",
+      "raw": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnflogyv-1zbfm9/output/snake_tail_base_raw.png",
+      "cutout": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnflogyv-1zbfm9/output/snake_tail_base_cutout.png",
+      "final": "D:/Projects/Game_Arrows/.local-data/skin-gen/jobs/mnflogyv-1zbfm9/output/snake_tail_base.png",
+      "target": null,
+      "prompt": "Task: redesign snake_tail_base.png for a snake skin.\nHard lock: keep shape and silhouette exactly the same as template classic-burrow (snake_tail_base.png).\nOnly replace color/material/texture. Do not change contour or proportions.\nStyle consistency lock: must match the color family, lighting direction, gloss level, and texture density of other parts in this same skin set.\nUse style reference image as primary material source.\nBody/tail part: no face elements.\nBackground must be pure solid color: #00ff00.\nGlobal design note (highest priority): none.\nMain style prompt: 1. Update the classic-burrow prototype with the colors and textures from the style reference image. The overall aesthetic should be casual game, cartoon Q-version, cute, and exquisite.\n2. Retain the classic-burrow's expression. Minor detail adjustments for beautification are allowed, but no major changes.\n3. Avoid snakeskin textures. Instead, use the texture from the style reference image..\nExtra user note: none.",
+      "overlay": "",
+      "model": "gemini-2.5-flash-image"
+    }
+  ]
+}
