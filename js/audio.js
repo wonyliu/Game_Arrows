@@ -48,12 +48,17 @@ let bgmUnmutePollingTimer = 0;
 let earlyBootstrapDone = false;
 let sfxMasterGainNode = null;
 let audioMix = readAudioMixFromStorage();
+const ENABLE_BGM_DEBUG_LOGS = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('debug') === '1';
 
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
 
 function logBgm(step, payload = null) {
+    if (!ENABLE_BGM_DEBUG_LOGS) {
+        return;
+    }
     if (payload === null || payload === undefined) {
         console.info(`[bgm] ${step}`);
         return;

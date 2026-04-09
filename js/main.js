@@ -1,14 +1,14 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=139';
+import { Game } from './game.js?v=140';
 import { UI } from './ui.js?v=97';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
     startNextUnlockPreload,
     stopNextUnlockPreload
-} from './level-preload.js?v=9';
+} from './level-preload.js?v=10';
 import { initLevelStorage } from './level-storage.js?v=55';
 import { initUiTheme } from './ui-theme.js?v=2';
 import { initProgressStorage } from './progress-storage.js?v=1';
@@ -16,7 +16,7 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { isLegacyColorVariantSkinId } from './skins.js?v=23';
-import { earlyBgmBootstrap } from './audio.js?v=51';
+import { earlyBgmBootstrap } from './audio.js?v=52';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
@@ -47,6 +47,8 @@ let bootPreloadTextEl = null;
 let bootPreloadTipEl = null;
 let forcedZeroCanvasResizeLogged = false;
 let skinCatalogSyncPromise = null;
+const ENABLE_BOOT_DEBUG_LOGS = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('debug') === '1';
 
 function nowMs() {
     return typeof performance !== 'undefined' && typeof performance.now === 'function'
@@ -55,6 +57,9 @@ function nowMs() {
 }
 
 function logBoot(step, details = null) {
+    if (!ENABLE_BOOT_DEBUG_LOGS) {
+        return;
+    }
     if (details !== null && details !== undefined) {
         const detailText = formatLogDetails(details);
         console.info(`${BOOT_LOG_TAG} ${step} ${detailText}`);

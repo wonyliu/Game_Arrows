@@ -23,7 +23,7 @@ import {
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=51';
+} from './audio.js?v=52';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=48';
 import {
     ensureSelectedSkin,
@@ -67,6 +67,8 @@ const MISCLICK_PENALTY_TEXT_DURATION_SECONDS = Math.max(
     Number(GAMEPLAY_PARAMS.misclickPenaltyTextDurationSeconds) || 1.9
 );
 const DRAG_RELEASE_CLICK_SUPPRESS_MS = 160;
+const ENABLE_GAME_DEBUG_LOGS = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('debug') === '1';
 
 export class Game {
     constructor(canvas) {
@@ -131,6 +133,7 @@ export class Game {
         this.sortedLinesDesc = [];
         this.sortedLinesDirty = true;
         this.gridDotsLayer = null;
+        this.boardBackgroundLayer = null;
         this.liveOpsConfig = readLiveOpsConfig();
         this.liveOpsPlayer = readLiveOpsPlayerState();
         this.onlineRewardSaveAccumulator = 0;
@@ -689,25 +692,29 @@ export class Game {
         this.dragReleaseLineIds.clear();
         this.suppressClickUntil = 0;
 
-        console.info('[game] level ready ' + JSON.stringify({
-            level: normalizedLevel,
-            stage: isRewardStage ? 'reward' : 'normal',
-            rewardReturnLevel: this.rewardReturnLevel,
-            source,
-            lineCount: Array.isArray(this.lines) ? this.lines.length : 0,
-            durationMs: Math.round(nowMs() - startedAt),
-            canvasWidth: this.canvas.width,
-            canvasHeight: this.canvas.height
-        }));
+        if (ENABLE_GAME_DEBUG_LOGS) {
+            console.info('[game] level ready ' + JSON.stringify({
+                level: normalizedLevel,
+                stage: isRewardStage ? 'reward' : 'normal',
+                rewardReturnLevel: this.rewardReturnLevel,
+                source,
+                lineCount: Array.isArray(this.lines) ? this.lines.length : 0,
+                durationMs: Math.round(nowMs() - startedAt),
+                canvasWidth: this.canvas.width,
+                canvasHeight: this.canvas.height
+            }));
+        }
 
         if (this.canvas.width <= 1 || this.canvas.height <= 1) {
             requestAnimationFrame(() => {
                 this.resize();
-                console.info('[game] deferred resize ' + JSON.stringify({
-                    level: normalizedLevel,
-                    canvasWidth: this.canvas.width,
-                    canvasHeight: this.canvas.height
-                }));
+                if (ENABLE_GAME_DEBUG_LOGS) {
+                    console.info('[game] deferred resize ' + JSON.stringify({
+                        level: normalizedLevel,
+                        canvasWidth: this.canvas.width,
+                        canvasHeight: this.canvas.height
+                    }));
+                }
             });
         }
         this.updateHUD();
@@ -1371,6 +1378,7 @@ export class Game {
         if (!this.grid) {
             this.pixelTheme = null;
             this.gridDotsLayer = null;
+            this.boardBackgroundLayer = null;
             return;
         }
 
@@ -1414,6 +1422,30 @@ export class Game {
         }
 
         this.pixelTheme = { atlas, tiles, decor };
+        this.boardBackgroundLayer = document.createElement('canvas');
+        this.boardBackgroundLayer.width = this.canvas.width;
+        this.boardBackgroundLayer.height = this.canvas.height;
+        const bgCtx = this.boardBackgroundLayer.getContext('2d');
+        if (bgCtx) {
+            const minX = this.grid.offsetX;
+            const minY = this.grid.offsetY;
+            const width = this.grid.cols * this.grid.cellSize;
+            const height = this.grid.rows * this.grid.cellSize;
+            bgCtx.save();
+            bgCtx.fillStyle = this.pixelTheme.atlas.theme.boardBg;
+            bgCtx.fillRect(minX, minY, width, height);
+            bgCtx.strokeStyle = this.pixelTheme.atlas.theme.boardFrame;
+            bgCtx.lineWidth = 4;
+            bgCtx.strokeRect(minX, minY, width, height);
+            bgCtx.restore();
+
+            for (const tile of this.pixelTheme.tiles) {
+                drawSprite(bgCtx, this.pixelTheme.atlas.sprites[tile.key], tile.x, tile.y, { alpha: 0.82 });
+            }
+            for (const item of this.pixelTheme.decor) {
+                drawSprite(bgCtx, this.pixelTheme.atlas.sprites[item.key], item.x, item.y, { alpha: item.alpha });
+            }
+        }
         this.gridDotsLayer = document.createElement('canvas');
         this.gridDotsLayer.width = this.canvas.width;
         this.gridDotsLayer.height = this.canvas.height;
@@ -1467,6 +1499,10 @@ export class Game {
 
     drawPixelBoardBackground(ctx) {
         if (!this.grid || !this.pixelTheme?.atlas) return;
+        if (this.boardBackgroundLayer) {
+            ctx.drawImage(this.boardBackgroundLayer, 0, 0);
+            return;
+        }
 
         const minX = this.grid.offsetX;
         const minY = this.grid.offsetY;
