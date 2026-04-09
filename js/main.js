@@ -1,7 +1,7 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=138';
+import { Game } from './game.js?v=139';
 import { UI } from './ui.js?v=97';
 import {
     disposePreloadWorker,
@@ -16,7 +16,7 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { isLegacyColorVariantSkinId } from './skins.js?v=23';
-import { earlyBgmBootstrap } from './audio.js?v=50';
+import { earlyBgmBootstrap } from './audio.js?v=51';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;

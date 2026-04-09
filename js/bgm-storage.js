@@ -15,10 +15,22 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
     version: BGM_SCHEMA_VERSION,
     updatedAt: '',
     scenes: Object.freeze({
-        [BGM_SCENE_KEYS.HOME]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3']), volume: 0.65 }),
-        [BGM_SCENE_KEYS.NORMAL]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb2.mp3']), volume: 0.72 }),
-        [BGM_SCENE_KEYS.REWARD]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u626d\u626d\u821e.mp3']), volume: 0.75 }),
-        [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: Object.freeze({ playlist: Object.freeze(['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb3.mp3']), volume: 0.8 })
+        [BGM_SCENE_KEYS.HOME]: Object.freeze({
+            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3', volume: 1 }]),
+            volume: 0.65
+        }),
+        [BGM_SCENE_KEYS.NORMAL]: Object.freeze({
+            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb2.mp3', volume: 1 }]),
+            volume: 0.72
+        }),
+        [BGM_SCENE_KEYS.REWARD]: Object.freeze({
+            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u626d\u626d\u821e.mp3', volume: 1 }]),
+            volume: 0.75
+        }),
+        [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: Object.freeze({
+            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb3.mp3', volume: 1 }]),
+            volume: 0.8
+        })
     })
 });
 
@@ -62,7 +74,8 @@ async function hydrateBgmFromServer() {
     const staticConfig = await fetchJsonFromStaticFile();
     if (staticConfig) {
         const normalizedStatic = normalizeBgmConfig(staticConfig);
-        writeLocalJson(BGM_STORAGE_KEY, normalizedStatic);
+        const merged = mergeByUpdatedAt(normalizedStatic, readBgmConfig());
+        writeLocalJson(BGM_STORAGE_KEY, merged);
         return;
     }
     const remote = await fetchJsonFromServer(BGM_STORAGE_FILE);
@@ -98,27 +111,34 @@ async function repairBgmConfigByLibrary(config) {
         const rawList = Array.isArray(scene.playlist) ? scene.playlist : [];
         const repairedList = [];
         for (const item of rawList) {
-            const normalizedPath = normalizeTrackPath(item);
-            if (!normalizedPath) {
+            const normalizedEntry = normalizePlaylistEntry(item);
+            if (!normalizedEntry) {
                 continue;
             }
+            const normalizedPath = normalizedEntry.url;
             const lower = normalizedPath.toLowerCase();
             if (knownUrls.has(lower)) {
-                repairedList.push(normalizedPath);
+                repairedList.push(normalizedEntry);
                 continue;
             }
             const fileName = normalizeFileName(getPathBaseName(normalizedPath));
             const mapped = fileName ? knownByFile.get(fileName) : '';
             if (mapped) {
-                repairedList.push(mapped);
+                repairedList.push({
+                    ...normalizedEntry,
+                    url: mapped
+                });
                 changed = true;
             } else if (fallbackTrack) {
-                repairedList.push(fallbackTrack);
+                repairedList.push({
+                    ...normalizedEntry,
+                    url: fallbackTrack
+                });
                 changed = true;
             }
         }
-        const unique = Array.from(new Set(repairedList));
-        if (unique.join('\n') !== rawList.join('\n')) {
+        const unique = dedupePlaylistEntries(repairedList);
+        if (serializePlaylistSignature(unique) !== serializePlaylistSignature(rawList)) {
             changed = true;
         }
         next.scenes[sceneKey] = {
@@ -203,17 +223,53 @@ function normalizeScene(input, fallback) {
 
 function normalizePlaylist(input, fallback = []) {
     const rows = Array.isArray(input) ? input : (Array.isArray(fallback) ? fallback : []);
+    return dedupePlaylistEntries(rows.map((row) => normalizePlaylistEntry(row)).filter(Boolean));
+}
+
+function normalizePlaylistEntry(rawEntry) {
+    if (typeof rawEntry === 'string') {
+        const url = normalizeTrackPath(rawEntry);
+        return url ? { url, volume: 1 } : null;
+    }
+    if (!isPlainObject(rawEntry)) {
+        return null;
+    }
+    const url = normalizeTrackPath(rawEntry.url || rawEntry.src || rawEntry.path || rawEntry.file || '');
+    if (!url) {
+        return null;
+    }
+    return {
+        url,
+        volume: clampFloat(rawEntry.volume, 0, 1, 1)
+    };
+}
+
+function dedupePlaylistEntries(entries) {
     const out = [];
     const seen = new Set();
-    for (const row of rows) {
-        const normalized = normalizeTrackPath(row);
-        if (!normalized || seen.has(normalized)) {
+    for (const row of entries) {
+        if (!row || !row.url) {
             continue;
         }
-        out.push(normalized);
-        seen.add(normalized);
+        if (seen.has(row.url)) {
+            continue;
+        }
+        out.push({
+            url: row.url,
+            volume: clampFloat(row.volume, 0, 1, 1)
+        });
+        seen.add(row.url);
     }
     return out;
+}
+
+function serializePlaylistSignature(input) {
+    const rows = Array.isArray(input) ? input : [];
+    return rows
+        .map((row) => normalizePlaylistEntry(row))
+        .filter(Boolean)
+        .map((row) => `${row.url}#${clampFloat(row.volume, 0, 1, 1).toFixed(4)}`)
+        .join('\n');
 }
 
 function normalizeTrackPath(rawPath) {

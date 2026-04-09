@@ -7,7 +7,7 @@ import {
     normalizeRecipe
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=6';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=7';
 
 export { BGM_SCENE_KEYS };
 
@@ -36,6 +36,7 @@ let bgmWebAudioActive = false;
 let bgmStorageReady = false;
 let pendingSceneReplayAfterStorage = '';
 let bgmSceneVolume = 1;
+let bgmSceneTrackVolumes = new Map();
 let pendingBgmPlay = false;
 let bgmRetryTimer = 0;
 let bgmMutedBootstrap = false;
@@ -237,7 +238,7 @@ async function startWebAudioBgmFallback(reason = '') {
         }
         stopWebAudioBgm();
         const gain = getBgmWebGainNode(ctx);
-        gain.gain.setValueAtTime(clamp(bgmSceneVolume * audioMix.music, 0, 1), ctx.currentTime);
+        gain.gain.setValueAtTime(clamp(bgmSceneVolume * audioMix.music * getCurrentTrackVolume(), 0, 1), ctx.currentTime);
         const source = ctx.createBufferSource();
         source.buffer = buffer;
         source.connect(gain);
@@ -366,13 +367,26 @@ function scheduleBgmRetry() {
 }
 
 function updateBgmElementVolume() {
-    const composed = clamp(bgmSceneVolume * audioMix.music, 0, 1);
+    const composed = clamp(bgmSceneVolume * audioMix.music * getCurrentTrackVolume(), 0, 1);
     if (bgmAudioEl) {
         bgmAudioEl.volume = composed;
     }
     if (bgmWebGainNode && bgmWebGainNode.context?.state === 'running') {
         bgmWebGainNode.gain.setValueAtTime(composed, bgmWebGainNode.context.currentTime);
     }
+}
+
+function getCurrentTrackVolume() {
+    if (!bgmPlaylist.length) {
+        return 1;
+    }
+    const safeIndex = Math.max(0, Math.min(bgmPlaylist.length - 1, bgmTrackIndex));
+    const currentSrc = `${bgmPlaylist[safeIndex] || ''}`.trim();
+    if (!currentSrc) {
+        return 1;
+    }
+    const raw = Number(bgmSceneTrackVolumes.get(currentSrc));
+    return Number.isFinite(raw) ? clamp(raw, 0, 1) : 1;
 }
 
 function isHtmlBgmPlaying() {
@@ -539,6 +553,7 @@ function getBgmAudioElement() {
             bgmConsecutiveErrorCount += 1;
             if (bgmConsecutiveErrorCount >= Math.max(1, bgmPlaylist.length)) {
                 bgmPlaylist = ['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3'];
+                bgmSceneTrackVolumes = new Map([[bgmPlaylist[0], 1]]);
                 bgmTrackIndex = 0;
                 bgmPlaylistSignature = playlistSignature(bgmPlaylist);
                 bgmConsecutiveErrorCount = 0;
@@ -571,14 +586,37 @@ function getBgmSceneConfig(sceneKey) {
         ? sceneKey
         : fallbackKey;
     const scene = scenes[key] || {};
-    const playlist = Array.isArray(scene.playlist)
-        ? scene.playlist.filter((item) => typeof item === 'string' && item.trim().length > 0)
-        : [];
+    const normalizedPlaylist = normalizePlaylistForPlayback(scene.playlist);
+    const playlist = normalizedPlaylist.map((item) => item.url);
+    const trackVolumes = new Map(normalizedPlaylist.map((item) => [item.url, item.volume]));
     const volume = Math.max(0, Math.min(1, Number(scene.volume) || 0));
     return {
         playlist,
+        trackVolumes,
         volume
     };
+}
+
+function normalizePlaylistForPlayback(rawPlaylist) {
+    const rows = Array.isArray(rawPlaylist) ? rawPlaylist : [];
+    const out = [];
+    const seen = new Set();
+    for (const row of rows) {
+        let url = '';
+        let volume = 1;
+        if (typeof row === 'string') {
+            url = row.trim();
+        } else if (row && typeof row === 'object') {
+            url = `${row.url || row.src || row.path || ''}`.trim();
+            volume = clamp(Number(row.volume), 0, 1);
+        }
+        if (!url || seen.has(url)) {
+            continue;
+        }
+        out.push({ url, volume });
+        seen.add(url);
+    }
+    return out;
 }
 
 function playlistSignature(playlist) {
@@ -828,6 +866,7 @@ export function stopBgm() {
     bgmTrackIndex = 0;
     bgmPlaylistSignature = '';
     bgmSceneVolume = 1;
+    bgmSceneTrackVolumes = new Map();
     pendingBgmPlay = false;
     clearBgmRetryTimer();
     clearBgmUnmuteTimer();
@@ -853,6 +892,7 @@ export function playBgmForScene(sceneKey, options = {}) {
     const signature = playlistSignature(scene.playlist);
     const audio = getBgmAudioElement();
     bgmSceneVolume = scene.volume;
+    bgmSceneTrackVolumes = scene.trackVolumes || new Map();
     updateBgmElementVolume();
     logBgm('play scene', {
         scene: sceneKey,
@@ -1078,6 +1118,7 @@ export function earlyBgmBootstrap() {
     bgmTrackIndex = 0;
     bgmPlaylistSignature = defaultSrc;
     bgmSceneVolume = 0.65;
+    bgmSceneTrackVolumes = new Map([[defaultSrc, 1]]);
     audio.src = defaultSrc;
     audio.muted = true;
     bgmMutedBootstrap = true;

@@ -1,5 +1,5 @@
 ﻿import { Grid } from './grid.js?v=24';
-import { Line } from './line.js?v=53';
+import { Line } from './line.js?v=54';
 import { canMove, findMovableLines } from './collision.js?v=19';
 import {
     BONUS_LEVEL_ID,
@@ -23,7 +23,7 @@ import {
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=50';
+} from './audio.js?v=51';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=48';
 import {
     ensureSelectedSkin,
@@ -126,6 +126,11 @@ export class Game {
         this.dragReleaseActive = false;
         this.dragReleaseLineIds = new Set();
         this.suppressClickUntil = 0;
+        this.lineById = new Map();
+        this.sortedLinesAsc = [];
+        this.sortedLinesDesc = [];
+        this.sortedLinesDirty = true;
+        this.gridDotsLayer = null;
         this.liveOpsConfig = readLiveOpsConfig();
         this.liveOpsPlayer = readLiveOpsPlayerState();
         this.onlineRewardSaveAccumulator = 0;
@@ -210,7 +215,6 @@ export class Game {
         this.toolInventory.undo = Math.max(0, Math.floor(Number(inv.undo) || 0));
         this.toolInventory.shuffle = Math.max(0, Math.floor(Number(inv.shuffle) || 0));
         this.resetOnlineRewardDayIfNeeded(false);
-        this.resetOnlineRewardTimerOnSessionStart();
     }
 
     writeLiveOpsPlayer(options = {}) {
@@ -249,6 +253,28 @@ export class Game {
             1,
             Math.min(maxRewardIndex, Math.floor(Number(this.nextRewardLevelIndex) || 1))
         );
+    }
+
+    rebuildLineLookup() {
+        this.lineById = new Map();
+        for (const line of this.lines) {
+            if (line && Number.isFinite(line.id)) {
+                this.lineById.set(line.id, line);
+            }
+        }
+    }
+
+    markSortedLinesDirty() {
+        this.sortedLinesDirty = true;
+    }
+
+    getSortedLines(order = 'asc') {
+        if (this.sortedLinesDirty) {
+            this.sortedLinesAsc = [...this.lines].sort((a, b) => a.zIndex - b.zIndex);
+            this.sortedLinesDesc = [...this.sortedLinesAsc].reverse();
+            this.sortedLinesDirty = false;
+        }
+        return order === 'desc' ? this.sortedLinesDesc : this.sortedLinesAsc;
     }
 
     resize() {
@@ -704,6 +730,8 @@ export class Game {
         }
 
         this.lines = lines;
+        this.rebuildLineLookup();
+        this.markSortedLinesDirty();
         this.grid.clear();
         for (const line of this.lines) {
             if (!line || !Array.isArray(line.cells) || line.cells.length < 2) {
@@ -895,7 +923,7 @@ export class Game {
         let topLine = null;
 
         for (const lineId of lineIds) {
-            const line = this.lines.find((item) => item.id === lineId);
+            const line = this.lineById.get(lineId);
             if (!line || line.state !== 'active') continue;
             if (!topLine || line.zIndex > topLine.zIndex) {
                 topLine = line;
@@ -906,14 +934,15 @@ export class Game {
     }
 
     findTopLineAtPoint(x, y) {
-        const activeLines = this.lines
-            .filter((line) => line.state === 'active')
-            .sort((a, b) => b.zIndex - a.zIndex);
+        const sortedLines = this.getSortedLines('desc');
 
         const threshold = this.grid.cellSize * 0.26;
         const headThreshold = this.grid.cellSize * 0.4;
 
-        for (const line of activeLines) {
+        for (const line of sortedLines) {
+            if (!line || line.state !== 'active') {
+                continue;
+            }
             const points = line.getScreenPoints(this.grid);
             const head = points[points.length - 1];
 
@@ -952,6 +981,7 @@ export class Game {
         });
 
         this.grid.unregisterLine(line);
+        this.markSortedLinesDirty();
         this.combo = nextCombo;
         this.bestComboThisLevel = Math.max(this.bestComboThisLevel, this.combo);
         this.lastComboReleaseAt = currentMs;
@@ -1192,7 +1222,7 @@ export class Game {
         if (!source) return;
 
         const undo = this.undoStack[this.undoStack.length - 1];
-        const line = this.lines.find((item) => item.id === undo.lineId);
+        const line = this.lineById.get(undo.lineId);
         if (!line || line.state === 'active') {
             this.restoreToolUse('undo', source);
             return;
@@ -1206,6 +1236,7 @@ export class Game {
         line._removeAnim = null;
         line.removeTint = null;
         this.grid.registerLine(line);
+        this.markSortedLinesDirty();
         this.combo = undo.combo;
         this.lastComboReleaseAt = Number(undo.lastComboReleaseAt) || 0;
         this.releaseSfxScoreEventCount = Math.max(0, Math.floor(Number(undo.releaseSfxScoreEventCount) || 0));
@@ -1241,6 +1272,7 @@ export class Game {
         activeLines.forEach((line, index) => {
             line.zIndex = zIndices[index];
         });
+        this.markSortedLinesDirty();
         this.hintLine = null;
         this.updateHUD();
     }
@@ -1267,17 +1299,21 @@ export class Game {
             this.drawPixelBoardBackground(ctx);
             this.drawGridDots(ctx);
 
-            const sortedLines = [...this.lines]
-                .filter((line) => line.state !== 'removed')
-                .sort((a, b) => a.zIndex - b.zIndex);
+            const sortedLines = this.getSortedLines('asc');
 
             for (const line of sortedLines) {
+                if (!line || line.state === 'removed') {
+                    continue;
+                }
                 if (line.trails.length > 0) {
                     line.drawTrails(ctx, this.grid, this.pixelTheme);
                 }
             }
 
             for (const line of sortedLines) {
+                if (!line || line.state === 'removed') {
+                    continue;
+                }
                 if (this.hintLine && line.id === this.hintLine.id) {
                     ctx.save();
                     ctx.shadowColor = '#ffd68f';
@@ -1302,6 +1338,10 @@ export class Game {
 
     drawGridDots(ctx) {
         if (!this.grid) return;
+        if (this.gridDotsLayer) {
+            ctx.drawImage(this.gridDotsLayer, 0, 0);
+            return;
+        }
 
         if (this.pixelTheme?.atlas?.sprites?.gridDot) {
             const sprite = this.pixelTheme.atlas.sprites.gridDot;
@@ -1330,6 +1370,7 @@ export class Game {
     rebuildPixelScene() {
         if (!this.grid) {
             this.pixelTheme = null;
+            this.gridDotsLayer = null;
             return;
         }
 
@@ -1373,6 +1414,33 @@ export class Game {
         }
 
         this.pixelTheme = { atlas, tiles, decor };
+        this.gridDotsLayer = document.createElement('canvas');
+        this.gridDotsLayer.width = this.canvas.width;
+        this.gridDotsLayer.height = this.canvas.height;
+        const dotsCtx = this.gridDotsLayer.getContext('2d');
+        if (dotsCtx) {
+            if (this.pixelTheme?.atlas?.sprites?.gridDot) {
+                const sprite = this.pixelTheme.atlas.sprites.gridDot;
+                for (let row = 0; row <= this.grid.rows; row++) {
+                    for (let col = 0; col <= this.grid.cols; col++) {
+                        const x = this.grid.offsetX + col * this.grid.cellSize;
+                        const y = this.grid.offsetY + row * this.grid.cellSize;
+                        drawSprite(dotsCtx, sprite, x, y, { alpha: 0.92 });
+                    }
+                }
+            } else {
+                dotsCtx.fillStyle = '#ececf4';
+                for (let row = 0; row <= this.grid.rows; row++) {
+                    for (let col = 0; col <= this.grid.cols; col++) {
+                        const x = this.grid.offsetX + col * this.grid.cellSize;
+                        const y = this.grid.offsetY + row * this.grid.cellSize;
+                        dotsCtx.beginPath();
+                        dotsCtx.arc(x, y, 1.6, 0, Math.PI * 2);
+                        dotsCtx.fill();
+                    }
+                }
+            }
+        }
         this.assignLineColorVariants();
     }
 
@@ -1585,29 +1653,6 @@ export class Game {
                 dayKey,
                 tierIndex: 0,
                 remainingSeconds: firstSeconds
-            }
-        };
-        this.writeLiveOpsPlayer();
-        return true;
-    }
-
-    resetOnlineRewardTimerOnSessionStart() {
-        const cfg = this.getLiveOpsConfig().activities?.onlineReward || {};
-        const tiers = Array.isArray(cfg.tiers) ? cfg.tiers : [];
-        const online = this.liveOpsPlayer?.onlineReward || {};
-        const tierIndex = Math.max(0, Math.floor(Number(online.tierIndex) || 0));
-        if (tierIndex >= tiers.length) {
-            return false;
-        }
-        const defaultSeconds = Math.max(0, Number(tiers[tierIndex]?.seconds) || 0);
-        if (Number(online.remainingSeconds) === defaultSeconds) {
-            return false;
-        }
-        this.liveOpsPlayer = {
-            ...this.liveOpsPlayer,
-            onlineReward: {
-                ...online,
-                remainingSeconds: defaultSeconds
             }
         };
         this.writeLiveOpsPlayer();

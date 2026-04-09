@@ -23,6 +23,8 @@ export class Line {
         this.softPulse = 0;
         this.curiousRemaining = 0;
         this.headExpression = 'default';
+        this._screenPointsCache = null;
+        this._screenPointsCacheKey = '';
     }
 
     update(dt, globalIdleSeconds = Infinity) {
@@ -50,13 +52,13 @@ export class Line {
 
         const cellSize = grid.cellSize;
         const points = this.getScreenPoints(grid);
-        let renderPts = [...points];
+        let renderPts = points;
         const activeHeadDirection = this.getHeadDirection();
 
         if (this.state === 'removing' && this._removeAnim) {
-            renderPts = getSubPath(renderPts, this._removeAnim.dist, activeHeadDirection).pts;
+            renderPts = getSubPath(points, this._removeAnim.dist, activeHeadDirection).pts;
         } else if (this.state === 'bumping' && this._bumpAnim) {
-            renderPts = getSubPath(renderPts, this._bumpAnim.dist, activeHeadDirection).pts;
+            renderPts = getSubPath(points, this._bumpAnim.dist, activeHeadDirection).pts;
         }
 
         this.currentRenderPts = renderPts;
@@ -176,7 +178,13 @@ export class Line {
     }
 
     getScreenPoints(grid) {
-        return this.cells.map((cell) => grid.gridToScreen(cell.col, cell.row));
+        const key = `${grid.offsetX}|${grid.offsetY}|${grid.cellSize}`;
+        if (this._screenPointsCache && this._screenPointsCacheKey === key) {
+            return this._screenPointsCache;
+        }
+        this._screenPointsCacheKey = key;
+        this._screenPointsCache = this.cells.map((cell) => grid.gridToScreen(cell.col, cell.row));
+        return this._screenPointsCache;
     }
 
     getExitCells(gridCols, gridRows) {
