@@ -22,11 +22,12 @@ import {
     writeSkinSfxBindings
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=6';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=7';
 
 const EXPORT_SAMPLE_RATE = 48_000;
 const PACK_VARIANT_COUNT = 5;
 const DEFAULT_SKIN_ID = 'classic-burrow';
+const GAME_MUSIC_AUTO_SAVE_DELAY_MS = 260;
 
 const paramFieldConfig = [
     { key: 'impact', rangeId: 'sfxImpactRange', numberId: 'sfxImpactNumber' },
@@ -147,6 +148,7 @@ const state = {
         trackUrl: '',
         isPlaying: false
     },
+    gameMusicAutoSaveTimer: 0,
     externalSample: null,
     externalTrim: null
 };
@@ -1408,6 +1410,14 @@ function clampMusicVolume(value, fallback = 0.7) {
     return Math.max(0, Math.min(1, parsed));
 }
 
+function clampTrackVolume(value, fallback = 1) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+    return Math.max(0, Math.min(1, parsed));
+}
+
 function decodeUriLoose(text) {
     let out = `${text || ''}`.trim();
     for (let i = 0; i < 2; i += 1) {
@@ -1477,31 +1487,101 @@ function getSelectedValues(containerEl) {
         .filter(Boolean);
 }
 
+function getSelectedTrackEntries(containerEl) {
+    if (!containerEl || !(containerEl instanceof HTMLElement)) {
+        return [];
+    }
+    const out = [];
+    for (const input of Array.from(containerEl.querySelectorAll('input[type="checkbox"][data-track-url]'))) {
+        if (!input.checked) {
+            continue;
+        }
+        const url = `${input.getAttribute('data-track-url') || ''}`.trim();
+        if (!url) {
+            continue;
+        }
+        const row = input.closest('.game-music-track-row');
+        const volumeInput = row?.querySelector('.game-music-track-volume');
+        out.push({
+            url,
+            volume: clampTrackVolume(volumeInput?.value, 1)
+        });
+    }
+    return out;
+}
+
 function setSelectedValues(containerEl, values) {
     if (!containerEl || !(containerEl instanceof HTMLElement)) {
         return [];
     }
-    const rawValues = Array.isArray(values) ? values.map((item) => `${item || ''}`.trim()).filter(Boolean) : [];
-    const selected = new Set(rawValues.flatMap((item) => buildTrackMatchKeys(item)));
+    const rows = Array.isArray(values) ? values : [];
+    const normalizedRows = rows.map((item) => {
+        if (typeof item === 'string') {
+            return { raw: item, url: item, volume: 1 };
+        }
+        if (item && typeof item === 'object') {
+            const raw = `${item.url || item.src || item.path || ''}`.trim();
+            return { raw, url: raw, volume: clampTrackVolume(item.volume, 1) };
+        }
+        return null;
+    }).filter((item) => item && item.url);
+    const selected = new Set(normalizedRows.flatMap((item) => buildTrackMatchKeys(item.url)));
+    const sourceByKey = new Map();
+    for (const row of normalizedRows) {
+        for (const key of buildTrackMatchKeys(row.url)) {
+            if (!sourceByKey.has(key)) {
+                sourceByKey.set(key, row);
+            }
+        }
+    }
     const matchedRawValues = new Set();
     for (const input of Array.from(containerEl.querySelectorAll('input[type="checkbox"][data-track-url]'))) {
         const trackUrl = `${input.getAttribute('data-track-url') || ''}`.trim();
         const trackFile = `${input.getAttribute('data-track-file') || ''}`.trim();
         const row = input.closest('.game-music-track-row');
+        const volumeInput = row?.querySelector('.game-music-track-volume');
+        const volumeValue = row?.querySelector('.game-music-track-volume-value');
         const keys = [...buildTrackMatchKeys(trackUrl), ...buildTrackMatchKeys(trackFile)];
         const isMatched = keys.some((key) => selected.has(key));
         input.checked = isMatched;
         row?.classList.toggle('is-selected', isMatched);
+        if (volumeInput) {
+            const matchedSource = keys.map((key) => sourceByKey.get(key)).find(Boolean);
+            if (matchedSource) {
+                volumeInput.value = clampTrackVolume(matchedSource.volume, 1).toFixed(2);
+            } else if (!volumeInput.value) {
+                volumeInput.value = '1.00';
+            }
+            volumeInput.disabled = !isMatched;
+            if (volumeValue) {
+                volumeValue.textContent = Number(volumeInput.value || 1).toFixed(2);
+            }
+        }
         if (isMatched) {
-            for (const raw of rawValues) {
-                const rawKeys = buildTrackMatchKeys(raw);
+            for (const sourceRow of normalizedRows) {
+                const rawKeys = buildTrackMatchKeys(sourceRow.url);
                 if (rawKeys.some((key) => keys.includes(key))) {
-                    matchedRawValues.add(raw);
+                    matchedRawValues.add(sourceRow.raw);
                 }
             }
         }
     }
-    return rawValues.filter((item) => !matchedRawValues.has(item));
+    return normalizedRows
+        .map((item) => item.raw)
+        .filter((item) => item && !matchedRawValues.has(item));
+}
+
+function setupSceneVolumeSlider(input) {
+    if (!input) {
+        return;
+    }
+    input.type = 'range';
+    input.min = '0';
+    input.max = '1';
+    input.step = '0.01';
+    if (!input.value) {
+        input.value = '0.70';
+    }
 }
 
 async function fetchBgmTrackLibrary() {
@@ -1541,7 +1621,7 @@ function renderGameMusicTrackOptions() {
         if (!container || !(container instanceof HTMLElement)) {
             continue;
         }
-        const existingSelected = getSelectedValues(container);
+        const existingSelected = getSelectedTrackEntries(container);
         container.innerHTML = '';
         for (const track of state.bgmTrackLibrary) {
             const row = document.createElement('label');
@@ -1551,15 +1631,39 @@ function renderGameMusicTrackOptions() {
             checkbox.setAttribute('data-track-url', track.url);
             checkbox.setAttribute('data-track-file', track.fileName || track.name || '');
             checkbox.value = track.url;
-            checkbox.checked = existingSelected.includes(track.url);
+            checkbox.checked = false;
             checkbox.addEventListener('change', () => {
                 row.classList.toggle('is-selected', checkbox.checked);
+                volumeInput.disabled = !checkbox.checked;
                 refreshGameMusicSelectionSummary();
+                scheduleAutoSaveGameMusicConfig('track-select');
             });
             const name = document.createElement('span');
             name.className = 'game-music-track-name';
             name.textContent = track.name;
             name.title = track.fileName;
+            const volumeInput = document.createElement('input');
+            volumeInput.type = 'range';
+            volumeInput.min = '0';
+            volumeInput.max = '1';
+            volumeInput.step = '0.01';
+            volumeInput.value = '1.00';
+            volumeInput.className = 'game-music-track-volume';
+            volumeInput.title = '单曲音量';
+            volumeInput.disabled = !checkbox.checked;
+            const volumeValue = document.createElement('span');
+            volumeValue.className = 'game-music-track-volume-value';
+            volumeValue.textContent = '1.00';
+            volumeInput.addEventListener('input', () => {
+                volumeInput.value = clampTrackVolume(volumeInput.value, 1).toFixed(2);
+                volumeValue.textContent = Number(volumeInput.value || 1).toFixed(2);
+                refreshGameMusicSelectionSummary();
+                scheduleAutoSaveGameMusicConfig('track-volume');
+            });
+            const volumeWrap = document.createElement('div');
+            volumeWrap.className = 'game-music-track-volume-wrap';
+            volumeWrap.appendChild(volumeInput);
+            volumeWrap.appendChild(volumeValue);
             const previewBtn = document.createElement('button');
             previewBtn.type = 'button';
             previewBtn.className = 'game-music-preview-btn';
@@ -1572,6 +1676,7 @@ function renderGameMusicTrackOptions() {
             });
             row.appendChild(checkbox);
             row.appendChild(name);
+            row.appendChild(volumeWrap);
             row.appendChild(previewBtn);
             container.appendChild(row);
         }
@@ -1605,7 +1710,10 @@ function refreshGameMusicSelectionSummary() {
             .map((input) => {
                 const row = input.closest('.game-music-track-row');
                 const label = row?.querySelector('.game-music-track-name')?.textContent || '';
-                return `${label}`.trim() || formatTrackLabel(input.getAttribute('data-track-url') || '');
+                const volumeInput = row?.querySelector('.game-music-track-volume');
+                const vol = clampTrackVolume(volumeInput?.value, 1).toFixed(2);
+                const safeLabel = `${label}`.trim() || formatTrackLabel(input.getAttribute('data-track-url') || '');
+                return `${safeLabel}(音量 ${vol})`;
             })
             .filter(Boolean);
         const unmatched = `${container.dataset.unmatchedTracks || ''}`
@@ -1727,7 +1835,7 @@ function collectGameMusicConfigFromUi() {
         const container = el[sceneFields.tracks];
         const volumeInput = el[sceneFields.volume];
         nextScenes[sceneKey] = {
-            playlist: getSelectedValues(container),
+            playlist: getSelectedTrackEntries(container),
             volume: clampMusicVolume(volumeInput?.value, 0.7)
         };
     }
@@ -1756,6 +1864,23 @@ function saveGameMusicConfigFromUi() {
     const payload = collectGameMusicConfigFromUi();
     writeBgmConfig(payload);
     setGameMusicStatus('已保存游戏音乐配置。');
+}
+
+function saveGameMusicConfigFromUiSilently() {
+    const payload = collectGameMusicConfigFromUi();
+    writeBgmConfig(payload);
+    setGameMusicStatus('已自动保存音乐配置。');
+}
+
+function scheduleAutoSaveGameMusicConfig() {
+    if (state.gameMusicAutoSaveTimer) {
+        clearTimeout(state.gameMusicAutoSaveTimer);
+        state.gameMusicAutoSaveTimer = 0;
+    }
+    state.gameMusicAutoSaveTimer = setTimeout(() => {
+        state.gameMusicAutoSaveTimer = 0;
+        saveGameMusicConfigFromUiSilently();
+    }, GAME_MUSIC_AUTO_SAVE_DELAY_MS);
 }
 
 function resetGameMusicConfigToDefault() {
@@ -2029,6 +2154,14 @@ function bindEvents() {
     });
     el.btnGameMusicSave?.addEventListener('click', saveGameMusicConfigFromUi);
     el.btnGameMusicReset?.addEventListener('click', resetGameMusicConfigToDefault);
+    for (const sceneFields of Object.values(GAME_MUSIC_SCENE_FIELD_MAP)) {
+        const volumeInput = el[sceneFields.volume];
+        setupSceneVolumeSlider(volumeInput);
+        volumeInput?.addEventListener('input', () => {
+            volumeInput.value = clampMusicVolume(volumeInput.value, 0.7).toFixed(2);
+            scheduleAutoSaveGameMusicConfig();
+        });
+    }
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
