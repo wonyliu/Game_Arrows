@@ -134,6 +134,8 @@ export class Game {
         this.sortedLinesDirty = true;
         this.gridDotsLayer = null;
         this.boardBackgroundLayer = null;
+        this.pixelAtlasCacheKey = '';
+        this.pixelAtlasCache = null;
         this.liveOpsConfig = readLiveOpsConfig();
         this.liveOpsPlayer = readLiveOpsPlayerState();
         this.onlineRewardSaveAccumulator = 0;
@@ -297,6 +299,10 @@ export class Game {
         const fallbackHeight = Math.round(window.innerHeight || docEl?.clientHeight || 664);
         const nextWidth = Math.max(1, wrapperWidth || canvasWidth || fallbackWidth);
         const nextHeight = Math.max(1, wrapperHeight || canvasHeight || fallbackHeight);
+
+        if (this.canvas.width === nextWidth && this.canvas.height === nextHeight) {
+            return;
+        }
 
         this.canvas.width = nextWidth;
         this.canvas.height = nextHeight;
@@ -1431,11 +1437,19 @@ export class Game {
             this.pixelTheme = null;
             this.gridDotsLayer = null;
             this.boardBackgroundLayer = null;
+            this.pixelAtlasCache = null;
+            this.pixelAtlasCacheKey = '';
             return;
         }
 
         const dpr = window.devicePixelRatio || 1;
-        const atlas = buildGameSpriteAtlas(this.grid.cellSize, dpr, 'moleFamily', this.selectedSkinId);
+        const atlasKey = `${this.selectedSkinId || 'classic-burrow'}|${Math.round(this.grid.cellSize * 100)}|${Math.round(dpr * 100)}`;
+        let atlas = this.pixelAtlasCache;
+        if (!atlas || this.pixelAtlasCacheKey !== atlasKey) {
+            atlas = buildGameSpriteAtlas(this.grid.cellSize, dpr, 'moleFamily', this.selectedSkinId);
+            this.pixelAtlasCache = atlas;
+            this.pixelAtlasCacheKey = atlasKey;
+        }
         const tileKeys = ['tileBase', 'tileVar1', 'tileVar2'];
         const tileSprite = atlas.sprites.tileBase;
         const tileSize = Math.max(8, tileSprite.width);

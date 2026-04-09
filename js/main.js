@@ -1,7 +1,7 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=140';
+import { Game } from './game.js?v=141';
 import { UI } from './ui.js?v=98';
 import {
     disposePreloadWorker,
@@ -21,7 +21,7 @@ import { earlyBgmBootstrap } from './audio.js?v=52';
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.09-191';
+const APP_BUILD_VERSION = 'build 2026.04.09-192';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {
@@ -47,6 +47,8 @@ let bootPreloadTextEl = null;
 let bootPreloadTipEl = null;
 let forcedZeroCanvasResizeLogged = false;
 let skinCatalogSyncPromise = null;
+let scheduledAdaptiveLayoutTimer = null;
+let pendingAdaptiveLayoutForce = false;
 const ENABLE_BOOT_DEBUG_LOGS = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('debug') === '1';
 
@@ -278,7 +280,11 @@ function readViewportSize() {
 
 function applyAdaptiveLayout(force = false) {
     const { width, height, dpr } = readViewportSize();
-    if (!force && width === lastViewportWidth && height === lastViewportHeight && dpr === lastViewportDpr) {
+    const widthDiff = Math.abs(width - lastViewportWidth);
+    const heightDiff = Math.abs(height - lastViewportHeight);
+    const dprDiff = Math.abs(dpr - lastViewportDpr);
+    const hasMeaningfulDelta = widthDiff >= 2 || heightDiff >= 2 || dprDiff >= 0.02;
+    if (!force && !hasMeaningfulDelta) {
         if (gameRef?.canvas && (gameRef.canvas.width <= 1 || gameRef.canvas.height <= 1)) {
             gameRef.resize();
             if (!forcedZeroCanvasResizeLogged) {
@@ -290,6 +296,13 @@ function applyAdaptiveLayout(force = false) {
             }
         }
         return;
+    }
+
+    if (!force && gameRef?.state === 'PLAYING') {
+        // Ignore tiny viewport jitters while playing (mobile browser chrome show/hide).
+        if (widthDiff < 18 && heightDiff < 18 && dprDiff < 0.03) {
+            return;
+        }
     }
 
     lastViewportWidth = width;
@@ -304,6 +317,19 @@ function applyAdaptiveLayout(force = false) {
     if (gameRef && typeof gameRef.resize === 'function') {
         gameRef.resize();
     }
+}
+
+function scheduleAdaptiveLayout(force = false) {
+    pendingAdaptiveLayoutForce = pendingAdaptiveLayoutForce || force;
+    if (scheduledAdaptiveLayoutTimer) {
+        return;
+    }
+    scheduledAdaptiveLayoutTimer = setTimeout(() => {
+        const shouldForce = pendingAdaptiveLayoutForce;
+        pendingAdaptiveLayoutForce = false;
+        scheduledAdaptiveLayoutTimer = null;
+        applyAdaptiveLayout(shouldForce);
+    }, force ? 0 : 120);
 }
 
 function initBootPreloadDom() {
@@ -362,13 +388,12 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         showBootPreloadOverlay();
         updateBootPreloadProgress(2, 'Loading level cache...');
 
-        const triggerResize = () => applyAdaptiveLayout(true);
+        const triggerResize = () => scheduleAdaptiveLayout(true);
         window.addEventListener('resize', triggerResize);
         window.addEventListener('orientationchange', triggerResize);
         window.addEventListener('visibilitychange', triggerResize);
         window.addEventListener('focus', triggerResize);
         window.visualViewport?.addEventListener('resize', triggerResize);
-        window.visualViewport?.addEventListener('scroll', triggerResize);
 
         const canvas = document.getElementById('gameCanvas');
         if (!canvas) {
@@ -470,7 +495,7 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
             }, 120);
         }
 
-        resizePollTimer = setInterval(() => applyAdaptiveLayout(false), 300);
+        resizePollTimer = setInterval(() => scheduleAdaptiveLayout(false), 1200);
     });
 
     window.addEventListener('beforeunload', () => {
@@ -478,6 +503,9 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         disposePreloadWorker();
         if (resizePollTimer) {
             clearInterval(resizePollTimer);
+        }
+        if (scheduledAdaptiveLayoutTimer) {
+            clearTimeout(scheduledAdaptiveLayoutTimer);
         }
     });
 }

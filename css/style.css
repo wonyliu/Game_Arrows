@@ -2664,9 +2664,3 @@ textarea {
     white-space: pre-wrap;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
 }
-
-.perf-debug-tip {
-    padding: 0 12px 12px;
-    font-size: 11px;
-    color: rgba(222, 242, 255, 0.78);
-}
