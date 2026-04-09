@@ -2207,8 +2207,9 @@ textarea {
     font-size: 11px;
     font-weight: 800;
     letter-spacing: 0.2px;
-    pointer-events: none;
-    user-select: text;
+    pointer-events: auto;
+    touch-action: none;
+    user-select: none;
 }
 
 #menuOverlay .btn-play {
@@ -2611,4 +2612,61 @@ textarea {
 #levelSelectOverlay .level-select-tip,
 #levelSelectOverlay .level-btn {
     font-family: var(--font-ui-clean);
+}
+
+.perf-debug-panel {
+    position: absolute;
+    inset: 0;
+    z-index: 92;
+    pointer-events: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 12px;
+}
+
+.perf-debug-card {
+    width: min(86vw, 360px);
+    border-radius: 12px;
+    border: 1px solid rgba(177, 218, 255, 0.45);
+    background: rgba(8, 18, 34, 0.88);
+    color: #e7f4ff;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    pointer-events: auto;
+}
+
+.perf-debug-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(177, 218, 255, 0.25);
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.perf-debug-head button {
+    border: 1px solid rgba(177, 218, 255, 0.4);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #e7f4ff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    cursor: pointer;
+}
+
+.perf-debug-text {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+}
+
+.perf-debug-tip {
+    padding: 0 12px 12px;
+    font-size: 11px;
+    color: rgba(222, 242, 255, 0.78);
 }

@@ -138,6 +138,12 @@ export class Game {
         this.liveOpsPlayer = readLiveOpsPlayerState();
         this.onlineRewardSaveAccumulator = 0;
         this.nextRewardLevelIndex = 1;
+        this.perfFrameMsEma = 0;
+        this.perfRenderCostMsEma = 0;
+        this.perfFrameCount = 0;
+        this.perfJankCount = 0;
+        this.perfSampleWindowStartedAt = nowMs();
+        this.perfSampleWindowSeconds = 0;
 
         this.loadProgress();
         setAudioSkinId(this.selectedSkinId);
@@ -1285,6 +1291,18 @@ export class Game {
     }
 
     render(timestamp) {
+        const renderBegin = nowMs();
+        const frameMsRaw = Math.max(0, Number(timestamp) - Number(this.lastTime || timestamp));
+        if (this.perfFrameMsEma <= 0) {
+            this.perfFrameMsEma = frameMsRaw;
+        } else {
+            this.perfFrameMsEma = this.perfFrameMsEma * 0.88 + frameMsRaw * 0.12;
+        }
+        if (frameMsRaw >= 34) {
+            this.perfJankCount += 1;
+        }
+        this.perfFrameCount += 1;
+
         const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
         this.lastTime = timestamp;
         this.consumeTimer(dt);
@@ -1340,7 +1358,41 @@ export class Game {
             this.animations.drawFloatingTexts(ctx);
         }
 
+        const renderCostMs = Math.max(0, nowMs() - renderBegin);
+        if (this.perfRenderCostMsEma <= 0) {
+            this.perfRenderCostMsEma = renderCostMs;
+        } else {
+            this.perfRenderCostMsEma = this.perfRenderCostMsEma * 0.88 + renderCostMs * 0.12;
+        }
+        const windowSeconds = Math.max(0.001, (nowMs() - this.perfSampleWindowStartedAt) / 1000);
+        this.perfSampleWindowSeconds = windowSeconds;
+
         requestAnimationFrame((nextTimestamp) => this.render(nextTimestamp));
+    }
+
+    getPerformanceSnapshot() {
+        const totalLines = Array.isArray(this.lines) ? this.lines.length : 0;
+        const activeLines = Array.isArray(this.lines)
+            ? this.lines.reduce((count, line) => count + (line?.state === 'active' ? 1 : 0), 0)
+            : 0;
+        const fpsEma = this.perfFrameMsEma > 0 ? (1000 / this.perfFrameMsEma) : 0;
+        const jankRate = this.perfFrameCount > 0 ? (this.perfJankCount / this.perfFrameCount) : 0;
+        return {
+            fps: fpsEma,
+            frameMs: this.perfFrameMsEma,
+            renderCostMs: this.perfRenderCostMsEma,
+            jankRate,
+            sampleFrames: this.perfFrameCount,
+            sampleSeconds: this.perfSampleWindowSeconds,
+            totalLines,
+            activeLines,
+            particles: Array.isArray(this.animations?.particles) ? this.animations.particles.length : 0,
+            floatingTexts: Array.isArray(this.animations?.floatingTexts) ? this.animations.floatingTexts.length : 0,
+            gridCols: Number(this.grid?.cols || 0),
+            gridRows: Number(this.grid?.rows || 0),
+            canvasWidth: Number(this.canvas?.width || 0),
+            canvasHeight: Number(this.canvas?.height || 0)
+        };
     }
 
     drawGridDots(ctx) {

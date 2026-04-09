@@ -2,7 +2,7 @@
  * Main - game entry
  */
 import { Game } from './game.js?v=140';
-import { UI } from './ui.js?v=97';
+import { UI } from './ui.js?v=98';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -21,7 +21,7 @@ import { earlyBgmBootstrap } from './audio.js?v=52';
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.07-188';
+const APP_BUILD_VERSION = 'build 2026.04.09-191';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {

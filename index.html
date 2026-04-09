@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=100">
+    <link rel="stylesheet" href="css/style.css?v=101">
 </head>
 <body>
     <div class="app-container">
@@ -376,9 +376,19 @@
 
         <div id="errorVignette" class="error-vignette"></div>
         <div id="rewardFlyLayer" class="reward-fly-layer hidden" aria-hidden="true"></div>
+        <div id="perfDebugPanel" class="perf-debug-panel hidden" aria-hidden="true">
+            <div class="perf-debug-card">
+                <div class="perf-debug-head">
+                    <strong>性能监控</strong>
+                    <button id="btnPerfDebugClose" type="button">关闭</button>
+                </div>
+                <pre id="perfDebugText" class="perf-debug-text">-</pre>
+                <div class="perf-debug-tip">入口：点击版本号5次，最后一次按住向上滑动</div>
+            </div>
+        </div>
     </div>
 
-    <script type="module" src="js/main.js?v=190"></script>
+    <script type="module" src="js/main.js?v=191"></script>
 </body>
 </html>
 

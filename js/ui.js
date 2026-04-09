@@ -162,11 +162,23 @@ export class UI {
         this.btnCheckinRewardConfirm = document.getElementById('btnCheckinRewardConfirm');
         this.rewardFlyLayerEl = document.getElementById('rewardFlyLayer');
         this.appContainerEl = document.querySelector('.app-container');
+        this.buildVersionTagEl = document.getElementById('buildVersionTag');
+        this.perfDebugPanelEl = document.getElementById('perfDebugPanel');
+        this.perfDebugTextEl = document.getElementById('perfDebugText');
+        this.btnPerfDebugCloseEl = document.getElementById('btnPerfDebugClose');
         this.coinDisplayOverride = null;
         this.checkinCoinCounterFrame = 0;
         this.pendingCheckinRewardPayload = null;
         this.pendingOnlineRewardPayload = null;
         this.onlineRewardSettleCoinIconEl = null;
+        this.perfDebugUpdateTimer = 0;
+        this.perfGestureTapCount = 0;
+        this.perfGestureLastTapAt = 0;
+        this.perfGestureArmed = false;
+        this.perfGestureActivePointerId = null;
+        this.perfGestureStartY = 0;
+        this.perfGestureStartAt = 0;
+        this.perfGestureSwipeTriggered = false;
         this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
         this.audioEnabled = this.uiEditorPreviewOptions.enabled !== true;
         this.uiEditorPreviewOverride = null;
@@ -179,6 +191,7 @@ export class UI {
         });
 
         this.bindEvents();
+        this.initPerfDebugGesture();
         this.initAudioSettingsUi();
         if (this.audioEnabled) {
             this.setupAudioAutoUnlock();
@@ -329,6 +342,139 @@ export class UI {
         this.bindButton('btnLocaleEn', () => this.setLocale('en-US'));
 
         this.bindHomeStartVisualFallback();
+    }
+
+    initPerfDebugGesture() {
+        if (!this.buildVersionTagEl) {
+            return;
+        }
+
+        this.buildVersionTagEl.addEventListener('click', () => {
+            const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            if (now - this.perfGestureLastTapAt > 1500) {
+                this.perfGestureTapCount = 0;
+                this.perfGestureArmed = false;
+            }
+            this.perfGestureLastTapAt = now;
+            if (!this.perfGestureArmed) {
+                this.perfGestureTapCount += 1;
+                if (this.perfGestureTapCount >= 4) {
+                    this.perfGestureArmed = true;
+                }
+            }
+        });
+
+        this.buildVersionTagEl.addEventListener('pointerdown', (event) => {
+            if (!this.perfGestureArmed) {
+                return;
+            }
+            this.perfGestureActivePointerId = event.pointerId;
+            this.perfGestureStartY = event.clientY;
+            this.perfGestureStartAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+            this.perfGestureSwipeTriggered = false;
+            if (typeof this.buildVersionTagEl.setPointerCapture === 'function') {
+                try {
+                    this.buildVersionTagEl.setPointerCapture(event.pointerId);
+                } catch {
+                    // ignore capture failures on older webviews
+                }
+            }
+        });
+
+        this.buildVersionTagEl.addEventListener('pointermove', (event) => {
+            if (!this.perfGestureArmed) {
+                return;
+            }
+            if (this.perfGestureActivePointerId === null || event.pointerId !== this.perfGestureActivePointerId) {
+                return;
+            }
+            if (this.perfGestureSwipeTriggered) {
+                return;
+            }
+            const dy = event.clientY - this.perfGestureStartY;
+            const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - this.perfGestureStartAt;
+            if (dy <= -36 && elapsed >= 120) {
+                this.perfGestureSwipeTriggered = true;
+                this.openPerfDebugPanel();
+                this.resetPerfGestureState();
+            }
+        });
+
+        const finalizeGesture = (event) => {
+            if (this.perfGestureActivePointerId === null || event.pointerId !== this.perfGestureActivePointerId) {
+                return;
+            }
+            this.resetPerfGestureState();
+        };
+        this.buildVersionTagEl.addEventListener('pointerup', finalizeGesture);
+        this.buildVersionTagEl.addEventListener('pointercancel', finalizeGesture);
+
+        if (this.btnPerfDebugCloseEl) {
+            this.btnPerfDebugCloseEl.addEventListener('click', () => this.closePerfDebugPanel());
+        }
+    }
+
+    resetPerfGestureState() {
+        this.perfGestureTapCount = 0;
+        this.perfGestureArmed = false;
+        this.perfGestureActivePointerId = null;
+        this.perfGestureSwipeTriggered = false;
+        this.perfGestureStartY = 0;
+        this.perfGestureStartAt = 0;
+    }
+
+    openPerfDebugPanel() {
+        if (!this.perfDebugPanelEl) {
+            return;
+        }
+        this.perfDebugPanelEl.classList.remove('hidden');
+        this.perfDebugPanelEl.setAttribute('aria-hidden', 'false');
+        this.refreshPerfDebugPanel();
+        if (this.perfDebugUpdateTimer) {
+            clearInterval(this.perfDebugUpdateTimer);
+        }
+        this.perfDebugUpdateTimer = setInterval(() => {
+            this.refreshPerfDebugPanel();
+        }, 500);
+    }
+
+    closePerfDebugPanel() {
+        if (!this.perfDebugPanelEl) {
+            return;
+        }
+        this.perfDebugPanelEl.classList.add('hidden');
+        this.perfDebugPanelEl.setAttribute('aria-hidden', 'true');
+        if (this.perfDebugUpdateTimer) {
+            clearInterval(this.perfDebugUpdateTimer);
+            this.perfDebugUpdateTimer = 0;
+        }
+    }
+
+    refreshPerfDebugPanel() {
+        if (!this.perfDebugTextEl || !this.game || typeof this.game.getPerformanceSnapshot !== 'function') {
+            return;
+        }
+        const snapshot = this.game.getPerformanceSnapshot();
+        const mem = (typeof performance !== 'undefined' && performance && performance.memory)
+            ? performance.memory
+            : null;
+        const memoryText = mem
+            ? `${Math.round((Number(mem.usedJSHeapSize) || 0) / 1048576)} / ${Math.round((Number(mem.jsHeapSizeLimit) || 0) / 1048576)} MB`
+            : 'n/a';
+        const dpr = typeof window !== 'undefined' ? (Number(window.devicePixelRatio) || 1) : 1;
+        const lines = [
+            `state: ${this.game.state || '-'}`,
+            `level: ${this.game.getCurrentStageLabel?.() || this.game.currentLevel || '-'}`,
+            `fps(ema): ${Number(snapshot.fps || 0).toFixed(1)}  frame: ${Number(snapshot.frameMs || 0).toFixed(2)} ms`,
+            `render(ema): ${Number(snapshot.renderCostMs || 0).toFixed(2)} ms`,
+            `jank>=34ms: ${(Number(snapshot.jankRate || 0) * 100).toFixed(1)}% (${snapshot.sampleFrames || 0}f/${Number(snapshot.sampleSeconds || 0).toFixed(1)}s)`,
+            `snakes: ${snapshot.activeLines || 0}/${snapshot.totalLines || 0}`,
+            `particles: ${snapshot.particles || 0}  floatingText: ${snapshot.floatingTexts || 0}`,
+            `grid: ${snapshot.gridCols || 0}x${snapshot.gridRows || 0}`,
+            `canvas: ${snapshot.canvasWidth || 0}x${snapshot.canvasHeight || 0} @dpr ${dpr.toFixed(2)}`,
+            `jsHeap: ${memoryText}`
+        ];
+        this.perfDebugTextEl.textContent = lines.join('\n');
     }
 
     bindButton(id, handler) {
