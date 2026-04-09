@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-07T05:08:48.046Z",
+  "updatedAt": "2026-04-09T03:47:13.061Z",
   "maxUnlockedLevel": 10,
-  "currentLevel": 10,
-  "coins": 753,
+  "currentLevel": 1,
+  "coins": 773,
   "unlockedSkinIds": [
     "classic-burrow",
     "gemini-candy",
