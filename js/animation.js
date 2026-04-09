@@ -18,6 +18,11 @@ export class AnimationManager {
         this.particles = [];
         this.screenShake = 0;
         this.screenShakeDecay = 0;
+        this.quality = 'full';
+    }
+
+    setQuality(quality = 'full') {
+        this.quality = quality === 'lite' ? 'lite' : 'full';
     }
 
     startRemoveAnimation(line, grid, options = null) {
@@ -75,6 +80,9 @@ export class AnimationManager {
     }
 
     addFloatingText(x, y, text, color = '#ffffff', size = 28, options = {}) {
+        if (this.quality === 'lite' && this.floatingTexts.length >= 8) {
+            return;
+        }
         this.floatingTexts.push({
             x,
             y,
@@ -203,7 +211,9 @@ export class AnimationManager {
     }
 
     drawFloatingTexts(ctx) {
-        for (const floatingText of this.floatingTexts) {
+        const liteMode = this.quality === 'lite';
+        const items = liteMode ? this.floatingTexts.slice(-6) : this.floatingTexts;
+        for (const floatingText of items) {
             ctx.save();
             ctx.globalAlpha = floatingText.opacity;
             ctx.font = `900 ${floatingText.size}px Nunito, sans-serif`;
@@ -222,14 +232,18 @@ export class AnimationManager {
                 const height = floatingText.size + 16;
                 roundRect(ctx, floatingText.x - width / 2, floatingText.y - height / 2, width, height, 16);
                 ctx.fillStyle = floatingText.pillColor;
-                ctx.shadowColor = 'rgba(0,0,0,0.12)';
-                ctx.shadowBlur = 12;
-                ctx.shadowOffsetY = 4;
+                if (!liteMode) {
+                    ctx.shadowColor = 'rgba(0,0,0,0.12)';
+                    ctx.shadowBlur = 12;
+                    ctx.shadowOffsetY = 4;
+                }
                 ctx.fill();
-                ctx.shadowColor = 'transparent';
+                if (!liteMode) {
+                    ctx.shadowColor = 'transparent';
+                }
             }
 
-            if (floatingText.stroke) {
+            if (floatingText.stroke && !liteMode) {
                 ctx.strokeStyle = 'rgba(25, 26, 57, 0.18)';
                 ctx.lineWidth = 4;
                 ctx.strokeText(floatingText.text, floatingText.x, floatingText.y);
@@ -249,6 +263,12 @@ export class AnimationManager {
         type = 'confetti',
         options = {}
     ) {
+        if (this.quality === 'lite') {
+            count = Math.max(0, Math.floor(count * 0.15));
+            if (count <= 0) {
+                return;
+            }
+        }
         const speedMin = Math.max(1, Number(options.speedMin) || 150);
         const speedMax = Math.max(speedMin, Number(options.speedMax) || 550);
         const riseBias = Number(options.riseBias) || 200;
@@ -277,6 +297,9 @@ export class AnimationManager {
     }
 
     drawParticles(ctx, pixelTheme = null) {
+        if (this.quality === 'lite') {
+            return;
+        }
         for (const particle of this.particles) {
             if (pixelTheme?.atlas) {
                 drawPixelParticle(ctx, particle, pixelTheme);

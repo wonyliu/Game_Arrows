@@ -8,7 +8,7 @@ import {
     getRewardLevelCount,
     toRewardLevelId
 } from './levels.js?v=32';
-import { AnimationManager } from './animation.js?v=42';
+import { AnimationManager } from './animation.js?v=43';
 import { buildPlayableLevel } from './level-builder.js?v=48';
 import {
     deserializeLevelData,
@@ -69,6 +69,7 @@ const MISCLICK_PENALTY_TEXT_DURATION_SECONDS = Math.max(
 const DRAG_RELEASE_CLICK_SUPPRESS_MS = 160;
 const ENABLE_GAME_DEBUG_LOGS = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('debug') === '1';
+const MOBILE_UA_RE = /android|iphone|ipad|ipod|mobile/i;
 
 export class Game {
     constructor(canvas) {
@@ -146,6 +147,12 @@ export class Game {
         this.perfJankCount = 0;
         this.perfSampleWindowStartedAt = nowMs();
         this.perfSampleWindowSeconds = 0;
+        this.isMobileDevice = typeof navigator !== 'undefined'
+            ? MOBILE_UA_RE.test(`${navigator.userAgent || ''}`)
+            : false;
+        const forceHighQuality = this.searchParams.get('hq') === '1';
+        this.renderQuality = (this.isMobileDevice && !forceHighQuality) ? 'lite' : 'full';
+        this.animations.setQuality(this.renderQuality);
 
         this.loadProgress();
         setAudioSkinId(this.selectedSkinId);
@@ -1328,7 +1335,10 @@ export class Game {
             const shake = this.animations.getScreenShakeOffset();
             ctx.translate(shake.x, shake.y);
             this.drawPixelBoardBackground(ctx);
-            this.drawGridDots(ctx);
+            const isLiteRender = this.renderQuality === 'lite';
+            if (!isLiteRender) {
+                this.drawGridDots(ctx);
+            }
 
             const sortedLines = this.getSortedLines('asc');
 
@@ -1337,7 +1347,7 @@ export class Game {
                     continue;
                 }
                 if (line.trails.length > 0) {
-                    line.drawTrails(ctx, this.grid, this.pixelTheme);
+                    line.drawTrails(ctx, this.grid, isLiteRender ? null : this.pixelTheme);
                 }
             }
 
@@ -1351,16 +1361,18 @@ export class Game {
                     ctx.shadowBlur = 20;
                     ctx.globalAlpha = 0.95;
                     line.removeTint = '#ffd68f';
-                    line.draw(ctx, this.grid, this.pixelTheme);
+                    line.draw(ctx, this.grid, isLiteRender ? null : this.pixelTheme);
                     line.removeTint = null;
                     ctx.restore();
                 } else {
-                    line.draw(ctx, this.grid, this.pixelTheme);
+                    line.draw(ctx, this.grid, isLiteRender ? null : this.pixelTheme);
                 }
             }
 
             ctx.restore();
-            this.animations.drawParticles(ctx, this.pixelTheme);
+            if (!isLiteRender) {
+                this.animations.drawParticles(ctx, this.pixelTheme);
+            }
             this.animations.drawFloatingTexts(ctx);
         }
 
@@ -1390,6 +1402,7 @@ export class Game {
             jankRate,
             sampleFrames: this.perfFrameCount,
             sampleSeconds: this.perfSampleWindowSeconds,
+            renderQuality: this.renderQuality,
             totalLines,
             activeLines,
             particles: Array.isArray(this.animations?.particles) ? this.animations.particles.length : 0,

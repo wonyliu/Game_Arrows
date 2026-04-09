@@ -465,6 +465,7 @@ export class UI {
         const lines = [
             `state: ${this.game.state || '-'}`,
             `level: ${this.game.getCurrentStageLabel?.() || this.game.currentLevel || '-'}`,
+            `quality: ${snapshot.renderQuality || '-'}`,
             `fps(ema): ${Number(snapshot.fps || 0).toFixed(1)}  frame: ${Number(snapshot.frameMs || 0).toFixed(2)} ms`,
             `render(ema): ${Number(snapshot.renderCostMs || 0).toFixed(2)} ms`,
             `jank>=34ms: ${(Number(snapshot.jankRate || 0) * 100).toFixed(1)}% (${snapshot.sampleFrames || 0}f/${Number(snapshot.sampleSeconds || 0).toFixed(1)}s)`,
