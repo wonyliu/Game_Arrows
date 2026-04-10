@@ -1,48 +1,49 @@
-const GAME_PROGRESS_KEY = 'arrowClear_progress';
-const GAME_PROGRESS_FILE = 'game-progress-v1';
+﻿const GAME_PROGRESS_FILE = 'game-progress-v1';
 const STORAGE_API_BASE = '/api/storage';
+const PROGRESS_STATIC_CONFIG_PATHS = Object.freeze([
+    '.local-data/game-progress-v1.json',
+    'data/game-progress-v1.json'
+]);
 const PROGRESS_SCHEMA_VERSION = 1;
 
 let progressInitPromise = null;
 let serverSyncWarned = false;
+let progressState = normalizeProgress(null);
 
 export function initProgressStorage() {
     if (progressInitPromise) {
         return progressInitPromise;
     }
 
-    progressInitPromise = hydrateFromServer().catch((error) => {
-        console.warn('[progress-storage] init failed, fallback to browser storage only', error);
+    progressInitPromise = hydrateFromPersistentSource().catch((error) => {
+        console.warn('[progress-storage] init failed, using in-memory defaults', error);
     });
 
     return progressInitPromise;
 }
 
 export function readProgressSnapshot() {
-    return readLocalProgress();
+    return cloneJson(progressState);
 }
 
 export function saveProgressSnapshot(progress) {
     const normalized = normalizeProgress(progress, {
-        fallback: readLocalProgress(),
+        fallback: progressState,
         forceTouchUpdatedAt: true
     });
-    writeLocalProgress(normalized);
+    progressState = normalized;
     return persistProgressToServer(normalized);
 }
 
-async function hydrateFromServer() {
-    const local = readLocalProgress();
+async function hydrateFromPersistentSource() {
     const remote = await fetchProgressFromServer();
-    if (!remote) {
-        return;
+    if (remote) {
+        progressState = normalizeProgress(remote, { fallback: progressState });
     }
-    const merged = mergeProgress(remote, local);
-    writeLocalProgress(merged);
 }
 
 async function fetchProgressFromServer() {
-    if (!canUseApiStorage()) {
+    if (typeof fetch !== 'function') {
         return null;
     }
 
@@ -52,19 +53,37 @@ async function fetchProgressFromServer() {
             cache: 'no-store'
         });
 
-        if (!response.ok) {
-            return null;
+        if (response.ok) {
+            const data = await response.json();
+            return isPlainObject(data) ? data : null;
         }
-
-        const data = await response.json();
-        return isPlainObject(data) ? data : null;
     } catch {
-        return null;
+        // continue to static fallback
     }
+
+    for (const path of PROGRESS_STATIC_CONFIG_PATHS) {
+        try {
+            const response = await fetch(path, {
+                method: 'GET',
+                cache: 'no-store'
+            });
+            if (!response.ok) {
+                continue;
+            }
+            const data = await response.json();
+            if (isPlainObject(data)) {
+                return data;
+            }
+        } catch {
+            // try next static fallback
+        }
+    }
+
+    return null;
 }
 
 async function persistProgressToServer(progress) {
-    if (!canUseApiStorage()) {
+    if (typeof fetch !== 'function') {
         return false;
     }
 
@@ -93,35 +112,7 @@ function warnServerUnavailable(error) {
         return;
     }
     serverSyncWarned = true;
-    console.warn('[progress-storage] server sync unavailable, fallback to browser storage only', error);
-}
-
-function readLocalProgress() {
-    if (typeof localStorage === 'undefined') {
-        return normalizeProgress(null);
-    }
-
-    try {
-        const parsed = JSON.parse(localStorage.getItem(GAME_PROGRESS_KEY) || 'null');
-        return normalizeProgress(parsed);
-    } catch {
-        return normalizeProgress(null);
-    }
-}
-
-function writeLocalProgress(progress) {
-    if (typeof localStorage === 'undefined') {
-        return;
-    }
-
-    try {
-        localStorage.setItem(GAME_PROGRESS_KEY, JSON.stringify(normalizeProgress(progress, {
-            fallback: progress,
-            forceTouchUpdatedAt: false
-        })));
-    } catch (error) {
-        console.warn('[progress-storage] failed to write browser storage', error);
-    }
+    console.warn('[progress-storage] server sync unavailable; using read-only static/in-memory progress', error);
 }
 
 function normalizeProgress(value, options = {}) {
@@ -162,46 +153,6 @@ function normalizeProgress(value, options = {}) {
     };
 }
 
-function mergeProgress(remote, local) {
-    const remoteNormalized = normalizeProgress(remote);
-    const localNormalized = normalizeProgress(local);
-    const remoteScore = computeProgressScore(remoteNormalized);
-    const localScore = computeProgressScore(localNormalized);
-
-    const remoteUpdatedAtMs = parseUpdatedAtMs(remoteNormalized.updatedAt);
-    const localUpdatedAtMs = parseUpdatedAtMs(localNormalized.updatedAt);
-
-    if (remoteUpdatedAtMs > 0 && localUpdatedAtMs > 0) {
-        if (remoteUpdatedAtMs > localUpdatedAtMs) {
-            return remoteNormalized;
-        }
-        if (localUpdatedAtMs > remoteUpdatedAtMs) {
-            return localNormalized;
-        }
-        return remoteScore > localScore ? remoteNormalized : localNormalized;
-    }
-
-    if (remoteUpdatedAtMs > 0 && localUpdatedAtMs === 0) {
-        return localScore > remoteScore ? localNormalized : remoteNormalized;
-    }
-
-    if (localUpdatedAtMs > 0 && remoteUpdatedAtMs === 0) {
-        return remoteScore > localScore ? remoteNormalized : localNormalized;
-    }
-
-    return remoteScore > localScore ? remoteNormalized : localNormalized;
-}
-
-function computeProgressScore(progress) {
-    const unlockedSkinCount = Array.isArray(progress.unlockedSkinIds) ? progress.unlockedSkinIds.length : 0;
-    return (
-        clampProgressLevel(progress.maxUnlockedLevel, 1) * 1000000000 +
-        clampCoins(progress.coins) * 10000 +
-        unlockedSkinCount * 100 +
-        clampProgressLevel(progress.currentLevel, 1)
-    );
-}
-
 function resolveUpdatedAt(value, fallback, forceTouch) {
     if (forceTouch) {
         return new Date().toISOString();
@@ -233,15 +184,6 @@ function normalizeIsoTimestamp(value) {
         return '';
     }
     return date.toISOString();
-}
-
-function parseUpdatedAtMs(value) {
-    const normalized = normalizeIsoTimestamp(value);
-    if (!normalized) {
-        return 0;
-    }
-    const time = Date.parse(normalized);
-    return Number.isFinite(time) ? time : 0;
 }
 
 function sanitizeSkinIdList(value) {
@@ -285,40 +227,10 @@ function clampPositiveInt(value, fallback = 1) {
     return Math.max(1, Math.floor(parsed));
 }
 
-function canUseApiStorage() {
-    if (typeof window === 'undefined' || typeof fetch !== 'function') {
-        return false;
-    }
-
-    const host = (window.location?.hostname || '').toLowerCase();
-    if (!host) {
-        return false;
-    }
-
-    if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host.endsWith('.local')) {
-        return true;
-    }
-
-    return isPrivateIpv4Host(host);
-}
-
-function isPrivateIpv4Host(host) {
-    const parts = host.split('.');
-    if (parts.length !== 4) {
-        return false;
-    }
-
-    const numbers = parts.map((part) => Number(part));
-    if (numbers.some((num) => !Number.isInteger(num) || num < 0 || num > 255)) {
-        return false;
-    }
-
-    if (numbers[0] === 10) return true;
-    if (numbers[0] === 192 && numbers[1] === 168) return true;
-    if (numbers[0] === 172 && numbers[1] >= 16 && numbers[1] <= 31) return true;
-    return false;
-}
-
 function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
+}
+
+function cloneJson(value) {
+    return JSON.parse(JSON.stringify(value));
 }

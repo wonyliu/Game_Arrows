@@ -36,7 +36,7 @@ import { readGameplayParams } from './game-params.js?v=3';
 import {
     readProgressSnapshot,
     saveProgressSnapshot
-} from './progress-storage.js?v=1';
+} from './progress-storage.js?v=2';
 import {
     getBusinessDayKeyByHour,
     getLocalDayKey,
