@@ -33,6 +33,9 @@ let bgmConsecutiveErrorCount = 0;
 let bgmWebGainNode = null;
 let bgmWebSourceNode = null;
 let bgmWebAudioActive = false;
+let bgmHtmlMediaSourceNode = null;
+let bgmHtmlMediaGainNode = null;
+let htmlMediaVolumeWritable = null;
 let bgmStorageReady = false;
 let pendingSceneReplayAfterStorage = '';
 let bgmSceneVolume = 1;
@@ -132,6 +135,49 @@ function getBgmWebGainNode(ctx) {
         bgmWebGainNode.connect(ctx.destination);
     }
     return bgmWebGainNode;
+}
+
+function canControlHtmlMediaVolumeDirectly() {
+    if (htmlMediaVolumeWritable !== null) {
+        return htmlMediaVolumeWritable;
+    }
+    try {
+        const probe = document.createElement('audio');
+        const baseline = Number(probe.volume);
+        probe.volume = 0.37;
+        const after = Number(probe.volume);
+        htmlMediaVolumeWritable = Number.isFinite(after)
+            && Math.abs(after - 0.37) < 0.001
+            && Math.abs(after - baseline) > 0.001;
+    } catch {
+        htmlMediaVolumeWritable = true;
+    }
+    return htmlMediaVolumeWritable;
+}
+
+function ensureHtmlBgmGainRouting() {
+    if (!bgmAudioEl) {
+        return false;
+    }
+    if (canControlHtmlMediaVolumeDirectly()) {
+        return false;
+    }
+    const ctx = getAudioContext();
+    if (!bgmHtmlMediaGainNode || bgmHtmlMediaGainNode.context !== ctx) {
+        bgmHtmlMediaGainNode = ctx.createGain();
+        bgmHtmlMediaGainNode.gain.setValueAtTime(1, ctx.currentTime);
+        bgmHtmlMediaGainNode.connect(ctx.destination);
+    }
+    if (!bgmHtmlMediaSourceNode) {
+        try {
+            bgmHtmlMediaSourceNode = ctx.createMediaElementSource(bgmAudioEl);
+            bgmHtmlMediaSourceNode.connect(bgmHtmlMediaGainNode);
+        } catch (error) {
+            console.warn('[audio] failed to route html bgm through gain node', error);
+            return false;
+        }
+    }
+    return true;
 }
 
 function stopWebAudioBgm() {
@@ -374,7 +420,12 @@ function scheduleBgmRetry() {
 function updateBgmElementVolume() {
     const composed = clamp(bgmSceneVolume * audioMix.music * getCurrentTrackVolume(), 0, 1);
     if (bgmAudioEl) {
-        bgmAudioEl.volume = composed;
+        if (ensureHtmlBgmGainRouting() && bgmHtmlMediaGainNode?.context) {
+            bgmAudioEl.volume = 1;
+            bgmHtmlMediaGainNode.gain.setValueAtTime(composed, bgmHtmlMediaGainNode.context.currentTime);
+        } else {
+            bgmAudioEl.volume = composed;
+        }
     }
     if (bgmWebGainNode && bgmWebGainNode.context?.state === 'running') {
         bgmWebGainNode.gain.setValueAtTime(composed, bgmWebGainNode.context.currentTime);
