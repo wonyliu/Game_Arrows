@@ -537,18 +537,9 @@ function normalizeLocalSkinColorVariantMap(rawMap = {}) {
 }
 
 function getCatalogBase() {
-    const visibleSkinIdSet = normalizeVisibleSkinIdSet(readRawVisibleSkinIds());
-    const builtInCatalog = visibleSkinIdSet
-        ? SKIN_CATALOG.filter((skin) => skin.id === DEFAULT_SKIN_ID || visibleSkinIdSet.has(skin.id))
-        : SKIN_CATALOG;
-    const localCatalogRaw = normalizeLocalSkinCatalog(readRawLocalSkinCatalog());
-    const localCatalog = visibleSkinIdSet
-        ? localCatalogRaw.filter((skin) => visibleSkinIdSet.has(skin.id))
-        : localCatalogRaw;
-    if (localCatalog.length === 0) {
-        return builtInCatalog;
-    }
-    return [...builtInCatalog, ...localCatalog];
+    // Keep skin catalog deterministic across devices/hosts:
+    // do not use local cache (visible ids / local catalog) as runtime source.
+    return SKIN_CATALOG;
 }
 
 function normalizeCoinCost(rawCost, fallbackCost) {

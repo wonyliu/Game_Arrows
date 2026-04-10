@@ -31,7 +31,7 @@ import {
     getSkinById,
     getSkinCatalog as getSkinCatalogList,
     normalizeUnlockedSkins
-} from './skins.js?v=23';
+} from './skins.js?v=25';
 import { readGameplayParams } from './game-params.js?v=3';
 import {
     readProgressSnapshot,

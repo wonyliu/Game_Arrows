@@ -16,13 +16,13 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
-import { isLegacyColorVariantSkinId } from './skins.js?v=24';
+import { isLegacyColorVariantSkinId } from './skins.js?v=25';
 import { earlyBgmBootstrap } from './audio.js?v=55';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.10-203';
+const APP_BUILD_VERSION = 'build 2026.04.10-204';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {
@@ -209,52 +209,19 @@ function mergeLocalSkinCatalogRows(existingRows, incomingRows) {
 }
 
 async function syncLocalSkinCatalogFromServer() {
+    return { ok: false, reason: 'disabled_runtime_local_skin_catalog_sync' };
+}
+
+function clearRuntimeLocalSkinCatalogCache() {
     if (typeof window === 'undefined' || !window.localStorage) {
-        return { ok: false, reason: 'no_local_storage' };
+        return;
     }
-    if (skinCatalogSyncPromise) {
-        return skinCatalogSyncPromise;
+    try {
+        localStorage.removeItem(LOCAL_SKIN_CATALOG_STORAGE_KEY);
+        localStorage.removeItem(SKIN_VISIBLE_IDS_STORAGE_KEY);
+    } catch {
+        // ignore
     }
-
-    skinCatalogSyncPromise = (async () => {
-        const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-        const timeoutId = setTimeout(() => {
-            if (controller) {
-                controller.abort();
-            }
-        }, 1500);
-
-        try {
-            const response = await fetch('/api/skin-gen/saved-skins', {
-                method: 'GET',
-                cache: 'no-store',
-                signal: controller ? controller.signal : undefined
-            });
-            if (!response.ok) {
-                return { ok: false, reason: `http_${response.status}` };
-            }
-
-            const payload = await response.json().catch(() => ({}));
-            const visibleIds = normalizeVisibleSkinIds(payload?.skins);
-            localStorage.setItem(SKIN_VISIBLE_IDS_STORAGE_KEY, JSON.stringify(visibleIds, null, 2));
-
-            const incoming = normalizeSavedSkinRows(payload?.skins);
-            const merged = mergeLocalSkinCatalogRows(readLocalSkinCatalogRows(), incoming);
-            writeLocalSkinCatalogRows(merged);
-            logBoot('skin catalog synced', { skinCount: merged.length, visibleCount: visibleIds.length });
-            return { ok: true, skinCount: merged.length, visibleCount: visibleIds.length };
-        } catch (error) {
-            if (error?.name !== 'AbortError') {
-                console.warn('[main] sync local skin catalog failed', error);
-            }
-            return { ok: false, reason: error?.name || 'sync_failed' };
-        } finally {
-            clearTimeout(timeoutId);
-            skinCatalogSyncPromise = null;
-        }
-    })();
-
-    return skinCatalogSyncPromise;
 }
 
 if (typeof window !== 'undefined') {
@@ -405,6 +372,7 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
 
         try {
             const storageStartedAt = nowMs();
+            clearRuntimeLocalSkinCatalogCache();
             await Promise.all([
                 initLevelStorage().catch((error) => {
                     console.warn('[main] level storage init failed', error);
@@ -513,7 +481,6 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
-
 
 
 
