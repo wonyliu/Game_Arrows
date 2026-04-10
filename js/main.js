@@ -16,15 +16,20 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
-import { isLegacyColorVariantSkinId } from './skins.js?v=25';
+import { isLegacyColorVariantSkinId } from './skins.js?v=26';
 import { earlyBgmBootstrap } from './audio.js?v=55';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.10-204';
+const APP_BUILD_VERSION = 'build 2026.04.10-205';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
+const SKIN_PRICE_OVERRIDE_STORAGE_KEY = 'arrowClear_skinPriceOverrides_v1';
+const LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY = 'arrowClear_localSkinPriceOverrides_v1';
+const LOCAL_SKIN_COLOR_VARIANTS_STORAGE_KEY = 'arrowClear_localSkinColorVariants_v1';
+const SKIN_DESC_ZH_OVERRIDE_STORAGE_KEY = 'arrowClear_skinDescZhOverrides_v1';
+const SKIN_DESC_EN_OVERRIDE_STORAGE_KEY = 'arrowClear_skinDescEnOverrides_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {
     if (typeof window === 'undefined') {
         return { enabled: false, panel: 'checkin' };
@@ -219,6 +224,11 @@ function clearRuntimeLocalSkinCatalogCache() {
     try {
         localStorage.removeItem(LOCAL_SKIN_CATALOG_STORAGE_KEY);
         localStorage.removeItem(SKIN_VISIBLE_IDS_STORAGE_KEY);
+        localStorage.removeItem(SKIN_PRICE_OVERRIDE_STORAGE_KEY);
+        localStorage.removeItem(LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY);
+        localStorage.removeItem(LOCAL_SKIN_COLOR_VARIANTS_STORAGE_KEY);
+        localStorage.removeItem(SKIN_DESC_ZH_OVERRIDE_STORAGE_KEY);
+        localStorage.removeItem(SKIN_DESC_EN_OVERRIDE_STORAGE_KEY);
     } catch {
         // ignore
     }
@@ -481,8 +491,6 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
-
-
 
 
 

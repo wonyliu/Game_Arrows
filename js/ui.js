@@ -9,7 +9,7 @@ import {
     setSfxVolume,
     playCheckinRewardCoinSound
 } from './audio.js?v=55';
-import { getSkinDescription, getSkinDisplayName } from './skins.js?v=25';
+import { getSkinDescription, getSkinDisplayName } from './skins.js?v=26';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
 

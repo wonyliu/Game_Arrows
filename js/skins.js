@@ -278,10 +278,9 @@ const SKIN_INDEX = new Map(SKIN_CATALOG.map((skin) => [skin.id, skin]));
 const SKIN_ORDER = SKIN_CATALOG.map((skin) => skin.id);
 
 function getStorage() {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return null;
-    }
-    return window.localStorage;
+    // Runtime skin configuration must be deterministic across devices.
+    // Disable localStorage-backed skin config overrides entirely.
+    return null;
 }
 
 function sanitizeSkinId(rawId) {

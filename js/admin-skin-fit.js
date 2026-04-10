@@ -1,4 +1,4 @@
-﻿import { getSkinById, getSkinCatalog } from './skins.js?v=25';
+﻿import { getSkinById, getSkinCatalog } from './skins.js?v=26';
 import {
     initSkinPartFitStorage,
     readSkinPartFitOverrides,

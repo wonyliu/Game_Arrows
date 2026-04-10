@@ -4,7 +4,7 @@
     getSkinCatalog,
     readSkinPriceOverrides,
     writeSkinPriceOverrides
-} from './skins.js?v=25';
+} from './skins.js?v=26';
 import {
     clearGameplayParams,
     DEFAULT_GAMEPLAY_PARAMS,
