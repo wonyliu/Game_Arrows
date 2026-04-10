@@ -23,7 +23,7 @@ import {
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=54';
+} from './audio.js?v=55';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=51';
 import {
     ensureSelectedSkin,

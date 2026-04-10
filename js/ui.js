@@ -8,7 +8,7 @@ import {
     setMusicVolume,
     setSfxVolume,
     playCheckinRewardCoinSound
-} from './audio.js?v=54';
+} from './audio.js?v=55';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=23';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
@@ -225,7 +225,18 @@ export class UI {
 
     setupAudioAutoUnlock() {
         let lastUnlockAt = 0;
+        let unlocked = false;
+        const cleanup = () => {
+            const unlockEvents = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+            for (const type of unlockEvents) {
+                document.removeEventListener(type, unlock, true);
+                window.removeEventListener(type, unlock, true);
+            }
+        };
         const unlock = () => {
+            if (unlocked) {
+                return;
+            }
             const now = Date.now();
             if (now - lastUnlockAt < 300) {
                 return;
@@ -236,7 +247,13 @@ export class UI {
             } catch (error) {
                 console.warn('Audio resume failed during auto unlock:', error);
             }
-            playBgmForScene(BGM_SCENE_KEYS.HOME);
+            if (this.game?.state === 'PLAYING') {
+                this.syncGameplayBgm(true);
+            } else {
+                playBgmForScene(BGM_SCENE_KEYS.HOME, { restart: true });
+            }
+            unlocked = true;
+            cleanup();
         };
 
         const unlockEvents = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];

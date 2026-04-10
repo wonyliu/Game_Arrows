@@ -697,7 +697,8 @@ function playlistSignature(playlist) {
     return Array.isArray(playlist) ? playlist.join('\n') : '';
 }
 
-function playCurrentBgmTrack() {
+function playCurrentBgmTrack(options = {}) {
+    const forceReload = options?.forceReload === true;
     if (!bgmPlaylist.length) {
         return;
     }
@@ -708,8 +709,12 @@ function playCurrentBgmTrack() {
         return;
     }
     stopWebAudioBgm();
-    if (audio.src !== nextSrc) {
+    if (forceReload || audio.src !== nextSrc) {
         logBgm('load track', { src: nextSrc, index: safeIndex, total: bgmPlaylist.length });
+        if (forceReload && !audio.paused) {
+            audio.pause();
+            audio.currentTime = 0;
+        }
         audio.src = nextSrc;
         if (!navigator.userActivation?.hasBeenActive) {
             audio.muted = true;
@@ -957,19 +962,21 @@ export function stopBgm() {
 }
 
 export function playBgmForScene(sceneKey, options = {}) {
-    const restart = options?.restart === true;
+    const requestedSceneKey = `${sceneKey || ''}`.trim() || BGM_SCENE_KEYS.HOME;
+    const sceneChanged = !!bgmSceneKey && bgmSceneKey !== requestedSceneKey;
+    const restart = options?.restart === true || sceneChanged;
     if (!bgmStorageReady) {
-        ensureBgmStorageReadyForReplay(sceneKey);
+        ensureBgmStorageReadyForReplay(requestedSceneKey);
         return;
     }
-    const scene = getBgmSceneConfig(sceneKey);
+    const scene = getBgmSceneConfig(requestedSceneKey);
     const signature = playlistSignature(scene.playlist);
     const audio = getBgmAudioElement();
     bgmSceneVolume = scene.volume;
     bgmSceneTrackVolumes = scene.trackVolumes || new Map();
     updateBgmElementVolume();
     logBgm('play scene', {
-        scene: sceneKey,
+        scene: requestedSceneKey,
         restart,
         playlist: scene.playlist,
         volume: scene.volume
@@ -981,7 +988,7 @@ export function playBgmForScene(sceneKey, options = {}) {
     }
 
     if (!restart && signature === bgmPlaylistSignature) {
-        bgmSceneKey = sceneKey;
+        bgmSceneKey = requestedSceneKey;
         if (audio.paused) {
             logBgm('reuse current playlist; resume');
             pendingBgmPlay = true;
@@ -990,11 +997,11 @@ export function playBgmForScene(sceneKey, options = {}) {
         return;
     }
 
-    bgmSceneKey = sceneKey;
+    bgmSceneKey = requestedSceneKey;
     bgmPlaylist = [...scene.playlist];
     bgmTrackIndex = 0;
     bgmPlaylistSignature = signature;
-    playCurrentBgmTrack();
+    playCurrentBgmTrack({ forceReload: restart });
 }
 
 export function playClearSound() {
