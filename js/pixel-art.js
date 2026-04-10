@@ -194,11 +194,7 @@ const DEFAULT_SNAKE_PART_FIT = Object.freeze({
 });
 const SNAKE_PART_MASK_SPECS = Object.freeze([
     Object.freeze({ spriteKey: 'snakeHead', fitKey: 'headDefault', maskAssetKey: 'snakeHead' }),
-    Object.freeze({ spriteKey: 'snakeHeadCurious', fitKey: 'headCurious', maskAssetKey: 'snakeHeadCurious' }),
-    Object.freeze({ spriteKey: 'snakeHeadSleepy', fitKey: 'headSleepy', maskAssetKey: 'snakeHeadSleepy' }),
-    Object.freeze({ spriteKey: 'snakeHeadSurprised', fitKey: 'headSurprised', maskAssetKey: 'snakeHeadSurprised' }),
     Object.freeze({ spriteKey: 'snakeSegA', fitKey: 'segA', maskAssetKey: 'snakeSegA' }),
-    Object.freeze({ spriteKey: 'snakeSegB', fitKey: 'segB', maskAssetKey: 'snakeSegB' }),
     Object.freeze({ spriteKey: 'snakeTailTip', fitKey: 'tailTip', maskAssetKey: 'snakeTailTip' })
 ]);
 const ENABLE_RUNTIME_SNAKE_SHADOW = false;
@@ -1000,22 +996,14 @@ function ensureSnakeImageSprites(atlas) {
     const cachePrefix = `snake-${skin.id}`;
 
     atlas.sprites.snakeHead = atlas.sprites.snakeHead || loadRasterSprite(`${cachePrefix}-head`, assets.snakeHead);
-    atlas.sprites.snakeHeadCurious = atlas.sprites.snakeHeadCurious || loadRasterSprite(`${cachePrefix}-head-curious`, assets.snakeHeadCurious);
-    atlas.sprites.snakeHeadSleepy = atlas.sprites.snakeHeadSleepy || loadRasterSprite(`${cachePrefix}-head-sleepy`, assets.snakeHeadSleepy);
-    atlas.sprites.snakeHeadSurprised = atlas.sprites.snakeHeadSurprised || loadRasterSprite(`${cachePrefix}-head-surprised`, assets.snakeHeadSurprised);
-    atlas.sprites.snakeSegA = atlas.sprites.snakeSegA || loadRasterSprite(`${cachePrefix}-seg-a`, assets.snakeSegA);
-    atlas.sprites.snakeSegB = atlas.sprites.snakeSegB || loadRasterSprite(`${cachePrefix}-seg-b`, assets.snakeSegB);
-    atlas.sprites.snakeTailBase = atlas.sprites.snakeTailBase || loadRasterSprite(`${cachePrefix}-tail-base`, assets.snakeTailBase);
-    atlas.sprites.snakeTailTip = atlas.sprites.snakeTailTip || loadRasterSprite(`${cachePrefix}-tail-tip`, assets.snakeTailTip);
+    atlas.sprites.snakeSegA = atlas.sprites.snakeSegA
+        || loadRasterSprite(`${cachePrefix}-seg-a`, assets.snakeSegA || assets.snakeSegB);
+    atlas.sprites.snakeTailTip = atlas.sprites.snakeTailTip
+        || loadRasterSprite(`${cachePrefix}-tail-tip`, assets.snakeTailTip || assets.snakeTailBase);
 
     const baseReady = Boolean(
         atlas.sprites.snakeHead &&
-        atlas.sprites.snakeHeadCurious &&
-        atlas.sprites.snakeHeadSleepy &&
-        atlas.sprites.snakeHeadSurprised &&
         atlas.sprites.snakeSegA &&
-        atlas.sprites.snakeSegB &&
-        atlas.sprites.snakeTailBase &&
         atlas.sprites.snakeTailTip
     );
 
@@ -1361,9 +1349,17 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     const colorVariant = atlas.skinAllowHueVariants === false
         ? null
         : getSnakeColorVariant(atlas, lineId, colorVariantIndex);
-    const segASprite = getSnakeVariantSprite(spriteSet.snakeSegA, colorVariant);
-    const segBSprite = getSnakeVariantSprite(spriteSet.snakeSegB, colorVariant);
-    const tailTipSprite = getSnakeVariantSprite(spriteSet.snakeTailTip, colorVariant);
+    const bodySprite = getSnakeVariantSprite(
+        spriteSet.snakeSegA || spriteSet.snakeSegB,
+        colorVariant
+    );
+    const tailTipSprite = getSnakeVariantSprite(
+        spriteSet.snakeTailTip || spriteSet.snakeTailBase,
+        colorVariant
+    );
+    if (!bodySprite || !tailTipSprite) {
+        return false;
+    }
 
     const bodyPoints = [];
     for (const point of sampled) {
@@ -1415,12 +1411,11 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
         const angle = Math.atan2(next.y - prev.y, next.x - prev.x);
         const t = i / Math.max(1, bodyPoints.length - 1);
 
-        const sprite = i % 2 === 0 ? segASprite : segBSprite;
+        const sprite = bodySprite;
         const sizeTier = t > 0.76 ? 1.12 : (t > 0.5 ? 1.0 : 0.9);
         const pulse = 1 + Math.sin(i * 0.6 + wiggleTime * 2.1) * 0.03 + softPulse * 0.04;
         const baseScale = (thickness * sizeTier * pulse * spriteScale) / sprite.height;
-        const segmentFit = (i % 2 === 0 ? partFit.segA : partFit.segB)
-            || (i % 2 === 0 ? DEFAULT_SNAKE_PART_FIT.segA : DEFAULT_SNAKE_PART_FIT.segB);
+        const segmentFit = partFit.segA || DEFAULT_SNAKE_PART_FIT.segA;
         const scale = baseScale * segmentFit.scale;
         const segmentSize = {
             width: sprite.width * scale,
@@ -1467,10 +1462,10 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     };
 
     const neckFit = partFit.segA || DEFAULT_SNAKE_PART_FIT.segA;
-    const neckScale = ((thickness * 1.05 * spriteScale) / segASprite.height) * neckFit.scale;
+    const neckScale = ((thickness * 1.05 * spriteScale) / bodySprite.height) * neckFit.scale;
     const neckSize = {
-        width: segASprite.width * neckScale,
-        height: segASprite.height * neckScale
+        width: bodySprite.width * neckScale,
+        height: bodySprite.height * neckScale
     };
     const neckFitRender = applyPartFitTransform(
         neckRender.x,
@@ -1481,7 +1476,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
         neckFit,
         false
     );
-    drawSprite(ctx, segASprite, neckFitRender.x, neckFitRender.y, {
+    drawSprite(ctx, bodySprite, neckFitRender.x, neckFitRender.y, {
         alpha,
         rotation: headPose.angle,
         scale: neckScale,
@@ -1826,12 +1821,7 @@ export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily'
             particleSquare: renderSprite('particle-leaf', MATRICES.particleLeaf, theme.palette, clamp(scale - 1, 1, 4)),
             particleStar: renderSprite('particle-heart', MATRICES.particleHeart, theme.palette, clamp(scale - 1, 1, 4)),
             snakeHead: loadRasterSprite(`${cachePrefix}-head`, skin.assets.snakeHead),
-            snakeHeadCurious: loadRasterSprite(`${cachePrefix}-head-curious`, skin.assets.snakeHeadCurious),
-            snakeHeadSleepy: loadRasterSprite(`${cachePrefix}-head-sleepy`, skin.assets.snakeHeadSleepy),
-            snakeHeadSurprised: loadRasterSprite(`${cachePrefix}-head-surprised`, skin.assets.snakeHeadSurprised),
             snakeSegA: loadRasterSprite(`${cachePrefix}-seg-a`, skin.assets.snakeSegA),
-            snakeSegB: loadRasterSprite(`${cachePrefix}-seg-b`, skin.assets.snakeSegB),
-            snakeTailBase: loadRasterSprite(`${cachePrefix}-tail-base`, skin.assets.snakeTailBase),
             snakeTailTip: loadRasterSprite(`${cachePrefix}-tail-tip`, skin.assets.snakeTailTip)
         }
     };
