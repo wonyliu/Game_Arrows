@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-10T10:33:24.059Z",
+  "updatedAt": "2026-04-10T11:11:37.754Z",
   "maxUnlockedLevel": 1,
   "currentLevel": 1,
   "coins": 820,
@@ -8,12 +8,7 @@
     "classic-burrow",
     "gemini-candy",
     "candy-dream",
-    "aurora-jelly",
-    "aqua-jelly-snake",
-    "candy-heart-snake",
-    "candy-star-snake",
-    "orange-jelly-snake",
-    "rainbow-jelly-snake"
+    "aurora-jelly"
   ],
   "selectedSkinId": "candy-dream",
   "nextRewardLevelIndex": 2
