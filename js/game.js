@@ -1347,7 +1347,7 @@ export class Game {
                     continue;
                 }
                 if (line.trails.length > 0) {
-                    line.drawTrails(ctx, this.grid, isLiteRender ? null : this.pixelTheme);
+                    line.drawTrails(ctx, this.grid, this.pixelTheme);
                 }
             }
 
@@ -1361,11 +1361,11 @@ export class Game {
                     ctx.shadowBlur = 20;
                     ctx.globalAlpha = 0.95;
                     line.removeTint = '#ffd68f';
-                    line.draw(ctx, this.grid, isLiteRender ? null : this.pixelTheme);
+                    line.draw(ctx, this.grid, this.pixelTheme);
                     line.removeTint = null;
                     ctx.restore();
                 } else {
-                    line.draw(ctx, this.grid, isLiteRender ? null : this.pixelTheme);
+                    line.draw(ctx, this.grid, this.pixelTheme);
                 }
             }
 
