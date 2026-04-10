@@ -155,11 +155,29 @@ function canControlHtmlMediaVolumeDirectly() {
     return htmlMediaVolumeWritable;
 }
 
+function isIosLikeDevice() {
+    if (typeof navigator === 'undefined') {
+        return false;
+    }
+    const ua = `${navigator.userAgent || ''}`.toLowerCase();
+    if (/iphone|ipad|ipod/.test(ua)) {
+        return true;
+    }
+    return /macintosh/.test(ua) && Number(navigator.maxTouchPoints || 0) > 1;
+}
+
+function shouldPreferWebAudioVolumeControl() {
+    if (isIosLikeDevice()) {
+        return true;
+    }
+    return !canControlHtmlMediaVolumeDirectly();
+}
+
 function ensureHtmlBgmGainRouting() {
     if (!bgmAudioEl) {
         return false;
     }
-    if (canControlHtmlMediaVolumeDirectly()) {
+    if (!shouldPreferWebAudioVolumeControl()) {
         return false;
     }
     const ctx = getAudioContext();
