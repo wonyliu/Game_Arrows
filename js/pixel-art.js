@@ -1,4 +1,4 @@
-﻿import { getDefaultSkinId, getSkinById } from './skins.js?v=23';
+import { getDefaultSkinId, getSkinById } from './skins.js?v=24';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 

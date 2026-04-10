@@ -1,4 +1,4 @@
-ï»¿import { Grid } from './grid.js?v=24';
+import { Grid } from './grid.js?v=24';
 import { Line } from './line.js?v=54';
 import { canMove, findMovableLines } from './collision.js?v=19';
 import {
@@ -31,7 +31,7 @@ import {
     getSkinById,
     getSkinCatalog as getSkinCatalogList,
     normalizeUnlockedSkins
-} from './skins.js?v=23';
+} from './skins.js?v=24';
 import { readGameplayParams } from './game-params.js?v=3';
 import {
     readProgressSnapshot,
@@ -778,7 +778,7 @@ export class Game {
             return '';
         }
         const customName = `${config?.displayName || ''}`.trim();
-        return customName || 'å¥–åŠ±å…³';
+        return customName || '½±Àø¹Ø';
     }
 
     resolveScorePerBodySegment(config) {

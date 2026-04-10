@@ -1,11 +1,11 @@
-ï»¿import {
+import {
     LOCAL_SKIN_CATALOG_STORAGE_KEY,
     LOCAL_SKIN_COLOR_VARIANTS_STORAGE_KEY,
     getDefaultCoinCostBySkinId,
     getSkinById,
     getSkinCatalog,
     isLegacyColorVariantSkinId
-} from './skins.js?v=23';
+} from './skins.js?v=24';
 
 const NAME_ZH_OVERRIDE_KEY = 'arrowClear_skinNameZhOverrides_v1';
 const NAME_EN_OVERRIDE_KEY = 'arrowClear_skinNameEnOverrides_v1';
@@ -128,7 +128,7 @@ function writeLocalSkinCatalog(savedRows, catalogSkins = []) {
         const nameEn = normalizeLabel(state.nameEnOverrides[id], id);
         const descriptionZh = normalizeDescription(
             state.descZhOverrides[id],
-            normalizeDescription(row?.descriptionZh, 'AI ç”Ÿæˆçš®è‚¤ã€‚')
+            normalizeDescription(row?.descriptionZh, 'AI Éú³ÉÆ¤·ô¡£')
         );
         const descriptionEn = normalizeDescription(
             state.descEnOverrides[id],
@@ -253,7 +253,7 @@ function buildMergedSkins(catalog, savedRows) {
             currentPrice: Math.max(0, Math.floor(Number(getSkinById(id)?.coinCost) || 0)),
             defaultZh: normalizeLabel(saved?.nameZh || getSkinDisplayName(skin, 'zh-CN'), id),
             defaultEn: normalizeLabel(getSkinDisplayName(skin, 'en-US'), id),
-            defaultDescZh: normalizeDescription(saved?.descriptionZh || getSkinDescriptionByLocale(skin, 'zh-CN'), 'AI ç”Ÿæˆçš®è‚¤ã€‚'),
+            defaultDescZh: normalizeDescription(saved?.descriptionZh || getSkinDescriptionByLocale(skin, 'zh-CN'), 'AI Éú³ÉÆ¤·ô¡£'),
             defaultDescEn: normalizeDescription(saved?.descriptionEn || getSkinDescriptionByLocale(skin, 'en-US'), 'AI generated skin.')
         });
     }
@@ -271,7 +271,7 @@ function buildMergedSkins(catalog, savedRows) {
             currentPrice: Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[row.id]) || 0)),
             defaultZh: row.nameZh || row.id,
             defaultEn: row.id,
-            defaultDescZh: normalizeDescription(row.descriptionZh, 'AI ç”Ÿæˆçš®è‚¤ã€‚'),
+            defaultDescZh: normalizeDescription(row.descriptionZh, 'AI Éú³ÉÆ¤·ô¡£'),
             defaultDescEn: normalizeDescription(row.descriptionEn, 'AI generated skin.')
         });
     }
@@ -296,7 +296,7 @@ function resolveNameEn(skin) {
 }
 
 function resolveDescZh(skin) {
-    return normalizeDescription(state.descZhOverrides[skin.id], skin.defaultDescZh || 'AI ç”Ÿæˆçš®è‚¤ã€‚');
+    return normalizeDescription(state.descZhOverrides[skin.id], skin.defaultDescZh || 'AI Éú³ÉÆ¤·ô¡£');
 }
 
 function resolveDescEn(skin) {
@@ -337,7 +337,7 @@ function renderPartList(skin) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'skin-part-fit-btn';
-        btn.textContent = 'å¾®è°ƒ';
+        btn.textContent = 'Î¢µ÷';
         btn.addEventListener('click', () => {
             window.dispatchEvent(new CustomEvent('admin-skin-open-fit', {
                 detail: { skinId: state.selectedSkinId, partKey: part.key }
@@ -395,7 +395,7 @@ function renderLibrary() {
 
         const label = document.createElement('div');
         label.className = 'skin-library-name';
-        label.innerHTML = `<strong>${resolveNameZh(skin)}</strong><span>${resolveNameEn(skin)} Â· ${skin.id}</span>`;
+        label.innerHTML = `<strong>${resolveNameZh(skin)}</strong><span>${resolveNameEn(skin)} ¡¤ ${skin.id}</span>`;
 
         card.appendChild(img);
         card.appendChild(label);
@@ -434,7 +434,7 @@ function setWorkspaceView(view) {
     const showGen = view === 'gen';
     el.detailView.classList.toggle('is-active', !showGen);
     el.genView.classList.toggle('is-active', showGen);
-    el.workspaceTitle.textContent = showGen ? 'æ–°å»ºçš®è‚¤' : 'çš®è‚¤è¯¦æƒ…';
+    el.workspaceTitle.textContent = showGen ? 'ĞÂ½¨Æ¤·ô' : 'Æ¤·ôÏêÇé';
     if (showGen) {
         setTimeout(syncTemplateFromSelectedSkin, 0);
     }
@@ -443,7 +443,7 @@ function setWorkspaceView(view) {
 async function saveNames(skin) {
     const nextZh = normalizeLabel(el.nameZh.value, skin.defaultZh || skin.id);
     const nextEn = normalizeLabel(el.nameEn.value, skin.defaultEn || skin.id);
-    const nextDescZh = normalizeDescription(el.descZh.value, skin.defaultDescZh || 'AI ç”Ÿæˆçš®è‚¤ã€‚');
+    const nextDescZh = normalizeDescription(el.descZh.value, skin.defaultDescZh || 'AI Éú³ÉÆ¤·ô¡£');
     const nextDescEn = normalizeDescription(el.descEn.value, skin.defaultDescEn || 'AI generated skin.');
     state.nameZhOverrides[skin.id] = nextZh;
     state.nameEnOverrides[skin.id] = nextEn;
@@ -477,16 +477,16 @@ async function saveMeta() {
 
     await refreshCatalog(false);
     selectSkin(skin.id, false);
-    setMetaStatus(`å·²ä¿å­˜ï¼š${skin.id}`);
+    setMetaStatus(`ÒÑ±£´æ£º${skin.id}`);
 }
 
 async function deleteSkin() {
     const skin = getSkinByStateId(state.selectedSkinId);
     if (!skin || skin.protected || skin.id === DEFAULT_SKIN_ID) {
-        return setMetaStatus('é»˜è®¤çš®è‚¤ï¼ˆæ´ç©´ç»å…¸ï¼‰ä¸å¯åˆ é™¤ã€‚', true);
+        return setMetaStatus('Ä¬ÈÏÆ¤·ô£¨¶´Ñ¨¾­µä£©²»¿ÉÉ¾³ı¡£', true);
     }
 
-    if (!window.confirm(`ç¡®è®¤åˆ é™¤çš®è‚¤ ${skin.id} ?\nå°†åˆ é™¤ assets/skins/${skin.id}/ ä¸‹å…¨éƒ¨æ–‡ä»¶ã€‚`)) {
+    if (!window.confirm(`È·ÈÏÉ¾³ıÆ¤·ô ${skin.id} ?\n½«É¾³ı assets/skins/${skin.id}/ ÏÂÈ«²¿ÎÄ¼ş¡£`)) {
         return;
     }
 
@@ -497,7 +497,7 @@ async function deleteSkin() {
             body: JSON.stringify({ skinId: skin.id })
         });
         const payload = await res.json().catch(() => ({}));
-        if (!res.ok || !payload?.ok) throw new Error(payload?.error || `åˆ é™¤å¤±è´¥ (${res.status})`);
+        if (!res.ok || !payload?.ok) throw new Error(payload?.error || `É¾³ıÊ§°Ü (${res.status})`);
 
         delete state.nameZhOverrides[skin.id];
         delete state.nameEnOverrides[skin.id];
@@ -517,9 +517,9 @@ async function deleteSkin() {
 
         await refreshCatalog(true);
         window.dispatchEvent(new CustomEvent('admin-skin-catalog-updated'));
-        setMetaStatus(`å·²åˆ é™¤çš®è‚¤ï¼š${skin.id}`);
+        setMetaStatus(`ÒÑÉ¾³ıÆ¤·ô£º${skin.id}`);
     } catch (error) {
-        setMetaStatus(error?.message || 'åˆ é™¤å¤±è´¥ã€‚', true);
+        setMetaStatus(error?.message || 'É¾³ıÊ§°Ü¡£', true);
     }
 }
 
@@ -537,7 +537,7 @@ async function refreshCatalog(resetSelection) {
     syncSelectOptions();
     renderLibrary();
     selectSkin(state.selectedSkinId, true);
-    setListStatus(`å…± ${state.skins.length} å¥—çš®è‚¤ã€‚`);
+    setListStatus(`¹² ${state.skins.length} Ì×Æ¤·ô¡£`);
 
     window.dispatchEvent(new CustomEvent('admin-skin-catalog-updated'));
 }
@@ -570,7 +570,7 @@ async function init() {
 
 if (hasRequired) {
     init().catch((error) => {
-        setListStatus(error?.message || 'çš®è‚¤ç®¡ç†åˆå§‹åŒ–å¤±è´¥ã€‚', true);
+        setListStatus(error?.message || 'Æ¤·ô¹ÜÀí³õÊ¼»¯Ê§°Ü¡£', true);
     });
 }
 

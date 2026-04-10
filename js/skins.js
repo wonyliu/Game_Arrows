@@ -157,10 +157,10 @@ const SKIN_CATALOG = Object.freeze([
             'en-US': 'Pure white base with facial line details; gameplay uses only pure black and pure white snakes.'
         }),
         assets: Object.freeze({
-            snakeHead: 'assets/skins/candy-dream/snake_head.png?v=9',
-            snakeHeadCurious: 'assets/skins/candy-dream/snake_head_curious.png?v=9',
-            snakeHeadSleepy: 'assets/skins/candy-dream/snake_head_sleepy.png?v=9',
-            snakeHeadSurprised: 'assets/skins/candy-dream/snake_head_surprised.png?v=9',
+            snakeHead: 'assets/skins/candy-dream/snake_head.png?v=10',
+            snakeHeadCurious: 'assets/skins/candy-dream/snake_head_curious.png?v=10',
+            snakeHeadSleepy: 'assets/skins/candy-dream/snake_head_sleepy.png?v=10',
+            snakeHeadSurprised: 'assets/skins/candy-dream/snake_head_surprised.png?v=10',
             snakeSegA: 'assets/skins/candy-dream/snake_seg_a.png?v=9',
             snakeSegB: 'assets/skins/candy-dream/snake_seg_b.png?v=9',
             snakeTailBase: 'assets/skins/candy-dream/snake_tail_base.png?v=9',

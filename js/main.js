@@ -16,13 +16,13 @@ import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
 import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
-import { isLegacyColorVariantSkinId } from './skins.js?v=23';
+import { isLegacyColorVariantSkinId } from './skins.js?v=24';
 import { earlyBgmBootstrap } from './audio.js?v=54';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.10-199';
+const APP_BUILD_VERSION = 'build 2026.04.10-200';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {
