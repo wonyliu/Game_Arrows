@@ -1,8 +1,8 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-10T06:37:45.627Z",
-  "maxUnlockedLevel": 10,
-  "currentLevel": 2,
+  "updatedAt": "2026-04-10T07:50:10.844Z",
+  "maxUnlockedLevel": 1,
+  "currentLevel": 1,
   "coins": 820,
   "unlockedSkinIds": [
     "classic-burrow",
