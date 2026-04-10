@@ -1,4 +1,4 @@
-import { readUiLayoutConfig } from './ui-layout-config.js?v=1';
+import { initUiLayoutStorage, readUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getLocalDayKey, readLiveOpsConfig, readLiveOpsPlayerState } from './liveops-storage.js?v=1';
 
 const el = {
@@ -224,4 +224,10 @@ window.addEventListener('resize', () => {
     renderUiEditorPreview();
 });
 
-renderUiEditorPreview();
+void initUiLayoutStorage()
+    .catch((error) => {
+        console.warn('[admin-ui-preview] ui layout init failed', error);
+    })
+    .finally(() => {
+        renderUiEditorPreview();
+    });

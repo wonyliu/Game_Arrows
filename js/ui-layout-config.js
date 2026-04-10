@@ -1,4 +1,7 @@
-const STORAGE_KEY = 'arrowClear_uiLayout_v1';
+const STORAGE_API_BASE = '/api/storage';
+const UI_LAYOUT_STORAGE_FILE = 'ui-layout-config-v1';
+const UI_LAYOUT_STATIC_CONFIG_PATH = '.local-data/ui-layout-config-v1.json';
+const BROADCAST_CHANNEL_NAME = 'arrowClear_uiLayout_sync';
 
 function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -212,44 +215,166 @@ export function normalizeUiLayoutConfig(config) {
     };
 }
 
-export function readUiLayoutConfig() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) {
-            return getDefaultUiLayoutConfig();
-        }
-        return normalizeUiLayoutConfig(JSON.parse(raw));
-    } catch {
-        return getDefaultUiLayoutConfig();
+let uiLayoutState = normalizeUiLayoutConfig(getDefaultUiLayoutConfig());
+let uiLayoutInitPromise = null;
+const listeners = new Set();
+let syncChannel = null;
+
+export async function initUiLayoutStorage() {
+    if (uiLayoutInitPromise) {
+        return uiLayoutInitPromise;
     }
+    uiLayoutInitPromise = (async () => {
+        const remote = await fetchUiLayoutFromServer();
+        if (remote) {
+            uiLayoutState = normalizeUiLayoutConfig(remote);
+            emitUiLayoutChange(uiLayoutState);
+            broadcastUiLayoutState(uiLayoutState);
+        }
+    })().catch((error) => {
+        console.warn('[ui-layout-config] init failed', error);
+    });
+    return uiLayoutInitPromise;
 }
 
-export function writeUiLayoutConfig(config) {
+export function readUiLayoutConfig() {
+    return cloneUiLayoutConfig(uiLayoutState);
+}
+
+export function writeUiLayoutConfig(config, options = {}) {
     const normalized = normalizeUiLayoutConfig(config);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
-    return normalized;
+    uiLayoutState = normalized;
+    emitUiLayoutChange(normalized);
+    broadcastUiLayoutState(normalized);
+    if (options.syncServer !== false) {
+        void persistUiLayoutToServer(normalized);
+    }
+    return cloneUiLayoutConfig(normalized);
 }
 
-export function resetUiLayoutConfig() {
-    const defaults = getDefaultUiLayoutConfig();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(defaults));
-    return defaults;
+export function resetUiLayoutConfig(options = {}) {
+    const defaults = normalizeUiLayoutConfig(getDefaultUiLayoutConfig());
+    uiLayoutState = defaults;
+    emitUiLayoutChange(defaults);
+    broadcastUiLayoutState(defaults);
+    if (options.syncServer !== false) {
+        void persistUiLayoutToServer(defaults);
+    }
+    return cloneUiLayoutConfig(defaults);
 }
 
 export function subscribeUiLayoutConfig(listener) {
-    if (typeof window === 'undefined' || typeof listener !== 'function') {
+    if (typeof listener !== 'function') {
         return () => {};
     }
-    const handleStorage = (event) => {
-        if (event.key !== STORAGE_KEY) {
-            return;
-        }
-        listener(readUiLayoutConfig());
+    listeners.add(listener);
+    ensureSyncChannel();
+    listener(cloneUiLayoutConfig(uiLayoutState));
+    return () => {
+        listeners.delete(listener);
     };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
 }
 
 export function cloneUiLayoutConfig(config) {
     return clone(normalizeUiLayoutConfig(config));
+}
+
+async function fetchUiLayoutFromServer() {
+    if (typeof fetch !== 'function') {
+        return null;
+    }
+    try {
+        const response = await fetch(`${STORAGE_API_BASE}/${UI_LAYOUT_STORAGE_FILE}`, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (response.ok) {
+            const data = await response.json();
+            return isPlainObject(data) ? data : null;
+        }
+    } catch {
+        // continue to static fallback
+    }
+
+    try {
+        const response = await fetch(UI_LAYOUT_STATIC_CONFIG_PATH, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            return null;
+        }
+        const data = await response.json();
+        return isPlainObject(data) ? data : null;
+    } catch {
+        return null;
+    }
+}
+
+async function persistUiLayoutToServer(config) {
+    if (typeof fetch !== 'function') {
+        return false;
+    }
+    try {
+        const response = await fetch(`${STORAGE_API_BASE}/${UI_LAYOUT_STORAGE_FILE}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        });
+        return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+function emitUiLayoutChange(config, skipListener = null) {
+    for (const listener of listeners) {
+        if (listener === skipListener) {
+            continue;
+        }
+        try {
+            listener(cloneUiLayoutConfig(config));
+        } catch {
+            // noop
+        }
+    }
+}
+
+function ensureSyncChannel() {
+    if (syncChannel || typeof BroadcastChannel === 'undefined') {
+        return;
+    }
+    try {
+        syncChannel = new BroadcastChannel(BROADCAST_CHANNEL_NAME);
+        syncChannel.addEventListener('message', (event) => {
+            const payload = event?.data;
+            if (!isPlainObject(payload) || payload.type !== 'ui-layout-sync') {
+                return;
+            }
+            const normalized = normalizeUiLayoutConfig(payload.config);
+            uiLayoutState = normalized;
+            emitUiLayoutChange(normalized);
+        });
+    } catch {
+        syncChannel = null;
+    }
+}
+
+function broadcastUiLayoutState(config) {
+    ensureSyncChannel();
+    if (!syncChannel) {
+        return;
+    }
+    try {
+        syncChannel.postMessage({
+            type: 'ui-layout-sync',
+            config: cloneUiLayoutConfig(config)
+        });
+    } catch {
+        // noop
+    }
+}
+
+function isPlainObject(value) {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
 }

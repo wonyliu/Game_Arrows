@@ -10,7 +10,7 @@ import {
     playCheckinRewardCoinSound
 } from './audio.js?v=52';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=23';
-import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=3';
+import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
 
 const MENU_PANEL = Object.freeze({

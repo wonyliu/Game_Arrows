@@ -68,6 +68,8 @@ export const DEFAULT_LIVEOPS_PLAYER_STATE = Object.freeze({
 let liveopsInitPromise = null;
 let configSyncWarned = false;
 let playerSyncWarned = false;
+let liveopsConfigState = normalizeLiveOpsConfig(null);
+let liveopsPlayerState = normalizeLiveOpsPlayerState(null);
 
 export function initLiveOpsStorage() {
     if (liveopsInitPromise) {
@@ -81,45 +83,29 @@ export function initLiveOpsStorage() {
 }
 
 export function readLiveOpsConfig() {
-    const storage = getStorage();
-    if (!storage) {
-        return normalizeLiveOpsConfig(null);
-    }
-    try {
-        return normalizeLiveOpsConfig(JSON.parse(storage.getItem(LIVEOPS_CONFIG_STORAGE_KEY) || 'null'));
-    } catch {
-        return normalizeLiveOpsConfig(null);
-    }
+    return cloneJson(liveopsConfigState);
 }
 
 export function writeLiveOpsConfig(value, options = {}) {
     const normalized = normalizeLiveOpsConfig(value, { forceTouchUpdatedAt: true });
-    writeLocalJson(LIVEOPS_CONFIG_STORAGE_KEY, normalized);
+    liveopsConfigState = normalized;
     if (options.syncServer !== false) {
         void persistConfigToServer(normalized);
     }
-    return normalized;
+    return cloneJson(normalized);
 }
 
 export function readLiveOpsPlayerState() {
-    const storage = getStorage();
-    if (!storage) {
-        return normalizeLiveOpsPlayerState(null);
-    }
-    try {
-        return normalizeLiveOpsPlayerState(JSON.parse(storage.getItem(LIVEOPS_PLAYER_STORAGE_KEY) || 'null'));
-    } catch {
-        return normalizeLiveOpsPlayerState(null);
-    }
+    return cloneJson(liveopsPlayerState);
 }
 
 export function writeLiveOpsPlayerState(value, options = {}) {
     const normalized = normalizeLiveOpsPlayerState(value, { forceTouchUpdatedAt: true });
-    writeLocalJson(LIVEOPS_PLAYER_STORAGE_KEY, normalized);
+    liveopsPlayerState = normalized;
     if (options.syncServer === true) {
         void persistPlayerToServer(normalized);
     }
-    return normalized;
+    return cloneJson(normalized);
 }
 
 export function syncLiveOpsPlayerToServer() {
@@ -156,7 +142,7 @@ async function hydrateLiveOpsFromServer() {
             normalizeLiveOpsConfig(remoteConfig),
             readLiveOpsConfig()
         );
-        writeLocalJson(LIVEOPS_CONFIG_STORAGE_KEY, mergedConfig);
+        liveopsConfigState = mergedConfig;
     }
 
     if (remotePlayer) {
@@ -164,7 +150,7 @@ async function hydrateLiveOpsFromServer() {
             normalizeLiveOpsPlayerState(remotePlayer),
             readLiveOpsPlayerState()
         );
-        writeLocalJson(LIVEOPS_PLAYER_STORAGE_KEY, mergedPlayer);
+        liveopsPlayerState = mergedPlayer;
     }
 }
 
@@ -388,16 +374,6 @@ function normalizeItemType(rawType) {
     return 'item';
 }
 
-function writeLocalJson(key, value) {
-    const storage = getStorage();
-    if (!storage) return;
-    try {
-        storage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-        console.warn('[liveops-storage] failed to write local storage', error);
-    }
-}
-
 function mergeByUpdatedAt(remoteValue, localValue) {
     const remoteAt = parseIsoMs(remoteValue?.updatedAt);
     const localAt = parseIsoMs(localValue?.updatedAt);
@@ -407,11 +383,8 @@ function mergeByUpdatedAt(remoteValue, localValue) {
     return localValue;
 }
 
-function getStorage() {
-    if (typeof window === 'undefined' || !window.localStorage) {
-        return null;
-    }
-    return window.localStorage;
+function cloneJson(value) {
+    return JSON.parse(JSON.stringify(value));
 }
 
 function canUseApiStorage() {

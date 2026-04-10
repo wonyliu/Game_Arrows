@@ -15,13 +15,14 @@ import { initProgressStorage } from './progress-storage.js?v=1';
 import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=2';
+import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
 import { isLegacyColorVariantSkinId } from './skins.js?v=23';
 import { earlyBgmBootstrap } from './audio.js?v=52';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.09-193';
+const APP_BUILD_VERSION = 'build 2026.04.09-194';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const UI_EDITOR_PREVIEW_PARAMS = (() => {
@@ -419,6 +420,9 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
                 }),
                 initLiveOpsStorage().catch((error) => {
                     console.warn('[main] liveops storage init failed', error);
+                }),
+                initUiLayoutStorage().catch((error) => {
+                    console.warn('[main] ui layout storage init failed', error);
                 })
             ]);
             await syncLocalSkinCatalogFromServer();

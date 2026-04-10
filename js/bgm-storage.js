@@ -35,6 +35,7 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
 });
 
 let bgmInitPromise = null;
+let bgmConfigState = normalizeBgmConfig(null);
 
 export function initBgmStorage() {
     if (bgmInitPromise) {
@@ -47,24 +48,16 @@ export function initBgmStorage() {
 }
 
 export function readBgmConfig() {
-    const storage = getStorage();
-    if (!storage) {
-        return normalizeBgmConfig(null);
-    }
-    try {
-        return normalizeBgmConfig(JSON.parse(storage.getItem(BGM_STORAGE_KEY) || 'null'));
-    } catch {
-        return normalizeBgmConfig(null);
-    }
+    return cloneJson(bgmConfigState);
 }
 
 export function writeBgmConfig(value, options = {}) {
     const normalized = normalizeBgmConfig(value, { forceTouchUpdatedAt: true });
-    writeLocalJson(BGM_STORAGE_KEY, normalized);
+    bgmConfigState = normalized;
     if (options.syncServer !== false) {
         void persistBgmToServer(normalized);
     }
-    return normalized;
+    return cloneJson(normalized);
 }
 
 async function hydrateBgmFromServer() {
@@ -75,7 +68,7 @@ async function hydrateBgmFromServer() {
     if (staticConfig) {
         const normalizedStatic = normalizeBgmConfig(staticConfig);
         const merged = mergeByUpdatedAt(normalizedStatic, readBgmConfig());
-        writeLocalJson(BGM_STORAGE_KEY, merged);
+        bgmConfigState = merged;
         return;
     }
     const remote = await fetchJsonFromServer(BGM_STORAGE_FILE);
@@ -84,7 +77,7 @@ async function hydrateBgmFromServer() {
         ? remoteNormalized
         : mergeByUpdatedAt(remoteNormalized, readBgmConfig());
     const repaired = isGitHubPagesHost() ? merged : await repairBgmConfigByLibrary(merged);
-    writeLocalJson(BGM_STORAGE_KEY, repaired);
+    bgmConfigState = repaired;
 }
 
 async function repairBgmConfigByLibrary(config) {
@@ -402,23 +395,8 @@ function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function getStorage() {
-    if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') {
-        return null;
-    }
-    return window.localStorage;
-}
-
-function writeLocalJson(key, value) {
-    const storage = getStorage();
-    if (!storage) {
-        return;
-    }
-    try {
-        storage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-        console.warn('[bgm-storage] failed to write browser storage', error);
-    }
+function cloneJson(value) {
+    return JSON.parse(JSON.stringify(value));
 }
 
 function canUseApiStorage() {

@@ -1,9 +1,10 @@
 import {
+    initUiLayoutStorage,
     getDefaultUiLayoutConfig,
     readUiLayoutConfig,
     resetUiLayoutConfig,
     writeUiLayoutConfig
-} from './ui-layout-config.js?v=3';
+} from './ui-layout-config.js?v=4';
 import {
     getLocalDayKey,
     readLiveOpsConfig,
@@ -965,10 +966,14 @@ function initPreviewFrame() {
     });
 }
 
-function init() {
+async function init() {
     if (!el.viewport || !el.stageWrap || !el.overlay) {
         return;
     }
+    await initUiLayoutStorage().catch((error) => {
+        console.warn('[admin-ui-editor] ui layout init failed', error);
+    });
+    state.config = readUiLayoutConfig();
     syncPreviewInputsFromLiveState();
     renderElementOptions();
     renderPropertyGrid();
@@ -989,4 +994,4 @@ function init() {
     });
 }
 
-init();
+void init();
