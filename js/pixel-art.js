@@ -540,8 +540,10 @@ function createMaskedSnakeSprite(sourceSprite, maskSprite, fit, options = {}) {
     ctx.globalCompositeOperation = 'destination-in';
     ctx.drawImage(maskSprite.canvas, 0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = 'source-over';
-    bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
-    if (isSnakeHeadSpriteName(sourceSprite.name || '')) {
+    if (!shouldSkipHeadPostProcess(sourceSprite.name || '')) {
+        bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
+    }
+    if (isSnakeHeadSpriteName(sourceSprite.name || '') && !shouldSkipHeadPostProcess(sourceSprite.name || '')) {
         reduceOuterBrightHalo(ctx, canvas.width, canvas.height);
     }
     if (forceOpaque) {
@@ -578,6 +580,11 @@ function ensureSnakeMaskSprites(atlas) {
 
 function ensureMaskedSnakeSprites(atlas) {
     if (!atlas?.sprites) {
+        return false;
+    }
+    // Monochrome candy-dream skin is very sensitive to runtime mask/postprocess;
+    // keep original head silhouette to avoid visible fringe on mobile.
+    if (`${atlas.skinId || ''}`.trim().toLowerCase() === 'candy-dream') {
         return false;
     }
     if (!ensureSnakeMaskSprites(atlas)) {
@@ -828,6 +835,13 @@ function isSnakeHeadSpriteName(name) {
     return typeof name === 'string' && (name.endsWith('-head') || name.includes('-head-'));
 }
 
+function shouldSkipHeadPostProcess(name) {
+    if (typeof name !== 'string') {
+        return false;
+    }
+    return name.includes('snake-candy-dream-head');
+}
+
 function reduceOuterBrightHalo(ctx, width, height) {
     if (!ctx || width <= 0 || height <= 0) {
         return;
@@ -979,12 +993,14 @@ function loadRasterSprite(name, path) {
             ctx.drawImage(image, 0, 0);
             // Some AI-exported heads carry bright outer fringe that becomes a white ring
             // after runtime downscale/rotation. Soften only snake-head outer boundary.
-            if (isSnakeHeadSpriteName(name)) {
+            if (isSnakeHeadSpriteName(name) && !shouldSkipHeadPostProcess(name)) {
                 reduceOuterBrightHalo(ctx, canvas.width, canvas.height);
             }
             // Fill RGB in fully transparent edge pixels to avoid dark fringe shimmer
             // when sprites are continuously rotated/scaled in animation.
-            bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
+            if (!shouldSkipHeadPostProcess(name)) {
+                bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
+            }
             record.status = 'ready';
             record.sprite = {
                 name,

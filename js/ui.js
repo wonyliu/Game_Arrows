@@ -1,4 +1,4 @@
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=6';
+ï»¿import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=6';
 import {
     BGM_SCENE_KEYS,
     playBgmForScene,
@@ -9,7 +9,7 @@ import {
     setSfxVolume,
     playCheckinRewardCoinSound
 } from './audio.js?v=54';
-import { getSkinDescription, getSkinDisplayName } from './skins.js?v=24';
+import { getSkinDescription, getSkinDisplayName } from './skins.js?v=23';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
 
@@ -224,21 +224,26 @@ export class UI {
     }
 
     setupAudioAutoUnlock() {
+        let lastUnlockAt = 0;
         const unlock = () => {
+            const now = Date.now();
+            if (now - lastUnlockAt < 300) {
+                return;
+            }
+            lastUnlockAt = now;
             try {
                 resumeAudioV31();
             } catch (error) {
                 console.warn('Audio resume failed during auto unlock:', error);
             }
             playBgmForScene(BGM_SCENE_KEYS.HOME);
-            document.removeEventListener('pointerdown', unlock, true);
-            document.removeEventListener('keydown', unlock, true);
-            document.removeEventListener('touchstart', unlock, true);
         };
 
-        document.addEventListener('pointerdown', unlock, true);
-        document.addEventListener('keydown', unlock, true);
-        document.addEventListener('touchstart', unlock, true);
+        const unlockEvents = ['pointerdown', 'pointerup', 'touchstart', 'touchend', 'mousedown', 'click', 'keydown'];
+        for (const type of unlockEvents) {
+            document.addEventListener(type, unlock, true);
+            window.addEventListener(type, unlock, true);
+        }
     }
 
     initAudioSettingsUi() {
@@ -1242,7 +1247,7 @@ export class UI {
             return;
         }
         const tooltipLayout = this.getCheckinLayoutConfig()?.rewardTooltip || null;
-        const title = this.locale === 'zh-CN' ? `µÚ${day}Ìì½±Àø` : `Day ${day} Reward`;
+        const title = this.locale === 'zh-CN' ? `ç¬¬${day}å¤©å¥–åŠ±` : `Day ${day} Reward`;
         this.checkinRewardTooltipEl.innerHTML = '';
         const titleEl = document.createElement('div');
         titleEl.className = 'checkin-reward-tooltip-title';
@@ -1358,12 +1363,12 @@ export class UI {
         node.dataset.uiEditorId = `day${day}-card`;
         node.dataset.day = `${day}`;
         node.setAttribute('aria-label', this.locale === 'zh-CN'
-            ? `µÚ${day}ÌìÇ©µ½½±Àø£º${this.formatRewardList(rewards)}`
+            ? `ç¬¬${day}å¤©ç­¾åˆ°å¥–åŠ±ï¼š${this.formatRewardList(rewards)}`
             : `Day ${day} check-in reward: ${this.formatRewardList(rewards)}`);
 
         const title = document.createElement('div');
         title.className = 'checkin-day-title';
-        title.textContent = this.locale === 'zh-CN' ? `µÚ${day}Ìì` : `Day ${day}`;
+        title.textContent = this.locale === 'zh-CN' ? `ç¬¬${day}å¤©` : `Day ${day}`;
         title.style.left = partLayout.title.align === 'left'
             ? `${partLayout.title.x}px`
             : `${partLayout.title.x - (partLayout.title.width / 2)}px`;
@@ -1501,7 +1506,7 @@ export class UI {
         }
         if (this.checkinStatusEl) {
             this.checkinStatusEl.textContent = checkin.canClaimToday
-                ? (this.locale === 'zh-CN' ? `µã»÷µÚ${checkin.nextDayIndex}Ìì½±Àø¿¨¼´¿ÉÁìÈ¡` : `Tap day ${checkin.nextDayIndex} card to claim`)
+                ? (this.locale === 'zh-CN' ? `ç‚¹å‡»ç¬¬${checkin.nextDayIndex}å¤©å¥–åŠ±å¡å³å¯é¢†å–` : `Tap day ${checkin.nextDayIndex} card to claim`)
                 : (this.locale === 'zh-CN' ? '\u4eca\u65e5\u5df2\u7b7e\u5230\uff0c\u660e\u65e5\u518d\u6765\u3002' : 'Already claimed today.');
         }
         if (this.uiEditorPreviewOptions.enabled) {
@@ -1652,15 +1657,15 @@ export class UI {
             return;
         }
         if (!online.enabled) {
-            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? 'Î´¿ªÆô' : 'Off';
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? 'æœªå¼€å¯' : 'Off';
             return;
         }
         if (online.done) {
-            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? 'ÒÑÁìÍê' : 'Done';
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? 'å·²é¢†å®Œ' : 'Done';
             return;
         }
         if (online.canClaim) {
-            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '¿ÉÁìÈ¡' : 'Claim';
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? 'å¯é¢†å–' : 'Claim';
             return;
         }
         const remain = Math.max(0, Math.ceil(Number(online.remainingSeconds) || 0));
@@ -1736,7 +1741,7 @@ export class UI {
 
         if (this.checkinRewardSettleDescEl) {
             this.checkinRewardSettleDescEl.textContent = this.locale === 'zh-CN'
-                ? 'Ç©µ½³É¹¦£¬½±ÀøÈçÏÂ£º'
+                ? 'ç­¾åˆ°æˆåŠŸï¼Œå¥–åŠ±å¦‚ä¸‹ï¼š'
                 : 'Check-in successful. Rewards:';
         }
         if (this.checkinRewardCoinHeroEl) {
@@ -1763,7 +1768,7 @@ export class UI {
         }
         if (this.btnCheckinRewardConfirm) {
             this.btnCheckinRewardConfirm.disabled = false;
-            this.btnCheckinRewardConfirm.textContent = this.locale === 'zh-CN' ? 'È·¶¨' : 'Confirm';
+            this.btnCheckinRewardConfirm.textContent = this.locale === 'zh-CN' ? 'ç¡®å®š' : 'Confirm';
         }
         this.checkinRewardSettleOverlay?.classList.remove('hidden');
         this.refreshOnlineRewardDock();
@@ -2015,7 +2020,7 @@ export class UI {
         };
         this.onlineRewardSettleCoinIconEl = null;
         if (this.onlineRewardSettleDescEl) {
-            this.onlineRewardSettleDescEl.textContent = this.locale === 'zh-CN' ? '±¾´ÎÔÚÏß½±Àø£º' : 'Online reward:';
+            this.onlineRewardSettleDescEl.textContent = this.locale === 'zh-CN' ? 'æœ¬æ¬¡åœ¨çº¿å¥–åŠ±ï¼š' : 'Online reward:';
         }
         if (this.onlineRewardSettleListEl) {
             this.onlineRewardSettleListEl.innerHTML = '';
@@ -2039,7 +2044,7 @@ export class UI {
         }
         if (this.btnOnlineRewardSettleClose) {
             this.btnOnlineRewardSettleClose.disabled = false;
-            this.btnOnlineRewardSettleClose.textContent = this.locale === 'zh-CN' ? 'È·¶¨' : 'Confirm';
+            this.btnOnlineRewardSettleClose.textContent = this.locale === 'zh-CN' ? 'ç¡®å®š' : 'Confirm';
         }
         this.onlineRewardSettleOverlay?.classList.remove('hidden');
     }
@@ -2678,10 +2683,10 @@ export class UI {
             this.syncGameplayBgm(false);
         }
         if (this.levelCompleteNextButton) {
-            this.levelCompleteNextButton.textContent = 'ÏÂÒ»¹Ø';
+            this.levelCompleteNextButton.textContent = 'ä¸‹ä¸€å…³';
         }
         if (this.levelCompleteTitleEl) {
-            this.levelCompleteTitleEl.textContent = '¹§Ï²¹ý¹Ø';
+            this.levelCompleteTitleEl.textContent = 'æ­å–œè¿‡å…³';
         }
         if (this.levelScore) {
             this.levelScore.textContent = t(this.locale, 'common.score', { score: this.game.score });
