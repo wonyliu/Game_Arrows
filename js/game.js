@@ -24,7 +24,7 @@ import {
     resumeAudio,
     setAudioSkinId
 } from './audio.js?v=54';
-import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=49';
+import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=50';
 import {
     ensureSelectedSkin,
     getDefaultSkinId,

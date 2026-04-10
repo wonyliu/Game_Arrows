@@ -634,11 +634,13 @@ function makeSnakeVariantSprite(sprite, variant) {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
 
+    let usedBinaryMonochrome = false;
     for (let i = 0; i < data.length; i += 4) {
         const alpha = data[i + 3];
         if (alpha === 0) continue;
 
         if (variant.forceBinaryMonochrome) {
+            usedBinaryMonochrome = true;
             const luma = (
                 data[i] * 0.2126
                 + data[i + 1] * 0.7152
@@ -705,6 +707,20 @@ function makeSnakeVariantSprite(sprite, variant) {
         data[i] = r;
         data[i + 1] = g;
         data[i + 2] = b;
+    }
+
+    if (usedBinaryMonochrome) {
+        const edgeBase = variant.invertBinaryMonochrome ? 0 : 255;
+        for (let i = 0; i < data.length; i += 4) {
+            const alpha = data[i + 3];
+            // Anti-aliased edge pixels can produce colored/gray fringe after
+            // binary recolor. Force edge RGB to body base tone.
+            if (alpha > 0 && alpha < 255) {
+                data[i] = edgeBase;
+                data[i + 1] = edgeBase;
+                data[i + 2] = edgeBase;
+            }
+        }
     }
 
     ctx.putImageData(imageData, 0, 0);
