@@ -3,7 +3,7 @@
   LOCAL_SKIN_COLOR_VARIANTS_STORAGE_KEY,
   getSkinCatalog,
   isLegacyColorVariantSkinId
-} from './skins.js?v=26';
+} from './skins.js?v=27';
 
 const DRAFT_KEY = 'arrowClear_skinGenWorkflowDraft_v1';
 const DEFAULT_TEMPLATE_SKIN_ID = 'classic-burrow';
@@ -2534,6 +2534,7 @@ if (Object.values(el).every(Boolean)) {
 } else {
   console.warn('[admin-skin-gen] missing required elements, skipped init.');
 }
+
 
 
 

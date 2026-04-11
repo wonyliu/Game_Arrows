@@ -1,4 +1,4 @@
-﻿import { getSkinCatalog, isLegacyColorVariantSkinId } from './skins.js?v=26';
+﻿import { getSkinCatalog, isLegacyColorVariantSkinId } from './skins.js?v=27';
 import {
     BUILTIN_SFX_PRESETS,
     SFX_PARAM_SCHEMA,
@@ -2205,6 +2205,7 @@ async function init() {
 }
 
 init();
+
 
 
 

@@ -218,28 +218,23 @@ const SKIN_CATALOG = Object.freeze([
         })
     }),
     Object.freeze({
-        id: 'jelly-cube',
+        id: 'aqua-jelly-snake',
         coinCost: 46,
-        lockClassicPartShape: true,
-        forceOpaqueSnakeParts: true,
         allowHueVariants: true,
         colorVariants: Object.freeze([
-            Object.freeze({ id: 'cube-cyan', hueShift: 0, saturation: 1.12, lightness: 1.01, contrast: 1.07 }),
-            Object.freeze({ id: 'cube-blue', hueShift: 26, saturation: 1.16, lightness: 1.00, contrast: 1.08 }),
-            Object.freeze({ id: 'cube-violet', hueShift: 66, saturation: 1.14, lightness: 1.01, contrast: 1.07 }),
-            Object.freeze({ id: 'cube-pink', hueShift: 140, saturation: 1.18, lightness: 1.02, contrast: 1.08 }),
-            Object.freeze({ id: 'cube-red', hueShift: -178, saturation: 1.20, lightness: 1.00, contrast: 1.10 }),
-            Object.freeze({ id: 'cube-orange', hueShift: -148, saturation: 1.18, lightness: 1.03, contrast: 1.09 }),
-            Object.freeze({ id: 'cube-yellow', hueShift: -124, saturation: 1.16, lightness: 1.08, contrast: 1.07 }),
-            Object.freeze({ id: 'cube-lime', hueShift: -92, saturation: 1.14, lightness: 1.04, contrast: 1.07 }),
-            Object.freeze({ id: 'cube-cream', hueShift: -132, saturation: 0.78, lightness: 1.15, contrast: 1.04 })
+            Object.freeze({ id: 'aqua-cyan', hueShift: 0, saturation: 1.66, lightness: 1.00, contrast: 1.10 }),
+            Object.freeze({ id: 'aqua-blue', hueShift: 22, saturation: 1.72, lightness: 1.00, contrast: 1.12 }),
+            Object.freeze({ id: 'aqua-violet', hueShift: 66, saturation: 1.70, lightness: 1.00, contrast: 1.11 }),
+            Object.freeze({ id: 'aqua-mint', hueShift: -86, saturation: 1.68, lightness: 1.03, contrast: 1.10 }),
+            Object.freeze({ id: 'aqua-green', hueShift: -104, saturation: 1.70, lightness: 1.02, contrast: 1.11 }),
+            Object.freeze({ id: 'aqua-lime', hueShift: -122, saturation: 1.66, lightness: 1.06, contrast: 1.09 })
         ]),
         renderProfile: Object.freeze({
-            segmentShadowColor: 'rgba(28, 16, 36, 0.28)',
-            segmentShadowBlur: 3.2,
+            segmentShadowColor: 'rgba(22, 18, 44, 0.30)',
+            segmentShadowBlur: 3.4,
             segmentShadowOffsetY: 1,
-            headShadowColor: 'rgba(24, 14, 34, 0.36)',
-            headShadowBlur: 4.0,
+            headShadowColor: 'rgba(18, 14, 38, 0.38)',
+            headShadowBlur: 4.3,
             headShadowOffsetY: 1,
             spriteScale: 1,
             partFit: Object.freeze({
@@ -252,26 +247,227 @@ const SKIN_CATALOG = Object.freeze([
                 tailTip: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
             })
         }),
-        preview: 'assets/skins/jelly-cube/snake_head.png?v=4',
+        preview: 'assets/skins/aqua-jelly-snake/snake_head.png?v=1',
         name: Object.freeze({
-            'zh-CN': '\u6676\u6da6\u65b9\u7cd6',
-            'en-US': 'Jelly Cube'
+            'zh-CN': '\u78a7\u84dd\u679c\u51bb\u86c7',
+            'en-US': 'Aqua Jelly Snake'
         }),
         description: Object.freeze({
-            'zh-CN': '\u53c2\u8003\u5f69\u8679\u679c\u51bb\u65b9\u5757\u98ce\u683c\uff0c\u4fdd\u7559\u7ecf\u5178\u86c7\u90e8\u4ef6\u8f6e\u5ed3\uff0c\u589e\u5f3a\u679c\u51bb\u900f\u4eae\u9ad8\u5149\u8d28\u611f\u3002',
-            'en-US': 'Glossy candy-cube style with classic silhouette lock and translucent jelly highlights.'
+            'zh-CN': '\u78a7\u84dd\u679c\u51bb\u4e3b\u9898\uff0c\u7cd6\u679c\u8d28\u611f\u660e\u4eae\u901a\u900f\u3002',
+            'en-US': 'Aqua jelly theme with bright glossy candy texture.'
         }),
         assets: Object.freeze({
-            snakeHead: 'assets/skins/jelly-cube/snake_head.png?v=4',
-            snakeHeadCurious: 'assets/skins/jelly-cube/snake_head_curious.png?v=4',
-            snakeHeadSleepy: 'assets/skins/jelly-cube/snake_head_sleepy.png?v=4',
-            snakeHeadSurprised: 'assets/skins/jelly-cube/snake_head_surprised.png?v=4',
-            snakeSegA: 'assets/skins/jelly-cube/snake_seg_a.png?v=4',
-            snakeSegB: 'assets/skins/jelly-cube/snake_seg_b.png?v=4',
-            snakeTailBase: 'assets/skins/jelly-cube/snake_tail_base.png?v=4',
-            snakeTailTip: 'assets/skins/jelly-cube/snake_tail_tip.png?v=4'
+            snakeHead: 'assets/skins/aqua-jelly-snake/snake_head.png?v=1',
+            snakeHeadCurious: 'assets/skins/aqua-jelly-snake/snake_head_curious.png?v=1',
+            snakeHeadSleepy: 'assets/skins/aqua-jelly-snake/snake_head_sleepy.png?v=1',
+            snakeHeadSurprised: 'assets/skins/aqua-jelly-snake/snake_head_surprised.png?v=1',
+            snakeSegA: 'assets/skins/aqua-jelly-snake/snake_seg_a.png?v=1',
+            snakeSegB: 'assets/skins/aqua-jelly-snake/snake_seg_b.png?v=1',
+            snakeTailBase: 'assets/skins/aqua-jelly-snake/snake_tail_base.png?v=1',
+            snakeTailTip: 'assets/skins/aqua-jelly-snake/snake_tail_tip.png?v=1'
+        })
+    }),
+    Object.freeze({
+        id: 'candy-heart-snake',
+        coinCost: 52,
+        allowHueVariants: true,
+        colorVariants: Object.freeze([
+            Object.freeze({ id: 'heart-rose', hueShift: 0, saturation: 1.64, lightness: 1.02, contrast: 1.10 }),
+            Object.freeze({ id: 'heart-coral', hueShift: -20, saturation: 1.62, lightness: 1.04, contrast: 1.09 }),
+            Object.freeze({ id: 'heart-peach', hueShift: -36, saturation: 1.58, lightness: 1.06, contrast: 1.08 }),
+            Object.freeze({ id: 'heart-lilac', hueShift: 52, saturation: 1.60, lightness: 1.03, contrast: 1.09 }),
+            Object.freeze({ id: 'heart-grape', hueShift: 76, saturation: 1.62, lightness: 1.01, contrast: 1.10 }),
+            Object.freeze({ id: 'heart-mint', hueShift: -90, saturation: 1.56, lightness: 1.04, contrast: 1.08 })
+        ]),
+        renderProfile: Object.freeze({
+            segmentShadowColor: 'rgba(38, 20, 42, 0.30)',
+            segmentShadowBlur: 3.4,
+            segmentShadowOffsetY: 1,
+            headShadowColor: 'rgba(34, 18, 38, 0.38)',
+            headShadowBlur: 4.3,
+            headShadowOffsetY: 1,
+            spriteScale: 1,
+            partFit: Object.freeze({
+                headDefault: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headCurious: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSleepy: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSurprised: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segA: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segB: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                tailTip: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
+            })
+        }),
+        preview: 'assets/skins/candy-heart-snake/snake_head.png?v=1',
+        name: Object.freeze({
+            'zh-CN': '\u7cd6\u5fc3\u86c7\u76ae',
+            'en-US': 'Candy Heart Snake'
+        }),
+        description: Object.freeze({
+            'zh-CN': '\u751c\u5fc3\u7cd6\u679c\u914d\u8272\uff0c\u8f6e\u5ed3\u6e05\u6670\u3002',
+            'en-US': 'Sweet heart-candy palette with clear outlines.'
+        }),
+        assets: Object.freeze({
+            snakeHead: 'assets/skins/candy-heart-snake/snake_head.png?v=1',
+            snakeHeadCurious: 'assets/skins/candy-heart-snake/snake_head_curious.png?v=1',
+            snakeHeadSleepy: 'assets/skins/candy-heart-snake/snake_head_sleepy.png?v=1',
+            snakeHeadSurprised: 'assets/skins/candy-heart-snake/snake_head_surprised.png?v=1',
+            snakeSegA: 'assets/skins/candy-heart-snake/snake_seg_a.png?v=1',
+            snakeSegB: 'assets/skins/candy-heart-snake/snake_seg_b.png?v=1',
+            snakeTailBase: 'assets/skins/candy-heart-snake/snake_tail_base.png?v=1',
+            snakeTailTip: 'assets/skins/candy-heart-snake/snake_tail_tip.png?v=1'
+        })
+    }),
+    Object.freeze({
+        id: 'candy-star-snake',
+        coinCost: 56,
+        allowHueVariants: true,
+        colorVariants: Object.freeze([
+            Object.freeze({ id: 'star-gold', hueShift: -48, saturation: 1.64, lightness: 1.08, contrast: 1.09 }),
+            Object.freeze({ id: 'star-orange', hueShift: -22, saturation: 1.66, lightness: 1.05, contrast: 1.10 }),
+            Object.freeze({ id: 'star-pink', hueShift: 10, saturation: 1.62, lightness: 1.04, contrast: 1.10 }),
+            Object.freeze({ id: 'star-blue', hueShift: 122, saturation: 1.62, lightness: 1.02, contrast: 1.10 }),
+            Object.freeze({ id: 'star-violet', hueShift: 62, saturation: 1.64, lightness: 1.02, contrast: 1.10 }),
+            Object.freeze({ id: 'star-mint', hueShift: -92, saturation: 1.58, lightness: 1.05, contrast: 1.08 })
+        ]),
+        renderProfile: Object.freeze({
+            segmentShadowColor: 'rgba(36, 24, 18, 0.30)',
+            segmentShadowBlur: 3.4,
+            segmentShadowOffsetY: 1,
+            headShadowColor: 'rgba(34, 22, 18, 0.38)',
+            headShadowBlur: 4.3,
+            headShadowOffsetY: 1,
+            spriteScale: 1,
+            partFit: Object.freeze({
+                headDefault: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headCurious: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSleepy: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSurprised: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segA: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segB: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                tailTip: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
+            })
+        }),
+        preview: 'assets/skins/candy-star-snake/snake_head.png?v=1',
+        name: Object.freeze({
+            'zh-CN': '\u7cd6\u679c\u661f\u8fb0',
+            'en-US': 'Candy Star Snake'
+        }),
+        description: Object.freeze({
+            'zh-CN': '\u7cd6\u679c\u661f\u7a7a\u98ce\u683c\uff0c\u4eae\u8272\u6e10\u53d8\u66f4\u4e30\u5bcc\u3002',
+            'en-US': 'Star candy theme with glossy highlights and warm layers.'
+        }),
+        assets: Object.freeze({
+            snakeHead: 'assets/skins/candy-star-snake/snake_head.png?v=1',
+            snakeHeadCurious: 'assets/skins/candy-star-snake/snake_head_curious.png?v=1',
+            snakeHeadSleepy: 'assets/skins/candy-star-snake/snake_head_sleepy.png?v=1',
+            snakeHeadSurprised: 'assets/skins/candy-star-snake/snake_head_surprised.png?v=1',
+            snakeSegA: 'assets/skins/candy-star-snake/snake_seg_a.png?v=1',
+            snakeSegB: 'assets/skins/candy-star-snake/snake_seg_b.png?v=1',
+            snakeTailBase: 'assets/skins/candy-star-snake/snake_tail_base.png?v=1',
+            snakeTailTip: 'assets/skins/candy-star-snake/snake_tail_tip.png?v=1'
+        })
+    }),
+    Object.freeze({
+        id: 'orange-jelly-snake',
+        coinCost: 60,
+        allowHueVariants: true,
+        colorVariants: Object.freeze([
+            Object.freeze({ id: 'orange-amber', hueShift: -24, saturation: 1.70, lightness: 1.04, contrast: 1.10 }),
+            Object.freeze({ id: 'orange-gold', hueShift: -40, saturation: 1.66, lightness: 1.08, contrast: 1.09 }),
+            Object.freeze({ id: 'orange-red', hueShift: -6, saturation: 1.72, lightness: 1.02, contrast: 1.11 }),
+            Object.freeze({ id: 'orange-pink', hueShift: 18, saturation: 1.64, lightness: 1.03, contrast: 1.10 }),
+            Object.freeze({ id: 'orange-lime', hueShift: -98, saturation: 1.58, lightness: 1.05, contrast: 1.08 }),
+            Object.freeze({ id: 'orange-sky', hueShift: 118, saturation: 1.58, lightness: 1.03, contrast: 1.08 })
+        ]),
+        renderProfile: Object.freeze({
+            segmentShadowColor: 'rgba(44, 24, 16, 0.30)',
+            segmentShadowBlur: 3.4,
+            segmentShadowOffsetY: 1,
+            headShadowColor: 'rgba(40, 20, 14, 0.38)',
+            headShadowBlur: 4.3,
+            headShadowOffsetY: 1,
+            spriteScale: 1,
+            partFit: Object.freeze({
+                headDefault: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headCurious: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSleepy: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSurprised: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segA: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segB: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                tailTip: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
+            })
+        }),
+        preview: 'assets/skins/orange-jelly-snake/snake_head.png?v=1',
+        name: Object.freeze({
+            'zh-CN': '\u6a59\u8272\u679c\u51bb\u86c7',
+            'en-US': 'Orange Jelly Snake'
+        }),
+        description: Object.freeze({
+            'zh-CN': '\u6a59\u8c03\u679c\u51bb\u4e3b\u9898\uff0c\u6696\u8272\u9ad8\u9971\u548c\u3002',
+            'en-US': 'Warm orange jelly palette with bright translucent highlights.'
+        }),
+        assets: Object.freeze({
+            snakeHead: 'assets/skins/orange-jelly-snake/snake_head.png?v=1',
+            snakeHeadCurious: 'assets/skins/orange-jelly-snake/snake_head_curious.png?v=1',
+            snakeHeadSleepy: 'assets/skins/orange-jelly-snake/snake_head_sleepy.png?v=1',
+            snakeHeadSurprised: 'assets/skins/orange-jelly-snake/snake_head_surprised.png?v=1',
+            snakeSegA: 'assets/skins/orange-jelly-snake/snake_seg_a.png?v=1',
+            snakeSegB: 'assets/skins/orange-jelly-snake/snake_seg_b.png?v=1',
+            snakeTailBase: 'assets/skins/orange-jelly-snake/snake_tail_base.png?v=1',
+            snakeTailTip: 'assets/skins/orange-jelly-snake/snake_tail_tip.png?v=1'
+        })
+    }),
+    Object.freeze({
+        id: 'rainbow-jelly-snake',
+        coinCost: 64,
+        allowHueVariants: true,
+        colorVariants: Object.freeze([
+            Object.freeze({ id: 'rainbow-cyan', hueShift: 0, saturation: 1.68, lightness: 1.02, contrast: 1.10 }),
+            Object.freeze({ id: 'rainbow-blue', hueShift: 24, saturation: 1.70, lightness: 1.01, contrast: 1.11 }),
+            Object.freeze({ id: 'rainbow-purple', hueShift: 56, saturation: 1.72, lightness: 1.01, contrast: 1.11 }),
+            Object.freeze({ id: 'rainbow-pink', hueShift: 142, saturation: 1.70, lightness: 1.02, contrast: 1.11 }),
+            Object.freeze({ id: 'rainbow-orange', hueShift: -164, saturation: 1.68, lightness: 1.03, contrast: 1.10 }),
+            Object.freeze({ id: 'rainbow-lime', hueShift: -94, saturation: 1.66, lightness: 1.05, contrast: 1.09 })
+        ]),
+        renderProfile: Object.freeze({
+            segmentShadowColor: 'rgba(30, 18, 44, 0.30)',
+            segmentShadowBlur: 3.4,
+            segmentShadowOffsetY: 1,
+            headShadowColor: 'rgba(26, 14, 40, 0.38)',
+            headShadowBlur: 4.3,
+            headShadowOffsetY: 1,
+            spriteScale: 1,
+            partFit: Object.freeze({
+                headDefault: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headCurious: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSleepy: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSurprised: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segA: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segB: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                tailTip: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
+            })
+        }),
+        preview: 'assets/skins/rainbow-jelly-snake/snake_head.png?v=1',
+        name: Object.freeze({
+            'zh-CN': '\u5f69\u8679\u679c\u51bb',
+            'en-US': 'Rainbow Jelly Snake'
+        }),
+        description: Object.freeze({
+            'zh-CN': '\u5f69\u8679\u679c\u51bb\u4e3b\u9898\uff0c\u6e10\u53d8\u8272\u66f4\u52a0\u4e30\u5bcc\u3002',
+            'en-US': 'Rainbow jelly theme with richer multi-color gradients.'
+        }),
+        assets: Object.freeze({
+            snakeHead: 'assets/skins/rainbow-jelly-snake/snake_head.png?v=1',
+            snakeHeadCurious: 'assets/skins/rainbow-jelly-snake/snake_head_curious.png?v=1',
+            snakeHeadSleepy: 'assets/skins/rainbow-jelly-snake/snake_head_sleepy.png?v=1',
+            snakeHeadSurprised: 'assets/skins/rainbow-jelly-snake/snake_head_surprised.png?v=1',
+            snakeSegA: 'assets/skins/rainbow-jelly-snake/snake_seg_a.png?v=1',
+            snakeSegB: 'assets/skins/rainbow-jelly-snake/snake_seg_b.png?v=1',
+            snakeTailBase: 'assets/skins/rainbow-jelly-snake/snake_tail_base.png?v=1',
+            snakeTailTip: 'assets/skins/rainbow-jelly-snake/snake_tail_tip.png?v=1'
         })
     })
+
 ]);
 
 const SKIN_INDEX = new Map(SKIN_CATALOG.map((skin) => [skin.id, skin]));

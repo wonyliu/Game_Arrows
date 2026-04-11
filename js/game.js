@@ -31,7 +31,7 @@ import {
     getSkinById,
     getSkinCatalog as getSkinCatalogList,
     normalizeUnlockedSkins
-} from './skins.js?v=26';
+} from './skins.js?v=27';
 import { readGameplayParams } from './game-params.js?v=3';
 import {
     readProgressSnapshot,
@@ -2310,6 +2310,7 @@ function distanceToSegment(px, py, start, end) {
     const projY = start.y + t * dy;
     return distance(px, py, projX, projY);
 }
+
 
 
 

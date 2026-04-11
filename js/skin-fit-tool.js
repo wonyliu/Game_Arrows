@@ -1,4 +1,4 @@
-﻿import { getSkinById, getSkinCatalog } from './skins.js?v=26';
+﻿import { getSkinById, getSkinCatalog } from './skins.js?v=27';
 import {
     initSkinPartFitStorage,
     readSkinPartFitOverrides,
@@ -659,6 +659,7 @@ async function init() {
 init().catch((error) => {
     setStatus(error?.message || '初始化失败', true);
 });
+
 
 
 

@@ -9,7 +9,7 @@ import {
     setSfxVolume,
     playCheckinRewardCoinSound
 } from './audio.js?v=55';
-import { getSkinDescription, getSkinDisplayName } from './skins.js?v=26';
+import { getSkinDescription, getSkinDisplayName } from './skins.js?v=27';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
 
@@ -2812,6 +2812,7 @@ export class UI {
 }
 
 export { MENU_PANEL };
+
 
 
 

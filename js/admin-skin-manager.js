@@ -5,7 +5,7 @@
     getSkinById,
     getSkinCatalog,
     isLegacyColorVariantSkinId
-} from './skins.js?v=26';
+} from './skins.js?v=27';
 
 const NAME_ZH_OVERRIDE_KEY = 'arrowClear_skinNameZhOverrides_v1';
 const NAME_EN_OVERRIDE_KEY = 'arrowClear_skinNameEnOverrides_v1';
@@ -573,6 +573,7 @@ if (hasRequired) {
         setListStatus(error?.message || '皮肤管理初始化失败。', true);
     });
 }
+
 
 
 

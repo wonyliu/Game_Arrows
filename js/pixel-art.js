@@ -1,4 +1,4 @@
-import { getDefaultSkinId, getSkinById } from './skins.js?v=26';
+﻿import { getDefaultSkinId, getSkinById } from './skins.js?v=27';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -1947,6 +1947,7 @@ export function hashPoint(x, y, seed = 0) {
     value = (value ^ (value >> 13)) * 1274126177;
     return (value >>> 0) / 0xffffffff;
 }
+
 
 
 
