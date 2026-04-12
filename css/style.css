@@ -390,6 +390,18 @@ textarea {
     filter: saturate(1.1);
 }
 
+.hud-timer.timer-last10 {
+    gap: 0;
+}
+
+.hud-timer.timer-last10 .hud-timer-label {
+    font-size: 39px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 0.6px;
+    transform: translateY(-1px);
+}
+
 .hud-timer.timer-gain .hud-timer-fill {
     filter: brightness(1.25) saturate(1.12);
 }

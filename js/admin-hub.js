@@ -11,7 +11,7 @@ import {
     normalizeGameplayParams,
     readGameplayParams,
     writeGameplayParams
-} from './game-params.js?v=3';
+} from './game-params.js?v=4';
 
 const ACTIVE_TAB_STORAGE_KEY = 'arrowClear_adminActiveTab';
 
@@ -40,6 +40,10 @@ const el = {
     paramComboWindowMs: document.getElementById('paramComboWindowMs'),
     paramRewardComboThreshold: document.getElementById('paramRewardComboThreshold'),
     paramMisclickPenaltyTextDurationSeconds: document.getElementById('paramMisclickPenaltyTextDurationSeconds'),
+    paramReleasableHitAreaScale: document.getElementById('paramReleasableHitAreaScale'),
+    hitAreaPreviewScaleText: document.getElementById('hitAreaPreviewScaleText'),
+    hitAreaPreviewHit: document.getElementById('hitAreaPreviewHit'),
+    hitAreaPreviewMeta: document.getElementById('hitAreaPreviewMeta'),
     gameParamJson: document.getElementById('gameParamJson'),
     paramStatus: document.getElementById('paramStatus'),
     btnSaveGameParams: document.getElementById('btnSaveGameParams'),
@@ -283,6 +287,26 @@ function fillGameParamInputs(params) {
     if (el.paramComboWindowMs) el.paramComboWindowMs.value = `${params.comboWindowMs}`;
     if (el.paramRewardComboThreshold) el.paramRewardComboThreshold.value = `${params.rewardComboThreshold}`;
     if (el.paramMisclickPenaltyTextDurationSeconds) el.paramMisclickPenaltyTextDurationSeconds.value = `${params.misclickPenaltyTextDurationSeconds}`;
+    if (el.paramReleasableHitAreaScale) el.paramReleasableHitAreaScale.value = `${params.releasableHitAreaScale}`;
+    renderHitAreaPreview(params.releasableHitAreaScale);
+}
+
+function renderHitAreaPreview(scaleValue) {
+    const scale = Math.max(1, Math.min(2.2, Number(scaleValue) || 1));
+    const baseSize = 52;
+    const hitSize = Math.round(baseSize * scale);
+    if (el.hitAreaPreviewScaleText) {
+        el.hitAreaPreviewScaleText.textContent = `倍率 x${scale.toFixed(2)}`;
+    }
+    if (el.hitAreaPreviewHit) {
+        el.hitAreaPreviewHit.style.width = `${hitSize}px`;
+        el.hitAreaPreviewHit.style.height = `${hitSize}px`;
+    }
+    if (el.hitAreaPreviewMeta) {
+        const basePct = 26;
+        const scaledPct = (basePct * scale).toFixed(1);
+        el.hitAreaPreviewMeta.textContent = `基础半径 ${basePct}% · 当前 ${scaledPct}%`;
+    }
 }
 
 function collectGameParamInputs() {
@@ -295,7 +319,8 @@ function collectGameParamInputs() {
         snakeRemoveAccelMultiplier: Number(el.paramSnakeRemoveAccelMultiplier?.value),
         comboWindowMs: Number(el.paramComboWindowMs?.value),
         rewardComboThreshold: Number(el.paramRewardComboThreshold?.value),
-        misclickPenaltyTextDurationSeconds: Number(el.paramMisclickPenaltyTextDurationSeconds?.value)
+        misclickPenaltyTextDurationSeconds: Number(el.paramMisclickPenaltyTextDurationSeconds?.value),
+        releasableHitAreaScale: Number(el.paramReleasableHitAreaScale?.value)
     };
 }
 
@@ -345,6 +370,9 @@ function initGameParamPanel() {
     el.btnSaveGameParams?.addEventListener('click', saveGameParamsFromInputs);
     el.btnResetGameParams?.addEventListener('click', resetGameParams);
     el.btnImportGameParamJson?.addEventListener('click', importGameParamJson);
+    el.paramReleasableHitAreaScale?.addEventListener('input', () => {
+        renderHitAreaPreview(el.paramReleasableHitAreaScale?.value);
+    });
     el.btnCopyGameParamJson?.addEventListener('click', () => {
         copyText(
             el.gameParamJson?.value || '{}',

@@ -9,7 +9,8 @@ export const DEFAULT_GAMEPLAY_PARAMS = Object.freeze({
     snakeRemoveAccelMultiplier: 1,
     comboWindowMs: 3000,
     rewardComboThreshold: 100,
-    misclickPenaltyTextDurationSeconds: 1.9
+    misclickPenaltyTextDurationSeconds: 1.9,
+    releasableHitAreaScale: 1.3
 });
 
 const PARAM_RANGE = Object.freeze({
@@ -21,7 +22,8 @@ const PARAM_RANGE = Object.freeze({
     snakeRemoveAccelMultiplier: Object.freeze({ min: 0.2, max: 5 }),
     comboWindowMs: Object.freeze({ min: 100, max: 15000 }),
     rewardComboThreshold: Object.freeze({ min: 1, max: 1000 }),
-    misclickPenaltyTextDurationSeconds: Object.freeze({ min: 0.2, max: 6 })
+    misclickPenaltyTextDurationSeconds: Object.freeze({ min: 0.2, max: 6 }),
+    releasableHitAreaScale: Object.freeze({ min: 1, max: 2.2 })
 });
 
 function clampNumber(value, min, max) {
@@ -108,6 +110,13 @@ export function normalizeGameplayParams(rawParams = {}) {
             DEFAULT_GAMEPLAY_PARAMS.misclickPenaltyTextDurationSeconds,
             PARAM_RANGE.misclickPenaltyTextDurationSeconds.min,
             PARAM_RANGE.misclickPenaltyTextDurationSeconds.max,
+            false
+        ),
+        releasableHitAreaScale: normalizeNumber(
+            raw.releasableHitAreaScale,
+            DEFAULT_GAMEPLAY_PARAMS.releasableHitAreaScale,
+            PARAM_RANGE.releasableHitAreaScale.min,
+            PARAM_RANGE.releasableHitAreaScale.max,
             false
         )
     };

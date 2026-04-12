@@ -1,5 +1,5 @@
 import { drawPixelParticle } from './pixel-art.js?v=51';
-import { readGameplayParams } from './game-params.js?v=3';
+import { readGameplayParams } from './game-params.js?v=4';
 
 const GAMEPLAY_PARAMS = readGameplayParams();
 const REMOVE_SPEED_MULTIPLIER = GAMEPLAY_PARAMS.snakeRemoveSpeedMultiplier;

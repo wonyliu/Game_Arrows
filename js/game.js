@@ -23,7 +23,7 @@ import {
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=55';
+} from './audio.js?v=56';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=51';
 import {
     ensureSelectedSkin,
@@ -32,7 +32,7 @@ import {
     getSkinCatalog as getSkinCatalogList,
     normalizeUnlockedSkins
 } from './skins.js?v=27';
-import { readGameplayParams } from './game-params.js?v=3';
+import { readGameplayParams } from './game-params.js?v=4';
 import {
     readProgressSnapshot,
     saveProgressSnapshot
@@ -65,6 +65,10 @@ const REWARD_COMBO_THRESHOLD = GAMEPLAY_PARAMS.rewardComboThreshold;
 const MISCLICK_PENALTY_TEXT_DURATION_SECONDS = Math.max(
     0.2,
     Number(GAMEPLAY_PARAMS.misclickPenaltyTextDurationSeconds) || 1.9
+);
+const RELEASABLE_HIT_AREA_SCALE = Math.max(
+    1,
+    Number(GAMEPLAY_PARAMS.releasableHitAreaScale) || 1.3
 );
 const DRAG_RELEASE_CLICK_SUPPRESS_MS = 160;
 const ENABLE_GAME_DEBUG_LOGS = typeof window !== 'undefined'
@@ -132,6 +136,7 @@ export class Game {
         this.dragReleaseLineIds = new Set();
         this.suppressClickUntil = 0;
         this.externalPauseActive = false;
+        this.releasableHitAreaScale = RELEASABLE_HIT_AREA_SCALE;
         this.lineById = new Map();
         this.sortedLinesAsc = [];
         this.sortedLinesDesc = [];
@@ -256,6 +261,13 @@ export class Game {
         this.saveProgress();
     }
 
+    suppressInputFor(durationMs = DRAG_RELEASE_CLICK_SUPPRESS_MS) {
+        const extra = Math.max(0, Number(durationMs) || 0);
+        this.suppressClickUntil = Math.max(this.suppressClickUntil, nowMs() + extra);
+        this.dragReleaseActive = false;
+        this.dragReleaseLineIds.clear();
+    }
+
     setExternalPaused(paused) {
         const next = paused === true;
         if (this.externalPauseActive === next) {
@@ -341,6 +353,36 @@ export class Game {
             this.sortedLinesDirty = false;
         }
         return order === 'desc' ? this.sortedLinesDesc : this.sortedLinesAsc;
+    }
+
+    getRenderSortedLines() {
+        const base = this.getSortedLines('asc');
+        if (!Array.isArray(base) || base.length <= 1 || !this.grid) {
+            return base;
+        }
+
+        // Releasable snakes are drawn last so they stay visually on top.
+        const releasableById = new Map();
+        for (const line of base) {
+            if (!line || line.state !== 'active') {
+                continue;
+            }
+            releasableById.set(line.id, canMove(line, this.lines, this.grid).canMove === true);
+        }
+
+        return [...base].sort((a, b) => {
+            const aTop = releasableById.get(a?.id) === true ? 1 : 0;
+            const bTop = releasableById.get(b?.id) === true ? 1 : 0;
+            if (aTop !== bTop) {
+                return aTop - bTop;
+            }
+            const za = Number(a?.zIndex) || 0;
+            const zb = Number(b?.zIndex) || 0;
+            if (za !== zb) {
+                return za - zb;
+            }
+            return (Number(a?.id) || 0) - (Number(b?.id) || 0);
+        });
     }
 
     resize() {
@@ -1015,29 +1057,60 @@ export class Game {
     findTopLineAtPoint(x, y) {
         const sortedLines = this.getSortedLines('desc');
 
-        const threshold = this.grid.cellSize * 0.26;
-        const headThreshold = this.grid.cellSize * 0.4;
+        const baseThreshold = this.grid.cellSize * 0.26;
+        const baseHeadThreshold = this.grid.cellSize * 0.4;
+        const hitScaleForReleasable = Math.max(1, Number(this.releasableHitAreaScale) || 1);
+        const candidates = [];
 
         for (const line of sortedLines) {
             if (!line || line.state !== 'active') {
                 continue;
             }
+            const releasable = canMove(line, this.lines, this.grid).canMove === true;
+            const hitScale = releasable ? hitScaleForReleasable : 1;
+            const threshold = baseThreshold * hitScale;
+            const headThreshold = baseHeadThreshold * hitScale;
             const points = line.getScreenPoints(this.grid);
             const head = points[points.length - 1];
 
-            if (distance(x, y, head.x, head.y) <= headThreshold) {
-                return line;
+            let bestNormalizedDistance = Number.POSITIVE_INFINITY;
+            if (head) {
+                const headDistance = distance(x, y, head.x, head.y);
+                if (headDistance <= headThreshold) {
+                    bestNormalizedDistance = Math.min(bestNormalizedDistance, headDistance / Math.max(1e-6, headThreshold));
+                }
             }
 
             for (let i = 0; i < points.length - 1; i++) {
-                if (distanceToSegment(x, y, points[i], points[i + 1]) <= threshold) {
-                    return line;
+                const segmentDistance = distanceToSegment(x, y, points[i], points[i + 1]);
+                if (segmentDistance <= threshold) {
+                    bestNormalizedDistance = Math.min(bestNormalizedDistance, segmentDistance / Math.max(1e-6, threshold));
                 }
+            }
+
+            if (Number.isFinite(bestNormalizedDistance)) {
+                candidates.push({
+                    line,
+                    score: bestNormalizedDistance,
+                    releasable
+                });
             }
         }
 
-        const gridPos = this.grid.screenToGrid(x, y);
-        return gridPos ? this.findTopLineAt(gridPos.col, gridPos.row) : null;
+        if (candidates.length <= 0) {
+            return null;
+        }
+
+        const releasableCandidates = candidates.filter((item) => item.releasable === true);
+        const pool = releasableCandidates.length > 0 ? releasableCandidates : candidates;
+
+        pool.sort((a, b) => {
+            if (a.score !== b.score) {
+                return a.score - b.score;
+            }
+            return (Number(b.line?.zIndex) || 0) - (Number(a.line?.zIndex) || 0);
+        });
+        return pool[0].line || null;
     }
 
     removeLine(line) {
@@ -1201,7 +1274,11 @@ export class Game {
             if (prevTime > 0 && this.timeRemaining <= 0) {
                 setTimeout(() => {
                     if (this.state === 'PLAYING') {
-                        this.gameOver('Time is up');
+                        if (this.hasUnreleasedActiveSnakes()) {
+                            this.gameOver('Time is up');
+                        } else {
+                            this.checkLevelComplete();
+                        }
                     }
                 }, 450);
             }
@@ -1242,7 +1319,10 @@ export class Game {
         this.lastComboReleaseAt = 0;
         this.resetEnergyBatches();
         playLevelCompleteSound();
-        const coinsEarned = Math.floor(Math.max(0, this.score) / SCORE_PER_COIN);
+        const normalizedScore = Math.max(0, Number(this.score) || 0);
+        const coinsEarned = normalizedScore > 0
+            ? Math.max(1, Math.ceil(normalizedScore / SCORE_PER_COIN))
+            : 0;
         this.lastCoinReward = coinsEarned;
         if (coinsEarned > 0) {
             this.coins += coinsEarned;
@@ -1289,6 +1369,13 @@ export class Game {
         playGameOverSound();
         this.animations.addConfetti(this.canvas.width / 2, this.canvas.height / 2, 60, ['#ff8ca8', '#ffd5a8', '#fff1d5'], 'star');
         this.showGameOver(reason);
+    }
+
+    hasUnreleasedActiveSnakes() {
+        if (!Array.isArray(this.lines) || this.lines.length === 0) {
+            return false;
+        }
+        return this.lines.some((line) => line?.state === 'active');
     }
 
     useHint() {
@@ -1404,7 +1491,7 @@ export class Game {
                 this.drawGridDots(ctx);
             }
 
-            const sortedLines = this.getSortedLines('asc');
+            const sortedLines = this.getRenderSortedLines();
 
             for (const line of sortedLines) {
                 if (!line || line.state === 'removed') {
@@ -1906,7 +1993,11 @@ export class Game {
         }
 
         if (prev > 0 && this.timeRemaining <= 0) {
-            this.gameOver('Time is up');
+            if (this.hasUnreleasedActiveSnakes()) {
+                this.gameOver('Time is up');
+            } else {
+                this.checkLevelComplete();
+            }
         }
 
     }

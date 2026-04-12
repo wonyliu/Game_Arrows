@@ -1186,6 +1186,40 @@ export function playCheckinRewardCoinSound() {
     });
 }
 
+export function playFinalCountdownTickSound(second = 0) {
+    void initAudioProfileStorage();
+    const ctx = getAudioContext();
+    const safeSecond = Math.max(1, Math.min(10, Math.floor(Number(second) || 0)));
+    const start = ctx.currentTime + 0.001;
+    const accent = safeSecond <= 3 ? 1.16 : 1;
+    const baseFreq = (safeSecond <= 3 ? 920 : 740) * accent;
+
+    const oscMain = ctx.createOscillator();
+    oscMain.type = 'square';
+    oscMain.frequency.setValueAtTime(baseFreq, start);
+    oscMain.frequency.exponentialRampToValueAtTime(baseFreq * 0.85, start + 0.065);
+    const gainMain = ctx.createGain();
+    gainMain.gain.setValueAtTime(0.0001, start);
+    gainMain.gain.exponentialRampToValueAtTime(0.12 * accent, start + 0.01);
+    gainMain.gain.exponentialRampToValueAtTime(0.0001, start + 0.09);
+    oscMain.connect(gainMain);
+    gainMain.connect(getSfxOutputNode(ctx));
+    oscMain.start(start);
+    oscMain.stop(start + 0.1);
+
+    const oscTail = ctx.createOscillator();
+    oscTail.type = 'triangle';
+    oscTail.frequency.setValueAtTime(baseFreq * 1.65, start);
+    const gainTail = ctx.createGain();
+    gainTail.gain.setValueAtTime(0.0001, start);
+    gainTail.gain.exponentialRampToValueAtTime(0.06 * accent, start + 0.008);
+    gainTail.gain.exponentialRampToValueAtTime(0.0001, start + 0.065);
+    oscTail.connect(gainTail);
+    gainTail.connect(getSfxOutputNode(ctx));
+    oscTail.start(start);
+    oscTail.stop(start + 0.075);
+}
+
 export function earlyBgmBootstrap() {
     if (earlyBootstrapDone) {
         return;

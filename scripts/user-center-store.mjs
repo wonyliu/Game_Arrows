@@ -539,7 +539,7 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
 }
 
 export async function createUserCenterStore(options) {
-    const backendRaw = `${options?.backend || 'json'}`.trim().toLowerCase();
+    const backendRaw = `${options?.backend || 'postgres'}`.trim().toLowerCase();
     const backend = backendRaw === 'postgres' ? 'postgres' : 'json';
     const common = {
         normalizeProgressFromPayload: options.normalizeProgressFromPayload,
@@ -550,18 +550,13 @@ export async function createUserCenterStore(options) {
         nowIso: options.nowIso
     };
 
-    let store;
-    if (backend === 'postgres') {
-        store = new PostgresUserCenterStore({
-            ...common,
-            databaseUrl: `${options?.databaseUrl || ''}`.trim()
-        });
-    } else {
-        store = new JsonUserCenterStore({
-            ...common,
-            filePath: options.filePath
-        });
+    if (backend === 'json') {
+        throw new Error('json user center backend is disabled. Set backend=postgres and provide USER_CENTER_DATABASE_URL.');
     }
+    const store = new PostgresUserCenterStore({
+        ...common,
+        databaseUrl: `${options?.databaseUrl || ''}`.trim()
+    });
 
     await store.init();
     return store;

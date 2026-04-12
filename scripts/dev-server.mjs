@@ -12,7 +12,7 @@ const SKIN_GEN_DIR = path.join(DATA_DIR, 'skin-gen');
 const SKIN_GEN_NAME_MAP_PATH = path.join(SKIN_GEN_DIR, 'skin-name-map.json');
 const SKIN_GEN_CONTEXTS_DIR = path.join(SKIN_GEN_DIR, 'skin-contexts');
 const USER_CENTER_DB_PATH = path.join(DATA_DIR, 'user-center-db-v1.json');
-const USER_CENTER_BACKEND = `${process.env.USER_CENTER_BACKEND || 'json'}`.trim().toLowerCase();
+const USER_CENTER_BACKEND = `${process.env.USER_CENTER_BACKEND || 'postgres'}`.trim().toLowerCase();
 const USER_CENTER_DATABASE_URL = `${process.env.USER_CENTER_DATABASE_URL || process.env.DATABASE_URL || ''}`.trim();
 const USER_CENTER_REQUIRE_SCALABLE_DB = `${process.env.USER_CENTER_REQUIRE_SCALABLE_DB || ''}`.trim() === '1';
 const ADMIN_API_KEY = `${process.env.ADMIN_API_KEY || ''}`.trim();
@@ -90,6 +90,10 @@ const userCenterStore = await createUserCenterStore({
     buildDefaultLiveopsPlayerState,
     nowIso
 });
+
+if (USER_CENTER_BACKEND === 'json') {
+    throw new Error('USER_CENTER_BACKEND=json is disabled. Use postgres with USER_CENTER_DATABASE_URL (or DATABASE_URL).');
+}
 
 const userCenterStoreMeta = userCenterStore.getBackendMeta();
 if (USER_CENTER_REQUIRE_SCALABLE_DB && !userCenterStoreMeta.scalable) {

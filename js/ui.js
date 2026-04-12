@@ -7,8 +7,9 @@ import {
     resumeAudio as resumeAudioV31,
     setMusicVolume,
     setSfxVolume,
-    playCheckinRewardCoinSound
-} from './audio.js?v=55';
+    playCheckinRewardCoinSound,
+    playFinalCountdownTickSound
+} from './audio.js?v=56';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=27';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
@@ -82,6 +83,7 @@ export class UI {
         this.timerEl = document.getElementById('timer');
         this.timerFillEl = document.getElementById('timerFill');
         this.timerLabelEl = document.getElementById('timerLabel');
+        this.lastCountdownTickSecond = null;
         this.comboDisplayEl = document.getElementById('comboDisplay');
         this.rewardUnlockToastEl = document.getElementById('rewardUnlockToast');
         this.rewardUnlockToastImageEl = document.getElementById('rewardUnlockToastImage');
@@ -523,7 +525,13 @@ export class UI {
         if (!element) return;
 
         let lastTriggerAt = Number.NEGATIVE_INFINITY;
-        const invoke = () => {
+        const invoke = (event = null) => {
+            if (event && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
             const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
             if (now - lastTriggerAt < 220) {
                 return;
@@ -542,10 +550,10 @@ export class UI {
             handler();
         };
 
-        element.addEventListener('click', invoke);
+        element.addEventListener('click', (event) => invoke(event));
         element.addEventListener('pointerup', (event) => {
             if (event.pointerType === 'touch') {
-                invoke();
+                invoke(event);
             }
         });
     }
@@ -673,6 +681,9 @@ export class UI {
             this.setMenuChromeVisible(false);
             this.forceGameCanvasResize();
             this.game.startNextStage();
+            if (typeof this.game.suppressInputFor === 'function') {
+                this.game.suppressInputFor(420);
+            }
             requestAnimationFrame(() => this.forceGameCanvasResize());
             this.updateHUD();
             this.syncGameplayBgm(true);
@@ -2405,6 +2416,8 @@ export class UI {
         if (!this.game.hasTimer) {
             this.clearTimerEnergyOrbs();
             this.timerEl.classList.add('hidden');
+            this.timerEl.classList.remove('timer-last10');
+            this.lastCountdownTickSecond = null;
             return;
         }
 
@@ -2419,12 +2432,29 @@ export class UI {
         if (this.timerFillEl) {
             this.timerFillEl.style.transform = `scaleX(${ratio.toFixed(4)})`;
         }
+        const isLastTenSeconds = displaySeconds <= 10 && displaySeconds > 0;
         if (this.timerLabelEl) {
-            this.timerLabelEl.textContent = `${mins}m${secs.toString().padStart(2, '0')}s`;
+            this.timerLabelEl.textContent = isLastTenSeconds
+                ? `${displaySeconds}`
+                : `${mins}m${secs.toString().padStart(2, '0')}s`;
         } else {
-            this.timerEl.textContent = `${mins}m${secs.toString().padStart(2, '0')}s`;
+            this.timerEl.textContent = isLastTenSeconds
+                ? `${displaySeconds}`
+                : `${mins}m${secs.toString().padStart(2, '0')}s`;
         }
 
+        if (isLastTenSeconds) {
+            if (this.lastCountdownTickSecond !== displaySeconds) {
+                this.lastCountdownTickSecond = displaySeconds;
+                if (this.audioEnabled) {
+                    playFinalCountdownTickSound(displaySeconds);
+                }
+            }
+        } else {
+            this.lastCountdownTickSecond = null;
+        }
+
+        this.timerEl.classList.toggle('timer-last10', isLastTenSeconds);
         this.timerEl.classList.toggle('timer-danger', ratio <= 0.12 || displaySeconds <= 10);
         this.timerEl.setAttribute('aria-valuemin', '0');
         this.timerEl.setAttribute('aria-valuemax', String(maxSeconds));

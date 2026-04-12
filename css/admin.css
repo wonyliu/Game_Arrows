@@ -264,6 +264,81 @@ button:disabled {
     gap: 6px;
 }
 
+.hit-area-preview {
+    margin-top: 4px;
+    border: 1px solid rgba(35, 44, 88, 0.12);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(239, 245, 255, 0.95), rgba(231, 241, 255, 0.92));
+    display: grid;
+    gap: 8px;
+}
+
+.hit-area-preview-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    color: #2f3c74;
+    font-size: 12px;
+}
+
+.hit-area-preview-head strong {
+    font-size: 13px;
+}
+
+.hit-area-preview-stage {
+    height: 112px;
+    border-radius: 10px;
+    border: 1px dashed rgba(67, 88, 175, 0.38);
+    background:
+        radial-gradient(circle at 50% 50%, rgba(110, 144, 255, 0.16), rgba(110, 144, 255, 0) 60%),
+        repeating-linear-gradient(
+            0deg,
+            rgba(50, 71, 160, 0.08) 0px,
+            rgba(50, 71, 160, 0.08) 1px,
+            transparent 1px,
+            transparent 18px
+        ),
+        repeating-linear-gradient(
+            90deg,
+            rgba(50, 71, 160, 0.08) 0px,
+            rgba(50, 71, 160, 0.08) 1px,
+            transparent 1px,
+            transparent 18px
+        );
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+}
+
+.hit-area-preview-hit {
+    width: 74px;
+    height: 74px;
+    border-radius: 999px;
+    border: 2px solid rgba(83, 123, 255, 0.86);
+    background: rgba(84, 126, 255, 0.2);
+    display: grid;
+    place-items: center;
+    transition: width 120ms ease, height 120ms ease;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.42) inset;
+}
+
+.hit-area-preview-body {
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    border: 2px solid rgba(31, 41, 94, 0.75);
+    background: rgba(255, 255, 255, 0.75);
+    box-shadow: 0 2px 8px rgba(23, 34, 86, 0.2);
+}
+
+.hit-area-preview-meta {
+    color: #4f5d98;
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .mini-field {
     display: flex;
     align-items: center;
