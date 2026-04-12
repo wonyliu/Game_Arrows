@@ -49,6 +49,14 @@ function mapDbUserRow(row) {
 }
 
 function toDbUserParams(user) {
+    const toJsonText = (value, fallback) => {
+        const source = value === undefined ? fallback : value;
+        try {
+            return JSON.stringify(source);
+        } catch {
+            return JSON.stringify(fallback);
+        }
+    };
     return [
         `${user.userId || ''}`.trim(),
         `${user.username || ''}`.trim(),
@@ -61,15 +69,15 @@ function toDbUserParams(user) {
         `${user.createdAt || ''}`.trim(),
         `${user.lastActiveAt || ''}`.trim(),
         `${user.primaryDeviceId || ''}`.trim(),
-        Array.isArray(user.hardwareDeviceIds) ? user.hardwareDeviceIds : [],
-        Array.isArray(user.devices) ? user.devices : [],
-        Array.isArray(user.cookieDeviceMismatchLogs) ? user.cookieDeviceMismatchLogs : [],
-        isPlainObject(user.progress) ? user.progress : {},
-        isPlainObject(user.liveopsPlayer) ? user.liveopsPlayer : {},
+        toJsonText(Array.isArray(user.hardwareDeviceIds) ? user.hardwareDeviceIds : [], []),
+        toJsonText(Array.isArray(user.devices) ? user.devices : [], []),
+        toJsonText(Array.isArray(user.cookieDeviceMismatchLogs) ? user.cookieDeviceMismatchLogs : [], []),
+        toJsonText(isPlainObject(user.progress) ? user.progress : {}, {}),
+        toJsonText(isPlainObject(user.liveopsPlayer) ? user.liveopsPlayer : {}, {}),
         Math.max(0, Math.floor(Number(user.coins) || 0)),
         Math.max(1, Math.floor(Number(user.maxUnlockedLevel) || 1)),
         Math.max(0, Math.floor(Number(user.maxClearedLevel) || 0)),
-        Array.isArray(user.unlockedSkinIds) ? user.unlockedSkinIds : []
+        toJsonText(Array.isArray(user.unlockedSkinIds) ? user.unlockedSkinIds : [], [])
     ];
 }
 
