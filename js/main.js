@@ -17,7 +17,7 @@ import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=3';
 import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
 import { isLegacyColorVariantSkinId } from './skins.js?v=27';
-import { earlyBgmBootstrap } from './audio.js?v=56';
+import { earlyBgmBootstrap } from './audio.js?v=57';
 import { ensureUserSession } from './user-auth.js?v=2';
 
 const DESIGN_WIDTH = 430;
@@ -497,6 +497,7 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
+
 
 
 

@@ -51,6 +51,7 @@ let bgmUnmutePollingTimer = 0;
 let earlyBootstrapDone = false;
 let sfxMasterGainNode = null;
 let audioMix = readAudioMixFromStorage();
+let bgmUnlockGestureBound = false;
 const ENABLE_BGM_DEBUG_LOGS = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('debug') === '1';
 
@@ -166,6 +167,33 @@ function isIosLikeDevice() {
     return /macintosh/.test(ua) && Number(navigator.maxTouchPoints || 0) > 1;
 }
 
+function hasUserActivation() {
+    return !!(typeof navigator !== 'undefined' && navigator.userActivation && navigator.userActivation.hasBeenActive);
+}
+
+function bindBgmUnlockGestureOnce() {
+    if (bgmUnlockGestureBound || typeof window === 'undefined') {
+        return;
+    }
+    bgmUnlockGestureBound = true;
+    const events = ['pointerdown', 'touchstart', 'mousedown', 'keydown'];
+    const onUserGesture = () => {
+        for (const eventName of events) {
+            window.removeEventListener(eventName, onUserGesture, true);
+        }
+        bgmUnlockGestureBound = false;
+        if (audioCtx && audioCtx.state === 'suspended') {
+            void audioCtx.resume().catch(() => {});
+        }
+        if (pendingBgmPlay) {
+            attemptBgmPlayback();
+        }
+    };
+    for (const eventName of events) {
+        window.addEventListener(eventName, onUserGesture, { capture: true, passive: true });
+    }
+}
+
 function shouldPreferWebAudioVolumeControl() {
     if (isIosLikeDevice()) {
         return true;
@@ -265,6 +293,11 @@ async function startWebAudioBgmFallback(reason = '') {
         return false;
     }
     if (!bgmPlaylist.length) {
+        return false;
+    }
+    if (!hasUserActivation()) {
+        bindBgmUnlockGestureOnce();
+        logBgm('webaudio fallback blocked: waiting for user activation', { reason });
         return false;
     }
     let ctx = null;
@@ -370,7 +403,7 @@ function tryUnmuteBgm() {
         stopBgmUnmutePolling();
         return true;
     }
-    if (audioCtx && audioCtx.state === 'suspended') {
+    if (audioCtx && audioCtx.state === 'suspended' && hasUserActivation()) {
         void audioCtx.resume().catch(() => {});
     }
     bgmAudioEl.muted = false;

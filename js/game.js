@@ -23,7 +23,7 @@ import {
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=56';
+} from './audio.js?v=57';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=51';
 import {
     ensureSelectedSkin,
@@ -2472,6 +2472,7 @@ function distanceToSegment(px, py, start, end) {
     const projY = start.y + t * dy;
     return distance(px, py, projX, projY);
 }
+
 
 
 
