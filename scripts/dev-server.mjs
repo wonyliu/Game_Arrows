@@ -20,6 +20,8 @@ const ADMIN_API_KEY = `${process.env.ADMIN_API_KEY || ''}`.trim();
 const ADMIN_REQUIRE_KEY = `${process.env.ADMIN_REQUIRE_KEY || ''}`.trim() === '1';
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || process.argv[2] || 4173);
+const CORS_ALLOWED_ORIGINS = parseCsvList(process.env.CORS_ALLOWED_ORIGINS || 'https://wonyliu.github.io,http://127.0.0.1:4173,http://localhost:4173');
+const CORS_ALLOW_TRYCLOUDFLARE = `${process.env.CORS_ALLOW_TRYCLOUDFLARE || '1'}`.trim() !== '0';
 const FREESOUND_API_KEY = process.env.FREESOUND_API_KEY || '';
 const FAL_KEY = process.env.FAL_KEY || '';
 const FAL_STABLE_AUDIO_MODEL = process.env.FAL_STABLE_AUDIO_MODEL || 'fal-ai/stable-audio';
@@ -123,6 +125,15 @@ if (ADMIN_REQUIRE_KEY && !ADMIN_API_KEY) {
 const server = http.createServer(async (req, res) => {
     try {
         const requestUrl = new URL(req.url || '/', `http://${HOST}:${PORT}`);
+        const isApiRequest = requestUrl.pathname.startsWith('/api/');
+        if (isApiRequest) {
+            applyApiCorsHeaders(req, res);
+            if (req.method === 'OPTIONS') {
+                res.writeHead(204);
+                res.end();
+                return;
+            }
+        }
 
         if (requestUrl.pathname.startsWith('/api/storage/')) {
             await handleStorageRequest(req, res, requestUrl.pathname);
@@ -2842,6 +2853,43 @@ function runProcess(command, args, cwd) {
             resolve({ code: Number(code || 0), logs });
         });
     });
+}
+
+function parseCsvList(value) {
+    return `${value || ''}`
+        .split(',')
+        .map((item) => item.trim())
+        .filter(Boolean);
+}
+
+function applyApiCorsHeaders(req, res) {
+    const origin = `${req?.headers?.origin || ''}`.trim();
+    if (!origin || !isCorsOriginAllowed(origin)) {
+        return;
+    }
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Vary', 'Origin');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Key,X-Admin-Api-Key');
+    res.setHeader('Access-Control-Max-Age', '86400');
+}
+
+function isCorsOriginAllowed(origin) {
+    if (CORS_ALLOWED_ORIGINS.includes('*')) {
+        return true;
+    }
+    if (CORS_ALLOWED_ORIGINS.includes(origin)) {
+        return true;
+    }
+    if (!CORS_ALLOW_TRYCLOUDFLARE) {
+        return false;
+    }
+    try {
+        const parsed = new URL(origin);
+        return parsed.protocol === 'https:' && parsed.hostname.endsWith('.trycloudflare.com');
+    } catch {
+        return false;
+    }
 }
 
 function sendJson(res, statusCode, payload) {
