@@ -1,0 +1,11 @@
+{
+  "presetId": "custom-ouch",
+  "params": {
+    "impact": 0.18,
+    "pitchSemitone": 4,
+    "length": 0.6,
+    "randomness": 0.63,
+    "bounce": 0.36,
+    "repeats": 1
+  }
+}

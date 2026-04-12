@@ -1,0 +1,309 @@
+{
+  "checkin": {
+    "scene": {
+      "scaleMultiplier": 1.8
+    },
+    "backButton": {
+      "x": 16,
+      "y": 16,
+      "width": 88,
+      "height": 42,
+      "fontSize": 18,
+      "visible": true
+    },
+    "notebook": {
+      "width": 980,
+      "height": 760,
+      "paddingTop": 126,
+      "visible": true
+    },
+    "ribbon": {
+      "x": 230,
+      "y": 40,
+      "width": 520,
+      "height": 170,
+      "visible": true
+    },
+    "ribbonTitle": {
+      "x": -6,
+      "y": -30,
+      "fontSize": 60,
+      "visible": true
+    },
+    "mascot": {
+      "x": 565,
+      "y": 506,
+      "width": 132,
+      "height": 176,
+      "visible": true
+    },
+    "rewardTooltip": {
+      "x": 42,
+      "y": 34,
+      "width": 220,
+      "followMouse": true,
+      "visible": false
+    },
+    "status": {
+      "x": 340,
+      "y": 737,
+      "width": 380,
+      "fontSize": 13,
+      "visible": false
+    },
+    "days": {
+      "1": {
+        "card": {
+          "x": 267,
+          "y": 82,
+          "width": 137,
+          "height": 154,
+          "visible": true
+        },
+        "title": {
+          "x": 67,
+          "y": 29,
+          "width": 109,
+          "fontSize": 16,
+          "align": "center",
+          "visible": true
+        },
+        "icon": {
+          "x": 67,
+          "y": 78,
+          "width": 46,
+          "height": 46,
+          "visible": true
+        },
+        "amount": {
+          "x": 68,
+          "y": 116,
+          "fontSize": 17,
+          "visible": true
+        },
+        "badge": {
+          "x": 68.5,
+          "y": 75,
+          "size": 28,
+          "visible": true
+        }
+      },
+      "2": {
+        "card": {
+          "x": 413,
+          "y": 84,
+          "width": 137,
+          "height": 154,
+          "visible": true
+        },
+        "title": {
+          "x": 68,
+          "y": 28,
+          "width": 109,
+          "fontSize": 16,
+          "align": "center",
+          "visible": true
+        },
+        "icon": {
+          "x": 68,
+          "y": 74,
+          "width": 46,
+          "height": 46,
+          "visible": true
+        },
+        "amount": {
+          "x": 68,
+          "y": 116,
+          "fontSize": 17,
+          "visible": true
+        },
+        "badge": {
+          "x": 68.5,
+          "y": 72,
+          "size": 28,
+          "visible": true
+        }
+      },
+      "3": {
+        "card": {
+          "x": 558,
+          "y": 83,
+          "width": 137,
+          "height": 154,
+          "visible": true
+        },
+        "title": {
+          "x": 70,
+          "y": 28,
+          "width": 109,
+          "fontSize": 16,
+          "align": "center",
+          "visible": true
+        },
+        "icon": {
+          "x": 69,
+          "y": 73,
+          "width": 46,
+          "height": 46,
+          "visible": true
+        },
+        "amount": {
+          "x": 71,
+          "y": 118,
+          "fontSize": 17,
+          "visible": true
+        },
+        "badge": {
+          "x": 68.5,
+          "y": 70,
+          "size": 28,
+          "visible": true
+        }
+      },
+      "4": {
+        "card": {
+          "x": 267,
+          "y": 239,
+          "width": 137,
+          "height": 154,
+          "visible": true
+        },
+        "title": {
+          "x": 67,
+          "y": 27,
+          "width": 109,
+          "fontSize": 16,
+          "align": "center",
+          "visible": true
+        },
+        "icon": {
+          "x": 68,
+          "y": 78,
+          "width": 46,
+          "height": 46,
+          "visible": true
+        },
+        "amount": {
+          "x": 68,
+          "y": 119,
+          "fontSize": 17,
+          "visible": true
+        },
+        "badge": {
+          "x": 68.5,
+          "y": 83,
+          "size": 28,
+          "visible": true
+        }
+      },
+      "5": {
+        "card": {
+          "x": 414,
+          "y": 239,
+          "width": 137,
+          "height": 154,
+          "visible": true
+        },
+        "title": {
+          "x": 69,
+          "y": 29,
+          "width": 109,
+          "fontSize": 16,
+          "align": "center",
+          "visible": true
+        },
+        "icon": {
+          "x": 67,
+          "y": 87,
+          "width": 46,
+          "height": 46,
+          "visible": true
+        },
+        "amount": {
+          "x": 66,
+          "y": 119,
+          "fontSize": 17,
+          "visible": true
+        },
+        "badge": {
+          "x": 68.5,
+          "y": 83,
+          "size": 28,
+          "visible": true
+        }
+      },
+      "6": {
+        "card": {
+          "x": 562,
+          "y": 239,
+          "width": 137,
+          "height": 154,
+          "visible": true
+        },
+        "title": {
+          "x": 69,
+          "y": 28,
+          "width": 109,
+          "fontSize": 16,
+          "align": "center",
+          "visible": true
+        },
+        "icon": {
+          "x": 70,
+          "y": 81,
+          "width": 46,
+          "height": 46,
+          "visible": true
+        },
+        "amount": {
+          "x": 68,
+          "y": 117,
+          "fontSize": 17,
+          "visible": true
+        },
+        "badge": {
+          "x": 70,
+          "y": 81,
+          "size": 28,
+          "visible": true
+        }
+      },
+      "7": {
+        "card": {
+          "x": 264,
+          "y": 404,
+          "width": 329,
+          "height": 154,
+          "visible": true
+        },
+        "title": {
+          "x": 27,
+          "y": 22,
+          "width": 120,
+          "fontSize": 28,
+          "align": "left",
+          "visible": true
+        },
+        "icon": {
+          "x": 166,
+          "y": 83,
+          "width": 60,
+          "height": 60,
+          "visible": true
+        },
+        "amount": {
+          "x": 255,
+          "y": 114,
+          "fontSize": 23,
+          "visible": true
+        },
+        "badge": {
+          "x": 166,
+          "y": 82,
+          "size": 32,
+          "visible": true
+        }
+      }
+    }
+  }
+}

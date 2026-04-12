@@ -8,6 +8,7 @@ import { createUserCenterStore } from './user-center-store.mjs';
 
 const ROOT_DIR = process.cwd();
 const DATA_DIR = path.join(ROOT_DIR, '.local-data');
+const MANAGED_CONFIG_DIR = path.join(ROOT_DIR, 'data', 'managed-config');
 const SKIN_GEN_DIR = path.join(DATA_DIR, 'skin-gen');
 const SKIN_GEN_NAME_MAP_PATH = path.join(SKIN_GEN_DIR, 'skin-name-map.json');
 const SKIN_GEN_CONTEXTS_DIR = path.join(SKIN_GEN_DIR, 'skin-contexts');
@@ -75,7 +76,23 @@ const MIME_TYPES = {
     '.txt': 'text/plain; charset=utf-8'
 };
 
+const MANAGED_STORAGE_KEYS = new Set([
+    'level-catalog-v1',
+    'saved-levels-v1',
+    'preview-levels-v1',
+    'bgm-config-v1',
+    'liveops-config-v1',
+    'sfx-custom-presets-v1',
+    'sfx-lab-state-v1',
+    'sfx-preset-overrides-v1',
+    'skin-sfx-bindings-v1',
+    'game-sfx-bindings-v1',
+    'ui-layout-config-v1',
+    'skin-part-fit-overrides-v1'
+]);
+
 await fs.mkdir(DATA_DIR, { recursive: true });
+await fs.mkdir(MANAGED_CONFIG_DIR, { recursive: true });
 await fs.mkdir(SKIN_GEN_DIR, { recursive: true });
 await fs.mkdir(SKIN_GEN_CONTEXTS_DIR, { recursive: true });
 
@@ -1122,7 +1139,7 @@ async function handleStorageRequest(req, res, pathname) {
         return;
     }
 
-    const filePath = path.join(DATA_DIR, `${key}.json`);
+    const filePath = resolveStorageFilePath(key);
 
     if (req.method === 'GET') {
         const data = await readJsonFile(filePath, {});
@@ -1154,6 +1171,12 @@ async function handleStorageRequest(req, res, pathname) {
     }
 
     sendJson(res, 405, { ok: false, error: 'method not allowed' });
+}
+
+function resolveStorageFilePath(key) {
+    const safeKey = `${key || ''}`.trim();
+    const baseDir = MANAGED_STORAGE_KEYS.has(safeKey) ? MANAGED_CONFIG_DIR : DATA_DIR;
+    return path.join(baseDir, `${safeKey}.json`);
 }
 
 function sanitizeUserId(raw) {

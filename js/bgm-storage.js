@@ -1,7 +1,7 @@
 const STORAGE_API_BASE = '/api/storage';
 const BGM_STORAGE_KEY = 'arrowClear_bgmConfig_v1';
 const BGM_STORAGE_FILE = 'bgm-config-v1';
-const BGM_STATIC_CONFIG_PATH = '.local-data/bgm-config-v1.json';
+const BGM_STATIC_CONFIG_PATH = 'data/managed-config/bgm-config-v1.json';
 const BGM_SCHEMA_VERSION = 1;
 
 export const BGM_SCENE_KEYS = Object.freeze({

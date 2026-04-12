@@ -1,6 +1,6 @@
 const STORAGE_API_BASE = '/api/storage';
 const UI_LAYOUT_STORAGE_FILE = 'ui-layout-config-v1';
-const UI_LAYOUT_STATIC_CONFIG_PATH = '.local-data/ui-layout-config-v1.json';
+const UI_LAYOUT_STATIC_CONFIG_PATH = 'data/managed-config/ui-layout-config-v1.json';
 const BROADCAST_CHANNEL_NAME = 'arrowClear_uiLayout_sync';
 
 function clone(value) {
