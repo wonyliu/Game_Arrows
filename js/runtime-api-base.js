@@ -7,8 +7,8 @@
   const isLocal = host === 'localhost' || host === '127.0.0.1';
   const isGitHubPages = /\.github\.io$/i.test(host);
 
-  // Temporary remote API endpoint for GitHub Pages validation.
-  const githubDefaultApiBase = 'https://inclusive-schedule-contests-search.trycloudflare.com';
+  // master: local/intranet profile, keep same-origin API by default.
+  const githubDefaultApiBase = '';
 
   let apiBase = '';
   if (explicitFromQuery) {
