@@ -7,8 +7,8 @@
   const isLocal = host === 'localhost' || host === '127.0.0.1';
   const isGitHubPages = /\.github\.io$/i.test(host);
 
-  // master: local/intranet profile, keep same-origin API by default.
-  const githubDefaultApiBase = '';
+  // online profile: GitHub Pages defaults to external HTTPS API endpoint.
+  const githubDefaultApiBase = 'https://inclusive-schedule-contests-search.trycloudflare.com';
 
   let apiBase = '';
   if (explicitFromQuery) {
