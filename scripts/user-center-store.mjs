@@ -5,6 +5,20 @@ function isPlainObject(value) {
     return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
+function toIsoTimestamp(value) {
+    if (!value) return '';
+    if (value instanceof Date) {
+        return Number.isNaN(value.getTime()) ? '' : value.toISOString();
+    }
+    const text = `${value}`.trim();
+    if (!text) return '';
+    const parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) {
+        return text;
+    }
+    return parsed.toISOString();
+}
+
 async function readJsonFile(filePath, fallback) {
     try {
         const text = await fs.readFile(filePath, 'utf8');
@@ -33,8 +47,8 @@ function mapDbUserRow(row) {
         passwordAlgorithm: `${row.password_algorithm || 'sha256-v1'}`.trim() || 'sha256-v1',
         passwordSalt: `${row.password_salt || ''}`.trim(),
         passwordHash: `${row.password_hash || ''}`.trim(),
-        createdAt: `${row.created_at || ''}`.trim(),
-        lastActiveAt: `${row.last_active_at || ''}`.trim(),
+        createdAt: toIsoTimestamp(row.created_at),
+        lastActiveAt: toIsoTimestamp(row.last_active_at),
         primaryDeviceId: `${row.primary_device_id || ''}`.trim(),
         hardwareDeviceIds: Array.isArray(row.hardware_device_ids) ? row.hardware_device_ids : [],
         devices: Array.isArray(row.devices) ? row.devices : [],
