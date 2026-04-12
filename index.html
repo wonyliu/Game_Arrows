@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=101">
+    <link rel="stylesheet" href="css/style.css?v=102">
 </head>
 <body>
     <div class="app-container">
@@ -61,9 +61,9 @@
                                 id="rewardUnlockToastImage"
                                 class="hud-reward-toast-image hidden"
                                 src="assets/design-v6/combo/reward_unlock_banner.png"
-                                alt="奖励关达成"
+                                alt="百连斩奖励关"
                             >
-                            <span id="rewardUnlockToastText" class="hud-reward-toast-text">奖励关达成</span>
+                            <span id="rewardUnlockToastText" class="hud-reward-toast-text">百连斩奖励关</span>
                         </div>
                     </div>
                 </div>
@@ -374,6 +374,17 @@
             </div>
         </div>
 
+        <div id="rewardStageGuideOverlay" class="overlay reward-guide-overlay hidden" aria-hidden="true">
+            <div class="reward-guide-content">
+                <div class="reward-guide-swipe">
+                    <div class="reward-guide-hand">
+                        <div class="reward-guide-finger"></div>
+                    </div>
+                </div>
+                <p id="rewardStageGuideText" class="reward-guide-text">在奖励关中试试按住划动手指吧！</p>
+            </div>
+        </div>
+
         <div id="errorVignette" class="error-vignette"></div>
         <div id="rewardFlyLayer" class="reward-fly-layer hidden" aria-hidden="true"></div>
         <div id="perfDebugPanel" class="perf-debug-panel hidden" aria-hidden="true">
@@ -387,7 +398,7 @@
         </div>
     </div>
 
-    <script type="module" src="js/main.js?v=207"></script>
+    <script type="module" src="js/main.js?v=212"></script>
 </body>
 </html>
 

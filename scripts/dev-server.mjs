@@ -1,14 +1,22 @@
-import http from 'node:http';
+﻿import http from 'node:http';
 import fs from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import crypto from 'node:crypto';
+import { createUserCenterStore } from './user-center-store.mjs';
 
 const ROOT_DIR = process.cwd();
 const DATA_DIR = path.join(ROOT_DIR, '.local-data');
 const SKIN_GEN_DIR = path.join(DATA_DIR, 'skin-gen');
 const SKIN_GEN_NAME_MAP_PATH = path.join(SKIN_GEN_DIR, 'skin-name-map.json');
 const SKIN_GEN_CONTEXTS_DIR = path.join(SKIN_GEN_DIR, 'skin-contexts');
+const USER_CENTER_DB_PATH = path.join(DATA_DIR, 'user-center-db-v1.json');
+const USER_CENTER_BACKEND = `${process.env.USER_CENTER_BACKEND || 'json'}`.trim().toLowerCase();
+const USER_CENTER_DATABASE_URL = `${process.env.USER_CENTER_DATABASE_URL || process.env.DATABASE_URL || ''}`.trim();
+const USER_CENTER_REQUIRE_SCALABLE_DB = `${process.env.USER_CENTER_REQUIRE_SCALABLE_DB || ''}`.trim() === '1';
+const ADMIN_API_KEY = `${process.env.ADMIN_API_KEY || ''}`.trim();
+const ADMIN_REQUIRE_KEY = `${process.env.ADMIN_REQUIRE_KEY || ''}`.trim() === '1';
 const HOST = process.env.HOST || '127.0.0.1';
 const PORT = Number(process.env.PORT || process.argv[2] || 4173);
 const FREESOUND_API_KEY = process.env.FREESOUND_API_KEY || '';
@@ -71,12 +79,93 @@ await fs.mkdir(DATA_DIR, { recursive: true });
 await fs.mkdir(SKIN_GEN_DIR, { recursive: true });
 await fs.mkdir(SKIN_GEN_CONTEXTS_DIR, { recursive: true });
 
+const userCenterStore = await createUserCenterStore({
+    backend: USER_CENTER_BACKEND,
+    databaseUrl: USER_CENTER_DATABASE_URL,
+    filePath: USER_CENTER_DB_PATH,
+    normalizeProgressFromPayload,
+    normalizeLiveopsPlayerState,
+    collectUniqueSkinIds,
+    buildDefaultProgress,
+    buildDefaultLiveopsPlayerState,
+    nowIso
+});
+
+const userCenterStoreMeta = userCenterStore.getBackendMeta();
+if (USER_CENTER_REQUIRE_SCALABLE_DB && !userCenterStoreMeta.scalable) {
+    throw new Error('USER_CENTER_REQUIRE_SCALABLE_DB=1 but user center backend is not scalable. Set USER_CENTER_BACKEND=postgres.');
+}
+if (ADMIN_REQUIRE_KEY && !ADMIN_API_KEY) {
+    throw new Error('ADMIN_REQUIRE_KEY=1 but ADMIN_API_KEY is empty.');
+}
+
 const server = http.createServer(async (req, res) => {
     try {
         const requestUrl = new URL(req.url || '/', `http://${HOST}:${PORT}`);
 
         if (requestUrl.pathname.startsWith('/api/storage/')) {
             await handleStorageRequest(req, res, requestUrl.pathname);
+            return;
+        }
+        if (requestUrl.pathname === '/api/users/register') {
+            await handleUserRegisterRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/users/register-temp') {
+            await handleUserTempRegisterRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/users/login') {
+            await handleUserLoginRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/users/login-or-register') {
+            await handleUserLoginOrRegisterRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/users/session') {
+            await handleUserSessionRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/users/me') {
+            await handleUserMeRequest(req, res, requestUrl);
+            return;
+        }
+        if (requestUrl.pathname.startsWith('/api/users/') && requestUrl.pathname.endsWith('/progress')) {
+            await handleUserProgressRequest(req, res, requestUrl.pathname);
+            return;
+        }
+        if (requestUrl.pathname.startsWith('/api/users/') && requestUrl.pathname.endsWith('/liveops-player')) {
+            await handleUserLiveopsPlayerRequest(req, res, requestUrl.pathname);
+            return;
+        }
+        if (requestUrl.pathname === '/api/leaderboard') {
+            await handleLeaderboardRequest(req, res, requestUrl);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/reset-game-state') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminResetGameStateRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/reset-leaderboard-progress') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminResetLeaderboardProgressRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/db/overview') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminDbOverviewRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/db/users') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminDbUsersRequest(req, res, requestUrl);
+            return;
+        }
+        if (requestUrl.pathname.startsWith('/api/admin/db/users/')) {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminDbUserDetailRequest(req, res, requestUrl);
             return;
         }
         if (requestUrl.pathname === '/api/skin-gen/generate') {
@@ -144,6 +233,12 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
     console.log(`Dev server running at http://${HOST}:${PORT}`);
     console.log(`Persistent storage dir: ${DATA_DIR}`);
+    console.log(`User center backend: ${userCenterStoreMeta.backend}`);
+    if (ADMIN_REQUIRE_KEY || ADMIN_API_KEY) {
+        console.log('Admin API auth: enabled');
+    } else {
+        console.warn('Admin API auth: disabled (set ADMIN_API_KEY and ADMIN_REQUIRE_KEY=1 for production)');
+    }
 });
 
 async function handleSkinGenerateRequest(req, res) {
@@ -1057,6 +1152,732 @@ async function handleStorageRequest(req, res, pathname) {
     sendJson(res, 405, { ok: false, error: 'method not allowed' });
 }
 
+function sanitizeUserId(raw) {
+    return `${raw || ''}`.trim().toLowerCase().replace(/[^a-z0-9_-]+/g, '');
+}
+
+function sanitizeUsername(raw) {
+    return `${raw || ''}`.trim().replace(/\s+/g, ' ').slice(0, 24);
+}
+
+function sanitizeDeviceId(raw) {
+    return `${raw || ''}`.trim().slice(0, 120).replace(/[^a-zA-Z0-9:_-]+/g, '');
+}
+
+function sanitizeDeviceInfo(raw) {
+    return `${raw || ''}`.trim().slice(0, 1000);
+}
+
+function defaultAvatarByName(username) {
+    const encoded = encodeURIComponent(`${username || 'snake'}`.slice(0, 24));
+    return `https://api.dicebear.com/9.x/bottts/svg?seed=${encoded}`;
+}
+
+function hashPassword(password, salt, algorithm = 'scrypt-v1') {
+    if (algorithm === 'sha256-v1') {
+        return crypto.createHash('sha256').update(`${salt}|${password}`).digest('hex');
+    }
+    const normalizedSalt = `${salt || ''}`.trim();
+    return crypto.scryptSync(`${password || ''}`, normalizedSalt, 64).toString('hex');
+}
+
+function verifyUserPassword(user, plainPassword) {
+    const algorithm = `${user?.passwordAlgorithm || ''}`.trim() || 'sha256-v1';
+    const salt = `${user?.passwordSalt || ''}`.trim();
+    const expected = `${user?.passwordHash || ''}`.trim();
+    if (!salt || !expected) return false;
+    const computed = hashPassword(plainPassword, salt, algorithm);
+    const computedBuffer = Buffer.from(computed, 'hex');
+    const expectedBuffer = Buffer.from(expected, 'hex');
+    if (computedBuffer.length !== expectedBuffer.length) {
+        return false;
+    }
+    return crypto.timingSafeEqual(computedBuffer, expectedBuffer);
+}
+
+function nowIso() {
+    return new Date().toISOString();
+}
+
+function buildDefaultProgress() {
+    return {
+        version: 1,
+        updatedAt: nowIso(),
+        maxUnlockedLevel: 1,
+        maxClearedLevel: 0,
+        currentLevel: 1,
+        coins: 0,
+        unlockedSkinIds: ['classic-burrow'],
+        selectedSkinId: 'classic-burrow',
+        nextRewardLevelIndex: 1,
+        rewardGuideShown: false
+    };
+}
+
+function buildDefaultLiveopsPlayerState() {
+    return {
+        version: 1,
+        updatedAt: nowIso(),
+        inventory: {
+            skin_fragment: 0,
+            hint: 0,
+            undo: 0,
+            shuffle: 0
+        },
+        checkin: {
+            claimedCount: 0,
+            lastClaimDayKey: ''
+        },
+        onlineReward: {
+            dayKey: '',
+            tierIndex: 0,
+            remainingSeconds: 0
+        }
+    };
+}
+
+function normalizeLiveopsPlayerState(payload, fallback = null) {
+    const source = isPlainObject(payload) ? payload : {};
+    const base = isPlainObject(fallback) ? fallback : buildDefaultLiveopsPlayerState();
+    const invSource = isPlainObject(source.inventory) ? source.inventory : {};
+    const invBase = isPlainObject(base.inventory) ? base.inventory : {};
+    const inventory = {
+        skin_fragment: Math.max(0, Math.floor(Number(invSource.skin_fragment ?? invBase.skin_fragment) || 0)),
+        hint: Math.max(0, Math.floor(Number(invSource.hint ?? invBase.hint) || 0)),
+        undo: Math.max(0, Math.floor(Number(invSource.undo ?? invBase.undo) || 0)),
+        shuffle: Math.max(0, Math.floor(Number(invSource.shuffle ?? invBase.shuffle) || 0))
+    };
+    const checkinSource = isPlainObject(source.checkin) ? source.checkin : {};
+    const checkinBase = isPlainObject(base.checkin) ? base.checkin : {};
+    const checkin = {
+        claimedCount: Math.max(0, Math.floor(Number(checkinSource.claimedCount ?? checkinBase.claimedCount) || 0)),
+        lastClaimDayKey: /^\d{4}-\d{2}-\d{2}$/.test(`${checkinSource.lastClaimDayKey ?? checkinBase.lastClaimDayKey ?? ''}`.trim())
+            ? `${checkinSource.lastClaimDayKey ?? checkinBase.lastClaimDayKey}`.trim()
+            : ''
+    };
+    const onlineSource = isPlainObject(source.onlineReward) ? source.onlineReward : {};
+    const onlineBase = isPlainObject(base.onlineReward) ? base.onlineReward : {};
+    const onlineReward = {
+        dayKey: /^\d{4}-\d{2}-\d{2}$/.test(`${onlineSource.dayKey ?? onlineBase.dayKey ?? ''}`.trim())
+            ? `${onlineSource.dayKey ?? onlineBase.dayKey}`.trim()
+            : '',
+        tierIndex: Math.max(0, Math.floor(Number(onlineSource.tierIndex ?? onlineBase.tierIndex) || 0)),
+        remainingSeconds: Math.max(0, Math.min(86400, Number(onlineSource.remainingSeconds ?? onlineBase.remainingSeconds) || 0))
+    };
+    return {
+        version: 1,
+        updatedAt: nowIso(),
+        inventory,
+        checkin,
+        onlineReward
+    };
+}
+
+function normalizeProgressFromPayload(payload, fallback = null) {
+    const source = isPlainObject(payload) ? payload : {};
+    const base = isPlainObject(fallback) ? fallback : buildDefaultProgress();
+    const maxUnlockedLevel = Math.max(1, Math.floor(Number(source.maxUnlockedLevel ?? base.maxUnlockedLevel) || 1));
+    const maxClearedLevel = Math.max(0, Math.floor(Number(source.maxClearedLevel ?? base.maxClearedLevel) || 0));
+    const currentLevel = Math.max(1, Math.floor(Number(source.currentLevel ?? base.currentLevel) || 1));
+    const coins = Math.max(0, Math.floor(Number(source.coins ?? base.coins) || 0));
+    const unlockedSkinIds = Array.isArray(source.unlockedSkinIds)
+        ? Array.from(new Set(source.unlockedSkinIds.map((v) => `${v || ''}`.trim()).filter(Boolean)))
+        : (Array.isArray(base.unlockedSkinIds) ? base.unlockedSkinIds : ['classic-burrow']);
+    const selectedSkinId = `${source.selectedSkinId || base.selectedSkinId || 'classic-burrow'}`.trim() || 'classic-burrow';
+    const nextRewardLevelIndex = Math.max(1, Math.floor(Number(source.nextRewardLevelIndex ?? base.nextRewardLevelIndex) || 1));
+    const rewardGuideShown = source.rewardGuideShown === true || (source.rewardGuideShown !== false && base.rewardGuideShown === true);
+    return {
+        version: 1,
+        updatedAt: nowIso(),
+        maxUnlockedLevel,
+        maxClearedLevel,
+        currentLevel,
+        coins,
+        unlockedSkinIds,
+        selectedSkinId,
+        nextRewardLevelIndex,
+        rewardGuideShown
+    };
+}
+
+function normalizeUserForResponse(user) {
+    return {
+        userId: `${user?.userId || ''}`.trim(),
+        username: `${user?.username || ''}`.trim(),
+        avatarUrl: `${user?.avatarUrl || ''}`.trim(),
+        isTempUser: user?.isTempUser === true,
+        createdAt: `${user?.createdAt || ''}`.trim(),
+        lastActiveAt: `${user?.lastActiveAt || ''}`.trim(),
+        coins: Math.max(0, Math.floor(Number(user?.coins) || 0)),
+        maxUnlockedLevel: Math.max(1, Math.floor(Number(user?.maxUnlockedLevel) || 1)),
+        maxClearedLevel: Math.max(0, Math.floor(Number(user?.maxClearedLevel) || 0)),
+        unlockedSkinCount: Array.isArray(user?.unlockedSkinIds) ? user.unlockedSkinIds.length : 0
+    };
+}
+
+function collectUniqueSkinIds(value, fallback = ['classic-burrow']) {
+    const source = Array.isArray(value) ? value : fallback;
+    const out = [];
+    const seen = new Set();
+    for (const row of source) {
+        const id = `${row || ''}`.trim();
+        if (!id || seen.has(id)) continue;
+        seen.add(id);
+        out.push(id);
+    }
+    if (!out.includes('classic-burrow')) {
+        out.unshift('classic-burrow');
+    }
+    return out;
+}
+
+function mergeUserDevice(user, payload = {}) {
+    const deviceId = sanitizeDeviceId(payload.deviceId);
+    const deviceInfo = sanitizeDeviceInfo(payload.deviceInfo);
+    const cookieUserId = sanitizeUserId(payload.cookieUserId);
+    if (!Array.isArray(user.devices)) {
+        user.devices = [];
+    }
+    if (deviceId) {
+        const existing = user.devices.find((entry) => entry?.deviceId === deviceId);
+        const now = nowIso();
+        if (existing) {
+            existing.lastSeenAt = now;
+            if (deviceInfo) {
+                existing.deviceInfo = deviceInfo;
+            }
+        } else {
+            user.devices.push({
+                deviceId,
+                deviceInfo,
+                firstSeenAt: now,
+                lastSeenAt: now
+            });
+        }
+        user.hardwareDeviceIds = Array.from(new Set([...(Array.isArray(user.hardwareDeviceIds) ? user.hardwareDeviceIds : []), deviceId]));
+        if (!user.primaryDeviceId) {
+            user.primaryDeviceId = deviceId;
+        }
+    }
+    if (cookieUserId && cookieUserId !== sanitizeUserId(user.userId)) {
+        if (!Array.isArray(user.cookieDeviceMismatchLogs)) {
+            user.cookieDeviceMismatchLogs = [];
+        }
+        user.cookieDeviceMismatchLogs.push({
+            at: nowIso(),
+            cookieUserId,
+            userId: sanitizeUserId(user.userId),
+            deviceId: deviceId || ''
+        });
+        if (user.cookieDeviceMismatchLogs.length > 80) {
+            user.cookieDeviceMismatchLogs = user.cookieDeviceMismatchLogs.slice(-80);
+        }
+    }
+}
+
+async function handleUserRegisterRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    const username = sanitizeUsername(body?.username);
+    const password = `${body?.password || ''}`;
+    const confirmPassword = `${body?.confirmPassword || ''}`;
+    if (!username || username.length < 2) {
+        sendJson(res, 400, { ok: false, error: 'username must be at least 2 chars' });
+        return;
+    }
+    if (!password || password.length < 4) {
+        sendJson(res, 400, { ok: false, error: 'password must be at least 4 chars' });
+        return;
+    }
+    if (confirmPassword && password !== confirmPassword) {
+        sendJson(res, 400, { ok: false, error: 'password confirmation mismatch' });
+        return;
+    }
+    const lowered = username.toLowerCase();
+    const duplicated = await userCenterStore.findUserByUsernameLower(lowered);
+    if (duplicated) {
+        sendJson(res, 409, { ok: false, error: 'username already exists' });
+        return;
+    }
+    const identity = await userCenterStore.allocateUserIdentity(false);
+    const userId = identity.userId;
+    const createdAt = nowIso();
+    const salt = crypto.randomBytes(12).toString('hex');
+    const progress = buildDefaultProgress();
+    const liveopsPlayer = buildDefaultLiveopsPlayerState();
+    const user = {
+        userId,
+        username,
+        avatarUrl: defaultAvatarByName(username),
+        isTempUser: false,
+        passwordAlgorithm: 'scrypt-v1',
+        passwordSalt: salt,
+        passwordHash: hashPassword(password, salt, 'scrypt-v1'),
+        createdAt,
+        lastActiveAt: createdAt,
+        primaryDeviceId: '',
+        hardwareDeviceIds: [],
+        devices: [],
+        cookieDeviceMismatchLogs: [],
+        progress,
+        liveopsPlayer,
+        coins: progress.coins,
+        maxUnlockedLevel: progress.maxUnlockedLevel,
+        maxClearedLevel: progress.maxClearedLevel,
+        unlockedSkinIds: collectUniqueSkinIds(progress.unlockedSkinIds)
+    };
+    mergeUserDevice(user, body);
+    try {
+        await userCenterStore.insertUser(user);
+    } catch (error) {
+        if (`${error?.code || ''}` === '23505') {
+            sendJson(res, 409, { ok: false, error: 'username already exists' });
+            return;
+        }
+        throw error;
+    }
+    sendJson(res, 200, { ok: true, user: normalizeUserForResponse(user) });
+}
+
+async function handleUserTempRegisterRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    const identity = await userCenterStore.allocateUserIdentity(true);
+    const userId = identity.userId;
+    const username = `蛇蛇${String(identity.seq).padStart(4, '0')}`;
+    const createdAt = nowIso();
+    const progress = buildDefaultProgress();
+    const liveopsPlayer = buildDefaultLiveopsPlayerState();
+    const user = {
+        userId,
+        username,
+        avatarUrl: defaultAvatarByName(username),
+        isTempUser: true,
+        passwordAlgorithm: '',
+        passwordSalt: '',
+        passwordHash: '',
+        createdAt,
+        lastActiveAt: createdAt,
+        primaryDeviceId: '',
+        hardwareDeviceIds: [],
+        devices: [],
+        cookieDeviceMismatchLogs: [],
+        progress,
+        liveopsPlayer,
+        coins: progress.coins,
+        maxUnlockedLevel: progress.maxUnlockedLevel,
+        maxClearedLevel: progress.maxClearedLevel,
+        unlockedSkinIds: collectUniqueSkinIds(progress.unlockedSkinIds)
+    };
+    mergeUserDevice(user, body);
+    await userCenterStore.insertUser(user);
+    sendJson(res, 200, { ok: true, user: normalizeUserForResponse(user) });
+}
+
+async function handleUserLoginRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    const username = sanitizeUsername(body?.username).toLowerCase();
+    const password = `${body?.password || ''}`;
+    const user = await userCenterStore.findUserByUsernameLower(username);
+    if (!user || !user.passwordSalt || !user.passwordHash) {
+        sendJson(res, 401, { ok: false, error: 'invalid username or password' });
+        return;
+    }
+    if (!verifyUserPassword(user, password)) {
+        sendJson(res, 401, { ok: false, error: 'invalid username or password' });
+        return;
+    }
+    user.lastActiveAt = nowIso();
+    mergeUserDevice(user, body);
+    await userCenterStore.updateUser(user);
+    sendJson(res, 200, { ok: true, user: normalizeUserForResponse(user) });
+}
+
+async function handleUserLoginOrRegisterRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+
+    const username = sanitizeUsername(body?.username);
+    const password = `${body?.password || ''}`;
+    if (!username || username.length < 2) {
+        sendJson(res, 400, { ok: false, error: 'username must be at least 2 chars' });
+        return;
+    }
+    if (!password || password.length < 4) {
+        sendJson(res, 400, { ok: false, error: 'password must be at least 4 chars' });
+        return;
+    }
+
+    const lowered = username.toLowerCase();
+    const existedUser = await userCenterStore.findUserByUsernameLower(lowered);
+    if (existedUser) {
+        if (!existedUser.passwordSalt || !existedUser.passwordHash) {
+            sendJson(res, 401, { ok: false, error: 'temporary user cannot login with password' });
+            return;
+        }
+        if (!verifyUserPassword(existedUser, password)) {
+            sendJson(res, 401, { ok: false, error: 'invalid password' });
+            return;
+        }
+        existedUser.lastActiveAt = nowIso();
+        mergeUserDevice(existedUser, body);
+        await userCenterStore.updateUser(existedUser);
+        sendJson(res, 200, { ok: true, mode: 'login', user: normalizeUserForResponse(existedUser) });
+        return;
+    }
+
+    const identity = await userCenterStore.allocateUserIdentity(false);
+    const userId = identity.userId;
+    const createdAt = nowIso();
+    const salt = crypto.randomBytes(12).toString('hex');
+    const progress = buildDefaultProgress();
+    const liveopsPlayer = buildDefaultLiveopsPlayerState();
+    const user = {
+        userId,
+        username,
+        avatarUrl: defaultAvatarByName(username),
+        isTempUser: false,
+        passwordAlgorithm: 'scrypt-v1',
+        passwordSalt: salt,
+        passwordHash: hashPassword(password, salt, 'scrypt-v1'),
+        createdAt,
+        lastActiveAt: createdAt,
+        primaryDeviceId: '',
+        hardwareDeviceIds: [],
+        devices: [],
+        cookieDeviceMismatchLogs: [],
+        progress,
+        liveopsPlayer,
+        coins: progress.coins,
+        maxUnlockedLevel: progress.maxUnlockedLevel,
+        maxClearedLevel: progress.maxClearedLevel,
+        unlockedSkinIds: collectUniqueSkinIds(progress.unlockedSkinIds)
+    };
+    mergeUserDevice(user, body);
+    try {
+        await userCenterStore.insertUser(user);
+    } catch (error) {
+        if (`${error?.code || ''}` === '23505') {
+            sendJson(res, 409, { ok: false, error: 'username already exists' });
+            return;
+        }
+        throw error;
+    }
+    sendJson(res, 200, { ok: true, mode: 'register', user: normalizeUserForResponse(user) });
+}
+
+async function handleUserSessionRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    const userId = sanitizeUserId(body?.userId);
+    if (!userId) {
+        sendJson(res, 404, { ok: false, error: 'user not found' });
+        return;
+    }
+    const user = await userCenterStore.findUserById(userId);
+    if (!user) {
+        sendJson(res, 404, { ok: false, error: 'user not found' });
+        return;
+    }
+    user.lastActiveAt = nowIso();
+    mergeUserDevice(user, body);
+    await userCenterStore.updateUser(user);
+    sendJson(res, 200, { ok: true, user: normalizeUserForResponse(user) });
+}
+
+async function handleUserMeRequest(req, res, requestUrl) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const userId = sanitizeUserId(requestUrl.searchParams.get('userId') || '');
+    if (!userId) {
+        sendJson(res, 400, { ok: false, error: 'userId is required' });
+        return;
+    }
+    const user = await userCenterStore.findUserById(userId);
+    if (!user) {
+        sendJson(res, 404, { ok: false, error: 'user not found' });
+        return;
+    }
+    sendJson(res, 200, {
+        ok: true,
+        user: {
+            ...normalizeUserForResponse(user),
+            registerTimestamp: `${user?.createdAt || ''}`.trim(),
+            lastActiveTimestamp: `${user?.lastActiveAt || ''}`.trim(),
+            hardwareDeviceIds: Array.isArray(user?.hardwareDeviceIds) ? user.hardwareDeviceIds : [],
+            devices: Array.isArray(user?.devices) ? user.devices : []
+        }
+    });
+}
+
+function parseUserIdFromProgressPath(pathname) {
+    const match = `${pathname || ''}`.match(/^\/api\/users\/([^/]+)\/progress$/);
+    if (!match) return '';
+    return sanitizeUserId(decodeURIComponent(match[1] || ''));
+}
+
+function parseUserIdFromLiveopsPlayerPath(pathname) {
+    const match = `${pathname || ''}`.match(/^\/api\/users\/([^/]+)\/liveops-player$/);
+    if (!match) return '';
+    return sanitizeUserId(decodeURIComponent(match[1] || ''));
+}
+
+async function handleUserProgressRequest(req, res, pathname) {
+    const userId = parseUserIdFromProgressPath(pathname);
+    if (!userId) {
+        sendJson(res, 400, { ok: false, error: 'invalid user id' });
+        return;
+    }
+    const user = await userCenterStore.findUserById(userId);
+    if (!user) {
+        sendJson(res, 404, { ok: false, error: 'user not found' });
+        return;
+    }
+    if (req.method === 'GET') {
+        const progress = normalizeProgressFromPayload(user.progress);
+        user.progress = progress;
+        user.coins = progress.coins;
+        user.maxUnlockedLevel = progress.maxUnlockedLevel;
+        user.maxClearedLevel = progress.maxClearedLevel;
+        user.unlockedSkinIds = collectUniqueSkinIds(progress.unlockedSkinIds);
+        await userCenterStore.updateUser(user);
+        sendJson(res, 200, { ok: true, progress });
+        return;
+    }
+    if (req.method === 'PUT') {
+        let body;
+        try {
+            body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+        } catch (error) {
+            sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+            return;
+        }
+        if (!isPlainObject(body)) {
+            sendJson(res, 400, { ok: false, error: 'body must be an object' });
+            return;
+        }
+        const progress = normalizeProgressFromPayload(body, user.progress);
+        user.progress = progress;
+        user.lastActiveAt = nowIso();
+        user.coins = progress.coins;
+        user.maxUnlockedLevel = progress.maxUnlockedLevel;
+        user.maxClearedLevel = progress.maxClearedLevel;
+        user.unlockedSkinIds = collectUniqueSkinIds(progress.unlockedSkinIds);
+        await userCenterStore.updateUser(user);
+        sendJson(res, 200, { ok: true });
+        return;
+    }
+    sendJson(res, 405, { ok: false, error: 'method not allowed' });
+}
+
+async function handleUserLiveopsPlayerRequest(req, res, pathname) {
+    const userId = parseUserIdFromLiveopsPlayerPath(pathname);
+    if (!userId) {
+        sendJson(res, 400, { ok: false, error: 'invalid user id' });
+        return;
+    }
+    const user = await userCenterStore.findUserById(userId);
+    if (!user) {
+        sendJson(res, 404, { ok: false, error: 'user not found' });
+        return;
+    }
+    if (req.method === 'GET') {
+        const player = normalizeLiveopsPlayerState(user.liveopsPlayer);
+        user.liveopsPlayer = player;
+        await userCenterStore.updateUser(user);
+        sendJson(res, 200, { ok: true, player });
+        return;
+    }
+    if (req.method === 'PUT') {
+        let body;
+        try {
+            body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+        } catch (error) {
+            sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+            return;
+        }
+        if (!isPlainObject(body)) {
+            sendJson(res, 400, { ok: false, error: 'body must be an object' });
+            return;
+        }
+        user.liveopsPlayer = normalizeLiveopsPlayerState(body, user.liveopsPlayer);
+        user.lastActiveAt = nowIso();
+        await userCenterStore.updateUser(user);
+        sendJson(res, 200, { ok: true });
+        return;
+    }
+    sendJson(res, 405, { ok: false, error: 'method not allowed' });
+}
+
+async function handleLeaderboardRequest(req, res, requestUrl) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 200, 50);
+    const rows = (await userCenterStore.listLeaderboard(limit))
+        .map((row, index) => ({
+            rank: index + 1,
+            ...row,
+            avatarUrl: `${row?.avatarUrl || ''}`.trim() || defaultAvatarByName(`${row?.userId || 'u'}`)
+        }));
+    sendJson(res, 200, { ok: true, rows });
+}
+
+async function handleAdminResetGameStateRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const resetUsers = await userCenterStore.resetGameStateForAllUsers();
+
+    const resetPayload = {};
+    await writeJsonAtomic(path.join(DATA_DIR, 'game-progress-v1.json'), resetPayload);
+    await writeJsonAtomic(path.join(DATA_DIR, 'liveops-player-v1.json'), resetPayload);
+    sendJson(res, 200, { ok: true, resetUsers });
+}
+
+async function handleAdminResetLeaderboardProgressRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const resetUsers = await userCenterStore.resetLeaderboardProgressForAllUsers();
+    sendJson(res, 200, { ok: true, resetUsers });
+}
+
+function toAdminSafeUserDetail(user) {
+    if (!user) return null;
+    return {
+        userId: `${user.userId || ''}`.trim(),
+        username: `${user.username || ''}`.trim(),
+        avatarUrl: `${user.avatarUrl || ''}`.trim(),
+        isTempUser: user.isTempUser === true,
+        createdAt: `${user.createdAt || ''}`.trim(),
+        lastActiveAt: `${user.lastActiveAt || ''}`.trim(),
+        primaryDeviceId: `${user.primaryDeviceId || ''}`.trim(),
+        hardwareDeviceIds: Array.isArray(user.hardwareDeviceIds) ? user.hardwareDeviceIds : [],
+        devices: Array.isArray(user.devices) ? user.devices : [],
+        cookieDeviceMismatchLogs: Array.isArray(user.cookieDeviceMismatchLogs) ? user.cookieDeviceMismatchLogs : [],
+        coins: Math.max(0, Math.floor(Number(user.coins) || 0)),
+        maxUnlockedLevel: Math.max(1, Math.floor(Number(user.maxUnlockedLevel) || 1)),
+        maxClearedLevel: Math.max(0, Math.floor(Number(user.maxClearedLevel) || 0)),
+        unlockedSkinIds: collectUniqueSkinIds(user.unlockedSkinIds),
+        progress: normalizeProgressFromPayload(user.progress),
+        liveopsPlayer: normalizeLiveopsPlayerState(user.liveopsPlayer),
+        passwordAlgorithm: `${user.passwordAlgorithm || ''}`.trim() || 'sha256-v1',
+        passwordSaltMasked: user.passwordSalt ? '***' : '',
+        passwordHashMasked: user.passwordHash ? '***' : ''
+    };
+}
+
+function parseAdminDbUserId(pathname) {
+    const match = `${pathname || ''}`.match(/^\/api\/admin\/db\/users\/([^/]+)$/);
+    if (!match) return '';
+    return sanitizeUserId(decodeURIComponent(match[1] || ''));
+}
+
+async function handleAdminDbOverviewRequest(req, res) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const overview = await userCenterStore.getOverview();
+    sendJson(res, 200, {
+        ok: true,
+        backend: userCenterStoreMeta.backend,
+        scalable: !!userCenterStoreMeta.scalable,
+        ...overview
+    });
+}
+
+async function handleAdminDbUsersRequest(req, res, requestUrl) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 200, 50);
+    const offset = clampInt(requestUrl.searchParams.get('offset'), 0, 500000, 0);
+    const query = `${requestUrl.searchParams.get('q') || ''}`.trim();
+    const [rows, total] = await Promise.all([
+        userCenterStore.listUsers({ limit, offset, query }),
+        userCenterStore.countUsers(query)
+    ]);
+    sendJson(res, 200, {
+        ok: true,
+        limit,
+        offset,
+        total,
+        rows
+    });
+}
+
+async function handleAdminDbUserDetailRequest(req, res, requestUrl) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const userId = parseAdminDbUserId(requestUrl.pathname);
+    if (!userId) {
+        sendJson(res, 400, { ok: false, error: 'invalid user id' });
+        return;
+    }
+    const user = await userCenterStore.findUserById(userId);
+    if (!user) {
+        sendJson(res, 404, { ok: false, error: 'user not found' });
+        return;
+    }
+    sendJson(res, 200, { ok: true, user: toAdminSafeUserDetail(user) });
+}
+
 async function handleSfxProvidersRequest(req, res) {
     if (req.method !== 'GET') {
         sendJson(res, 405, { ok: false, error: 'method not allowed' });
@@ -1229,6 +2050,7 @@ async function handleSfxFreesoundProxyRequest(req, res, requestUrl) {
     const arrayBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'audio/mpeg';
     res.writeHead(200, {
+        ...buildSecurityHeaders(),
         'Content-Type': contentType,
         'Cache-Control': 'no-store'
     });
@@ -1482,6 +2304,7 @@ async function handleSfxStableAudioGenerateRequest(req, res) {
         try {
             const falResult = await requestFalStableAudio(prompt, durationSeconds, seed);
             res.writeHead(200, {
+                ...buildSecurityHeaders(),
                 'Content-Type': falResult.contentType,
                 'Cache-Control': 'no-store'
             });
@@ -1542,6 +2365,7 @@ async function handleSfxStableAudioGenerateRequest(req, res) {
     if (contentType.startsWith('audio/')) {
         const bytes = Buffer.from(await response.arrayBuffer());
         res.writeHead(200, {
+            ...buildSecurityHeaders(),
             'Content-Type': contentType,
             'Cache-Control': 'no-store'
         });
@@ -1559,6 +2383,7 @@ async function handleSfxStableAudioGenerateRequest(req, res) {
         return;
     }
     res.writeHead(200, {
+        ...buildSecurityHeaders(),
         'Content-Type': 'audio/wav',
         'Cache-Control': 'no-store'
     });
@@ -1627,6 +2452,7 @@ async function serveStaticFile(_req, res, pathname) {
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
 
     res.writeHead(200, {
+        ...buildSecurityHeaders(),
         'Content-Type': contentType,
         'Cache-Control': 'no-store'
     });
@@ -1904,7 +2730,7 @@ async function suggestSkinIdentity({
         `generated-${Date.now().toString(36)}-${batchIndex + 1}`,
         reservedSkinIds
     );
-    const fallbackName = sanitizeSkinDisplayName(`AI皮肤${batchIndex + 1}`) || `AI皮肤${batchIndex + 1}`;
+    const fallbackName = sanitizeSkinDisplayName(`AI鐨偆${batchIndex + 1}`) || `AI鐨偆${batchIndex + 1}`;
     if (!apiKey || typeof fetch !== 'function') {
         return { skinId: fallbackId, skinNameZh: fallbackName };
     }
@@ -1994,6 +2820,7 @@ function runProcess(command, args, cwd) {
 function sendJson(res, statusCode, payload) {
     const text = JSON.stringify(payload);
     res.writeHead(statusCode, {
+        ...buildSecurityHeaders(),
         'Content-Type': 'application/json; charset=utf-8',
         'Cache-Control': 'no-store'
     });
@@ -2002,12 +2829,43 @@ function sendJson(res, statusCode, payload) {
 
 function sendText(res, statusCode, text) {
     res.writeHead(statusCode, {
+        ...buildSecurityHeaders(),
         'Content-Type': 'text/plain; charset=utf-8',
         'Cache-Control': 'no-store'
     });
     res.end(text);
 }
 
+function buildSecurityHeaders() {
+    return {
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Referrer-Policy': 'strict-origin-when-cross-origin'
+    };
+}
+
+function readIncomingAdminKey(req, requestUrl) {
+    const headerKey = `${req?.headers?.['x-admin-key'] || ''}`.trim();
+    if (headerKey) return headerKey;
+    const queryKey = `${requestUrl?.searchParams?.get('adminKey') || ''}`.trim();
+    if (queryKey) return queryKey;
+    return '';
+}
+
+function requireAdminAuth(req, res, requestUrl) {
+    const needsAuth = ADMIN_REQUIRE_KEY || !!ADMIN_API_KEY;
+    if (!needsAuth) {
+        return true;
+    }
+    const incoming = readIncomingAdminKey(req, requestUrl);
+    if (!incoming || incoming !== ADMIN_API_KEY) {
+        sendJson(res, 401, { ok: false, error: 'admin auth required' });
+        return false;
+    }
+    return true;
+}
+
 function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
+

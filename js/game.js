@@ -36,7 +36,7 @@ import { readGameplayParams } from './game-params.js?v=3';
 import {
     readProgressSnapshot,
     saveProgressSnapshot
-} from './progress-storage.js?v=2';
+} from './progress-storage.js?v=5';
 import {
     getBusinessDayKeyByHour,
     getLocalDayKey,
@@ -44,7 +44,7 @@ import {
     readLiveOpsPlayerState,
     syncLiveOpsPlayerToServer,
     writeLiveOpsPlayerState
-} from './liveops-storage.js?v=2';
+} from './liveops-storage.js?v=3';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
@@ -81,6 +81,7 @@ export class Game {
         this.state = 'MENU';
         this.currentLevel = 1;
         this.maxUnlockedLevel = 1;
+        this.maxClearedLevel = 0;
         this.normalLevelCount = getNormalLevelCount();
         this.rewardLevelCount = getRewardLevelCount();
         this.grid = null;
@@ -125,10 +126,12 @@ export class Game {
         this.currentStageLabel = '';
         this.currentScorePerBodySegment = SCORE_PER_BODY_SEGMENT;
         this.campaignCompleted = false;
+        this.rewardGuideShown = false;
         this.bestComboThisLevel = 0;
         this.dragReleaseActive = false;
         this.dragReleaseLineIds = new Set();
         this.suppressClickUntil = 0;
+        this.externalPauseActive = false;
         this.lineById = new Map();
         this.sortedLinesAsc = [];
         this.sortedLinesDesc = [];
@@ -185,19 +188,29 @@ export class Game {
                 data.currentLevel || 1,
                 Math.max(1, this.maxUnlockedLevel)
             );
+            this.maxClearedLevel = Math.max(
+                0,
+                Math.min(
+                    this.normalLevelCount,
+                    Math.floor(Number(data.maxClearedLevel) || 0)
+                )
+            );
             this.coins = Math.max(0, Math.floor(Number(data.coins) || 0));
             this.unlockedSkinIds = normalizeUnlockedSkins(data.unlockedSkinIds);
             this.selectedSkinId = ensureSelectedSkin(data.selectedSkinId, this.unlockedSkinIds);
             this.nextRewardLevelIndex = Math.max(1, Math.floor(Number(data.nextRewardLevelIndex) || 1));
+            this.rewardGuideShown = data?.rewardGuideShown === true;
             this.lastCoinReward = 0;
         } catch {
             this.maxUnlockedLevel = 1;
             this.currentLevel = 1;
+            this.maxClearedLevel = 0;
             this.coins = 0;
             this.lastCoinReward = 0;
             this.unlockedSkinIds = normalizeUnlockedSkins();
             this.selectedSkinId = getDefaultSkinId();
             this.nextRewardLevelIndex = 1;
+            this.rewardGuideShown = false;
         }
         setAudioSkinId(this.selectedSkinId);
         this.loadLiveOpsState();
@@ -209,6 +222,10 @@ export class Game {
         const cappedCurrent = this.isRewardStage
             ? normalizePlayableLevel(this.rewardSourceLevel || 1, cappedUnlocked)
             : normalizePlayableLevel(this.currentLevel || 1, cappedUnlocked);
+        const cappedCleared = Math.max(
+            0,
+            Math.min(this.normalLevelCount, Math.floor(Number(this.maxClearedLevel) || 0))
+        );
         const normalizedUnlockedSkins = normalizeUnlockedSkins(this.unlockedSkinIds);
         const selectedSkinId = ensureSelectedSkin(this.selectedSkinId, normalizedUnlockedSkins);
         this.maxUnlockedLevel = cappedUnlocked;
@@ -217,12 +234,43 @@ export class Game {
         setAudioSkinId(this.selectedSkinId);
         saveProgressSnapshot({
             maxUnlockedLevel: cappedUnlocked,
+            maxClearedLevel: cappedCleared,
             currentLevel: cappedCurrent,
             coins: Math.max(0, Math.floor(Number(this.coins) || 0)),
             unlockedSkinIds: normalizedUnlockedSkins,
             selectedSkinId,
-            nextRewardLevelIndex: Math.max(1, Math.floor(Number(this.nextRewardLevelIndex) || 1))
+            nextRewardLevelIndex: Math.max(1, Math.floor(Number(this.nextRewardLevelIndex) || 1)),
+            rewardGuideShown: this.rewardGuideShown === true
         });
+    }
+
+    hasSeenRewardStageGuide() {
+        return this.rewardGuideShown === true;
+    }
+
+    markRewardStageGuideShown() {
+        if (this.rewardGuideShown === true) {
+            return;
+        }
+        this.rewardGuideShown = true;
+        this.saveProgress();
+    }
+
+    setExternalPaused(paused) {
+        const next = paused === true;
+        if (this.externalPauseActive === next) {
+            return;
+        }
+        this.externalPauseActive = next;
+        if (next) {
+            this.dragReleaseActive = false;
+            this.dragReleaseLineIds.clear();
+            return;
+        }
+        this.lastSnakeInteractionTime = nowMs();
+        if (this.combo > 0) {
+            this.lastComboReleaseAt = nowMs();
+        }
     }
 
     loadLiveOpsState() {
@@ -790,7 +838,7 @@ export class Game {
     }
 
     handleClick(event) {
-        if (this.state !== 'PLAYING' || !this.grid) {
+        if (this.state !== 'PLAYING' || !this.grid || this.externalPauseActive) {
             return;
         }
         if (nowMs() < this.suppressClickUntil) {
@@ -808,7 +856,7 @@ export class Game {
     }
 
     handlePointerDown(event) {
-        if (this.state !== 'PLAYING' || !this.grid) {
+        if (this.state !== 'PLAYING' || !this.grid || this.externalPauseActive) {
             return;
         }
         if (event?.button !== undefined && event.button !== 0) {
@@ -843,6 +891,11 @@ export class Game {
     }
 
     handlePointerMove(event) {
+        if (this.externalPauseActive) {
+            this.dragReleaseActive = false;
+            this.dragReleaseLineIds.clear();
+            return;
+        }
         if (this.dragReleaseActive && event?.buttons !== undefined && (event.buttons & 1) !== 1) {
             this.handlePointerUp({ button: 0 });
             return;
@@ -878,7 +931,7 @@ export class Game {
     }
 
     canUseDragRelease(event) {
-        if (this.state !== 'PLAYING' || !this.grid || !this.isRewardStage) {
+        if (this.state !== 'PLAYING' || !this.grid || !this.isRewardStage || this.externalPauseActive) {
             return false;
         }
         if (event?.buttons !== undefined && event.type === 'mousemove') {
@@ -906,7 +959,7 @@ export class Game {
     }
 
     tryReleaseAtPoint(x, y, options = {}) {
-        if (this.state !== 'PLAYING' || !this.grid) {
+        if (this.state !== 'PLAYING' || !this.grid || this.externalPauseActive) {
             return false;
         }
 
@@ -1039,6 +1092,14 @@ export class Game {
             onSegment: (source) => {
                 const sourceX = Number(source?.x) || headPos.x;
                 const sourceY = Number(source?.y) || headPos.y;
+                if (this.isRewardStage) {
+                    this.animations.addRewardFirework(sourceX, sourceY, {
+                        maxRadius: Math.max(8, this.grid.cellSize * 0.62),
+                        lineWidth: Math.max(1.3, this.grid.cellSize * 0.05),
+                        duration: 0.34,
+                        endScale: 3.6
+                    });
+                }
 
                 let edgeX = sourceX;
                 let edgeY = sourceY;
@@ -1192,6 +1253,7 @@ export class Game {
             this.pendingRewardSourceLevel = null;
             this.campaignCompleted = false;
         } else {
+            this.maxClearedLevel = Math.max(this.maxClearedLevel || 0, this.currentLevel || 0);
             const isFinalNormalLevel = this.currentLevel >= this.normalLevelCount;
             let unlockedRewardStage = false;
             if (this.currentLevel >= this.maxUnlockedLevel) {
@@ -1316,7 +1378,9 @@ export class Game {
         }
         this.perfFrameCount += 1;
 
-        const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
+        const dt = this.externalPauseActive
+            ? 0
+            : Math.min((timestamp - this.lastTime) / 1000, 0.05);
         this.lastTime = timestamp;
         this.consumeTimer(dt);
         this.updateComboTimeout(timestamp);
@@ -1373,6 +1437,7 @@ export class Game {
             if (!isLiteRender) {
                 this.animations.drawParticles(ctx, this.pixelTheme);
             }
+            this.animations.drawRewardFireworks(ctx);
             this.animations.drawFloatingTexts(ctx);
         }
 
@@ -1822,6 +1887,9 @@ export class Game {
     }
 
     consumeTimer(dt) {
+        if (this.externalPauseActive) {
+            return;
+        }
         this.consumeOnlineRewardTimer(dt);
         if (!this.hasTimer || this.state !== 'PLAYING') {
             return;
@@ -1844,6 +1912,9 @@ export class Game {
     }
 
     updateComboTimeout(currentMs) {
+        if (this.externalPauseActive) {
+            return;
+        }
         if (this.state !== 'PLAYING') {
             return;
         }
@@ -2310,6 +2381,7 @@ function distanceToSegment(px, py, start, end) {
     const projY = start.y + t * dy;
     return distance(px, py, projX, projY);
 }
+
 
 
 

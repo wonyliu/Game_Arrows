@@ -61,6 +61,7 @@ const LEVEL_SETTLE_PER_POINT_MS = 0.4;
 const CHECKIN_COIN_FLY_COUNT = 6;
 const CHECKIN_COIN_FLY_DURATION_MS = 920;
 const CHECKIN_COIN_COUNTER_DURATION_MS = 1040;
+const REWARD_GUIDE_TEXT = '在奖励关中试试按住划动手指吧！';
 
 export class UI {
     constructor(game, options = {}) {
@@ -86,6 +87,10 @@ export class UI {
         this.rewardUnlockToastImageEl = document.getElementById('rewardUnlockToastImage');
         this.rewardUnlockToastTextEl = document.getElementById('rewardUnlockToastText');
         this.rewardUnlockToastTimer = 0;
+        this.rewardUnlockToastPending = false;
+        this.rewardStageGuideOverlayEl = document.getElementById('rewardStageGuideOverlay');
+        this.rewardStageGuideTextEl = document.getElementById('rewardStageGuideText');
+        this.rewardStageGuideVisible = false;
         this.hudScoreValueEl = document.getElementById('hudScoreValue');
         this.hudScoreGainEl = document.getElementById('hudScoreGain');
         this.hudEnergyLayerEl = document.getElementById('hudEnergyLayer');
@@ -96,6 +101,8 @@ export class UI {
         this.menuOverlay = document.getElementById('menuOverlay');
         this.settingsOverlay = document.getElementById('settingsOverlay');
         this.leaderboardOverlay = document.getElementById('leaderboardOverlay');
+        this.leaderboardListEl = this.leaderboardOverlay?.querySelector('.rank-list') || null;
+        this.leaderboardEmptyStateEl = this.leaderboardOverlay?.querySelector('.empty-state') || null;
         this.skinsOverlay = document.getElementById('skinsOverlay');
         this.checkinOverlay = document.getElementById('checkinOverlay');
         this.checkinSceneEl = this.checkinOverlay?.querySelector('.checkin-scene') || null;
@@ -364,6 +371,17 @@ export class UI {
         this.bindButton('btnLocaleEn', () => this.setLocale('en-US'));
 
         this.bindHomeStartVisualFallback();
+        this.bindRewardStageGuideEvents();
+    }
+
+    bindRewardStageGuideEvents() {
+        if (!this.rewardStageGuideOverlayEl) {
+            return;
+        }
+        const dismiss = () => this.hideRewardStageGuide();
+        this.rewardStageGuideOverlayEl.addEventListener('click', dismiss);
+        this.rewardStageGuideOverlayEl.addEventListener('pointerup', dismiss);
+        this.rewardStageGuideOverlayEl.addEventListener('touchend', dismiss, { passive: true });
     }
 
     initPerfDebugGesture() {
@@ -579,7 +597,9 @@ export class UI {
         this.game.onTimerEnergyEmit = (payload) => this.spawnTimerEnergyOrb(payload);
         this.game.onTimerEnergyBatchCancel = (batchId) => this.cancelTimerEnergyBatch(batchId);
         this.game.onTimerEnergyClear = () => this.clearTimerEnergyOrbs();
-        this.game.onRewardStageUnlocked = () => this.showRewardUnlockToast();
+        this.game.onRewardStageUnlocked = () => {
+            this.rewardUnlockToastPending = true;
+        };
         this.game.onLevelComplete = () => this.showLevelCompletePopup();
         this.game.onGameOver = (reason) => this.showGameOverPopup(reason);
         this.game.onCollision = () => this.triggerErrorVignette();
@@ -645,6 +665,8 @@ export class UI {
             return;
         }
         if (typeof this.game.startNextStage === 'function') {
+            const willEnterRewardStage = !this.game.isRewardStage
+                && Number(this.game.pendingRewardReturnLevel) > 0;
             this.clearTimerEnergyOrbs();
             this.hideAll();
             this.hud.classList.remove('hidden');
@@ -654,6 +676,11 @@ export class UI {
             requestAnimationFrame(() => this.forceGameCanvasResize());
             this.updateHUD();
             this.syncGameplayBgm(true);
+            this.maybeShowRewardStageGuide();
+            if (willEnterRewardStage || this.rewardUnlockToastPending) {
+                setTimeout(() => this.showRewardUnlockToast(), 120);
+            }
+            this.rewardUnlockToastPending = false;
             return;
         }
         this.startSpecificLevel(this.game.currentLevel + 1);
@@ -731,6 +758,7 @@ export class UI {
         if (target === MENU_PANEL.LEADERBOARD) {
             this.leaderboardOverlay.classList.remove('hidden');
             this.game.state = 'LEADERBOARD';
+            void this.renderLeaderboard();
         }
 
         if (target === MENU_PANEL.SKINS) {
@@ -765,6 +793,78 @@ export class UI {
         this.renderFeatureCards();
         this.refreshCheckinPanel();
         this.refreshOnlineRewardDock();
+    }
+
+    async renderLeaderboard() {
+        if (!this.leaderboardListEl) {
+            return;
+        }
+        this.leaderboardListEl.innerHTML = '';
+        const fallbackRowCount = 5;
+        const renderFallback = (message) => {
+            for (let i = 1; i <= fallbackRowCount; i += 1) {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>#${i}</span><span class="rank-player">---</span><span class="rank-level">---</span>`;
+                this.leaderboardListEl.appendChild(li);
+            }
+            if (this.leaderboardEmptyStateEl) {
+                this.leaderboardEmptyStateEl.textContent = message || this.getLocaleText('排行榜暂不可用。', 'Leaderboard unavailable.');
+            }
+        };
+
+        try {
+            const response = await fetch('/api/leaderboard?limit=50', {
+                method: 'GET',
+                cache: 'no-store'
+            });
+            const payload = await response.json().catch(() => ({}));
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
+            if (!response.ok || rows.length === 0) {
+                renderFallback(this.getLocaleText('暂无排行榜数据。', 'No leaderboard data yet.'));
+                return;
+            }
+            for (const row of rows) {
+                const rank = Math.max(1, Math.floor(Number(row?.rank) || 0));
+                const username = `${row?.username || 'Unknown'}`.trim() || 'Unknown';
+                const avatarUrl = `${row?.avatarUrl || 'assets/design-v2/clean/icon_theme.png'}`.trim();
+                const level = Math.max(0, Math.floor(Number(row?.maxClearedLevel) || 0));
+                const li = document.createElement('li');
+
+                const rankEl = document.createElement('span');
+                rankEl.textContent = `#${rank}`;
+
+                const playerEl = document.createElement('span');
+                playerEl.className = 'rank-player';
+                const avatarEl = document.createElement('img');
+                avatarEl.className = 'rank-avatar';
+                avatarEl.alt = username;
+                avatarEl.src = avatarUrl;
+                avatarEl.referrerPolicy = 'no-referrer';
+                avatarEl.addEventListener('error', () => {
+                    avatarEl.src = 'assets/design-v2/clean/icon_theme.png';
+                });
+                const nameEl = document.createElement('span');
+                nameEl.textContent = username;
+                playerEl.appendChild(avatarEl);
+                playerEl.appendChild(nameEl);
+
+                const levelEl = document.createElement('span');
+                levelEl.className = 'rank-level';
+                levelEl.textContent = level > 0
+                    ? this.getLocaleText(`通关 ${level}`, `Clear ${level}`)
+                    : this.getLocaleText('未通关', 'Not Cleared');
+
+                li.appendChild(rankEl);
+                li.appendChild(playerEl);
+                li.appendChild(levelEl);
+                this.leaderboardListEl.appendChild(li);
+            }
+            if (this.leaderboardEmptyStateEl) {
+                this.leaderboardEmptyStateEl.textContent = this.getLocaleText('按最高通关关卡排行。', 'Sorted by highest cleared level.');
+            }
+        } catch {
+            renderFallback(this.getLocaleText('排行榜加载失败，请稍后重试。', 'Failed to load leaderboard.'));
+        }
     }
 
     async syncSkinCatalogForSkinCenter() {
@@ -840,6 +940,7 @@ export class UI {
     }
 
     hideAll() {
+        this.hideRewardStageGuide();
         this.stopLevelSettleAnimation();
         this.toggleLevelCompleteButtons(true);
         if (this.scorePulseAnimation && typeof this.scorePulseAnimation.cancel === 'function') {
@@ -885,6 +986,49 @@ export class UI {
         this.stopCheckinCoinCounter();
         this.clearCoinDisplayOverride();
         this.updateCheckinSceneScale();
+    }
+
+    maybeShowRewardStageGuide() {
+        if (!this.rewardStageGuideOverlayEl || !this.game) {
+            return;
+        }
+        if (this.game.isRewardStage !== true) {
+            return;
+        }
+        if (typeof this.game.hasSeenRewardStageGuide === 'function' && this.game.hasSeenRewardStageGuide()) {
+            return;
+        }
+        this.showRewardStageGuide();
+    }
+
+    showRewardStageGuide() {
+        if (!this.rewardStageGuideOverlayEl || !this.game || this.rewardStageGuideVisible) {
+            return;
+        }
+        this.rewardStageGuideVisible = true;
+        if (this.rewardStageGuideTextEl) {
+            this.rewardStageGuideTextEl.textContent = REWARD_GUIDE_TEXT;
+        }
+        if (typeof this.game.setExternalPaused === 'function') {
+            this.game.setExternalPaused(true);
+        }
+        this.rewardStageGuideOverlayEl.classList.remove('hidden');
+        this.rewardStageGuideOverlayEl.setAttribute('aria-hidden', 'false');
+    }
+
+    hideRewardStageGuide() {
+        if (!this.rewardStageGuideOverlayEl || !this.rewardStageGuideVisible) {
+            return;
+        }
+        this.rewardStageGuideVisible = false;
+        this.rewardStageGuideOverlayEl.classList.add('hidden');
+        this.rewardStageGuideOverlayEl.setAttribute('aria-hidden', 'true');
+        if (typeof this.game?.setExternalPaused === 'function') {
+            this.game.setExternalPaused(false);
+        }
+        if (typeof this.game?.markRewardStageGuideShown === 'function') {
+            this.game.markRewardStageGuideShown();
+        }
     }
 
     updateCheckinSceneScale() {
@@ -2318,19 +2462,12 @@ export class UI {
 
         const imageEl = this.rewardUnlockToastImageEl;
         const textEl = this.rewardUnlockToastTextEl;
-        if (imageEl) {
-            const hasLoadedImage = imageEl.complete && imageEl.naturalWidth > 0;
-            imageEl.classList.toggle('hidden', !hasLoadedImage);
-            if (!hasLoadedImage && textEl) {
-                imageEl.addEventListener('load', () => {
-                    imageEl.classList.remove('hidden');
-                    textEl.classList.add('hidden');
-                }, { once: true });
-            }
-        }
         if (textEl) {
-            const showTextFallback = !imageEl || imageEl.classList.contains('hidden');
-            textEl.classList.toggle('hidden', !showTextFallback);
+            textEl.textContent = '百连斩奖励关';
+            textEl.classList.remove('hidden');
+        }
+        if (imageEl) {
+            imageEl.classList.add('hidden');
         }
 
         if (this.rewardUnlockToastTimer) {

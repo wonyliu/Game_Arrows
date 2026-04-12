@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-07T05:08:48.046Z",
+  "updatedAt": "2026-04-11T03:08:31.352Z",
   "inventory": {
     "skin_fragment": 0,
     "hint": 1,
@@ -12,8 +12,8 @@
     "lastClaimDayKey": "2026-04-03"
   },
   "onlineReward": {
-    "dayKey": "2026-04-07",
-    "tierIndex": 2,
-    "remainingSeconds": 600
+    "dayKey": "2026-04-11",
+    "tierIndex": 1,
+    "remainingSeconds": 300
   }
 }

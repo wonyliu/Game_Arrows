@@ -21,6 +21,7 @@
                 <button id="tabBtnEvents" class="tab-btn" type="button" data-tab-target="events" role="tab" aria-selected="false">活动管理</button>
                 <button id="tabBtnUiEditor" class="tab-btn" type="button" data-tab-target="ui-editor" role="tab" aria-selected="false">界面编辑器</button>
                 <button id="tabBtnTools" class="tab-btn" type="button" data-tab-target="tools" role="tab" aria-selected="false">测试工具</button>
+                <button id="tabBtnDbAdmin" class="tab-btn" type="button" data-tab-target="db-admin" role="tab" aria-selected="false">数据库管理</button>
                 <button id="tabBtnParams" class="tab-btn" type="button" data-tab-target="params" role="tab" aria-selected="false">参数管理</button>
             </nav>
         </header>
@@ -1052,6 +1053,8 @@
                         <button id="btnToolResetCheckin" type="button">重置签到状态</button>
                         <button id="btnToolResetOnlineReward" type="button">重置在线奖励状态</button>
                         <button id="btnToolResetLiveopsAll" class="primary" type="button">重置全部活动状态</button>
+                        <button id="btnToolResetWholeGame" class="primary" type="button">重置整局游戏（全玩家）</button>
+                        <button id="btnToolResetLeaderboardProgress" type="button">重置排行榜进度（全玩家）</button>
                     </div>
                     <p id="toolStatus" class="status">就绪。</p>
                 </section>
@@ -1063,6 +1066,8 @@
                         <div>重置后会立即写入本地与服务端存储。</div>
                         <div>签到状态重置：可再次领取今日签到。</div>
                         <div>在线奖励重置：回到第一档并恢复倒计时。</div>
+                        <div>排行榜进度重置：所有玩家的“已通关最大关卡”重置为 0。</div>
+                        <div>整局重置：金币归零、皮肤解锁进度重置、关卡进度重置（全玩家）。</div>
                     </div>
                 </section>
             </div>
@@ -1137,6 +1142,72 @@
                 </section>
             </div>
         </section>
+
+        <section class="tab-panel" data-tab-panel="db-admin" role="tabpanel" aria-labelledby="tabBtnDbAdmin">
+            <div class="params-admin-shell">
+                <section class="controls params-panel">
+                    <h2>数据库管理</h2>
+                    <p class="sub">查看用户中心数据库中的用户与进度（只读）。</p>
+
+                    <label class="field">
+                        <span>管理密钥（ADMIN_API_KEY）</span>
+                        <input id="dbAdminKey" type="password" placeholder="请输入管理员密钥">
+                    </label>
+
+                    <div class="catalog-row">
+                        <label class="field">
+                            <span>搜索（用户ID/用户名）</span>
+                            <input id="dbAdminQuery" type="text" placeholder="例如 u000123 或 玩家名">
+                        </label>
+                        <label class="field">
+                            <span>每页数量</span>
+                            <input id="dbAdminPageSize" type="number" min="10" max="200" value="50">
+                        </label>
+                    </div>
+
+                    <div class="actions">
+                        <button id="btnDbAdminLoadOverview" type="button">刷新概览</button>
+                        <button id="btnDbAdminSearchUsers" class="primary" type="button">查询用户</button>
+                        <button id="btnDbAdminPrevPage" type="button">上一页</button>
+                        <button id="btnDbAdminNextPage" type="button">下一页</button>
+                    </div>
+
+                    <div class="meta">
+                        <div>后端：<strong id="dbAdminBackend">-</strong></div>
+                        <div>总用户数：<strong id="dbAdminTotalUsers">-</strong></div>
+                        <div>临时用户数：<strong id="dbAdminTempUsers">-</strong></div>
+                        <div>当前偏移：<strong id="dbAdminOffset">0</strong></div>
+                    </div>
+                    <p id="dbAdminStatus" class="status">就绪。</p>
+                </section>
+
+                <section class="preview params-json-panel">
+                    <div class="preview-header">
+                        <h2>用户列表</h2>
+                    </div>
+                    <div class="field" style="max-height: 360px; overflow: auto;">
+                        <table class="liveops-item-table" id="dbAdminUserTable">
+                            <thead>
+                                <tr>
+                                    <th>用户ID</th>
+                                    <th>用户名</th>
+                                    <th>类型</th>
+                                    <th>金币</th>
+                                    <th>已通关</th>
+                                    <th>最后活跃</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dbAdminUserRows"></tbody>
+                        </table>
+                    </div>
+                    <label class="field">
+                        <span>用户详情（JSON）</span>
+                        <textarea id="dbAdminUserDetailJson" rows="16" spellcheck="false" readonly></textarea>
+                    </label>
+                </section>
+            </div>
+        </section>
     </main>
 
     <script type="module" src="js/admin.js?v=68"></script>
@@ -1146,6 +1217,8 @@
 <script type="module" src="js/admin-skin-gen.js?v=45"></script>
 <script type="module" src="js/admin-sfx-lab.js?v=28"></script>
     <script type="module" src="js/admin-liveops.js?v=2"></script>
+    <script type="module" src="js/admin-system.js?v=2"></script>
     <script type="module" src="js/admin-ui-editor.js?v=12"></script>
+    <script type="module" src="js/admin-db.js?v=1"></script>
   </body>
   </html>

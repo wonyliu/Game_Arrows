@@ -1,4 +1,4 @@
-import {
+﻿import {
     DEFAULT_LIVEOPS_CONFIG,
     DEFAULT_LIVEOPS_PLAYER_STATE,
     initLiveOpsStorage,
@@ -6,7 +6,7 @@ import {
     readLiveOpsPlayerState,
     writeLiveOpsConfig,
     writeLiveOpsPlayerState
-} from './liveops-storage.js?v=1';
+} from './liveops-storage.js?v=3';
 
 const el = {
     itemList: document.getElementById('liveopsItemList'),
@@ -109,7 +109,7 @@ function bindEvents() {
         }
         loadConfig();
         renderAll();
-        setActivityStatus('检测到活动配置变更，已刷新。');
+        setActivityStatus('妫€娴嬪埌娲诲姩閰嶇疆鍙樻洿锛屽凡鍒锋柊銆?);
     });
 }
 
@@ -163,11 +163,11 @@ function renderItemList() {
             row.classList.add('is-active');
         }
         const meta = document.createElement('div');
-        meta.innerHTML = `<strong>${escapeHtml(item.nameZh || item.id)}</strong> <small>(${escapeHtml(item.id)})</small><br><small>${escapeHtml(item.type)}${item.builtin ? ' · builtin' : ''}</small>`;
+        meta.innerHTML = `<strong>${escapeHtml(item.nameZh || item.id)}</strong> <small>(${escapeHtml(item.id)})</small><br><small>${escapeHtml(item.type)}${item.builtin ? ' 路 builtin' : ''}</small>`;
 
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.textContent = '编辑';
+        btn.textContent = '缂栬緫';
         btn.addEventListener('click', () => {
             state.selectedItemId = item.id;
             fillItemEditor(item);
@@ -202,11 +202,11 @@ function onSaveItem() {
     const type = normalizeType(el.itemType?.value || 'item');
 
     if (!id) {
-        setItemStatus('道具 ID 不能为空。', true);
+        setItemStatus('閬撳叿 ID 涓嶈兘涓虹┖銆?, true);
         return;
     }
     if (!nameZh) {
-        setItemStatus('中文名不能为空。', true);
+        setItemStatus('涓枃鍚嶄笉鑳戒负绌恒€?, true);
         return;
     }
 
@@ -236,23 +236,23 @@ function onSaveItem() {
     fillItemEditor(nextItem);
     renderCheckinRewardRows();
     renderOnlineRewardRows();
-    setItemStatus(`已保存道具：${id}`);
+    setItemStatus(`宸蹭繚瀛橀亾鍏凤細${id}`);
 }
 
 function onDeleteItem() {
     const id = sanitizeId(el.itemId?.value || '');
     if (!id) {
-        setItemStatus('请先选择要删除的道具。', true);
+        setItemStatus('璇峰厛閫夋嫨瑕佸垹闄ょ殑閬撳叿銆?, true);
         return;
     }
     const items = [...getItems()];
     const target = items.find((item) => item.id === id);
     if (!target) {
-        setItemStatus(`道具不存在：${id}`, true);
+        setItemStatus(`閬撳叿涓嶅瓨鍦細${id}`, true);
         return;
     }
     if (target.builtin) {
-        setItemStatus(`内置道具不能删除：${id}`, true);
+        setItemStatus(`鍐呯疆閬撳叿涓嶈兘鍒犻櫎锛?{id}`, true);
         return;
     }
 
@@ -275,7 +275,7 @@ function onDeleteItem() {
     renderItemList();
     renderCheckinRewardRows();
     renderOnlineRewardRows();
-    setItemStatus(`已删除道具：${id}`);
+    setItemStatus(`宸插垹闄ら亾鍏凤細${id}`);
 }
 
 function fillActivitiesFromConfig() {
@@ -342,7 +342,7 @@ function renderCheckinRewardRows() {
             <td><input type="number" min="1" max="${cycleDays}" step="1" value="${row.day}"></td>
             <td><select>${createItemOptionsHtml(row.itemId)}</select></td>
             <td><input type="number" min="1" max="9999999" step="1" value="${row.amount}"></td>
-            <td><button type="button">删除</button></td>
+            <td><button type="button">鍒犻櫎</button></td>
         `;
         const [dayInput, itemSelect, amountInput, delButton] = [
             tr.children[0].querySelector('input'),
@@ -382,7 +382,7 @@ function renderOnlineRewardRows() {
             <td><input type="number" min="1" max="86400" step="1" value="${row.seconds}"></td>
             <td><select>${createItemOptionsHtml(row.itemId)}</select></td>
             <td><input type="number" min="1" max="9999999" step="1" value="${row.amount}"></td>
-            <td><button type="button">删除</button></td>
+            <td><button type="button">鍒犻櫎</button></td>
         `;
         const [tierInput, secondsInput, itemSelect, amountInput, delButton] = [
             tr.children[0].querySelector('input'),
@@ -428,7 +428,7 @@ function onSaveActivities() {
         const itemId = sanitizeId(row.itemId);
         const amount = clampInt(row.amount, 1, 9999999, 1);
         if (!itemId || !validItemIds.has(itemId)) {
-            setActivityStatus(`签到奖励存在无效道具 ID：${row.itemId || '-'}`, true);
+            setActivityStatus(`绛惧埌濂栧姳瀛樺湪鏃犳晥閬撳叿 ID锛?{row.itemId || '-'}`, true);
             return;
         }
         checkinRewards[day - 1].push({ itemId, amount });
@@ -441,7 +441,7 @@ function onSaveActivities() {
         const itemId = sanitizeId(row.itemId);
         const amount = clampInt(row.amount, 1, 9999999, 1);
         if (!itemId || !validItemIds.has(itemId)) {
-            setActivityStatus(`在线奖励存在无效道具 ID：${row.itemId || '-'}`, true);
+            setActivityStatus(`鍦ㄧ嚎濂栧姳瀛樺湪鏃犳晥閬撳叿 ID锛?{row.itemId || '-'}`, true);
             return;
         }
         if (!tierMap.has(tier)) {
@@ -456,7 +456,7 @@ function onSaveActivities() {
         .map(([, value]) => value);
 
     if (onlineTiers.length === 0) {
-        setActivityStatus('请至少配置一个在线奖励档位。', true);
+        setActivityStatus('璇疯嚦灏戦厤缃竴涓湪绾垮鍔辨。浣嶃€?, true);
         return;
     }
 
@@ -476,7 +476,7 @@ function onSaveActivities() {
         }
     });
     fillActivitiesFromConfig();
-    setActivityStatus('活动配置已保存。');
+    setActivityStatus('娲诲姩閰嶇疆宸蹭繚瀛樸€?);
 }
 
 function onResetActivities() {
@@ -485,7 +485,7 @@ function onResetActivities() {
         activities: DEFAULT_LIVEOPS_CONFIG.activities
     });
     fillActivitiesFromConfig();
-    setActivityStatus('已恢复默认活动配置。');
+    setActivityStatus('宸叉仮澶嶉粯璁ゆ椿鍔ㄩ厤缃€?);
 }
 
 function resetCheckinState() {
@@ -497,7 +497,7 @@ function resetCheckinState() {
             lastClaimDayKey: ''
         }
     }, { syncServer: true });
-    setToolStatus('已重置签到状态。');
+    setToolStatus('宸查噸缃鍒扮姸鎬併€?);
 }
 
 function resetOnlineRewardState() {
@@ -510,7 +510,7 @@ function resetOnlineRewardState() {
             remainingSeconds: 0
         }
     }, { syncServer: true });
-    setToolStatus('已重置在线奖励状态。');
+    setToolStatus('宸查噸缃湪绾垮鍔辩姸鎬併€?);
 }
 
 function resetAllActivityState() {
@@ -518,7 +518,7 @@ function resetAllActivityState() {
         ...DEFAULT_LIVEOPS_PLAYER_STATE,
         inventory: { ...DEFAULT_LIVEOPS_PLAYER_STATE.inventory }
     }, { syncServer: true });
-    setToolStatus('已重置全部活动状态。');
+    setToolStatus('宸查噸缃叏閮ㄦ椿鍔ㄧ姸鎬併€?);
 }
 
 function sanitizeId(value) {
@@ -571,3 +571,4 @@ function escapeHtml(text) {
 }
 
 void init();
+

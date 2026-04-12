@@ -1,5 +1,5 @@
-import { initUiLayoutStorage, readUiLayoutConfig } from './ui-layout-config.js?v=4';
-import { getLocalDayKey, readLiveOpsConfig, readLiveOpsPlayerState } from './liveops-storage.js?v=1';
+﻿import { initUiLayoutStorage, readUiLayoutConfig } from './ui-layout-config.js?v=4';
+import { getLocalDayKey, readLiveOpsConfig, readLiveOpsPlayerState } from './liveops-storage.js?v=3';
 
 const el = {
     overlay: document.getElementById('checkinOverlay'),
@@ -111,7 +111,7 @@ function createDayNode(day, layout, reward, isClaimed, isClaimable) {
     const title = document.createElement('div');
     title.className = 'checkin-day-title';
     title.dataset.uiEditorId = `day${day}-title`;
-    title.textContent = `第${day}天`;
+    title.textContent = `绗?{day}澶ー;
     title.style.left = dayConfig.title.align === 'left'
         ? `${dayConfig.title.x}px`
         : `${dayConfig.title.x - (dayConfig.title.width / 2)}px`;
@@ -145,7 +145,7 @@ function createDayNode(day, layout, reward, isClaimed, isClaimable) {
         const badge = document.createElement('div');
         badge.className = 'checkin-claimed-badge';
         badge.dataset.uiEditorId = `day${day}-badge`;
-        badge.textContent = '✓';
+        badge.textContent = '鉁?;
         badge.style.left = `${dayConfig.badge.x}px`;
         badge.style.top = `${dayConfig.badge.y}px`;
         badge.style.width = `${dayConfig.badge.size}px`;
@@ -202,8 +202,8 @@ export function renderUiEditorPreview(override = {}) {
     }
 
     el.status.textContent = snapshot.canClaimToday
-        ? `点击第${snapshot.nextDayIndex}天奖励卡即可领取`
-        : '今日已签到，明日再来。';
+        ? `鐐瑰嚮绗?{snapshot.nextDayIndex}澶╁鍔卞崱鍗冲彲棰嗗彇`
+        : '浠婃棩宸茬鍒帮紝鏄庢棩鍐嶆潵銆?;
     el.tooltip.classList.add('hidden');
     updateScale(layout);
 }
@@ -231,3 +231,4 @@ void initUiLayoutStorage()
     .finally(() => {
         renderUiEditorPreview();
     });
+

@@ -1,4 +1,7 @@
-﻿const STORAGE_API_BASE = '/api/storage';
+﻿import { getActiveUserId } from './user-auth.js?v=2';
+
+const STORAGE_API_BASE = '/api/storage';
+const USER_API_BASE = '/api/users';
 
 const LIVEOPS_CONFIG_STORAGE_KEY = 'arrowClear_liveopsConfig_v1';
 const LIVEOPS_CONFIG_FILE = 'liveops-config-v1';
@@ -134,7 +137,7 @@ async function hydrateLiveOpsFromServer() {
 
     const [remoteConfig, remotePlayer] = await Promise.all([
         fetchJsonFromServer(LIVEOPS_CONFIG_FILE),
-        fetchJsonFromServer(LIVEOPS_PLAYER_FILE)
+        fetchPlayerStateFromServer()
     ]);
 
     if (remoteConfig) {
@@ -170,6 +173,26 @@ async function fetchJsonFromServer(fileKey) {
     }
 }
 
+async function fetchPlayerStateFromServer() {
+    const userId = `${getActiveUserId() || ''}`.trim();
+    if (userId) {
+        try {
+            const response = await fetch(`${USER_API_BASE}/${encodeURIComponent(userId)}/liveops-player`, {
+                method: 'GET',
+                cache: 'no-store'
+            });
+            if (!response.ok) {
+                return null;
+            }
+            const payload = await response.json();
+            const data = payload?.player;
+            return isPlainObject(data) ? data : null;
+        } catch {
+            return null;
+        }
+    }
+    return fetchJsonFromServer(LIVEOPS_PLAYER_FILE);
+}
 async function persistConfigToServer(config) {
     if (!canUseApiStorage()) {
         return false;
@@ -197,8 +220,12 @@ async function persistPlayerToServer(player) {
     if (!canUseApiStorage()) {
         return false;
     }
+    const userId = `${getActiveUserId() || ''}`.trim();
     try {
-        const response = await fetch(`${STORAGE_API_BASE}/${LIVEOPS_PLAYER_FILE}`, {
+        const endpoint = userId
+            ? `${USER_API_BASE}/${encodeURIComponent(userId)}/liveops-player`
+            : `${STORAGE_API_BASE}/${LIVEOPS_PLAYER_FILE}`;
+        const response = await fetch(endpoint, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(player)
@@ -467,6 +494,8 @@ function clampFloat(value, min, max, fallback) {
 function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
+
+
 
 
 

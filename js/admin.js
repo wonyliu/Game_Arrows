@@ -1290,43 +1290,93 @@ function onCanvasMouseMove(event) {
 }
 
 function updateGenerate4ManualDraft(point) {
-    if (!isDrawingManualLine || !manualDrawStartCell || !previewPlayState?.grid) {
+    if (!isDrawingManualLine || !previewPlayState?.grid) {
         return;
     }
     const cell = previewPlayState.grid.screenToGrid(point.x, point.y);
     if (!cell) {
         return;
     }
-    manualDrawCells = buildGenerate4ManualSegment(
-        manualDrawStartCell,
+    manualDrawCells = extendGenerate4ManualPath(
+        manualDrawCells,
         { col: cell.col, row: cell.row }
     );
     drawPreviewState();
 }
 
-function buildGenerate4ManualSegment(startCell, endCell) {
-    const start = {
-        col: Math.round(Number(startCell?.col) || 0),
-        row: Math.round(Number(startCell?.row) || 0)
+function extendGenerate4ManualPath(pathCells, nextCell) {
+    const path = Array.isArray(pathCells)
+        ? pathCells.map((cell) => ({
+            col: Math.round(Number(cell?.col) || 0),
+            row: Math.round(Number(cell?.row) || 0)
+        }))
+        : [];
+    const target = {
+        col: Math.round(Number(nextCell?.col) || 0),
+        row: Math.round(Number(nextCell?.row) || 0)
     };
-    const end = {
-        col: Math.round(Number(endCell?.col) || 0),
-        row: Math.round(Number(endCell?.row) || 0)
-    };
-    const dx = end.col - start.col;
-    const dy = end.row - start.row;
-    const horizontal = Math.abs(dx) >= Math.abs(dy);
-    const cells = [];
+    if (path.length === 0) {
+        return [target];
+    }
 
-    if (horizontal) {
-        const step = dx >= 0 ? 1 : -1;
-        for (let col = start.col; step > 0 ? col <= end.col : col >= end.col; col += step) {
-            cells.push({ col, row: start.row });
+    const last = path[path.length - 1];
+    if (last.col === target.col && last.row === target.row) {
+        return path;
+    }
+
+    const bridge = buildGenerate4ManualBridge(path, target);
+    for (const cell of bridge) {
+        const existingIndex = path.findIndex((item) => item.col === cell.col && item.row === cell.row);
+        if (existingIndex >= 0) {
+            if (existingIndex === path.length - 2) {
+                path.pop();
+                continue;
+            }
+            path.length = existingIndex + 1;
+            continue;
+        }
+        path.push(cell);
+    }
+    return path;
+}
+
+function buildGenerate4ManualBridge(path, target) {
+    const last = path[path.length - 1];
+    const prev = path.length >= 2 ? path[path.length - 2] : null;
+    const dx = target.col - last.col;
+    const dy = target.row - last.row;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
+    const hasPrev = !!prev;
+    const prevHorizontal = hasPrev ? (prev.row === last.row) : false;
+    const preferHorizontal = hasPrev ? prevHorizontal : (absDx >= absDy);
+    const cells = [];
+    let col = last.col;
+    let row = last.row;
+
+    const pushStep = (nextCol, nextRow) => {
+        col = nextCol;
+        row = nextRow;
+        cells.push({ col, row });
+    };
+
+    if (preferHorizontal) {
+        const stepX = dx >= 0 ? 1 : -1;
+        for (let i = 0; i < absDx; i++) {
+            pushStep(col + stepX, row);
+        }
+        const stepY = dy >= 0 ? 1 : -1;
+        for (let i = 0; i < absDy; i++) {
+            pushStep(col, row + stepY);
         }
     } else {
-        const step = dy >= 0 ? 1 : -1;
-        for (let row = start.row; step > 0 ? row <= end.row : row >= end.row; row += step) {
-            cells.push({ col: start.col, row });
+        const stepY = dy >= 0 ? 1 : -1;
+        for (let i = 0; i < absDy; i++) {
+            pushStep(col, row + stepY);
+        }
+        const stepX = dx >= 0 ? 1 : -1;
+        for (let i = 0; i < absDx; i++) {
+            pushStep(col + stepX, row);
         }
     }
 

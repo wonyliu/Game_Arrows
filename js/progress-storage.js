@@ -1,5 +1,8 @@
-﻿const GAME_PROGRESS_FILE = 'game-progress-v1';
+﻿import { getActiveUserId } from './user-auth.js?v=2';
+
+const GAME_PROGRESS_FILE = 'game-progress-v1';
 const STORAGE_API_BASE = '/api/storage';
+const USER_API_BASE = '/api/users';
 const PROGRESS_STATIC_CONFIG_PATHS = Object.freeze([
     '.local-data/game-progress-v1.json',
     'data/game-progress-v1.json'
@@ -47,6 +50,24 @@ async function fetchProgressFromServer() {
         return null;
     }
 
+    const userId = `${getActiveUserId() || ''}`.trim();
+    if (userId) {
+        try {
+            const response = await fetch(`${USER_API_BASE}/${encodeURIComponent(userId)}/progress`, {
+                method: 'GET',
+                cache: 'no-store'
+            });
+
+            if (response.ok) {
+                const payload = await response.json();
+                const data = payload?.progress;
+                return isPlainObject(data) ? data : null;
+            }
+        } catch {
+            // continue to fallback source
+        }
+    }
+
     try {
         const response = await fetch(`${STORAGE_API_BASE}/${GAME_PROGRESS_FILE}`, {
             method: 'GET',
@@ -87,6 +108,27 @@ async function persistProgressToServer(progress) {
         return false;
     }
 
+    const userId = `${getActiveUserId() || ''}`.trim();
+    if (userId) {
+        try {
+            const response = await fetch(`${USER_API_BASE}/${encodeURIComponent(userId)}/progress`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(progress)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return true;
+        } catch (error) {
+            warnServerUnavailable(error);
+            return false;
+        }
+    }
+
     try {
         const response = await fetch(`${STORAGE_API_BASE}/${GAME_PROGRESS_FILE}`, {
             method: 'PUT',
@@ -121,14 +163,17 @@ function normalizeProgress(value, options = {}) {
 
     const fallbackMaxUnlocked = clampProgressLevel(fallback.maxUnlockedLevel, 1);
     const fallbackCurrent = clampProgressLevel(fallback.currentLevel, 1);
+    const fallbackCleared = clampProgressLevelOrZero(fallback.maxClearedLevel, 0);
     const fallbackCoins = clampCoins(fallback.coins);
     const fallbackSelectedSkinId = `${fallback.selectedSkinId || ''}`.trim();
     const fallbackUnlockedSkins = sanitizeSkinIdList(fallback.unlockedSkinIds);
     const fallbackNextRewardLevelIndex = clampPositiveInt(fallback.nextRewardLevelIndex, 1);
+    const fallbackRewardGuideShown = fallback.rewardGuideShown === true;
     const fallbackVersion = clampProgressLevel(fallback.version, PROGRESS_SCHEMA_VERSION);
 
     const maxUnlockedLevel = clampProgressLevel(raw.maxUnlockedLevel, fallbackMaxUnlocked);
     const currentLevel = clampProgressLevel(raw.currentLevel, fallbackCurrent);
+    const maxClearedLevel = clampProgressLevelOrZero(raw.maxClearedLevel, fallbackCleared);
     const coins = clampCoins(raw.coins ?? fallbackCoins);
     const selectedSkinId = `${raw.selectedSkinId || fallbackSelectedSkinId || ''}`.trim();
     const unlockedSkinIds = sanitizeSkinIdList(raw.unlockedSkinIds).length > 0
@@ -138,6 +183,7 @@ function normalizeProgress(value, options = {}) {
         raw.nextRewardLevelIndex,
         fallbackNextRewardLevelIndex
     );
+    const rewardGuideShown = raw.rewardGuideShown === true || (raw.rewardGuideShown !== false && fallbackRewardGuideShown);
     const version = clampProgressLevel(raw.version, fallbackVersion || PROGRESS_SCHEMA_VERSION);
     const updatedAt = resolveUpdatedAt(raw.updatedAt, fallback.updatedAt, !!options.forceTouchUpdatedAt);
 
@@ -145,11 +191,13 @@ function normalizeProgress(value, options = {}) {
         version,
         updatedAt,
         maxUnlockedLevel,
+        maxClearedLevel,
         currentLevel,
         coins,
         unlockedSkinIds,
         selectedSkinId,
-        nextRewardLevelIndex
+        nextRewardLevelIndex,
+        rewardGuideShown
     };
 }
 
@@ -211,6 +259,14 @@ function clampProgressLevel(value, fallback = 1) {
     return Math.max(1, Math.floor(parsed));
 }
 
+function clampProgressLevelOrZero(value, fallback = 0) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return Math.max(0, Math.floor(Number(fallback) || 0));
+    }
+    return Math.max(0, Math.floor(parsed));
+}
+
 function clampCoins(value) {
     const parsed = Number(value);
     if (!Number.isFinite(parsed)) {
@@ -234,3 +290,5 @@ function isPlainObject(value) {
 function cloneJson(value) {
     return JSON.parse(JSON.stringify(value));
 }
+
+
