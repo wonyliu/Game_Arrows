@@ -67,11 +67,14 @@ const MISCLICK_PENALTY_TEXT_DURATION_SECONDS = Math.max(
     0.2,
     Number(GAMEPLAY_PARAMS.misclickPenaltyTextDurationSeconds) || 1.9
 );
+const MOBILE_HIT_THRESHOLD_MULTIPLIER = 1.22;
+const MOBILE_HEAD_HIT_THRESHOLD_MULTIPLIER = 1.18;
 const RELEASABLE_HIT_AREA_SCALE = Math.max(
     1,
     Number(GAMEPLAY_PARAMS.releasableHitAreaScale) || 1.3
 );
 const DRAG_RELEASE_CLICK_SUPPRESS_MS = 160;
+const SYNTHETIC_TOUCH_CLICK_SUPPRESS_MS = 700;
 const ENABLE_GAME_DEBUG_LOGS = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('debug') === '1';
 const MOBILE_UA_RE = /android|iphone|ipad|ipod|mobile/i;
@@ -136,6 +139,7 @@ export class Game {
         this.dragReleaseActive = false;
         this.dragReleaseLineIds = new Set();
         this.suppressClickUntil = 0;
+        this.suppressSyntheticClickUntil = 0;
         this.externalPauseActive = false;
         this.releasableHitAreaScale = RELEASABLE_HIT_AREA_SCALE;
         this.lineById = new Map();
@@ -176,10 +180,10 @@ export class Game {
         this.canvas.addEventListener('mousedown', (event) => this.handlePointerDown(event));
         window.addEventListener('mousemove', (event) => this.handlePointerMove(event));
         window.addEventListener('mouseup', (event) => this.handlePointerUp(event));
-        this.canvas.addEventListener('touchstart', (event) => {
-            event.preventDefault();
-            this.handleClick(event.touches[0]);
-        }, { passive: false });
+        this.canvas.addEventListener('touchstart', (event) => this.handleTouchStart(event), { passive: false });
+        window.addEventListener('touchmove', (event) => this.handleTouchMove(event), { passive: false });
+        window.addEventListener('touchend', (event) => this.handleTouchEnd(event), { passive: false });
+        window.addEventListener('touchcancel', (event) => this.handleTouchEnd(event), { passive: false });
 
         window.addEventListener('resize', () => this.resize());
         this.resize();
@@ -891,6 +895,9 @@ export class Game {
         if (this.state !== 'PLAYING' || !this.grid || this.externalPauseActive) {
             return;
         }
+        if (nowMs() < this.suppressSyntheticClickUntil) {
+            return;
+        }
         if (nowMs() < this.suppressClickUntil) {
             return;
         }
@@ -903,6 +910,43 @@ export class Game {
             allowPenalty: true,
             trackDragTarget: false
         });
+    }
+
+    handleTouchStart(event) {
+        if (this.state !== 'PLAYING' || !this.grid || this.externalPauseActive) {
+            return;
+        }
+        if (typeof event?.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        const point = this.getPrimaryTouchPoint(event);
+        if (!point) {
+            return;
+        }
+        this.suppressSyntheticClickUntil = nowMs() + SYNTHETIC_TOUCH_CLICK_SUPPRESS_MS;
+        this.handlePointerDown(point);
+    }
+
+    handleTouchMove(event) {
+        if (this.state !== 'PLAYING' || !this.grid || this.externalPauseActive) {
+            return;
+        }
+        if (typeof event?.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        const point = this.getPrimaryTouchPoint(event);
+        if (!point) {
+            return;
+        }
+        this.handlePointerMove(point);
+    }
+
+    handleTouchEnd(event) {
+        if (typeof event?.preventDefault === 'function') {
+            event.preventDefault();
+        }
+        this.suppressSyntheticClickUntil = nowMs() + SYNTHETIC_TOUCH_CLICK_SUPPRESS_MS;
+        this.handlePointerUp(event);
     }
 
     handlePointerDown(event) {
@@ -993,6 +1037,11 @@ export class Game {
         return true;
     }
 
+    getPrimaryTouchPoint(event) {
+        const touch = event?.touches?.[0] ?? event?.changedTouches?.[0] ?? null;
+        return touch || null;
+    }
+
     getCanvasPoint(event) {
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = rect.width > 0 ? this.canvas.width / rect.width : 1;
@@ -1065,8 +1114,12 @@ export class Game {
     findTopLineAtPoint(x, y) {
         const sortedLines = this.getSortedLines('desc');
 
-        const baseThreshold = this.grid.cellSize * 0.26;
-        const baseHeadThreshold = this.grid.cellSize * 0.4;
+        const baseThreshold = this.grid.cellSize
+            * 0.26
+            * (this.isMobileDevice ? MOBILE_HIT_THRESHOLD_MULTIPLIER : 1);
+        const baseHeadThreshold = this.grid.cellSize
+            * 0.4
+            * (this.isMobileDevice ? MOBILE_HEAD_HIT_THRESHOLD_MULTIPLIER : 1);
         const hitScaleForReleasable = Math.max(1, Number(this.releasableHitAreaScale) || 1);
         const candidates = [];
 
@@ -1080,6 +1133,10 @@ export class Game {
             const headThreshold = baseHeadThreshold * hitScale;
             const points = line.getScreenPoints(this.grid);
             const head = points[points.length - 1];
+            const cellPadding = this.grid.cellSize * 0.08
+                + (releasable ? (hitScale - 1) * this.grid.cellSize * 0.28 : 0);
+            const headCellPadding = this.grid.cellSize * 0.12
+                + (releasable ? (hitScale - 1) * this.grid.cellSize * 0.32 : 0);
 
             let bestNormalizedDistance = Number.POSITIVE_INFINITY;
             if (head) {
@@ -1093,6 +1150,27 @@ export class Game {
                 const segmentDistance = distanceToSegment(x, y, points[i], points[i + 1]);
                 if (segmentDistance <= threshold) {
                     bestNormalizedDistance = Math.min(bestNormalizedDistance, segmentDistance / Math.max(1e-6, threshold));
+                }
+            }
+
+            for (let i = 0; i < line.cells.length; i++) {
+                const cell = line.cells[i];
+                const center = this.grid.gridToScreen(cell.col, cell.row);
+                const isHeadCell = i === (line.cells.length - 1);
+                const padding = isHeadCell ? headCellPadding : cellPadding;
+                const rectDistance = distanceToRect(
+                    x,
+                    y,
+                    center.x - this.grid.cellSize / 2,
+                    center.y - this.grid.cellSize / 2,
+                    this.grid.cellSize,
+                    this.grid.cellSize
+                );
+                if (rectDistance <= padding) {
+                    bestNormalizedDistance = Math.min(
+                        bestNormalizedDistance,
+                        rectDistance / Math.max(1e-6, padding || 1)
+                    );
                 }
             }
 
@@ -1188,7 +1266,10 @@ export class Game {
 
                 const burstX = edgeX + removeDir.dx * borderOutPad;
                 const burstY = edgeY + removeDir.dy * borderOutPad;
-                const textX = burstX + removeDir.dx * Math.max(4, this.grid.cellSize * 0.06);
+                const horizontalInwardOffset = removeDir.dx !== 0 ? 5 : 0;
+                const textX = burstX
+                    + removeDir.dx * Math.max(4, this.grid.cellSize * 0.06)
+                    - removeDir.dx * horizontalInwardOffset;
                 const textY = burstY - floatingYPad;
 
                 const gainedScore = this.currentScorePerBodySegment;
@@ -2485,6 +2566,17 @@ function distanceToSegment(px, py, start, end) {
     const projX = start.x + t * dx;
     const projY = start.y + t * dy;
     return distance(px, py, projX, projY);
+}
+
+function distanceToRect(px, py, left, top, width, height) {
+    const right = left + width;
+    const bottom = top + height;
+    const dx = Math.max(left - px, 0, px - right);
+    const dy = Math.max(top - py, 0, py - bottom);
+    if (dx === 0 && dy === 0) {
+        return 0;
+    }
+    return Math.hypot(dx, dy);
 }
 
 
