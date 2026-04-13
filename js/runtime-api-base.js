@@ -8,7 +8,7 @@
   const isGitHubPages = /\.github\.io$/i.test(host);
 
   // online profile: GitHub Pages defaults to external HTTPS API endpoint.
-  const githubDefaultApiBase = 'https://jack-mixing-permission-hawaiian.trycloudflare.com';
+  const githubDefaultApiBase = 'https://searching-cheats-arabic-compaq.trycloudflare.com';
 
   let apiBase = '';
   if (explicitFromQuery) {
