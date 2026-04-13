@@ -43,9 +43,8 @@ import {
     getLocalDayKey,
     readLiveOpsConfig,
     readLiveOpsPlayerState,
-    syncLiveOpsPlayerToServer,
     writeLiveOpsPlayerState
-} from './liveops-storage.js?v=3';
+} from './liveops-storage.js?v=4';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
@@ -184,6 +183,12 @@ export class Game {
         window.addEventListener('touchmove', (event) => this.handleTouchMove(event), { passive: false });
         window.addEventListener('touchend', (event) => this.handleTouchEnd(event), { passive: false });
         window.addEventListener('touchcancel', (event) => this.handleTouchEnd(event), { passive: false });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') {
+                this.flushTransientLiveOpsState({ keepalive: true });
+            }
+        });
+        window.addEventListener('pagehide', () => this.flushTransientLiveOpsState({ keepalive: true }));
 
         window.addEventListener('resize', () => this.resize());
         this.resize();
@@ -317,10 +322,25 @@ export class Game {
                 shuffle: Math.max(0, Math.floor(Number(this.toolInventory.shuffle) || 0))
             }
         };
-        this.liveOpsPlayer = writeLiveOpsPlayerState(next, { syncServer: options.syncServer === true });
-        if (options.syncServer === true) {
-            void syncLiveOpsPlayerToServer();
+        this.liveOpsPlayer = writeLiveOpsPlayerState(next, {
+            syncServer: options.syncServer === true,
+            keepalive: options.keepalive === true
+        });
+    }
+
+    flushTransientLiveOpsState(options = {}) {
+        const online = this.liveOpsPlayer?.onlineReward || {};
+        const remainingSeconds = Number(online.remainingSeconds);
+        const shouldSync = this.onlineRewardSaveAccumulator > 0
+            || (Number.isFinite(remainingSeconds) && remainingSeconds <= 0);
+        if (!shouldSync) {
+            return;
         }
+        this.onlineRewardSaveAccumulator = 0;
+        this.writeLiveOpsPlayer({
+            syncServer: true,
+            keepalive: options.keepalive === true
+        });
     }
 
     getLiveOpsConfig() {

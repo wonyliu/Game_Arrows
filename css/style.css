@@ -317,14 +317,17 @@ textarea {
 .hud-level {
     color: #fff3df;
     font-family: var(--font-display);
-    font-size: 30px;
+    font-size: 18px;
     line-height: 1;
-    letter-spacing: 1px;
-    text-shadow: 0 2px 0 rgba(66, 40, 22, 0.7);
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 0 rgba(66, 40, 22, 0.62);
+    margin-top: 2px;
+    margin-bottom: 6px;
+    text-align: center;
 }
 
 #levelInfo {
-    display: none;
+    display: block;
 }
 
 .hud-lives {
@@ -2094,13 +2097,13 @@ textarea {
 
 .reward-guide-hand {
     position: absolute;
-    left: 18px;
-    top: 8px;
+    left: 50%;
+    top: 50%;
     width: 82px;
     height: 108px;
     background: url('../assets/ui/reward-guide-hand.png') center / contain no-repeat;
     filter: drop-shadow(0 10px 18px rgba(44, 25, 11, 0.28));
-    transform: translateX(0);
+    transform: translate(-50%, -50%);
     animation: reward-guide-swipe 1.45s ease-in-out infinite;
 }
 
@@ -2137,10 +2140,12 @@ textarea {
 }
 
 @keyframes reward-guide-swipe {
-    0% { transform: translateX(0) scale(1); }
-    22% { transform: translateX(0) scale(0.93); }
-    72% { transform: translateX(138px) scale(1); }
-    100% { transform: translateX(138px) scale(1); }
+    0% { transform: translate(calc(-50% - 68px), calc(-50% - 6px)) scale(1); }
+    16% { transform: translate(calc(-50% - 10px), calc(-50% - 34px)) scale(0.94); }
+    38% { transform: translate(calc(-50% + 62px), calc(-50% - 8px)) scale(1); }
+    62% { transform: translate(calc(-50% + 16px), calc(-50% + 30px)) scale(0.96); }
+    84% { transform: translate(calc(-50% - 60px), calc(-50% + 10px)) scale(1); }
+    100% { transform: translate(calc(-50% - 68px), calc(-50% - 6px)) scale(1); }
 }
 
 @keyframes reward-guide-press {

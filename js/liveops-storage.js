@@ -106,14 +106,14 @@ export function writeLiveOpsPlayerState(value, options = {}) {
     const normalized = normalizeLiveOpsPlayerState(value, { forceTouchUpdatedAt: true });
     liveopsPlayerState = normalized;
     if (options.syncServer === true) {
-        void persistPlayerToServer(normalized);
+        void persistPlayerToServer(normalized, { keepalive: options.keepalive === true });
     }
     return cloneJson(normalized);
 }
 
-export function syncLiveOpsPlayerToServer() {
+export function syncLiveOpsPlayerToServer(options = {}) {
     const state = readLiveOpsPlayerState();
-    return persistPlayerToServer(state);
+    return persistPlayerToServer(state, { keepalive: options.keepalive === true });
 }
 
 export function getBusinessDayKeyByHour(dateValue, resetHour = 0) {
@@ -216,7 +216,7 @@ async function persistConfigToServer(config) {
     }
 }
 
-async function persistPlayerToServer(player) {
+async function persistPlayerToServer(player, options = {}) {
     if (!canUseApiStorage()) {
         return false;
     }
@@ -228,6 +228,7 @@ async function persistPlayerToServer(player) {
         const response = await fetch(endpoint, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
+            keepalive: options.keepalive === true,
             body: JSON.stringify(player)
         });
         if (!response.ok) {

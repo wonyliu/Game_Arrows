@@ -1146,6 +1146,23 @@ export class UI {
         return t(this.locale, 'common.levelTag', { level });
     }
 
+    formatHudLevel(level) {
+        if (
+            this.game
+            && Number(level) === Number(this.game.currentLevel)
+            && typeof this.game.getCurrentStageLabel === 'function'
+        ) {
+            const stageLabel = `${this.game.getCurrentStageLabel() || ''}`.trim();
+            if (stageLabel) {
+                return stageLabel;
+            }
+        }
+        if (this.locale === 'zh-CN') {
+            return `关卡${level}`;
+        }
+        return `Level ${level}`;
+    }
+
     refreshMenuLevelTag() {
         const level = this.getDefaultStartLevel();
         const valueText = this.formatLevel(level);
@@ -1314,7 +1331,7 @@ export class UI {
 
     updateHUD() {
         if (this.levelInfoEl) {
-            this.levelInfoEl.textContent = this.formatLevel(this.game.currentLevel);
+            this.levelInfoEl.textContent = this.formatHudLevel(this.game.currentLevel);
         }
 
         if (this.livesEl) {
