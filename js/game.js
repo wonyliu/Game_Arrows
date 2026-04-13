@@ -15,7 +15,7 @@ import {
     deserializeLevelData,
     getSavedLevelRecord,
     isStoredLevelDataUsable
-} from './level-storage.js?v=55';
+} from './level-storage.js?v=56';
 import {
     playClearSoundExclusive,
     playErrorSound,
@@ -37,14 +37,14 @@ import { readGameplayParams } from './game-params.js?v=4';
 import {
     readProgressSnapshot,
     saveProgressSnapshot
-} from './progress-storage.js?v=5';
+} from './progress-storage.js?v=6';
 import {
     getBusinessDayKeyByHour,
     getLocalDayKey,
     readLiveOpsConfig,
     readLiveOpsPlayerState,
     writeLiveOpsPlayerState
-} from './liveops-storage.js?v=4';
+} from './liveops-storage.js?v=5';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
@@ -185,10 +185,10 @@ export class Game {
         window.addEventListener('touchcancel', (event) => this.handleTouchEnd(event), { passive: false });
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
-                this.flushTransientLiveOpsState({ keepalive: true });
+                this.flushPersistentPlayerState({ keepalive: true });
             }
         });
-        window.addEventListener('pagehide', () => this.flushTransientLiveOpsState({ keepalive: true }));
+        window.addEventListener('pagehide', () => this.flushPersistentPlayerState({ keepalive: true }));
 
         window.addEventListener('resize', () => this.resize());
         this.resize();
@@ -231,7 +231,7 @@ export class Game {
         this.loadLiveOpsState();
     }
 
-    saveProgress() {
+    saveProgress(options = {}) {
         this.refreshLevelCatalog();
         const cappedUnlocked = normalizePlayableLevel(this.maxUnlockedLevel || 1, this.normalLevelCount);
         const cappedCurrent = this.isRewardStage
@@ -256,7 +256,7 @@ export class Game {
             selectedSkinId,
             nextRewardLevelIndex: Math.max(1, Math.floor(Number(this.nextRewardLevelIndex) || 1)),
             rewardGuideShown: this.rewardGuideShown === true
-        });
+        }, { keepalive: options.keepalive === true });
     }
 
     hasSeenRewardStageGuide() {
@@ -341,6 +341,11 @@ export class Game {
             syncServer: true,
             keepalive: options.keepalive === true
         });
+    }
+
+    flushPersistentPlayerState(options = {}) {
+        this.saveProgress({ keepalive: options.keepalive === true });
+        this.flushTransientLiveOpsState({ keepalive: options.keepalive === true });
     }
 
     getLiveOpsConfig() {

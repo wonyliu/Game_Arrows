@@ -1,4 +1,4 @@
-﻿import { getActiveUserId } from './user-auth.js?v=2';
+import { getActiveUserId } from './user-auth.js?v=3';
 
 const GAME_PROGRESS_FILE = 'game-progress-v1';
 const STORAGE_API_BASE = '/api/storage';
@@ -29,13 +29,18 @@ export function readProgressSnapshot() {
     return cloneJson(progressState);
 }
 
-export function saveProgressSnapshot(progress) {
+export function saveProgressSnapshot(progress, options = {}) {
     const normalized = normalizeProgress(progress, {
         fallback: progressState,
         forceTouchUpdatedAt: true
     });
     progressState = normalized;
-    return persistProgressToServer(normalized);
+    return persistProgressToServer(normalized, { keepalive: options.keepalive === true });
+}
+
+export function syncProgressSnapshotToServer(options = {}) {
+    const state = readProgressSnapshot();
+    return persistProgressToServer(state, { keepalive: options.keepalive === true });
 }
 
 async function hydrateFromPersistentSource() {
@@ -103,7 +108,7 @@ async function fetchProgressFromServer() {
     return null;
 }
 
-async function persistProgressToServer(progress) {
+async function persistProgressToServer(progress, options = {}) {
     if (typeof fetch !== 'function') {
         return false;
     }
@@ -116,6 +121,7 @@ async function persistProgressToServer(progress) {
                 headers: {
                     'Content-Type': 'application/json'
                 },
+                keepalive: options.keepalive === true,
                 body: JSON.stringify(progress)
             });
 
@@ -135,6 +141,7 @@ async function persistProgressToServer(progress) {
             headers: {
                 'Content-Type': 'application/json'
             },
+            keepalive: options.keepalive === true,
             body: JSON.stringify(progress)
         });
 

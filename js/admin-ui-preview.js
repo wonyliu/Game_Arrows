@@ -1,5 +1,5 @@
 ﻿import { initUiLayoutStorage, readUiLayoutConfig } from './ui-layout-config.js?v=4';
-import { getLocalDayKey, readLiveOpsConfig, readLiveOpsPlayerState } from './liveops-storage.js?v=3';
+import { getLocalDayKey, readLiveOpsConfig, readLiveOpsPlayerState } from './liveops-storage.js?v=5';
 
 const el = {
     overlay: document.getElementById('checkinOverlay'),

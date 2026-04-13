@@ -41,7 +41,9 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server:restart": "bash scripts/restart-dev-server.sh"
+    "server:restart": "bash scripts/restart-dev-server.sh",
+    "managed:pull": "node scripts/sync-managed-config.mjs --mode=pull",
+    "managed:push": "node scripts/sync-managed-config.mjs --mode=push"
   },
   "repository": {
     "type": "git",

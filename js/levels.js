@@ -1,4 +1,4 @@
-import { applyStoredSettings, getLevelCatalog, getSavedLevelRecord } from './level-storage.js?v=55';
+import { applyStoredSettings, getLevelCatalog, getSavedLevelRecord } from './level-storage.js?v=56';
 
 export const MAX_NORMAL_LEVEL = 1000;
 export const MAX_REWARD_LEVEL = 200;

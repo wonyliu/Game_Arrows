@@ -26,7 +26,7 @@ import {
     savePreviewLevelRecord,
     saveSavedLevelRecord,
     saveLevelCatalog
-} from './level-storage.js?v=55';
+} from './level-storage.js?v=56';
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),

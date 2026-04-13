@@ -9,7 +9,7 @@ import {
     getLocalDayKey,
     readLiveOpsConfig,
     readLiveOpsPlayerState
-} from './liveops-storage.js?v=3';
+} from './liveops-storage.js?v=5';
 
 const el = {
     previewMode: document.getElementById('uiEditorPreviewMode'),

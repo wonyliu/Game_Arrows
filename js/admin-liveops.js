@@ -6,7 +6,7 @@
     readLiveOpsPlayerState,
     writeLiveOpsConfig,
     writeLiveOpsPlayerState
-} from './liveops-storage.js?v=3';
+} from './liveops-storage.js?v=5';
 
 const el = {
     itemList: document.getElementById('liveopsItemList'),
