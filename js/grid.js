@@ -12,7 +12,7 @@ export class Grid {
     }
 
     resize(canvasWidth, canvasHeight) {
-        const margin = 10;
+        const margin = 5;
         const availW = canvasWidth - margin * 2;
         const availH = canvasHeight - margin * 2;
 

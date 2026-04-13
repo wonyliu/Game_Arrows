@@ -1852,8 +1852,131 @@ function toAdminSafeUserDetail(user) {
         progress: normalizeProgressFromPayload(user.progress),
         liveopsPlayer: normalizeLiveopsPlayerState(user.liveopsPlayer),
         passwordAlgorithm: `${user.passwordAlgorithm || ''}`.trim() || 'sha256-v1',
-        passwordSaltMasked: user.passwordSalt ? '***' : '',
-        passwordHashMasked: user.passwordHash ? '***' : ''
+        passwordSalt: `${user.passwordSalt || ''}`.trim(),
+        passwordHash: `${user.passwordHash || ''}`.trim()
+    };
+}
+
+function sanitizeIsoDateTime(raw, fallback = '') {
+    const text = `${raw || ''}`.trim();
+    if (!text) return fallback;
+    const date = new Date(text);
+    if (Number.isNaN(date.getTime())) return fallback;
+    return date.toISOString();
+}
+
+function sanitizeStringArray(value, { sanitize = (item) => `${item || ''}`.trim(), max = 200 } = {}) {
+    if (!Array.isArray(value)) return [];
+    const out = [];
+    for (const item of value) {
+        const text = sanitize(item);
+        if (!text) continue;
+        out.push(text);
+        if (out.length >= max) break;
+    }
+    return out;
+}
+
+function sanitizeAdminDevices(value, fallback = []) {
+    const source = Array.isArray(value) ? value : fallback;
+    return source
+        .map((row) => {
+            const item = isPlainObject(row) ? row : {};
+            const deviceId = sanitizeDeviceId(item.deviceId);
+            if (!deviceId) return null;
+            return {
+                deviceId,
+                deviceInfo: sanitizeDeviceInfo(item.deviceInfo),
+                firstSeenAt: sanitizeIsoDateTime(item.firstSeenAt, ''),
+                lastSeenAt: sanitizeIsoDateTime(item.lastSeenAt, '')
+            };
+        })
+        .filter(Boolean)
+        .slice(0, 200);
+}
+
+function sanitizeCookieMismatchLogs(value, fallback = []) {
+    const source = Array.isArray(value) ? value : fallback;
+    return source
+        .map((row) => {
+            const item = isPlainObject(row) ? row : {};
+            const userId = sanitizeUserId(item.userId);
+            const cookieUserId = sanitizeUserId(item.cookieUserId);
+            const at = sanitizeIsoDateTime(item.at, '');
+            const deviceId = sanitizeDeviceId(item.deviceId);
+            if (!userId && !cookieUserId && !at && !deviceId) return null;
+            return {
+                at,
+                cookieUserId,
+                userId,
+                deviceId
+            };
+        })
+        .filter(Boolean)
+        .slice(0, 200);
+}
+
+function normalizeAdminUserPayload(body, existingUser = null) {
+    const baseProgress = existingUser?.progress ?? buildDefaultProgress();
+    const baseLiveopsPlayer = existingUser?.liveopsPlayer ?? buildDefaultLiveopsPlayerState();
+    const userIdInput = sanitizeUserId(body?.userId || existingUser?.userId || '');
+    const username = sanitizeUsername(body?.username ?? existingUser?.username ?? '');
+    const isTempUser = body?.isTempUser === true || (body?.isTempUser !== false && existingUser?.isTempUser === true);
+    const avatarUrl = `${body?.avatarUrl ?? existingUser?.avatarUrl ?? ''}`.trim().slice(0, 1000)
+        || defaultAvatarByName(username || userIdInput || 'snake');
+    const createdAt = sanitizeIsoDateTime(body?.createdAt, existingUser?.createdAt || nowIso());
+    const lastActiveAt = sanitizeIsoDateTime(body?.lastActiveAt, existingUser?.lastActiveAt || createdAt || nowIso());
+    const primaryDeviceId = sanitizeDeviceId(body?.primaryDeviceId ?? existingUser?.primaryDeviceId ?? '');
+    const hardwareDeviceIds = sanitizeStringArray(
+        body?.hardwareDeviceIds ?? existingUser?.hardwareDeviceIds ?? [],
+        { sanitize: sanitizeDeviceId, max: 200 }
+    );
+    const devices = sanitizeAdminDevices(body?.devices, existingUser?.devices ?? []);
+    const cookieDeviceMismatchLogs = sanitizeCookieMismatchLogs(
+        body?.cookieDeviceMismatchLogs,
+        existingUser?.cookieDeviceMismatchLogs ?? []
+    );
+    const progress = normalizeProgressFromPayload(body?.progress, baseProgress);
+    const liveopsPlayer = normalizeLiveopsPlayerState(body?.liveopsPlayer, baseLiveopsPlayer);
+    const unlockedSkinIds = collectUniqueSkinIds(body?.unlockedSkinIds ?? progress.unlockedSkinIds ?? existingUser?.unlockedSkinIds);
+    const coins = Math.max(0, Math.floor(Number(body?.coins ?? progress.coins ?? existingUser?.coins) || 0));
+    const maxUnlockedLevel = Math.max(1, Math.floor(Number(body?.maxUnlockedLevel ?? progress.maxUnlockedLevel ?? existingUser?.maxUnlockedLevel) || 1));
+    const maxClearedLevel = Math.max(0, Math.floor(Number(body?.maxClearedLevel ?? progress.maxClearedLevel ?? existingUser?.maxClearedLevel) || 0));
+    const passwordAlgorithm = `${body?.passwordAlgorithm ?? existingUser?.passwordAlgorithm ?? 'sha256-v1'}`.trim() || 'sha256-v1';
+    const plainPassword = `${body?.plainPassword || ''}`;
+    let passwordSalt = `${body?.passwordSalt ?? existingUser?.passwordSalt ?? ''}`.trim();
+    let passwordHash = `${body?.passwordHash ?? existingUser?.passwordHash ?? ''}`.trim();
+    if (plainPassword) {
+        passwordSalt = crypto.randomBytes(12).toString('hex');
+        passwordHash = hashPassword(plainPassword, passwordSalt, passwordAlgorithm);
+    }
+    const normalizedProgress = {
+        ...progress,
+        coins,
+        maxUnlockedLevel,
+        maxClearedLevel,
+        unlockedSkinIds
+    };
+    return {
+        userId: userIdInput,
+        username,
+        avatarUrl,
+        isTempUser,
+        passwordAlgorithm,
+        passwordSalt,
+        passwordHash,
+        createdAt,
+        lastActiveAt,
+        primaryDeviceId,
+        hardwareDeviceIds,
+        devices,
+        cookieDeviceMismatchLogs,
+        progress: normalizedProgress,
+        liveopsPlayer,
+        coins,
+        maxUnlockedLevel,
+        maxClearedLevel,
+        unlockedSkinIds
     };
 }
 
@@ -1878,31 +2001,72 @@ async function handleAdminDbOverviewRequest(req, res) {
 }
 
 async function handleAdminDbUsersRequest(req, res, requestUrl) {
-    if (req.method !== 'GET') {
-        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+    if (req.method === 'GET') {
+        const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 200, 50);
+        const offset = clampInt(requestUrl.searchParams.get('offset'), 0, 500000, 0);
+        const query = `${requestUrl.searchParams.get('q') || ''}`.trim();
+        const [rows, total] = await Promise.all([
+            userCenterStore.listUsers({ limit, offset, query }),
+            userCenterStore.countUsers(query)
+        ]);
+        sendJson(res, 200, {
+            ok: true,
+            limit,
+            offset,
+            total,
+            rows
+        });
         return;
     }
-    const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 200, 50);
-    const offset = clampInt(requestUrl.searchParams.get('offset'), 0, 500000, 0);
-    const query = `${requestUrl.searchParams.get('q') || ''}`.trim();
-    const [rows, total] = await Promise.all([
-        userCenterStore.listUsers({ limit, offset, query }),
-        userCenterStore.countUsers(query)
-    ]);
-    sendJson(res, 200, {
-        ok: true,
-        limit,
-        offset,
-        total,
-        rows
-    });
+    if (req.method === 'POST') {
+        let body;
+        try {
+            body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+        } catch (error) {
+            sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+            return;
+        }
+        if (!isPlainObject(body)) {
+            sendJson(res, 400, { ok: false, error: 'body must be an object' });
+            return;
+        }
+        const isTempUser = body?.isTempUser === true;
+        const normalized = normalizeAdminUserPayload(body, null);
+        if (!normalized.username || normalized.username.length < 2) {
+            sendJson(res, 400, { ok: false, error: 'username must be at least 2 chars' });
+            return;
+        }
+        const duplicated = await userCenterStore.findUserByUsernameLower(normalized.username.toLowerCase());
+        if (duplicated) {
+            sendJson(res, 409, { ok: false, error: 'username already exists' });
+            return;
+        }
+        let userId = normalized.userId;
+        if (userId) {
+            const existed = await userCenterStore.findUserById(userId);
+            if (existed) {
+                sendJson(res, 409, { ok: false, error: 'user id already exists' });
+                return;
+            }
+        } else {
+            const identity = await userCenterStore.allocateUserIdentity(isTempUser);
+            userId = identity.userId;
+        }
+        const createdAt = normalized.createdAt || nowIso();
+        const user = {
+            ...normalized,
+            userId,
+            createdAt,
+            lastActiveAt: normalized.lastActiveAt || createdAt
+        };
+        await userCenterStore.insertUser(user);
+        sendJson(res, 200, { ok: true, user: toAdminSafeUserDetail(user) });
+        return;
+    }
+    sendJson(res, 405, { ok: false, error: 'method not allowed' });
 }
 
 async function handleAdminDbUserDetailRequest(req, res, requestUrl) {
-    if (req.method !== 'GET') {
-        sendJson(res, 405, { ok: false, error: 'method not allowed' });
-        return;
-    }
     const userId = parseAdminDbUserId(requestUrl.pathname);
     if (!userId) {
         sendJson(res, 400, { ok: false, error: 'invalid user id' });
@@ -1913,7 +2077,47 @@ async function handleAdminDbUserDetailRequest(req, res, requestUrl) {
         sendJson(res, 404, { ok: false, error: 'user not found' });
         return;
     }
-    sendJson(res, 200, { ok: true, user: toAdminSafeUserDetail(user) });
+    if (req.method === 'GET') {
+        sendJson(res, 200, { ok: true, user: toAdminSafeUserDetail(user) });
+        return;
+    }
+    if (req.method === 'PUT') {
+        let body;
+        try {
+            body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+        } catch (error) {
+            sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+            return;
+        }
+        if (!isPlainObject(body)) {
+            sendJson(res, 400, { ok: false, error: 'body must be an object' });
+            return;
+        }
+        const normalized = normalizeAdminUserPayload(body, user);
+        if (!normalized.username || normalized.username.length < 2) {
+            sendJson(res, 400, { ok: false, error: 'username must be at least 2 chars' });
+            return;
+        }
+        const duplicated = await userCenterStore.findUserByUsernameLower(normalized.username.toLowerCase());
+        if (duplicated && sanitizeUserId(duplicated.userId) !== userId) {
+            sendJson(res, 409, { ok: false, error: 'username already exists' });
+            return;
+        }
+        const nextUser = {
+            ...user,
+            ...normalized,
+            userId
+        };
+        await userCenterStore.updateUser(nextUser);
+        sendJson(res, 200, { ok: true, user: toAdminSafeUserDetail(nextUser) });
+        return;
+    }
+    if (req.method === 'DELETE') {
+        await userCenterStore.deleteUser(userId);
+        sendJson(res, 200, { ok: true, userId });
+        return;
+    }
+    sendJson(res, 405, { ok: false, error: 'method not allowed' });
 }
 
 async function handleSfxProvidersRequest(req, res) {

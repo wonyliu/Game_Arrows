@@ -19,10 +19,10 @@
     --app-scale: 1;
     --safe-vw: 100vw;
     --safe-vh: 100dvh;
-    --header-h: 78px;
-    --canvas-top-gap: 84px;
-    --hud-bottom-h: 122px;
-    --content-pad-x: 18px;
+    --header-h: 16px;
+    --canvas-top-gap: 78px;
+    --hud-bottom-h: 108px;
+    --content-pad-x: 5px;
     --font-display: "ZCOOL KuaiLe", "Nunito", "Microsoft YaHei", sans-serif;
     --font-body: "Nunito", "Microsoft YaHei", "PingFang SC", sans-serif;
     --font-ui-clean: "Nunito", "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -120,6 +120,10 @@ textarea {
     pointer-events: none;
 }
 
+.wechat-header {
+    display: none;
+}
+
 .wechat-title {
     font-family: var(--font-display);
     color: #fff4dc;
@@ -182,8 +186,8 @@ textarea {
     position: absolute;
     right: 8px;
     top: -4px;
-    width: 66px;
-    height: 66px;
+    width: 46px;
+    height: 46px;
     padding: 0;
     border: 0;
     border-radius: 0;
@@ -204,8 +208,8 @@ textarea {
 }
 
 .hud-settings-icon {
-    width: 62px;
-    height: 62px;
+    width: 43px;
+    height: 43px;
     display: block;
     filter: none;
 }
@@ -258,7 +262,7 @@ textarea {
 .hud-score-pulse {
     position: absolute;
     left: 50%;
-    top: calc(var(--canvas-top-gap) + 90px);
+    top: calc(var(--canvas-top-gap) - 10px);
     width: 250px;
     transform: translateX(-50%);
     display: flex;
@@ -317,6 +321,10 @@ textarea {
     line-height: 1;
     letter-spacing: 1px;
     text-shadow: 0 2px 0 rgba(66, 40, 22, 0.7);
+}
+
+#levelInfo {
+    display: none;
 }
 
 .hud-lives {
@@ -425,6 +433,7 @@ textarea {
     pointer-events: none;
     user-select: none;
     text-shadow: 0 2px 0 rgba(73, 43, 25, 0.68), 0 6px 16px rgba(26, 15, 9, 0.44);
+    transform: translateY(20px);
 }
 
 .hud-combo-count {
@@ -2063,7 +2072,7 @@ textarea {
 .reward-guide-content {
     position: absolute;
     left: 50%;
-    top: 23%;
+    top: calc(23% + 200px);
     transform: translateX(-50%);
     width: min(88%, 340px);
     display: flex;
@@ -2074,8 +2083,8 @@ textarea {
 }
 
 .reward-guide-swipe {
-    width: 210px;
-    height: 104px;
+    width: 244px;
+    height: 132px;
     border-radius: 999px;
     border: 2px dashed rgba(255, 240, 205, 0.85);
     background: rgba(255, 247, 229, 0.18);
@@ -2085,33 +2094,21 @@ textarea {
 
 .reward-guide-hand {
     position: absolute;
-    left: 28px;
-    top: 34px;
-    width: 46px;
-    height: 46px;
-    border-radius: 18px 18px 14px 14px;
-    background: linear-gradient(180deg, #fff6e6 0%, #f3d4ad 100%);
-    box-shadow: 0 5px 14px rgba(44, 25, 11, 0.3);
+    left: 18px;
+    top: 8px;
+    width: 82px;
+    height: 108px;
+    background: url('../assets/ui/reward-guide-hand.png') center / contain no-repeat;
+    filter: drop-shadow(0 10px 18px rgba(44, 25, 11, 0.28));
     transform: translateX(0);
     animation: reward-guide-swipe 1.45s ease-in-out infinite;
 }
 
-.reward-guide-finger {
-    position: absolute;
-    width: 16px;
-    height: 32px;
-    left: 16px;
-    top: -18px;
-    border-radius: 12px;
-    background: linear-gradient(180deg, #fff8eb 0%, #f1cfa3 100%);
-    box-shadow: 0 3px 8px rgba(40, 24, 12, 0.22);
-}
-
-.reward-guide-finger::after {
+.reward-guide-hand::after {
     content: '';
     position: absolute;
-    left: 50%;
-    top: 56%;
+    left: 10px;
+    top: 12px;
     transform: translate(-50%, -50%) scale(0.52);
     width: 18px;
     height: 18px;
@@ -2119,6 +2116,10 @@ textarea {
     border: 2px solid rgba(255, 255, 255, 0.9);
     opacity: 0;
     animation: reward-guide-press 1.45s ease-out infinite;
+}
+
+.reward-guide-finger {
+    display: none;
 }
 
 .reward-guide-text {
@@ -2138,8 +2139,8 @@ textarea {
 @keyframes reward-guide-swipe {
     0% { transform: translateX(0) scale(1); }
     22% { transform: translateX(0) scale(0.93); }
-    72% { transform: translateX(118px) scale(1); }
-    100% { transform: translateX(118px) scale(1); }
+    72% { transform: translateX(138px) scale(1); }
+    100% { transform: translateX(138px) scale(1); }
 }
 
 @keyframes reward-guide-press {

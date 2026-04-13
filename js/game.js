@@ -6,6 +6,7 @@ import {
     getLevelConfig,
     getNormalLevelCount,
     getRewardLevelCount,
+    rewardIndexFromLevelId,
     toRewardLevelId
 } from './levels.js?v=32';
 import { AnimationManager } from './animation.js?v=43';
@@ -251,6 +252,13 @@ export class Game {
 
     hasSeenRewardStageGuide() {
         return this.rewardGuideShown === true;
+    }
+
+    shouldShowRewardStageGuide() {
+        if (this.rewardGuideShown === true || this.isRewardStage !== true) {
+            return false;
+        }
+        return rewardIndexFromLevelId(this.currentLevel) === 2;
     }
 
     markRewardStageGuideShown() {
@@ -1165,14 +1173,6 @@ export class Game {
             onSegment: (source) => {
                 const sourceX = Number(source?.x) || headPos.x;
                 const sourceY = Number(source?.y) || headPos.y;
-                if (this.isRewardStage) {
-                    this.animations.addRewardFirework(sourceX, sourceY, {
-                        maxRadius: Math.max(8, this.grid.cellSize * 0.62),
-                        lineWidth: Math.max(1.3, this.grid.cellSize * 0.05),
-                        duration: 0.34,
-                        endScale: 3.6
-                    });
-                }
 
                 let edgeX = sourceX;
                 let edgeY = sourceY;
@@ -1232,6 +1232,19 @@ export class Game {
                 } else {
                     this.updateHUD();
                 }
+            },
+            onTailSegment: (source) => {
+                if (!this.isRewardStage) {
+                    return;
+                }
+                const sourceX = Number(source?.x) || headPos.x;
+                const sourceY = Number(source?.y) || headPos.y;
+                this.animations.addRewardFirework(sourceX, sourceY, {
+                    maxRadius: Math.max(8, this.grid.cellSize * 0.62) * 5,
+                    lineWidth: Math.max(1.3, this.grid.cellSize * 0.05) * 5,
+                    duration: 0.8,
+                    endScale: 3.6
+                });
             },
             onComplete: () => this.checkLevelComplete()
         });
@@ -1790,7 +1803,7 @@ export class Game {
         }
         this.toolInventory[key] = invRemaining - 1;
         this.syncToolUsesFromPools();
-        this.writeLiveOpsPlayer();
+        this.writeLiveOpsPlayer({ syncServer: true });
         this.emitLiveOpsUpdated();
         return 'inventory';
     }
@@ -1802,7 +1815,7 @@ export class Game {
         if (source === 'inventory') {
             this.toolInventory[type] = Math.max(0, Math.floor(Number(this.toolInventory[type]) || 0)) + 1;
             this.syncToolUsesFromPools();
-            this.writeLiveOpsPlayer();
+            this.writeLiveOpsPlayer({ syncServer: true });
             this.emitLiveOpsUpdated();
             return;
         }
@@ -1895,7 +1908,7 @@ export class Game {
             return;
         }
         this.syncToolUsesFromPools();
-        this.writeLiveOpsPlayer();
+        this.writeLiveOpsPlayer({ syncServer: true });
         this.saveProgress();
         if (skinChanged) {
             this.rebuildPixelScene();
@@ -1961,8 +1974,9 @@ export class Game {
         };
         this.onlineRewardSaveAccumulator += delta;
         if (next <= 0 || this.onlineRewardSaveAccumulator >= 8) {
+            const shouldSyncServer = next <= 0;
             this.onlineRewardSaveAccumulator = 0;
-            this.writeLiveOpsPlayer();
+            this.writeLiveOpsPlayer({ syncServer: shouldSyncServer });
             this.emitLiveOpsUpdated();
         }
     }

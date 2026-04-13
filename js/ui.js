@@ -1003,10 +1003,11 @@ export class UI {
         if (!this.rewardStageGuideOverlayEl || !this.game) {
             return;
         }
-        if (this.game.isRewardStage !== true) {
-            return;
-        }
-        if (typeof this.game.hasSeenRewardStageGuide === 'function' && this.game.hasSeenRewardStageGuide()) {
+        if (typeof this.game.shouldShowRewardStageGuide === 'function') {
+            if (!this.game.shouldShowRewardStageGuide()) {
+                return;
+            }
+        } else if (typeof this.game.hasSeenRewardStageGuide === 'function' && this.game.hasSeenRewardStageGuide()) {
             return;
         }
         this.showRewardStageGuide();

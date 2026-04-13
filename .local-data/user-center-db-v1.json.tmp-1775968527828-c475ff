@@ -11,7 +11,7 @@
       "passwordSalt": "646095557cace5192a502af0",
       "passwordHash": "8cb87244352b719631ddbf107d9193af30706d7386109c33fe5b19c27f8566a7",
       "createdAt": "2026-04-11T02:57:38.826Z",
-      "lastActiveAt": "2026-04-12T15:27:46.711Z",
+      "lastActiveAt": "2026-04-12T04:35:27.675Z",
       "primaryDeviceId": "dev-mntq3uvn2exp3fce",
       "hardwareDeviceIds": [
         "dev-mntq3uvn2exp3fce"
@@ -21,17 +21,17 @@
           "deviceId": "dev-mntq3uvn2exp3fce",
           "deviceInfo": "Win32 | Google Inc. | zh-CN | 2560x1440 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
           "firstSeenAt": "2026-04-11T02:57:38.826Z",
-          "lastSeenAt": "2026-04-12T15:27:46.711Z"
+          "lastSeenAt": "2026-04-12T04:35:27.675Z"
         }
       ],
       "cookieDeviceMismatchLogs": [],
       "progress": {
         "version": 1,
-        "updatedAt": "2026-04-12T15:27:46.788Z",
-        "maxUnlockedLevel": 1,
-        "maxClearedLevel": 0,
-        "currentLevel": 1,
-        "coins": 0,
+        "updatedAt": "2026-04-12T04:35:27.818Z",
+        "maxUnlockedLevel": 3,
+        "maxClearedLevel": 2,
+        "currentLevel": 3,
+        "coins": 57,
         "unlockedSkinIds": [
           "classic-burrow"
         ],
@@ -39,14 +39,14 @@
         "nextRewardLevelIndex": 1,
         "rewardGuideShown": false
       },
-      "coins": 0,
-      "maxUnlockedLevel": 1,
+      "coins": 57,
+      "maxUnlockedLevel": 3,
       "unlockedSkinIds": [
         "classic-burrow"
       ],
       "liveopsPlayer": {
         "version": 1,
-        "updatedAt": "2026-04-12T15:27:46.788Z",
+        "updatedAt": "2026-04-12T04:35:27.818Z",
         "inventory": {
           "skin_fragment": 0,
           "hint": 0,
@@ -54,16 +54,16 @@
           "shuffle": 0
         },
         "checkin": {
-          "claimedCount": 0,
-          "lastClaimDayKey": ""
+          "claimedCount": 1,
+          "lastClaimDayKey": "2026-04-12"
         },
         "onlineReward": {
-          "dayKey": "",
-          "tierIndex": 0,
-          "remainingSeconds": 0
+          "dayKey": "2026-04-12",
+          "tierIndex": 1,
+          "remainingSeconds": 293.12470000001053
         }
       },
-      "maxClearedLevel": 0,
+      "maxClearedLevel": 2,
       "passwordAlgorithm": "sha256-v1"
     }
   ]
