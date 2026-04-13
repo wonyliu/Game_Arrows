@@ -164,6 +164,7 @@ function ensureAuthOverlayDom() {
         return;
     }
     const root = document.querySelector('.app-container') || document.body;
+    const buildVersion = `${window.__ARROW_BUILD_VERSION__ || 'build unknown'}`.trim();
     const wrapper = document.createElement('div');
     wrapper.id = AUTH_OVERLAY_ID;
     wrapper.className = 'overlay menu-panel-overlay';
@@ -184,6 +185,7 @@ function ensureAuthOverlayDom() {
                 </section>
                 <p data-auth-role="status" class="empty-state"></p>
             </div>
+            <div class="user-auth-build-version">${buildVersion}</div>
         </div>
     `;
     root.appendChild(wrapper);
