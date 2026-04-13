@@ -18,12 +18,12 @@ import { initLiveOpsStorage } from './liveops-storage.js?v=3';
 import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
 import { isLegacyColorVariantSkinId } from './skins.js?v=27';
 import { earlyBgmBootstrap } from './audio.js?v=57';
-import { ensureUserSession } from './user-auth.js?v=2';
+import { ensureUserSession } from './user-auth.js?v=3';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.12-217';
+const APP_BUILD_VERSION = 'build 2026.04.13-220';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const SKIN_PRICE_OVERRIDE_STORAGE_KEY = 'arrowClear_skinPriceOverrides_v1';
