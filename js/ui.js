@@ -353,6 +353,16 @@ export class UI {
 
         if (this.btnOnlineRewardChest) {
             this.btnOnlineRewardChest.addEventListener('click', () => this.onClickOnlineChest());
+            this.btnOnlineRewardChest.addEventListener('pointerup', (event) => {
+                if (event.pointerType === 'touch') {
+                    event.preventDefault();
+                    this.onClickOnlineChest();
+                }
+            });
+            this.btnOnlineRewardChest.addEventListener('touchend', (event) => {
+                event.preventDefault();
+                this.onClickOnlineChest();
+            }, { passive: false });
             const hide = () => this.hideOnlineRewardPreview();
             this.btnOnlineRewardChest.addEventListener('pointerdown', () => this.onPressOnlineChest());
             this.btnOnlineRewardChest.addEventListener('pointerup', hide);
