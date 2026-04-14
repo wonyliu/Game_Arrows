@@ -26,7 +26,7 @@ import {
     savePreviewLevelRecord,
     saveSavedLevelRecord,
     saveLevelCatalog
-} from './level-storage.js?v=55';
+} from './level-storage.js?v=56';
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),
@@ -41,6 +41,9 @@ const el = {
     levelDisplayName: document.getElementById('levelDisplayName'),
     dimensionMode: document.getElementById('dimensionMode'),
     dimensionValue: document.getElementById('dimensionValue'),
+    customGridFields: document.getElementById('customGridFields'),
+    customGridCols: document.getElementById('customGridCols'),
+    customGridRows: document.getElementById('customGridRows'),
     minLen: document.getElementById('minLen'),
     maxLen: document.getElementById('maxLen'),
     timerSeconds: document.getElementById('timerSeconds'),
@@ -68,10 +71,21 @@ const el = {
     generate4Tools: document.getElementById('generate4Tools'),
     manualGridCols: document.getElementById('manualGridCols'),
     manualGridRows: document.getElementById('manualGridRows'),
-    btnApplyGridSize: document.getElementById('btnApplyGridSize')
+    btnApplyGridSize: document.getElementById('btnApplyGridSize'),
+    previewBoardFrame: document.getElementById('previewBoardFrame'),
+    previewCanvasHost: document.getElementById('previewCanvasHost'),
+    gameFramePreviewMeta: document.getElementById('gameFramePreviewMeta')
 };
 
 const ctx = el.canvas.getContext('2d');
+const GAME_DESIGN_WIDTH = 430;
+const GAME_DESIGN_HEIGHT = 932;
+const GAME_HEADER_HEIGHT = 16;
+const GAME_CANVAS_TOP_GAP = 58;
+const GAME_HUD_BOTTOM_HEIGHT = 108;
+const GAME_CONTENT_PAD_X = 5;
+const PREVIEW_CANVAS_BASE_WIDTH = 430;
+const PREVIEW_CANVAS_BASE_HEIGHT = 664;
 let previewRecord = null;
 let renderedLevelData = null;
 let previewPlayState = null;
@@ -116,6 +130,8 @@ async function init() {
     el.rewardLevelCount?.addEventListener('change', () => syncCatalogInputs(readCatalogFromInputs()));
     el.dimensionMode.addEventListener('change', updateDerived);
     el.dimensionValue.addEventListener('input', updateDerived);
+    el.customGridCols?.addEventListener('input', updateDerived);
+    el.customGridRows?.addEventListener('input', updateDerived);
     el.minLen.addEventListener('input', updateDerived);
     el.maxLen.addEventListener('input', updateDerived);
 
@@ -318,13 +334,75 @@ function syncManualGridInputs(cols, rows) {
     if (el.manualGridRows) {
         el.manualGridRows.value = String(clampInt(rows, 4, 40, 26));
     }
+    if (el.customGridCols) {
+        el.customGridCols.value = String(clampInt(cols, 4, 40, 18));
+    }
+    if (el.customGridRows) {
+        el.customGridRows.value = String(clampInt(rows, 4, 40, 26));
+    }
 }
 
 function readManualGridSize(fallbackCols, fallbackRows) {
+    const colsSource = el.customGridCols?.value || el.manualGridCols?.value || fallbackCols;
+    const rowsSource = el.customGridRows?.value || el.manualGridRows?.value || fallbackRows;
     return {
-        cols: clampInt(Number(el.manualGridCols?.value || fallbackCols), 4, 40, fallbackCols),
-        rows: clampInt(Number(el.manualGridRows?.value || fallbackRows), 4, 40, fallbackRows)
+        cols: clampInt(Number(colsSource), 4, 40, fallbackCols),
+        rows: clampInt(Number(rowsSource), 4, 40, fallbackRows)
     };
+}
+
+function updateDimensionUi(config = null) {
+    const mode = `${el.dimensionMode?.value || 'rows'}`.toLowerCase();
+    const isCustom = mode === 'custom';
+    el.customGridFields?.classList.toggle('hidden', !isCustom);
+    if (el.dimensionValue) {
+        el.dimensionValue.disabled = isCustom;
+    }
+    if (!config) return;
+    const ratioText = `固定比例：430:664（宽高比约 0.648，行列比约 1:1.544）`;
+    if (el.gameFramePreviewMeta) {
+        el.gameFramePreviewMeta.textContent = `${config.gridCols} x ${config.gridRows} · 外框 420 x 750 · ${ratioText}`;
+    }
+}
+
+function updateGameFramePreview(config) {
+    if (!el.previewBoardFrame || !el.previewCanvasHost) return;
+    const gameContainerHeight = GAME_DESIGN_HEIGHT - GAME_HEADER_HEIGHT;
+    const wrapperWidth = GAME_DESIGN_WIDTH - GAME_CONTENT_PAD_X * 2;
+    const wrapperHeight = gameContainerHeight - GAME_CANVAS_TOP_GAP - GAME_HUD_BOTTOM_HEIGHT;
+    const grid = new Grid(config.gridCols, config.gridRows);
+    grid.resize(wrapperWidth, wrapperHeight);
+    const gridWidth = grid.cols * grid.cellSize;
+    const gridHeight = grid.rows * grid.cellSize;
+    const scale = Math.min(
+        gridWidth / PREVIEW_CANVAS_BASE_WIDTH,
+        gridHeight / PREVIEW_CANVAS_BASE_HEIGHT
+    );
+    const canvasWidth = Math.max(1, Math.round(PREVIEW_CANVAS_BASE_WIDTH * scale));
+    const canvasHeight = Math.max(1, Math.round(PREVIEW_CANVAS_BASE_HEIGHT * scale));
+    const canvasLeft = Math.round((wrapperWidth - canvasWidth) / 2);
+    const canvasTop = Math.round((wrapperHeight - canvasHeight) / 2);
+
+    el.previewBoardFrame.style.left = `${(GAME_CONTENT_PAD_X / GAME_DESIGN_WIDTH) * 100}%`;
+    el.previewBoardFrame.style.top = `${((GAME_HEADER_HEIGHT + GAME_CANVAS_TOP_GAP) / GAME_DESIGN_HEIGHT) * 100}%`;
+    el.previewBoardFrame.style.width = `${(wrapperWidth / GAME_DESIGN_WIDTH) * 100}%`;
+    el.previewBoardFrame.style.height = `${(wrapperHeight / GAME_DESIGN_HEIGHT) * 100}%`;
+
+    el.previewCanvasHost.style.left = `${(canvasLeft / wrapperWidth) * 100}%`;
+    el.previewCanvasHost.style.top = `${(canvasTop / wrapperHeight) * 100}%`;
+    el.previewCanvasHost.style.width = `${(canvasWidth / wrapperWidth) * 100}%`;
+    el.previewCanvasHost.style.height = `${(canvasHeight / wrapperHeight) * 100}%`;
+
+    if (el.canvas.width !== PREVIEW_CANVAS_BASE_WIDTH || el.canvas.height !== PREVIEW_CANVAS_BASE_HEIGHT) {
+        el.canvas.width = PREVIEW_CANVAS_BASE_WIDTH;
+        el.canvas.height = PREVIEW_CANVAS_BASE_HEIGHT;
+    }
+}
+
+function createPreviewGrid(cols, rows) {
+    const grid = new Grid(cols, rows);
+    grid.resize(PREVIEW_CANVAS_BASE_WIDTH, PREVIEW_CANVAS_BASE_HEIGHT);
+    return grid;
 }
 
 function buildEmptyRenderedLevelData(gridCols, gridRows) {
@@ -439,6 +517,8 @@ function collectConfig() {
 
 function updateDerived() {
     const { config } = collectConfig();
+    updateDimensionUi(config);
+    updateGameFramePreview(config);
     el.gridText.textContent = `${config.gridCols} x ${config.gridRows}`;
     el.lineText.textContent = String(estimateLineCount(config.gridCols, config.gridRows, config.minLen, config.maxLen));
 
@@ -446,6 +526,7 @@ function updateDerived() {
         ? Math.round((previewRecord.stats.coveredCells / previewRecord.stats.totalCells) * 100)
         : 0;
     el.coverageText.textContent = `${cov}%`;
+    drawPreviewState();
 }
 
 function buildLevelDataSignature(levelData) {
@@ -1663,8 +1744,7 @@ function clearCanvas() {
 }
 
 function drawLevel(levelData) {
-    const grid = new Grid(levelData.gridCols, levelData.gridRows);
-    grid.resize(el.canvas.width, el.canvas.height);
+    const grid = createPreviewGrid(levelData.gridCols, levelData.gridRows);
     const lines = deserializeLevelData(levelData);
 
     clearCanvas();
@@ -1679,8 +1759,7 @@ function resetPreviewPlayState() {
         previewPlayState = null;
         return;
     }
-    const grid = new Grid(renderedLevelData.gridCols, renderedLevelData.gridRows);
-    grid.resize(el.canvas.width, el.canvas.height);
+    const grid = createPreviewGrid(renderedLevelData.gridCols, renderedLevelData.gridRows);
     const lines = deserializeLevelData(renderedLevelData).map((line) => {
         line.state = 'active';
         return line;

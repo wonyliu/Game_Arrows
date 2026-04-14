@@ -182,6 +182,17 @@ class JsonUserCenterStore {
         return user;
     }
 
+    async deleteUser(userId) {
+        const db = await this.readDb();
+        const nextUsers = db.users.filter((entry) => `${entry?.userId || ''}`.trim() !== `${userId || ''}`.trim());
+        if (nextUsers.length === db.users.length) {
+            throw new Error('user not found');
+        }
+        db.users = nextUsers;
+        await this.writeDb(db);
+        return true;
+    }
+
     async listLeaderboard(limit) {
         const db = await this.readDb();
         return db.users
@@ -425,6 +436,17 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
             throw new Error('user not found');
         }
         return user;
+    }
+
+    async deleteUser(userId) {
+        const result = await this.pgPool.query(
+            'DELETE FROM user_center_users WHERE user_id = $1',
+            [`${userId || ''}`.trim()]
+        );
+        if ((result.rowCount || 0) < 1) {
+            throw new Error('user not found');
+        }
+        return true;
     }
 
     async listLeaderboard(limit) {

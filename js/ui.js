@@ -353,6 +353,16 @@ export class UI {
 
         if (this.btnOnlineRewardChest) {
             this.btnOnlineRewardChest.addEventListener('click', () => this.onClickOnlineChest());
+            this.btnOnlineRewardChest.addEventListener('pointerup', (event) => {
+                if (event.pointerType === 'touch') {
+                    event.preventDefault();
+                    this.onClickOnlineChest();
+                }
+            });
+            this.btnOnlineRewardChest.addEventListener('touchend', (event) => {
+                event.preventDefault();
+                this.onClickOnlineChest();
+            }, { passive: false });
             const hide = () => this.hideOnlineRewardPreview();
             this.btnOnlineRewardChest.addEventListener('pointerdown', () => this.onPressOnlineChest());
             this.btnOnlineRewardChest.addEventListener('pointerup', hide);
@@ -837,7 +847,7 @@ export class UI {
             for (const row of rows) {
                 const rank = Math.max(1, Math.floor(Number(row?.rank) || 0));
                 const username = `${row?.username || 'Unknown'}`.trim() || 'Unknown';
-                const avatarUrl = `${row?.avatarUrl || 'assets/design-v2/clean/icon_theme.png'}`.trim();
+                const avatarUrl = `${row?.avatarUrl || 'assets/ui/shared/icons/icon_theme.png'}`.trim();
                 const level = Math.max(0, Math.floor(Number(row?.maxClearedLevel) || 0));
                 const li = document.createElement('li');
 
@@ -852,7 +862,7 @@ export class UI {
                 avatarEl.src = avatarUrl;
                 avatarEl.referrerPolicy = 'no-referrer';
                 avatarEl.addEventListener('error', () => {
-                    avatarEl.src = 'assets/design-v2/clean/icon_theme.png';
+                    avatarEl.src = 'assets/ui/shared/icons/icon_theme.png';
                 });
                 const nameEl = document.createElement('span');
                 nameEl.textContent = username;
@@ -1003,10 +1013,11 @@ export class UI {
         if (!this.rewardStageGuideOverlayEl || !this.game) {
             return;
         }
-        if (this.game.isRewardStage !== true) {
-            return;
-        }
-        if (typeof this.game.hasSeenRewardStageGuide === 'function' && this.game.hasSeenRewardStageGuide()) {
+        if (typeof this.game.shouldShowRewardStageGuide === 'function') {
+            if (!this.game.shouldShowRewardStageGuide()) {
+                return;
+            }
+        } else if (typeof this.game.hasSeenRewardStageGuide === 'function' && this.game.hasSeenRewardStageGuide()) {
             return;
         }
         this.showRewardStageGuide();
@@ -1143,6 +1154,23 @@ export class UI {
             }
         }
         return t(this.locale, 'common.levelTag', { level });
+    }
+
+    formatHudLevel(level) {
+        if (
+            this.game
+            && Number(level) === Number(this.game.currentLevel)
+            && typeof this.game.getCurrentStageLabel === 'function'
+        ) {
+            const stageLabel = `${this.game.getCurrentStageLabel() || ''}`.trim();
+            if (stageLabel) {
+                return stageLabel;
+            }
+        }
+        if (this.locale === 'zh-CN') {
+            return `关卡${level}`;
+        }
+        return `Level ${level}`;
     }
 
     refreshMenuLevelTag() {
@@ -1313,7 +1341,7 @@ export class UI {
 
     updateHUD() {
         if (this.levelInfoEl) {
-            this.levelInfoEl.textContent = this.formatLevel(this.game.currentLevel);
+            this.levelInfoEl.textContent = this.formatHudLevel(this.game.currentLevel);
         }
 
         if (this.livesEl) {
@@ -1383,7 +1411,7 @@ export class UI {
                 type: 'skin',
                 name: getSkinDisplayName(skin, isZh ? 'zh-CN' : 'en-US') || (itemDef?.nameZh || itemDef?.nameEn || itemId),
                 description: getSkinDescription(skin, isZh ? 'zh-CN' : 'en-US') || (isZh ? '\u89e3\u9501\u6307\u5b9a\u76ae\u80a4\u3002' : 'Unlock this specific skin.'),
-                icon: skin?.preview || 'assets/design-v2/clean/icon_gift.png'
+                icon: skin?.preview || 'assets/ui/shared/icons/icon_gift.png'
             };
         }
         return {
@@ -1403,15 +1431,15 @@ export class UI {
         if (itemDef?.type === 'skin' && id && id !== 'skin') {
             const skin = (this.game?.getSkinCatalog?.() || []).find((entry) => `${entry?.id || ''}`.trim().toLowerCase() === id)
                 || null;
-            return skin?.preview || 'assets/design-v2/clean/icon_gift.png';
+            return skin?.preview || 'assets/ui/shared/icons/icon_gift.png';
         }
-        if (id === 'coin') return 'assets/design-v6/checkin/icon_coin_pile.png';
-        if (id === 'hint') return 'assets/design-v2/clean/icon_hint.png';
-        if (id === 'undo') return 'assets/design-v2/clean/icon_undo.png';
-        if (id === 'shuffle') return 'assets/design-v2/clean/icon_shuffle.png';
-        if (id === 'skin_fragment') return 'assets/design-v2/clean/icon_theme.png';
-        if (id === 'skin') return 'assets/design-v2/clean/icon_theme.png';
-        return 'assets/design-v2/clean/icon_gift.png';
+        if (id === 'coin') return 'assets/ui/checkin/icon_coin_pile.png';
+        if (id === 'hint') return 'assets/ui/shared/icons/icon_hint.png';
+        if (id === 'undo') return 'assets/ui/shared/icons/icon_undo.png';
+        if (id === 'shuffle') return 'assets/ui/shared/icons/icon_shuffle.png';
+        if (id === 'skin_fragment') return 'assets/ui/shared/icons/icon_theme.png';
+        if (id === 'skin') return 'assets/ui/shared/icons/icon_theme.png';
+        return 'assets/ui/shared/icons/icon_gift.png';
     }
 
     showCheckinRewardTooltip(anchorEl, day, rewards = [], pointerEvent = null) {
@@ -2051,7 +2079,7 @@ export class UI {
             }
             const coin = document.createElement('img');
             coin.className = 'reward-fly-coin';
-            coin.src = 'assets/design-v5/clean/icon_coin.png';
+            coin.src = 'assets/ui/themes/design-v5/icon_coin.png';
             coin.alt = '';
             coin.style.left = `${sourcePoint.x}px`;
             coin.style.top = `${sourcePoint.y}px`;
@@ -2933,7 +2961,7 @@ export class UI {
                 button.classList.add('locked');
                 button.title = t(this.locale, 'common.locked');
                 const icon = document.createElement('img');
-                icon.src = 'assets/design-v2/clean/icon_lock.png';
+                icon.src = 'assets/ui/shared/icons/icon_lock.png';
                 icon.alt = t(this.locale, 'common.locked');
                 icon.className = 'pixel-icon level-lock-icon';
                 button.appendChild(icon);

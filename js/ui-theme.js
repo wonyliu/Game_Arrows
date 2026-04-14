@@ -1,18 +1,18 @@
 const DEFAULT_THEME = 'design-v5';
 
 const STATIC_FALLBACK = {
-    'home.background': 'assets/design-v3/clean/ui_app_bg.png',
-    'surface.panel': 'assets/design-v3/clean/ui_panel.png',
-    'button.primary': 'assets/design-v3/clean/ui_button.png',
-    'card.feature': 'assets/design-v3/clean/ui_item_button.png',
-    'icon.home': 'assets/design-v2/clean/icon_home.png',
-    'icon.settings': 'assets/design-v2/clean/icon_settings.png',
-    'icon.leaderboard': 'assets/design-v2/clean/icon_rank.png',
-    'icon.skins': 'assets/design-v2/clean/icon_theme.png',
-    'icon.checkin': 'assets/design-v2/clean/icon_gift.png',
-    'icon.exit': 'assets/design-v2/clean/icon_lock.png',
-    'icon.coin': 'assets/design-v2/clean/icon_coin.png',
-    'icon.energy': 'assets/design-v2/clean/icon_energy.png'
+    'home.background': 'assets/ui/home/ui_app_bg.png',
+    'surface.panel': 'assets/ui/home/ui_panel.png',
+    'button.primary': 'assets/ui/home/ui_button.png',
+    'card.feature': 'assets/ui/home/ui_item_button.png',
+    'icon.home': 'assets/ui/shared/icons/icon_home.png',
+    'icon.settings': 'assets/ui/shared/icons/icon_settings.png',
+    'icon.leaderboard': 'assets/ui/shared/icons/icon_rank.png',
+    'icon.skins': 'assets/ui/shared/icons/icon_theme.png',
+    'icon.checkin': 'assets/ui/shared/icons/icon_gift.png',
+    'icon.exit': 'assets/ui/shared/icons/icon_lock.png',
+    'icon.coin': 'assets/ui/shared/icons/icon_coin.png',
+    'icon.energy': 'assets/ui/shared/icons/icon_energy.png'
 };
 
 let activeTheme = DEFAULT_THEME;
@@ -44,7 +44,7 @@ export async function initUiTheme(theme = DEFAULT_THEME) {
     activeManifest = null;
 
     try {
-        const response = await fetch(`assets/${activeTheme}/manifest.json`, {
+        const response = await fetch(`assets/ui/themes/${activeTheme}/manifest.json`, {
             cache: 'no-store'
         });
 

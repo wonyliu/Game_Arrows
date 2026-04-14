@@ -1,15 +1,1 @@
-{
-  "version": 1,
-  "updatedAt": "2026-04-11T02:00:27.342Z",
-  "maxUnlockedLevel": 3,
-  "currentLevel": 2,
-  "coins": 825,
-  "unlockedSkinIds": [
-    "classic-burrow",
-    "gemini-candy",
-    "candy-dream",
-    "aurora-jelly"
-  ],
-  "selectedSkinId": "candy-dream",
-  "nextRewardLevelIndex": 2
-}
+{}

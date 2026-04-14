@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "nextUserSeq": 2,
+  "nextTempSeq": 1,
+  "users": [
+    {
+      "userId": "u000001",
+      "username": "weny",
+      "avatarUrl": "https://api.dicebear.com/9.x/bottts/svg?seed=weny",
+      "isTempUser": false,
+      "passwordSalt": "646095557cace5192a502af0",
+      "passwordHash": "8cb87244352b719631ddbf107d9193af30706d7386109c33fe5b19c27f8566a7",
+      "createdAt": "2026-04-11T02:57:38.826Z",
+      "lastActiveAt": "2026-04-12T04:27:43.094Z",
+      "primaryDeviceId": "dev-mntq3uvn2exp3fce",
+      "hardwareDeviceIds": [
+        "dev-mntq3uvn2exp3fce"
+      ],
+      "devices": [
+        {
+          "deviceId": "dev-mntq3uvn2exp3fce",
+          "deviceInfo": "Win32 | Google Inc. | zh-CN | 2560x1440 | Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "firstSeenAt": "2026-04-11T02:57:38.826Z",
+          "lastSeenAt": "2026-04-12T04:27:43.094Z"
+        }
+      ],
+      "cookieDeviceMismatchLogs": [],
+      "progress": {
+        "version": 1,
+        "updatedAt": "2026-04-12T04:27:43.130Z",
+        "maxUnlockedLevel": 2,
+        "maxClearedLevel": 1,
+        "currentLevel": 1,
+        "coins": 0,
+        "unlockedSkinIds": [
+          "classic-burrow"
+        ],
+        "selectedSkinId": "classic-burrow",
+        "nextRewardLevelIndex": 1,
+        "rewardGuideShown": false
+      },
+      "coins": 0,
+      "maxUnlockedLevel": 2,
+      "unlockedSkinIds": [
+        "classic-burrow"
+      ],
+      "liveopsPlayer": {
+        "version": 1,
+        "updatedAt": "2026-04-12T04:27:43.130Z",
+        "inventory": {
+          "skin_fragment": 0,
+          "hint": 0,
+          "undo": 0,
+          "shuffle": 0
+        },
+        "checkin": {
+          "claimedCount": 0,
+          "lastClaimDayKey": ""
+        },
+        "onlineReward": {
+          "dayKey": "",
+          "tierIndex": 0,
+          "remainingSeconds": 0
+        }
+      },
+      "maxClearedLevel": 1,
+      "passwordAlgorithm": "sha256-v1"
+    }
+  ]
+}

@@ -11,7 +11,7 @@
     {
       "key": "snake_head",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_head.png",
-      "base": "assets/design-v4/clean/snake_head.png",
+      "base": "assets/skins/templates/classic-clean/snake_head.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\nPart: snake_head (neutral expression).\nExpression/material note: neutral face only; keep all materials/colors locked to style anchor.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:22:34.475Z"
@@ -19,7 +19,7 @@
     {
       "key": "snake_head_curious",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_head_curious.png",
-      "base": "assets/design-v4/clean/snake_head_curious_r2.png",
+      "base": "assets/skins/templates/classic-clean/snake_head_curious_r2.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\nPart: snake_head_curious.\nExpression/material note: curious expression only; keep material, highlight logic, and palette unchanged.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:22:52.766Z"
@@ -27,7 +27,7 @@
     {
       "key": "snake_head_sleepy",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_head_sleepy.png",
-      "base": "assets/design-v4/clean/snake_head_sleepy_r2.png",
+      "base": "assets/skins/templates/classic-clean/snake_head_sleepy_r2.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\nPart: snake_head_sleepy.\nExpression/material note: sleepy expression only; keep material, highlight logic, and palette unchanged.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:23:15.353Z"
@@ -35,7 +35,7 @@
     {
       "key": "snake_head_surprised",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_head_surprised.png",
-      "base": "assets/design-v4/clean/snake_head_surprised_r2.png",
+      "base": "assets/skins/templates/classic-clean/snake_head_surprised_r2.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\nPart: snake_head_surprised.\nExpression/material note: surprised expression only; keep material, highlight logic, and palette unchanged.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:23:29.212Z"
@@ -43,7 +43,7 @@
     {
       "key": "snake_seg_a",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_seg_a.png",
-      "base": "assets/design-v4/clean/snake_seg_a.png",
+      "base": "assets/skins/templates/classic-clean/snake_seg_a.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\n- This is NOT a head: do not draw eyes, nose, mouth, cheeks, or any facial marks.\n- Do not depict a character face on body or tail parts.\nPart: snake_seg_a.\nExpression/material note: body segment A only; same candy material and palette as head.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:23:48.273Z"
@@ -51,7 +51,7 @@
     {
       "key": "snake_seg_b",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_seg_b.png",
-      "base": "assets/design-v4/clean/snake_seg_b.png",
+      "base": "assets/skins/templates/classic-clean/snake_seg_b.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\n- This is NOT a head: do not draw eyes, nose, mouth, cheeks, or any facial marks.\n- Do not depict a character face on body or tail parts.\nPart: snake_seg_b.\nExpression/material note: body segment B only; same candy material and palette as head.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:24:05.963Z"
@@ -59,7 +59,7 @@
     {
       "key": "snake_tail_base",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_tail_base.png",
-      "base": "assets/design-v4/clean/snake_tail_base.png",
+      "base": "assets/skins/templates/classic-clean/snake_tail_base.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\n- This is NOT a head: do not draw eyes, nose, mouth, cheeks, or any facial marks.\n- Do not depict a character face on body or tail parts.\nPart: snake_tail_base.\nExpression/material note: tail base only; same candy material and palette as head.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:24:24.592Z"
@@ -67,7 +67,7 @@
     {
       "key": "snake_tail_tip",
       "output": "temp/skins/aurora-jelly/v5_nano_raw/snake_tail_tip.png",
-      "base": "assets/design-v4/clean/snake_tail_tip.png",
+      "base": "assets/skins/templates/classic-clean/snake_tail_tip.png",
       "prompt": "Create ONE snake skin part for the same exact snake character.\nReference image 1 is style anchor. Reference image 2 is strict geometry lock.\nRules:\n- Keep exact contour, exact facing, exact proportions from reference image 2.\n- Keep transparent background and same canvas size.\n- Reuse same material language and palette family from reference image 1.\n- Keep candy-crush-like glossy jelly rendering, with clear highlights.\n- Prefer smooth solid candy shading over segmented/internal geometric patterns.\n- Keep smooth surface; no scales, no hex pattern, no geometric tessellation.\n- Preserve readability under hue shifts (future in-game variants).\n- This is NOT a head: do not draw eyes, nose, mouth, cheeks, or any facial marks.\n- Do not depict a character face on body or tail parts.\nPart: snake_tail_tip.\nExpression/material note: tail tip only; same candy material and palette as head.\nHard negatives:\n- no palette drift\n- no saturation drift between parts\n- no contour protrusions\n- no long neck\n- no background",
       "model": "gemini-2.5-flash-image",
       "generatedAt": "2026-03-26T02:24:37.834Z"

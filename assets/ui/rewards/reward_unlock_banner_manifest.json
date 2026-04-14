@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-04-04T18:55:14",
+  "model": "gemini-2.5-flash-image",
+  "solidBackground": "#00FF00",
+  "outputs": [
+    "assets/ui/rewards/reward_unlock_banner_raw.png",
+    "assets/ui/rewards/reward_unlock_banner.png"
+  ]
+}

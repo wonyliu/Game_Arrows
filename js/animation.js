@@ -41,6 +41,9 @@ export class AnimationManager {
         const onSegment = typeof options === 'function'
             ? null
             : options?.onSegment;
+        const onTailSegment = typeof options === 'function'
+            ? null
+            : options?.onTailSegment;
 
         line.state = 'removing';
         // Keep removal motion clean: no extra blue tint/trail overlay.
@@ -49,6 +52,7 @@ export class AnimationManager {
 
         const cellSize = grid.cellSize;
         const segmentSources = line.getScreenPoints(grid).slice().reverse();
+        const tailSegmentSources = line.getScreenPoints(grid).slice();
         const headDirection = typeof line.getHeadDirection === 'function'
             ? line.getHeadDirection()
             : 'right';
@@ -61,10 +65,14 @@ export class AnimationManager {
             dist: 0,
             onComplete,
             onSegment,
+            onTailSegment,
             segmentStepDist: Math.max(1, cellSize * 0.9),
             segmentExitStartDist: computeSegmentExitStartDist(headSource, directionVec, grid, cellSize),
             segmentSources,
-            emittedSegments: 0
+            emittedSegments: 0,
+            tailSegmentStepDist: Math.max(1, cellSize * 0.9),
+            tailSegmentSources,
+            emittedTailSegments: 0
         };
 
         this.screenShake = 2;
@@ -147,6 +155,22 @@ export class AnimationManager {
                             console.warn('[animation] remove segment callback failed', error);
                         }
                         animation.emittedSegments++;
+                    }
+                }
+
+                if (typeof animation.onTailSegment === 'function' && Array.isArray(animation.tailSegmentSources)) {
+                    while (
+                        animation.emittedTailSegments < animation.tailSegmentSources.length &&
+                        animation.dist >= animation.emittedTailSegments * animation.tailSegmentStepDist
+                    ) {
+                        const segmentIndex = animation.emittedTailSegments;
+                        const source = animation.tailSegmentSources[segmentIndex];
+                        try {
+                            animation.onTailSegment(source, segmentIndex, animation.tailSegmentSources.length);
+                        } catch (error) {
+                            console.warn('[animation] remove tail segment callback failed', error);
+                        }
+                        animation.emittedTailSegments++;
                     }
                 }
 

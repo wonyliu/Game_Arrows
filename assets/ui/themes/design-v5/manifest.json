@@ -1,0 +1,60 @@
+{
+  "theme": "design-v5-tool-buttons",
+  "version": "1.0.0",
+  "generatedAt": "2026-03-22T18:34:57.962227+00:00",
+  "promptVersion": "v3-start-ui-style-unified",
+  "slots": {
+    "tool.button.undo": "assets/ui/themes/design-v5/tool-buttons/ui_item_btn_undo.png",
+    "tool.button.hint": "assets/ui/themes/design-v5/tool-buttons/ui_item_btn_hint.png",
+    "tool.button.shuffle": "assets/ui/themes/design-v5/tool-buttons/ui_item_btn_shuffle.png"
+  },
+  "fallbackSlots": {
+    "home.background": "assets/ui/home/ui_app_bg.png",
+    "surface.panel": "assets/ui/home/ui_panel.png",
+    "button.primary": "assets/ui/home/ui_button.png",
+    "card.feature": "assets/ui/home/ui_item_button.png",
+    "icon.home": "assets/ui/shared/icons/icon_home.png",
+    "icon.settings": "assets/ui/shared/icons/icon_settings.png",
+    "icon.leaderboard": "assets/ui/shared/icons/icon_rank.png",
+    "icon.skins": "assets/ui/shared/icons/icon_theme.png",
+    "icon.checkin": "assets/ui/shared/icons/icon_gift.png",
+    "icon.exit": "assets/ui/shared/icons/icon_lock.png",
+    "icon.coin": "assets/ui/shared/icons/icon_coin.png",
+    "icon.energy": "assets/ui/shared/icons/icon_energy.png"
+  },
+  "entries": [
+    {
+      "slot": "tool.button.undo",
+      "file": "ui_item_btn_undo.png",
+      "usage": "Undo tool full button skin",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create one game-style circular button base for Undo, matching referenced start-menu icons. Thick black outer outline, light stone outer ring, warm tan inner ring, soft cream center disk reserved for icon.",
+      "promptVersion": "v3-start-ui-style-unified"
+    },
+    {
+      "slot": "tool.button.hint",
+      "file": "ui_item_btn_hint.png",
+      "usage": "Hint tool full button skin",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create one game-style circular button base for Hint, matching referenced start-menu icons. Thick black outline, fresh green outer ring with subtle soft pattern, bright yellow-beige center medallion for icon placement.",
+      "promptVersion": "v3-start-ui-style-unified"
+    },
+    {
+      "slot": "tool.button.shuffle",
+      "file": "ui_item_btn_shuffle.png",
+      "usage": "Shuffle tool full button skin",
+      "size": {
+        "width": 512,
+        "height": 512
+      },
+      "prompt": "Create one game-style circular button base for Shuffle, matching referenced start-menu icons. Thick black outline, cyan-blue outer ring with subtle segmented motion feel, pale center medallion and SOLID closed center disk for icon overlay.",
+      "promptVersion": "v3-start-ui-style-unified"
+    }
+  ]
+}

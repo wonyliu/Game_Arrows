@@ -337,15 +337,22 @@ async function fetchMapFromServer(name) {
         return null;
     }
 
-    if (canUseApiStorage()) {
-        const serverData = await tryFetchMap(`${STORAGE_API_BASE}/${name}`);
-        if (serverData) {
-            return serverData;
+    const [serverData, staticData] = await Promise.all([
+        canUseApiStorage() ? tryFetchMap(`${STORAGE_API_BASE}/${name}`) : Promise.resolve(null),
+        tryFetchMap(resolveStaticStorageUrl(name))
+    ]);
+
+    if (serverData && staticData) {
+        if (name === LEVEL_CATALOG_FILE) {
+            return mergeCatalog(serverData, staticData);
         }
+        return mergeLevelMaps(serverData, staticData);
     }
 
-    // Static fallback for environments without storage API.
-    const staticData = await tryFetchMap(resolveStaticStorageUrl(name));
+    if (serverData) {
+        return serverData;
+    }
+
     if (staticData) {
         return staticData;
     }
@@ -466,6 +473,10 @@ function canUseApiStorage() {
         return false;
     }
 
+    if (`${window.__GAME_API_BASE__ || ''}`.trim()) {
+        return true;
+    }
+
     const host = (window.location?.hostname || '').toLowerCase();
     if (!host) {
         return false;
@@ -484,9 +495,9 @@ function canUseApiStorage() {
 
 function resolveStaticStorageUrl(name) {
     try {
-        return new URL(`../.local-data/${name}.json`, import.meta.url).toString();
+        return new URL(`../data/managed-config/${name}.json`, import.meta.url).toString();
     } catch {
-        return `./.local-data/${name}.json`;
+        return `./data/managed-config/${name}.json`;
     }
 }
 

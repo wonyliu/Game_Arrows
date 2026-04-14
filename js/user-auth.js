@@ -14,6 +14,29 @@ export function getActiveUserId() {
     return `${activeSession?.userId || ''}`.trim();
 }
 
+export function bootstrapUserSessionFromStorage() {
+    if (activeSession?.userId) {
+        return { ...activeSession };
+    }
+
+    const stored = readStoredSession();
+    const cookieUserId = readCookie(USER_ID_COOKIE_KEY);
+    const userId = `${stored?.userId || cookieUserId || ''}`.trim();
+    if (!userId) {
+        return null;
+    }
+
+    const session = {
+        userId,
+        username: `${stored?.username || userId}`.trim(),
+        avatarUrl: `${stored?.avatarUrl || ''}`.trim(),
+        isTempUser: stored?.isTempUser === true,
+        deviceId: `${stored?.deviceId || getOrCreateDeviceId()}`.trim() || getOrCreateDeviceId()
+    };
+    activeSession = session;
+    return { ...session };
+}
+
 export async function ensureUserSession() {
     if (activeSession?.userId) {
         return { ...activeSession };
@@ -164,6 +187,7 @@ function ensureAuthOverlayDom() {
         return;
     }
     const root = document.querySelector('.app-container') || document.body;
+    const buildVersion = `${window.__ARROW_BUILD_VERSION__ || 'build unknown'}`.trim();
     const wrapper = document.createElement('div');
     wrapper.id = AUTH_OVERLAY_ID;
     wrapper.className = 'overlay menu-panel-overlay';
@@ -184,6 +208,7 @@ function ensureAuthOverlayDom() {
                 </section>
                 <p data-auth-role="status" class="empty-state"></p>
             </div>
+            <div class="user-auth-build-version">${buildVersion}</div>
         </div>
     `;
     root.appendChild(wrapper);

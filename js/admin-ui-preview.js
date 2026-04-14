@@ -1,5 +1,5 @@
 ﻿import { initUiLayoutStorage, readUiLayoutConfig } from './ui-layout-config.js?v=4';
-import { getLocalDayKey, readLiveOpsConfig, readLiveOpsPlayerState } from './liveops-storage.js?v=3';
+import { getLocalDayKey, readLiveOpsConfig, readLiveOpsPlayerState } from './liveops-storage.js?v=5';
 
 const el = {
     overlay: document.getElementById('checkinOverlay'),
@@ -23,13 +23,13 @@ let previewMeta = {
 
 function getRewardIconByItemId(itemId) {
     const id = `${itemId || ''}`.trim().toLowerCase();
-    if (id === 'coin') return 'assets/design-v6/checkin/icon_coin_pile.png';
-    if (id === 'hint') return 'assets/design-v2/clean/icon_hint.png';
-    if (id === 'undo') return 'assets/design-v2/clean/icon_undo.png';
-    if (id === 'shuffle') return 'assets/design-v2/clean/icon_shuffle.png';
-    if (id === 'skin_fragment') return 'assets/design-v2/clean/icon_theme.png';
-    if (id === 'skin') return 'assets/design-v2/clean/icon_theme.png';
-    return 'assets/design-v2/clean/icon_gift.png';
+    if (id === 'coin') return 'assets/ui/checkin/icon_coin_pile.png';
+    if (id === 'hint') return 'assets/ui/shared/icons/icon_hint.png';
+    if (id === 'undo') return 'assets/ui/shared/icons/icon_undo.png';
+    if (id === 'shuffle') return 'assets/ui/shared/icons/icon_shuffle.png';
+    if (id === 'skin_fragment') return 'assets/ui/shared/icons/icon_theme.png';
+    if (id === 'skin') return 'assets/ui/shared/icons/icon_theme.png';
+    return 'assets/ui/shared/icons/icon_gift.png';
 }
 
 function getCheckinSnapshot(override = {}) {
