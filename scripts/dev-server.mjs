@@ -56,6 +56,29 @@ const MIME_TO_EXTENSION = Object.freeze({
     'image/jpeg': '.jpg',
     'image/webp': '.webp'
 });
+const IMAGE_ASSET_EXTENSIONS = new Set([
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.webp',
+    '.svg',
+    '.gif'
+]);
+const ASSET_SCAN_FILE_EXTENSIONS = new Set([
+    '.js',
+    '.mjs',
+    '.css',
+    '.html',
+    '.json',
+    '.md'
+]);
+const ASSET_SCAN_SKIP_DIR_NAMES = new Set([
+    '.git',
+    '.codex',
+    '.local-data',
+    'node_modules'
+]);
+const ASSET_IMAGE_REF_PATTERN = /\/?assets\/[^"'`\s)>\]]+?\.(?:png|jpg|jpeg|webp|svg|gif)(?:\?[^"'`\s)>\]]+)?/gi;
 
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
@@ -180,9 +203,29 @@ const server = http.createServer(async (req, res) => {
             await handleAdminResetGameStateRequest(req, res);
             return;
         }
+        if (requestUrl.pathname === '/api/admin/reset-server-data') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminResetGameStateRequest(req, res);
+            return;
+        }
         if (requestUrl.pathname === '/api/admin/reset-leaderboard-progress') {
             if (!requireAdminAuth(req, res, requestUrl)) return;
             await handleAdminResetLeaderboardProgressRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/assets/scan') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminAssetScanRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/assets/delete-unused') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminDeleteUnusedAssetsRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/assets/delete-unused-all') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminDeleteAllUnusedAssetsRequest(req, res);
             return;
         }
         if (requestUrl.pathname === '/api/admin/db/overview') {
@@ -1816,11 +1859,15 @@ async function handleAdminResetGameStateRequest(req, res) {
         return;
     }
     const resetUsers = await userCenterStore.resetGameStateForAllUsers();
-
-    const resetPayload = {};
-    await writeJsonAtomic(path.join(DATA_DIR, 'game-progress-v1.json'), resetPayload);
-    await writeJsonAtomic(path.join(DATA_DIR, 'liveops-player-v1.json'), resetPayload);
-    sendJson(res, 200, { ok: true, resetUsers });
+    const defaultProgress = buildDefaultProgress();
+    const defaultLiveopsPlayer = buildDefaultLiveopsPlayerState();
+    await writeJsonAtomic(path.join(DATA_DIR, 'game-progress-v1.json'), defaultProgress);
+    await writeJsonAtomic(path.join(DATA_DIR, 'liveops-player-v1.json'), defaultLiveopsPlayer);
+    sendJson(res, 200, {
+        ok: true,
+        resetUsers,
+        mode: 'server-data-reset'
+    });
 }
 
 async function handleAdminResetLeaderboardProgressRequest(req, res) {
@@ -1830,6 +1877,74 @@ async function handleAdminResetLeaderboardProgressRequest(req, res) {
     }
     const resetUsers = await userCenterStore.resetLeaderboardProgressForAllUsers();
     sendJson(res, 200, { ok: true, resetUsers });
+}
+
+async function handleAdminAssetScanRequest(req, res) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const analysis = await analyzeUnusedImageAssets();
+    sendJson(res, 200, {
+        ok: true,
+        scanId: `${Date.now()}`,
+        summary: analysis.summary,
+        assets: analysis.assets,
+        unusedAssets: analysis.unusedAssets
+    });
+}
+
+async function handleAdminDeleteUnusedAssetsRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const body = await readRequestJson(req);
+    const requestedPaths = sanitizeStringArray(body?.paths, {
+        sanitize: sanitizeAssetDeletePath,
+        max: 500
+    });
+    if (requestedPaths.length <= 0) {
+        sendJson(res, 400, { ok: false, error: 'no asset paths provided' });
+        return;
+    }
+    const analysis = await analyzeUnusedImageAssets();
+    const unusedMap = new Map(analysis.unusedAssets.map((item) => [item.path, item]));
+    const deletable = requestedPaths.filter((assetPath) => unusedMap.has(assetPath));
+    const rejected = requestedPaths.filter((assetPath) => !unusedMap.has(assetPath));
+    if (deletable.length <= 0) {
+        sendJson(res, 400, { ok: false, error: 'requested assets are not currently unused', rejected });
+        return;
+    }
+    const deletedPaths = [];
+    for (const assetPath of deletable) {
+        await deleteUnusedAssetFile(assetPath);
+        deletedPaths.push(assetPath);
+    }
+    sendJson(res, 200, {
+        ok: true,
+        deletedCount: deletedPaths.length,
+        deletedPaths,
+        rejected
+    });
+}
+
+async function handleAdminDeleteAllUnusedAssetsRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const analysis = await analyzeUnusedImageAssets();
+    const deletedPaths = [];
+    for (const item of analysis.unusedAssets) {
+        await deleteUnusedAssetFile(item.path);
+        deletedPaths.push(item.path);
+    }
+    sendJson(res, 200, {
+        ok: true,
+        deletedCount: deletedPaths.length,
+        deletedPaths
+    });
 }
 
 function toAdminSafeUserDetail(user) {
@@ -1863,6 +1978,179 @@ function sanitizeIsoDateTime(raw, fallback = '') {
     const date = new Date(text);
     if (Number.isNaN(date.getTime())) return fallback;
     return date.toISOString();
+}
+
+async function analyzeUnusedImageAssets() {
+    const assetRows = await collectImageAssetRows();
+    const referencesByAsset = await collectImageAssetReferences();
+    const maxUsageCount = assetRows.reduce((maxCount, row) => {
+        const usageCount = referencesByAsset.get(row.path)?.size || 0;
+        return Math.max(maxCount, usageCount);
+    }, 0);
+    const assets = assetRows
+        .map((row) => {
+            const referrers = referencesByAsset.get(row.path);
+            const usageCount = referrers?.size || 0;
+            return {
+                ...row,
+                used: usageCount > 0,
+                usageCount,
+                usageRate: maxUsageCount > 0
+                    ? Number(((usageCount / maxUsageCount) * 100).toFixed(1))
+                    : 0,
+                referrers: referrers ? [...referrers].sort() : []
+            };
+        })
+        .sort((a, b) => {
+            if (a.used !== b.used) {
+                return a.used ? 1 : -1;
+            }
+            if (b.usageCount !== a.usageCount) {
+                return b.usageCount - a.usageCount;
+            }
+            if (b.sizeBytes !== a.sizeBytes) {
+                return b.sizeBytes - a.sizeBytes;
+            }
+            return a.path.localeCompare(b.path);
+        });
+    const unusedAssets = assets
+        .filter((row) => !row.used)
+        .sort((a, b) => b.sizeBytes - a.sizeBytes || a.path.localeCompare(b.path));
+
+    const totalImageBytes = assets.reduce((sum, row) => sum + row.sizeBytes, 0);
+    const usedAssets = assets.filter((row) => row.used);
+    const usedImageBytes = usedAssets.reduce((sum, row) => sum + row.sizeBytes, 0);
+    const unusedImageBytes = unusedAssets.reduce((sum, row) => sum + row.sizeBytes, 0);
+    return {
+        summary: {
+            totalImageAssets: assets.length,
+            totalImageBytes,
+            usedImageAssets: usedAssets.length,
+            usedImageBytes,
+            unusedImageAssets: unusedAssets.length,
+            unusedImageBytes,
+            maxUsageCount
+        },
+        assets,
+        unusedAssets
+    };
+}
+
+async function collectImageAssetRows() {
+    const assetsDir = path.join(ROOT_DIR, 'assets');
+    const files = await walkDirectoryFiles(assetsDir);
+    const rows = [];
+    for (const filePath of files) {
+        const extension = path.extname(filePath).toLowerCase();
+        if (!IMAGE_ASSET_EXTENSIONS.has(extension)) {
+            continue;
+        }
+        const stat = await fs.stat(filePath);
+        rows.push({
+            path: normalizeProjectRelativePath(filePath),
+            extension,
+            sizeBytes: Math.max(0, Number(stat.size) || 0)
+        });
+    }
+    return rows.sort((a, b) => a.path.localeCompare(b.path));
+}
+
+async function collectImageAssetReferences() {
+    const projectFiles = await walkDirectoryFiles(ROOT_DIR);
+    const referenceMap = new Map();
+    for (const filePath of projectFiles) {
+        const relativePath = normalizeProjectRelativePath(filePath);
+        if (relativePath.startsWith('data/generated/')) {
+            continue;
+        }
+        const extension = path.extname(filePath).toLowerCase();
+        if (!ASSET_SCAN_FILE_EXTENSIONS.has(extension)) {
+            continue;
+        }
+        const content = await fs.readFile(filePath, 'utf8');
+        const matches = content.match(ASSET_IMAGE_REF_PATTERN) || [];
+        for (const match of matches) {
+            const normalized = normalizeAssetReferencePath(match);
+            if (!normalized) {
+                continue;
+            }
+            if (!referenceMap.has(normalized)) {
+                referenceMap.set(normalized, new Set());
+            }
+            referenceMap.get(normalized).add(relativePath);
+        }
+    }
+    return referenceMap;
+}
+
+async function walkDirectoryFiles(dirPath) {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    const out = [];
+    for (const entry of entries) {
+        if (ASSET_SCAN_SKIP_DIR_NAMES.has(entry.name)) {
+            continue;
+        }
+        const fullPath = path.join(dirPath, entry.name);
+        if (entry.isDirectory()) {
+            const nested = await walkDirectoryFiles(fullPath);
+            out.push(...nested);
+            continue;
+        }
+        out.push(fullPath);
+    }
+    return out;
+}
+
+function normalizeProjectRelativePath(filePath) {
+    return path.relative(ROOT_DIR, filePath).replace(/\\/g, '/');
+}
+
+function normalizeAssetReferencePath(rawValue) {
+    const normalized = `${rawValue || ''}`
+        .trim()
+        .replace(/^\/+/, '')
+        .replace(/[?#].*$/, '')
+        .replace(/\\/g, '/');
+    return normalized.startsWith('assets/') ? normalized : '';
+}
+
+function sanitizeAssetDeletePath(rawValue) {
+    const normalized = normalizeAssetReferencePath(rawValue);
+    if (!normalized) {
+        return '';
+    }
+    const extension = path.extname(normalized).toLowerCase();
+    if (!IMAGE_ASSET_EXTENSIONS.has(extension)) {
+        return '';
+    }
+    return normalized;
+}
+
+async function deleteUnusedAssetFile(assetPath) {
+    const relativePath = sanitizeAssetDeletePath(assetPath);
+    if (!relativePath) {
+        throw new Error('invalid asset path');
+    }
+    const absolutePath = path.resolve(ROOT_DIR, relativePath);
+    const assetsRoot = path.resolve(ROOT_DIR, 'assets');
+    const normalizedAssetsRoot = `${assetsRoot}${path.sep}`;
+    if (absolutePath !== assetsRoot && !absolutePath.startsWith(normalizedAssetsRoot)) {
+        throw new Error('asset path outside assets directory');
+    }
+    await fs.unlink(absolutePath);
+    await removeEmptyAssetDirs(path.dirname(absolutePath), assetsRoot);
+}
+
+async function removeEmptyAssetDirs(startDir, assetsRoot) {
+    let currentDir = startDir;
+    while (currentDir && currentDir !== assetsRoot) {
+        const entries = await fs.readdir(currentDir).catch(() => []);
+        if (entries.length > 0) {
+            break;
+        }
+        await fs.rmdir(currentDir).catch(() => {});
+        currentDir = path.dirname(currentDir);
+    }
 }
 
 function sanitizeStringArray(value, { sanitize = (item) => `${item || ''}`.trim(), max = 200 } = {}) {

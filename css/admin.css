@@ -410,7 +410,7 @@ button:disabled {
     border-radius: 24px;
     overflow: hidden;
     background:
-        url('../assets/design-v3/clean/ui_app_bg.png') center top / cover no-repeat;
+    url('../assets/ui/home/ui_app_bg.png') center top / cover no-repeat;
     border: 1px solid rgba(255, 246, 222, 0.22);
     box-shadow:
         inset 0 0 0 1px rgba(255, 244, 226, 0.08),
@@ -2490,7 +2490,7 @@ button.skin-gen-style-preview:hover {
     content: "";
     position: absolute;
     inset: 0;
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_sheet_cut.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_sheet_cut.png');
     pointer-events: none;
 }
 
@@ -2498,7 +2498,7 @@ button.skin-gen-style-preview:hover {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_ribbon_cut.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_ribbon_cut.png');
 }
 
 .ui-editor-checkin-ribbon-title {
@@ -2510,16 +2510,16 @@ button.skin-gen-style-preview:hover {
 
 .ui-editor-checkin-day {
     border-radius: 18px;
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_day_card_solid.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_day_card_solid.png');
     overflow: visible;
 }
 
 .ui-editor-checkin-day.is-claimed:not(.day-7) {
-    background-image: url('../assets/design-v6/checkin/checkin_day_card_claimed_solid.png');
+    background-image: url('../assets/ui/checkin/checkin_day_card_claimed_solid.png');
 }
 
 .ui-editor-checkin-day.day-7 {
-    background-image: url('../assets/design-v6/checkin/checkin_day7_panel.png');
+    background-image: url('../assets/ui/checkin/checkin_day7_panel.png');
 }
 
 .ui-editor-checkin-day.is-next {
@@ -2853,6 +2853,106 @@ button.skin-gen-style-preview:hover {
     background: rgba(255, 255, 255, 0.66);
 }
 
+.asset-audit-actions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.asset-audit-list {
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+
+.asset-audit-card {
+    display: grid;
+    grid-template-columns: auto 84px minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(48, 57, 114, 0.12);
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.asset-audit-check {
+    width: 18px;
+    height: 18px;
+}
+
+.asset-audit-check:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+}
+
+.asset-audit-thumb {
+    width: 84px;
+    height: 84px;
+    border-radius: 12px;
+    border: 1px solid rgba(56, 68, 145, 0.14);
+    background:
+        linear-gradient(45deg, rgba(89, 101, 180, 0.08) 25%, transparent 25%, transparent 75%, rgba(89, 101, 180, 0.08) 75%, rgba(89, 101, 180, 0.08)),
+        linear-gradient(45deg, rgba(89, 101, 180, 0.08) 25%, transparent 25%, transparent 75%, rgba(89, 101, 180, 0.08) 75%, rgba(89, 101, 180, 0.08));
+    background-position: 0 0, 8px 8px;
+    background-size: 16px 16px;
+    object-fit: contain;
+}
+
+.asset-audit-meta {
+    min-width: 0;
+    display: grid;
+    gap: 4px;
+}
+
+.asset-audit-meta strong {
+    font-size: 13px;
+    color: #2f3768;
+    word-break: break-all;
+}
+
+.asset-audit-meta span {
+    font-size: 12px;
+    color: #5c6595;
+}
+
+.asset-audit-badges {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.asset-audit-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    color: #37518e;
+    background: rgba(94, 118, 232, 0.12);
+}
+
+.asset-audit-badge.is-unused {
+    color: #8d2442;
+    background: rgba(198, 40, 83, 0.12);
+}
+
+.asset-audit-badge.is-used {
+    color: #2a5b2d;
+    background: rgba(79, 166, 88, 0.14);
+}
+
+.asset-audit-actions-inline {
+    display: flex;
+    gap: 8px;
+    align-self: start;
+}
+
+.asset-audit-actions-inline button {
+    min-height: 34px;
+    padding: 0 12px;
+}
+
 .liveops-item-table tr.is-active {
     background: rgba(93, 119, 230, 0.08);
 }
@@ -2869,5 +2969,14 @@ button.skin-gen-style-preview:hover {
     .db-admin-card-grid,
     .db-admin-object-item-grid {
         grid-template-columns: 1fr;
+    }
+    .asset-audit-card {
+        grid-template-columns: 1fr;
+    }
+    .asset-audit-actions {
+        grid-template-columns: 1fr;
+    }
+    .asset-audit-actions-inline {
+        justify-content: flex-start;
     }
 }

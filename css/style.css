@@ -27,14 +27,14 @@
     --font-body: "Nunito", "Microsoft YaHei", "PingFang SC", sans-serif;
     --font-ui-clean: "Nunito", "Microsoft YaHei", "PingFang SC", sans-serif;
 
-    --asset-home-bg: url('../assets/design-v3/clean/ui_app_bg.png');
-    --asset-panel: url('../assets/design-v3/clean/ui_panel.png');
-    --asset-button: url('../assets/design-v3/clean/ui_button.png');
-    --asset-card: url('../assets/design-v3/clean/ui_item_button.png');
-    --asset-home-concept: url('../assets/design-v5/concepts/home_concept_b.png');
-    --asset-home-start-button: url('../assets/design-v5/concepts/home_start_button.png');
-    --asset-home-feature-panel: url('../assets/design-v5/concepts/home_feature_panel.png');
-    --asset-settings-concept: url('../assets/design-v5/concepts/settings_panel_a.png');
+    --asset-home-bg: url('../assets/ui/home/ui_app_bg.png');
+    --asset-panel: url('../assets/ui/home/ui_panel.png');
+    --asset-button: url('../assets/ui/home/ui_button.png');
+    --asset-card: url('../assets/ui/home/ui_item_button.png');
+    --asset-home-concept: url('../assets/ui/home/concepts/home_concept_b.png');
+    --asset-home-start-button: url('../assets/ui/home/concepts/home_start_button.png');
+    --asset-home-feature-panel: url('../assets/ui/home/concepts/home_feature_panel.png');
+    --asset-settings-concept: url('../assets/ui/settings/concepts/settings_panel_a.png');
 }
 
 html,
@@ -348,7 +348,7 @@ textarea {
 .heart-icon {
     width: 20px;
     height: 20px;
-    background: url('../assets/design-v2/clean/icon_energy.png') center / contain no-repeat;
+    background: url('../assets/ui/shared/icons/icon_energy.png') center / contain no-repeat;
 }
 
 .heart.empty {
@@ -598,7 +598,7 @@ textarea {
     height: 66px;
     border: 0;
     border-radius: 18px;
-    background: url('../assets/design-v2/clean/ui_item_button_ref4_exact.png?v=3') center / 100% 100% no-repeat;
+    background: url('../assets/ui/shared/components/ui_item_button_ref4_exact.png?v=3') center / 100% 100% no-repeat;
     box-shadow: 0 6px 10px rgba(42, 25, 14, 0.22);
     cursor: pointer;
     transition: transform 110ms ease;
@@ -1546,7 +1546,7 @@ textarea {
     content: "";
     position: absolute;
     inset: 0;
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_sheet_cut.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_sheet_cut.png');
     pointer-events: none;
     z-index: 0;
 }
@@ -1569,7 +1569,7 @@ textarea {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_ribbon_cut.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_ribbon_cut.png');
     z-index: 2;
     pointer-events: none;
 }
@@ -1589,7 +1589,7 @@ textarea {
     height: 154px;
     border-radius: 18px;
     border: 0;
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_day_card_solid.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_day_card_solid.png');
     color: #75472a;
     box-shadow: none;
     user-select: none;
@@ -1603,7 +1603,7 @@ textarea {
 }
 
 .checkin-day.is-claimed:not(.day-7) {
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_day_card_claimed_solid.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_day_card_claimed_solid.png');
 }
 
 .checkin-day.is-next {
@@ -1629,7 +1629,7 @@ textarea {
     width: 329px;
     height: 154px;
     border-radius: 18px;
-    background: center / 100% 100% no-repeat url('../assets/design-v6/checkin/checkin_day7_panel.png');
+    background: center / 100% 100% no-repeat url('../assets/ui/checkin/checkin_day7_panel.png');
     align-items: flex-start;
 }
 

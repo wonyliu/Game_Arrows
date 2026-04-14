@@ -4,9 +4,11 @@
     initLiveOpsStorage,
     readLiveOpsConfig,
     readLiveOpsPlayerState,
+    syncLiveOpsPlayerToServer,
     writeLiveOpsConfig,
     writeLiveOpsPlayerState
 } from './liveops-storage.js?v=5';
+import { bootstrapUserSessionFromStorage } from './user-auth.js?v=3';
 
 const el = {
     itemList: document.getElementById('liveopsItemList'),
@@ -48,12 +50,17 @@ async function init() {
         return;
     }
 
+    bootstrapUserSessionFromStorage();
     await initLiveOpsStorage().catch((error) => {
         console.warn('[admin-liveops] init storage failed', error);
     });
     loadConfig();
     bindEvents();
     renderAll();
+}
+
+function ensureToolUserSession() {
+    return !!bootstrapUserSessionFromStorage()?.userId;
 }
 
 function bindEvents() {
@@ -488,7 +495,11 @@ function onResetActivities() {
     setActivityStatus('宸叉仮澶嶉粯璁ゆ椿鍔ㄩ厤缃€?);
 }
 
-function resetCheckinState() {
+async function resetCheckinState() {
+    if (!ensureToolUserSession()) {
+        setToolStatus('未检测到测试玩家登录态。请先在游戏页登录同一账号，再回到后台重置。', true);
+        return;
+    }
     const player = readLiveOpsPlayerState();
     writeLiveOpsPlayerState({
         ...player,
@@ -497,10 +508,20 @@ function resetCheckinState() {
             lastClaimDayKey: ''
         }
     }, { syncServer: true });
-    setToolStatus('宸查噸缃鍒扮姸鎬併€?);
+    const synced = await syncLiveOpsPlayerToServer();
+    setToolStatus(
+        synced
+            ? '已重置当前测试玩家的签到状态。'
+            : '签到状态已在本地重置，但服务端同步失败。请确认开发服务器和登录态。',
+        !synced
+    );
 }
 
-function resetOnlineRewardState() {
+async function resetOnlineRewardState() {
+    if (!ensureToolUserSession()) {
+        setToolStatus('未检测到测试玩家登录态。请先在游戏页登录同一账号，再回到后台重置。', true);
+        return;
+    }
     const player = readLiveOpsPlayerState();
     writeLiveOpsPlayerState({
         ...player,
@@ -510,15 +531,31 @@ function resetOnlineRewardState() {
             remainingSeconds: 0
         }
     }, { syncServer: true });
-    setToolStatus('宸查噸缃湪绾垮鍔辩姸鎬併€?);
+    const synced = await syncLiveOpsPlayerToServer();
+    setToolStatus(
+        synced
+            ? '已重置当前测试玩家的在线奖励状态。'
+            : '在线奖励状态已在本地重置，但服务端同步失败。请确认开发服务器和登录态。',
+        !synced
+    );
 }
 
-function resetAllActivityState() {
+async function resetAllActivityState() {
+    if (!ensureToolUserSession()) {
+        setToolStatus('未检测到测试玩家登录态。请先在游戏页登录同一账号，再回到后台重置。', true);
+        return;
+    }
     writeLiveOpsPlayerState({
         ...DEFAULT_LIVEOPS_PLAYER_STATE,
         inventory: { ...DEFAULT_LIVEOPS_PLAYER_STATE.inventory }
     }, { syncServer: true });
-    setToolStatus('宸查噸缃叏閮ㄦ椿鍔ㄧ姸鎬併€?);
+    const synced = await syncLiveOpsPlayerToServer();
+    setToolStatus(
+        synced
+            ? '已重置当前测试玩家的全部活动状态。'
+            : '全部活动状态已在本地重置，但服务端同步失败。请确认开发服务器和登录态。',
+        !synced
+    );
 }
 
 function sanitizeId(value) {

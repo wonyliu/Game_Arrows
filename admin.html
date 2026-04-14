@@ -1074,12 +1074,35 @@
                         <button id="btnToolResetCheckin" type="button">重置签到状态</button>
                         <button id="btnToolResetOnlineReward" type="button">重置在线奖励状态</button>
                         <button id="btnToolResetLiveopsAll" class="primary" type="button">重置全部活动状态</button>
-                        <button id="btnToolResetWholeGame" class="primary" type="button">重置整局游戏（全玩家）</button>
+                        <button id="btnToolResetWholeGame" class="primary" type="button">重置服务器数据（全玩家）</button>
                         <button id="btnToolResetLeaderboardProgress" type="button">重置排行榜进度（全玩家）</button>
                     </div>
                     <p id="toolStatus" class="status">就绪。</p>
                 </section>
                 <section class="preview params-json-panel">
+                    <div class="preview-header">
+                        <h2>美术资源管理</h2>
+                    </div>
+                    <p class="sub">手动扫描 `assets/` 目录中的全部图片资源，查看使用率、尺寸、体积、引用状态，并支持批量删除未引用资源。</p>
+                    <div class="actions asset-audit-actions">
+                        <button id="btnAssetAuditScan" class="primary" type="button">扫描资源列表</button>
+                        <button id="btnAssetAuditSelectAll" type="button">全选未引用资源</button>
+                        <button id="btnAssetAuditClearSelection" type="button">清空选择</button>
+                        <button id="btnAssetAuditDeleteSelected" type="button">删除已选未引用资源</button>
+                        <button id="btnAssetAuditDeleteAll" type="button">一键删除全部未使用资源</button>
+                    </div>
+                    <p id="assetAuditStatus" class="status">尚未扫描。</p>
+                    <div id="assetAuditSummary" class="meta">
+                        <div>总图片资源：-</div>
+                        <div>总占用：-</div>
+                        <div>已引用：-</div>
+                        <div>已引用体积：-</div>
+                        <div>未引用：-</div>
+                        <div>可回收体积：-</div>
+                    </div>
+                    <div id="assetAuditList" class="asset-audit-list">
+                        <div class="db-admin-empty">点击“扫描资源列表”后查看结果。</div>
+                    </div>
                     <div class="preview-header">
                         <h2>说明</h2>
                     </div>
@@ -1088,7 +1111,8 @@
                         <div>签到状态重置：可再次领取今日签到。</div>
                         <div>在线奖励重置：回到第一档并恢复倒计时。</div>
                         <div>排行榜进度重置：所有玩家的“已通关最大关卡”重置为 0。</div>
-                        <div>整局重置：金币归零、皮肤解锁进度重置、关卡进度重置（全玩家）。</div>
+                        <div>服务器数据重置：所有玩家金币、皮肤解锁、关卡进度、活动进度恢复到初始状态。</div>
+                        <div>资源删除只会作用于 `assets/` 目录下当前扫描判定为“未引用”的图片文件。</div>
                     </div>
                 </section>
             </div>

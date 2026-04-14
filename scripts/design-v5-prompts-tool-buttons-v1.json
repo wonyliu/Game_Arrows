@@ -4,10 +4,10 @@
   "styleGuide": {
     "visualDirection": "Casual game UI style unified with existing start-menu icons: clean cartoon rendering, bold black outline, smooth flat+soft-shaded surfaces, clear ring hierarchy, high readability.",
     "referenceImages": [
-      "assets/design-v2/clean/icon_home.png",
-      "assets/design-v2/clean/icon_rank.png",
-      "assets/design-v2/clean/icon_settings.png",
-      "assets/design-v2/clean/icon_theme.png"
+      "assets/ui/shared/icons/icon_home.png",
+      "assets/ui/shared/icons/icon_rank.png",
+      "assets/ui/shared/icons/icon_settings.png",
+      "assets/ui/shared/icons/icon_theme.png"
     ],
     "mustHave": [
       "isolated circular button base",

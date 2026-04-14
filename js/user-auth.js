@@ -14,6 +14,29 @@ export function getActiveUserId() {
     return `${activeSession?.userId || ''}`.trim();
 }
 
+export function bootstrapUserSessionFromStorage() {
+    if (activeSession?.userId) {
+        return { ...activeSession };
+    }
+
+    const stored = readStoredSession();
+    const cookieUserId = readCookie(USER_ID_COOKIE_KEY);
+    const userId = `${stored?.userId || cookieUserId || ''}`.trim();
+    if (!userId) {
+        return null;
+    }
+
+    const session = {
+        userId,
+        username: `${stored?.username || userId}`.trim(),
+        avatarUrl: `${stored?.avatarUrl || ''}`.trim(),
+        isTempUser: stored?.isTempUser === true,
+        deviceId: `${stored?.deviceId || getOrCreateDeviceId()}`.trim() || getOrCreateDeviceId()
+    };
+    activeSession = session;
+    return { ...session };
+}
+
 export async function ensureUserSession() {
     if (activeSession?.userId) {
         return { ...activeSession };

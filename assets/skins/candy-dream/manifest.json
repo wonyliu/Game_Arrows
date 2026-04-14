@@ -4,7 +4,7 @@
   "variant": "v10-pure-white-with-facial-lines-binary-bw",
   "source": "Pure white base with restored facial features on head parts; gameplay uses binary white/black inversion.",
   "inputs": {
-    "baseGeometryDir": "assets/design-v4/clean",
+  "baseGeometryDir": "assets/skins/templates/classic-clean",
     "method": "alpha lock + white fill + head facial-line extraction"
   },
   "outputs": [
