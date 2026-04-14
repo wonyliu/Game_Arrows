@@ -74840,8 +74840,8 @@
       "gridRows": 40,
       "minLen": 2,
       "maxLen": 12,
-      "timerSeconds": 440,
-      "misclickPenaltySeconds": 1,
+      "timerSeconds": 20,
+      "misclickPenaltySeconds": 5,
       "rewardScorePerBodySegment": 1000,
       "displayName": ""
     },
@@ -82639,19 +82639,22 @@
         "right": 50
       }
     },
-    "updatedAt": "2026-04-13T08:05:59.601Z"
+    "updatedAt": "2026-04-14T11:15:58.847Z"
   },
   "1001": {
     "settings": {
       "level": 1001,
       "dimensionMode": "rows",
       "dimensionValue": 20,
+      "customGridCols": 13,
+      "customGridRows": 20,
       "gridCols": 13,
       "gridRows": 20,
       "minLen": 12,
       "maxLen": 260,
       "timerSeconds": 0,
       "misclickPenaltySeconds": 0,
+      "rewardScorePerBodySegment": 100,
       "displayName": "Reward"
     },
     "data": {
@@ -83714,7 +83717,7 @@
       "coveredCells": 260,
       "totalCells": 260
     },
-    "updatedAt": "2026-03-23T17:26:06.480Z"
+    "updatedAt": "2026-04-14T11:18:39.750Z"
   },
   "1002": {
     "settings": {
@@ -83727,9 +83730,9 @@
       "gridRows": 10,
       "minLen": 2,
       "maxLen": 6,
-      "timerSeconds": 120,
+      "timerSeconds": 0,
       "misclickPenaltySeconds": 0,
-      "rewardScorePerBodySegment": 1000,
+      "rewardScorePerBodySegment": 300,
       "displayName": "Reward 2"
     },
     "data": {
@@ -84730,7 +84733,7 @@
       "coveredCells": 100,
       "totalCells": 100
     },
-    "updatedAt": "2026-04-12T03:00:29.291Z"
+    "updatedAt": "2026-04-14T11:17:24.720Z"
   },
   "1003": {
     "settings": {
@@ -84743,9 +84746,9 @@
       "gridRows": 15,
       "minLen": 2,
       "maxLen": 6,
-      "timerSeconds": 120,
+      "timerSeconds": 0,
       "misclickPenaltySeconds": 0,
-      "rewardScorePerBodySegment": 100,
+      "rewardScorePerBodySegment": 300,
       "displayName": "奖励关 3"
     },
     "data": {
@@ -85597,7 +85600,7 @@
       "coveredCells": 147,
       "totalCells": 225
     },
-    "updatedAt": "2026-04-12T03:03:07.144Z"
+    "updatedAt": "2026-04-14T11:17:42.371Z"
   },
   "1004": {
     "settings": {
@@ -85610,9 +85613,9 @@
       "gridRows": 15,
       "minLen": 2,
       "maxLen": 12,
-      "timerSeconds": 120,
+      "timerSeconds": 0,
       "misclickPenaltySeconds": 0,
-      "rewardScorePerBodySegment": 100,
+      "rewardScorePerBodySegment": 300,
       "displayName": "奖励关 4"
     },
     "data": {
@@ -87709,7 +87712,7 @@
       "coveredCells": 225,
       "totalCells": 225
     },
-    "updatedAt": "2026-04-12T03:06:28.517Z"
+    "updatedAt": "2026-04-14T11:17:50.329Z"
   },
   "1005": {
     "settings": {
@@ -87722,9 +87725,9 @@
       "gridRows": 12,
       "minLen": 2,
       "maxLen": 20,
-      "timerSeconds": 120,
+      "timerSeconds": 0,
       "misclickPenaltySeconds": 0,
-      "rewardScorePerBodySegment": 200,
+      "rewardScorePerBodySegment": 300,
       "displayName": "奖励关 5"
     },
     "data": {
@@ -89057,6 +89060,6 @@
       "coveredCells": 143,
       "totalCells": 144
     },
-    "updatedAt": "2026-04-12T03:18:07.925Z"
+    "updatedAt": "2026-04-14T11:17:59.522Z"
   }
 }
