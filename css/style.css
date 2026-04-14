@@ -311,7 +311,7 @@ textarea {
     gap: 12px;
     transform: translateX(2px);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .hud-level {

@@ -135,6 +135,7 @@ export class Game {
         this.campaignCompleted = false;
         this.rewardGuideShown = false;
         this.bestComboThisLevel = 0;
+        this.rewardStageUnlockedThisLevel = false;
         this.dragReleaseActive = false;
         this.dragReleaseLineIds = new Set();
         this.suppressClickUntil = 0;
@@ -820,6 +821,7 @@ export class Game {
         this.lastCoinReward = 0;
         this.combo = 0;
         this.bestComboThisLevel = 0;
+        this.rewardStageUnlockedThisLevel = false;
         this.lastComboReleaseAt = 0;
         this.releaseSfxScoreEventCount = 0;
         this.hasTimer = !!config.hasTimer && Number(config.timerSeconds) > 0;
@@ -1245,8 +1247,30 @@ export class Game {
 
         this.grid.unregisterLine(line);
         this.markSortedLinesDirty();
+        const prevBestCombo = this.bestComboThisLevel;
         this.combo = nextCombo;
         this.bestComboThisLevel = Math.max(this.bestComboThisLevel, this.combo);
+        const rewardThreshold = Math.max(1, Number(REWARD_COMBO_THRESHOLD) || 1);
+        const isFinalNormalLevel = this.currentLevel >= this.normalLevelCount;
+        if (
+            !this.isRewardStage
+            && !isFinalNormalLevel
+            && this.rewardLevelCount > 0
+            && !this.rewardStageUnlockedThisLevel
+            && prevBestCombo < rewardThreshold
+            && this.bestComboThisLevel >= rewardThreshold
+        ) {
+            this.pendingRewardReturnLevel = normalizePlayableLevel(this.currentLevel + 1, this.normalLevelCount);
+            this.pendingRewardSourceLevel = normalizePlayableLevel(this.currentLevel, this.normalLevelCount);
+            this.rewardStageUnlockedThisLevel = true;
+            if (typeof this.onRewardStageUnlocked === 'function') {
+                this.onRewardStageUnlocked({
+                    level: this.currentLevel,
+                    combo: this.bestComboThisLevel,
+                    threshold: rewardThreshold
+                });
+            }
+        }
         this.lastComboReleaseAt = currentMs;
         playReleaseScaleSound(this.combo - 1);
 
@@ -1451,29 +1475,23 @@ export class Game {
             this.pendingRewardReturnLevel = null;
             this.pendingRewardSourceLevel = null;
             this.campaignCompleted = false;
+            this.rewardStageUnlockedThisLevel = false;
         } else {
             this.maxClearedLevel = Math.max(this.maxClearedLevel || 0, this.currentLevel || 0);
             const isFinalNormalLevel = this.currentLevel >= this.normalLevelCount;
-            let unlockedRewardStage = false;
             if (this.currentLevel >= this.maxUnlockedLevel) {
                 this.maxUnlockedLevel = Math.min(this.normalLevelCount, this.currentLevel + 1);
             }
-            if (!isFinalNormalLevel && this.rewardLevelCount > 0 && this.bestComboThisLevel > REWARD_COMBO_THRESHOLD) {
+            if (!isFinalNormalLevel && this.rewardLevelCount > 0 && this.bestComboThisLevel >= REWARD_COMBO_THRESHOLD) {
                 this.pendingRewardReturnLevel = normalizePlayableLevel(this.currentLevel + 1, this.normalLevelCount);
                 this.pendingRewardSourceLevel = normalizePlayableLevel(this.currentLevel, this.normalLevelCount);
-                unlockedRewardStage = true;
+                this.rewardStageUnlockedThisLevel = true;
             } else {
                 this.pendingRewardReturnLevel = null;
                 this.pendingRewardSourceLevel = null;
+                this.rewardStageUnlockedThisLevel = false;
             }
             this.campaignCompleted = isFinalNormalLevel;
-            if (unlockedRewardStage && typeof this.onRewardStageUnlocked === 'function') {
-                this.onRewardStageUnlocked({
-                    level: this.currentLevel,
-                    combo: this.bestComboThisLevel,
-                    threshold: REWARD_COMBO_THRESHOLD
-                });
-            }
         }
         this.saveProgress();
         this.showLevelComplete();
@@ -2260,6 +2278,45 @@ export class Game {
         this.animations.addConfetti(this.canvas.width * 0.8, this.canvas.height, 80, ['#ffd2a2', '#ffc6d8', '#b8f2a8'], 'leaf');
     }
 
+    playCampaignCompleteCelebration() {
+        const width = this.canvas.width;
+        const height = this.canvas.height;
+        const confettiPalette = ['#ffcf70', '#ff7aa2', '#8be38b', '#71d7ff', '#fff2c6'];
+        const fireworkXs = [0.12, 0.28, 0.5, 0.72, 0.88];
+        const fireworkYs = [0.2, 0.3, 0.24, 0.34, 0.22];
+
+        this.playLevelCompleteCelebration();
+
+        for (let i = 0; i < 6; i++) {
+            const burstX = width * (0.08 + i * 0.17);
+            this.animations.addConfetti(
+                burstX,
+                height + (i % 2 === 0 ? 10 : 48),
+                140,
+                confettiPalette,
+                'confetti',
+                {
+                    speedMin: 180,
+                    speedMax: 640,
+                    riseBias: 320,
+                    sizeMin: 7,
+                    sizeMax: 16,
+                    lifeMin: 1.8,
+                    lifeMax: 3.5,
+                    rotationSpeed: 15
+                }
+            );
+        }
+
+        for (let i = 0; i < fireworkXs.length; i++) {
+            this.animations.addRewardFirework(width * fireworkXs[i], height * fireworkYs[i], {
+                maxRadius: 44 + i * 4,
+                endScale: 4.4,
+                lineWidth: 2.6
+            });
+        }
+    }
+
     showLevelComplete() {
         if (this.onLevelComplete) {
             this.onLevelComplete();
@@ -2603,7 +2660,6 @@ function distanceToRect(px, py, left, top, width, height) {
     }
     return Math.hypot(dx, dy);
 }
-
 
 
 

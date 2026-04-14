@@ -228,6 +228,11 @@ const server = http.createServer(async (req, res) => {
             await handleAdminDeleteAllUnusedAssetsRequest(req, res);
             return;
         }
+        if (requestUrl.pathname === '/api/admin/assets/update-image') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminUpdateImageAssetRequest(req, res);
+            return;
+        }
         if (requestUrl.pathname === '/api/admin/db/overview') {
             if (!requireAdminAuth(req, res, requestUrl)) return;
             await handleAdminDbOverviewRequest(req, res);
@@ -1947,6 +1952,69 @@ async function handleAdminDeleteAllUnusedAssetsRequest(req, res) {
     });
 }
 
+async function handleAdminUpdateImageAssetRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_SKIN_GEN_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    if (!isPlainObject(body)) {
+        sendJson(res, 400, { ok: false, error: 'body must be an object' });
+        return;
+    }
+
+    const relativePath = sanitizeAssetDeletePath(body.path);
+    if (!relativePath) {
+        sendJson(res, 400, { ok: false, error: 'invalid asset path' });
+        return;
+    }
+    const decoded = (() => {
+        try {
+            return decodeImageDataUrl(`${body.imageDataUrl || ''}`.trim());
+        } catch (error) {
+            return { error };
+        }
+    })();
+    if (decoded?.error) {
+        sendJson(res, 400, { ok: false, error: decoded.error?.message || 'invalid image data url' });
+        return;
+    }
+
+    const extension = path.extname(relativePath).toLowerCase();
+    if (!['.png', '.jpg', '.jpeg', '.webp'].includes(extension)) {
+        sendJson(res, 400, { ok: false, error: 'only png/jpg/webp assets support overwrite update' });
+        return;
+    }
+    if (decoded.ext !== extension && !((decoded.ext === '.jpg' || decoded.ext === '.jpeg') && (extension === '.jpg' || extension === '.jpeg'))) {
+        sendJson(res, 400, { ok: false, error: `image mime does not match target extension ${extension}` });
+        return;
+    }
+
+    const absolutePath = path.resolve(ROOT_DIR, relativePath);
+    const assetsRoot = path.resolve(ROOT_DIR, 'assets');
+    const normalizedAssetsRoot = `${assetsRoot}${path.sep}`;
+    if (absolutePath !== assetsRoot && !absolutePath.startsWith(normalizedAssetsRoot)) {
+        sendJson(res, 400, { ok: false, error: 'asset path outside assets directory' });
+        return;
+    }
+
+    await fs.writeFile(absolutePath, decoded.buffer);
+    const stat = await fs.stat(absolutePath);
+    sendJson(res, 200, {
+        ok: true,
+        path: relativePath,
+        sizeBytes: Math.max(0, Number(stat.size) || 0),
+        width: Math.max(0, Math.floor(Number(body.width) || 0)),
+        height: Math.max(0, Math.floor(Number(body.height) || 0))
+    });
+}
+
 function toAdminSafeUserDetail(user) {
     if (!user) return null;
     return {
@@ -1991,6 +2059,8 @@ async function analyzeUnusedImageAssets() {
         .map((row) => {
             const referrers = referencesByAsset.get(row.path);
             const usageCount = referrers?.size || 0;
+            const referrerList = referrers ? [...referrers].sort() : [];
+            const category = classifyAssetUsage(row.path, referrerList);
             return {
                 ...row,
                 used: usageCount > 0,
@@ -1998,7 +2068,9 @@ async function analyzeUnusedImageAssets() {
                 usageRate: maxUsageCount > 0
                     ? Number(((usageCount / maxUsageCount) * 100).toFixed(1))
                     : 0,
-                referrers: referrers ? [...referrers].sort() : []
+                referrers: referrerList,
+                category,
+                isArtifactCandidate: category === 'artifact_candidate'
             };
         })
         .sort((a, b) => {
@@ -2021,6 +2093,9 @@ async function analyzeUnusedImageAssets() {
     const usedAssets = assets.filter((row) => row.used);
     const usedImageBytes = usedAssets.reduce((sum, row) => sum + row.sizeBytes, 0);
     const unusedImageBytes = unusedAssets.reduce((sum, row) => sum + row.sizeBytes, 0);
+    const primaryRuntimeAssets = assets.filter((row) => row.category === 'primary_runtime');
+    const fallbackOnlyAssets = assets.filter((row) => row.category === 'fallback_only');
+    const artifactCandidates = assets.filter((row) => row.category === 'artifact_candidate');
     return {
         summary: {
             totalImageAssets: assets.length,
@@ -2029,7 +2104,10 @@ async function analyzeUnusedImageAssets() {
             usedImageBytes,
             unusedImageAssets: unusedAssets.length,
             unusedImageBytes,
-            maxUsageCount
+            maxUsageCount,
+            primaryRuntimeAssets: primaryRuntimeAssets.length,
+            fallbackOnlyAssets: fallbackOnlyAssets.length,
+            artifactCandidates: artifactCandidates.length
         },
         assets,
         unusedAssets
@@ -2060,6 +2138,9 @@ async function collectImageAssetReferences() {
     const referenceMap = new Map();
     for (const filePath of projectFiles) {
         const relativePath = normalizeProjectRelativePath(filePath);
+        if (!shouldCountAssetReferenceSource(relativePath)) {
+            continue;
+        }
         if (relativePath.startsWith('data/generated/')) {
             continue;
         }
@@ -2081,6 +2162,43 @@ async function collectImageAssetReferences() {
         }
     }
     return referenceMap;
+}
+
+function shouldCountAssetReferenceSource(relativePath) {
+    const normalized = `${relativePath || ''}`.replace(/\\/g, '/');
+    if (!normalized) return false;
+    if (normalized === 'index.html' || normalized === 'admin.html') {
+        return true;
+    }
+    if (normalized.startsWith('js/')) {
+        return true;
+    }
+    if (normalized.startsWith('css/')) {
+        return true;
+    }
+    return false;
+}
+
+function classifyAssetUsage(assetPath, referrers) {
+    const rows = Array.isArray(referrers) ? referrers : [];
+    if (rows.length <= 0) {
+        return isArtifactCandidatePath(assetPath) ? 'artifact_candidate' : 'unused';
+    }
+    const allFallback = rows.every((row) => row === 'js/ui-theme.js');
+    if (allFallback) {
+        return 'fallback_only';
+    }
+    return 'primary_runtime';
+}
+
+function isArtifactCandidatePath(assetPath) {
+    const normalized = `${assetPath || ''}`.replace(/\\/g, '/').toLowerCase();
+    if (!normalized) return false;
+    if (normalized.includes('/concepts/')) return true;
+    if (/_raw\.(png|jpg|jpeg|webp|svg|gif)$/.test(normalized)) return true;
+    if (/_source\.(png|jpg|jpeg|webp|svg|gif)$/.test(normalized)) return true;
+    if (/_export\.(png|jpg|jpeg|webp|svg|gif)$/.test(normalized)) return true;
+    return false;
 }
 
 async function walkDirectoryFiles(dirPath) {
@@ -3435,4 +3553,3 @@ function requireAdminAuth(req, res, requestUrl) {
 function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
-

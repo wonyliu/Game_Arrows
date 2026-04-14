@@ -167,10 +167,10 @@ const DEFAULT_SNAKE_RENDER_PROFILE = Object.freeze({
     segmentShadowBlur: 2.2,
     segmentShadowOffsetX: 0,
     segmentShadowOffsetY: 1,
-    headShadowColor: 'rgba(20, 16, 28, 0.30)',
-    headShadowBlur: 3.2,
+    headShadowColor: 'transparent',
+    headShadowBlur: 0,
     headShadowOffsetX: 0,
-    headShadowOffsetY: 1,
+    headShadowOffsetY: 0,
     spriteScale: 1
 });
 const SKIN_PART_FIT_STORAGE_KEY = 'arrowClear_skinPartFitOverrides_v2';
@@ -540,12 +540,6 @@ function createMaskedSnakeSprite(sourceSprite, maskSprite, fit, options = {}) {
     ctx.globalCompositeOperation = 'destination-in';
     ctx.drawImage(maskSprite.canvas, 0, 0, canvas.width, canvas.height);
     ctx.globalCompositeOperation = 'source-over';
-    if (!shouldSkipHeadPostProcess(sourceSprite.name || '')) {
-        bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
-    }
-    if (isSnakeHeadSpriteName(sourceSprite.name || '') && !shouldSkipHeadPostProcess(sourceSprite.name || '')) {
-        reduceOuterBrightHalo(ctx, canvas.width, canvas.height);
-    }
     if (forceOpaque) {
         forceOpaqueAlpha(ctx, canvas.width, canvas.height);
     }
@@ -991,16 +985,6 @@ function loadRasterSprite(name, path) {
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(image, 0, 0);
-            // Some AI-exported heads carry bright outer fringe that becomes a white ring
-            // after runtime downscale/rotation. Soften only snake-head outer boundary.
-            if (isSnakeHeadSpriteName(name) && !shouldSkipHeadPostProcess(name)) {
-                reduceOuterBrightHalo(ctx, canvas.width, canvas.height);
-            }
-            // Fill RGB in fully transparent edge pixels to avoid dark fringe shimmer
-            // when sprites are continuously rotated/scaled in animation.
-            if (!shouldSkipHeadPostProcess(name)) {
-                bleedTransparentEdgePixels(ctx, canvas.width, canvas.height, 2);
-            }
             record.status = 'ready';
             record.sprite = {
                 name,
@@ -1316,11 +1300,7 @@ function drawSnakeHeadSprite(ctx, sprite, x, y, options = {}) {
         ctx.shadowOffsetX = shadowOffsetX;
         ctx.shadowOffsetY = shadowOffsetY;
     }
-    const smooth = shouldSmoothSnakeSprite(scale);
-    ctx.imageSmoothingEnabled = smooth;
-    if (smooth) {
-        ctx.imageSmoothingQuality = 'high';
-    }
+    ctx.imageSmoothingEnabled = false;
     ctx.drawImage(sprite.canvas, -width / 2, -height / 2, width, height);
 
     if (tint) {
@@ -1359,36 +1339,23 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     // they fall back to the legacy mole-head style and look like wrong assets.
     if (sampled.length < 3) return false;
 
-    const styleTint = getStyleTint(style);
+    const styleTint = null;
     const wiggleStrength = (style === 'remove' ? 2.2 : 0.78) + softPulse * 1.5;
     const thickness = clamp(atlas.cellSize * 0.9, 18, 34);
     const renderProfile = atlas.skinRenderProfile || DEFAULT_SNAKE_RENDER_PROFILE;
     const spriteScale = renderProfile.spriteScale || 1;
-    const useMaskedSnakeSprites = !!atlas.maskedSnakeSprites;
-    const partFit = useMaskedSnakeSprites
-        ? DEFAULT_SNAKE_PART_FIT
-        : (atlas.skinPartFit || DEFAULT_SNAKE_PART_FIT);
-    const spriteSet = atlas.maskedSnakeSprites || atlas.sprites;
-    const allowShadow = ENABLE_RUNTIME_SNAKE_SHADOW && style !== 'remove' && style !== 'error';
-    const segmentShadowColor = allowShadow ? renderProfile.segmentShadowColor : null;
-    const segmentShadowBlur = allowShadow ? renderProfile.segmentShadowBlur : 0;
-    const segmentShadowOffsetX = allowShadow ? renderProfile.segmentShadowOffsetX : 0;
-    const segmentShadowOffsetY = allowShadow ? renderProfile.segmentShadowOffsetY : 0;
-    const headShadowColor = allowShadow ? renderProfile.headShadowColor : null;
-    const headShadowBlur = allowShadow ? renderProfile.headShadowBlur : 0;
-    const headShadowOffsetX = allowShadow ? renderProfile.headShadowOffsetX : 0;
-    const headShadowOffsetY = allowShadow ? renderProfile.headShadowOffsetY : 0;
-    const colorVariant = atlas.skinAllowHueVariants === false
-        ? null
-        : getSnakeColorVariant(atlas, lineId, colorVariantIndex);
-    const bodySprite = getSnakeVariantSprite(
-        spriteSet.snakeSegA || spriteSet.snakeSegB,
-        colorVariant
-    );
-    const tailTipSprite = getSnakeVariantSprite(
-        spriteSet.snakeTailTip || spriteSet.snakeTailBase,
-        colorVariant
-    );
+    const partFit = atlas.skinPartFit || DEFAULT_SNAKE_PART_FIT;
+    const spriteSet = atlas.sprites;
+    const segmentShadowColor = null;
+    const segmentShadowBlur = 0;
+    const segmentShadowOffsetX = 0;
+    const segmentShadowOffsetY = 0;
+    const headShadowColor = null;
+    const headShadowBlur = 0;
+    const headShadowOffsetX = 0;
+    const headShadowOffsetY = 0;
+    const bodySprite = spriteSet.snakeSegA || spriteSet.snakeSegB;
+    const tailTipSprite = spriteSet.snakeTailTip || spriteSet.snakeTailBase;
     if (!bodySprite || !tailTipSprite) {
         return false;
     }
@@ -1521,7 +1488,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     });
 
     const headSprite = pickSnakeHeadSprite(atlas, headExpression);
-    const coloredHeadSprite = getSnakeVariantSprite(headSprite, colorVariant);
+    const coloredHeadSprite = headSprite;
     const headFitKey = expressionToHeadFitKey(headExpression);
     const headFit = partFit[headFitKey] || DEFAULT_SNAKE_PART_FIT[headFitKey];
     const headScale = ((thickness * 1.1 * spriteScale) / coloredHeadSprite.height) * headFit.scale;
