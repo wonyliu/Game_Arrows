@@ -615,8 +615,9 @@ export class UI {
         this.game.onTimerEnergyEmit = (payload) => this.spawnTimerEnergyOrb(payload);
         this.game.onTimerEnergyBatchCancel = (batchId) => this.cancelTimerEnergyBatch(batchId);
         this.game.onTimerEnergyClear = () => this.clearTimerEnergyOrbs();
-        this.game.onRewardStageUnlocked = () => {
-            this.rewardUnlockToastPending = true;
+        this.game.onRewardStageUnlocked = (payload) => {
+            this.rewardUnlockToastPending = false;
+            this.showRewardUnlockToast(payload);
         };
         this.game.onLevelComplete = () => this.showLevelCompletePopup();
         this.game.onGameOver = (reason) => this.showGameOverPopup(reason);
@@ -683,8 +684,6 @@ export class UI {
             return;
         }
         if (typeof this.game.startNextStage === 'function') {
-            const willEnterRewardStage = !this.game.isRewardStage
-                && Number(this.game.pendingRewardReturnLevel) > 0;
             this.clearTimerEnergyOrbs();
             this.hideAll();
             this.hud.classList.remove('hidden');
@@ -698,9 +697,6 @@ export class UI {
             this.updateHUD();
             this.syncGameplayBgm(true);
             this.maybeShowRewardStageGuide();
-            if (willEnterRewardStage || this.rewardUnlockToastPending) {
-                setTimeout(() => this.showRewardUnlockToast(), 120);
-            }
             this.rewardUnlockToastPending = false;
             return;
         }
@@ -2513,19 +2509,23 @@ export class UI {
         this.comboDisplayEl.replaceChildren(countEl, labelEl);
     }
 
-    showRewardUnlockToast() {
+    showRewardUnlockToast(payload = {}) {
         if (!this.rewardUnlockToastEl) {
             return;
         }
 
         const imageEl = this.rewardUnlockToastImageEl;
         const textEl = this.rewardUnlockToastTextEl;
+        const threshold = Math.max(1, Math.floor(Number(payload?.threshold) || 0));
+        const hasBannerImage = !!(`${imageEl?.getAttribute?.('src') || ''}`.trim());
         if (textEl) {
-            textEl.textContent = '百连斩奖励关';
-            textEl.classList.remove('hidden');
+            textEl.textContent = threshold > 0
+                ? `${threshold} 连击触发奖励关`
+                : '百连斩奖励关';
+            textEl.classList.toggle('hidden', hasBannerImage);
         }
         if (imageEl) {
-            imageEl.classList.add('hidden');
+            imageEl.classList.toggle('hidden', !hasBannerImage);
         }
 
         if (this.rewardUnlockToastTimer) {
@@ -2884,21 +2884,25 @@ export class UI {
     showLevelCompletePopup() {
         this.levelCompleteOverlay.classList.remove('hidden');
         this.updateCoinDisplays();
-        if (typeof this.game.playLevelCompleteCelebration === 'function') {
-            this.game.playLevelCompleteCelebration();
-        }
         const isCampaignComplete = typeof this.game.isCampaignCompleted === 'function'
             && this.game.isCampaignCompleted();
+        const willEnterRewardStage = !this.game.isRewardStage
+            && Number(this.game.pendingRewardReturnLevel) > 0;
+        if (isCampaignComplete && typeof this.game.playCampaignCompleteCelebration === 'function') {
+            this.game.playCampaignCompleteCelebration();
+        } else if (typeof this.game.playLevelCompleteCelebration === 'function') {
+            this.game.playLevelCompleteCelebration();
+        }
         if (this.audioEnabled && isCampaignComplete) {
             playBgmForScene(BGM_SCENE_KEYS.CAMPAIGN_COMPLETE, { restart: true });
         } else if (this.audioEnabled) {
             this.syncGameplayBgm(false);
         }
         if (this.levelCompleteNextButton) {
-            this.levelCompleteNextButton.textContent = '下一关';
+            this.levelCompleteNextButton.textContent = willEnterRewardStage ? '奖励关' : '下一关';
         }
         if (this.levelCompleteTitleEl) {
-            this.levelCompleteTitleEl.textContent = '恭喜过关';
+            this.levelCompleteTitleEl.textContent = isCampaignComplete ? '恭喜通关' : '恭喜过关';
         }
         if (this.levelScore) {
             this.levelScore.textContent = t(this.locale, 'common.score', { score: this.game.score });
@@ -3007,8 +3011,5 @@ export class UI {
 }
 
 export { MENU_PANEL };
-
-
-
 
 

@@ -133,9 +133,9 @@ const SKIN_CATALOG = Object.freeze([
             segmentShadowColor: 'rgba(45, 25, 63, 0.34)',
             segmentShadowBlur: 3.4,
             segmentShadowOffsetY: 1,
-            headShadowColor: 'rgba(45, 25, 63, 0.40)',
-            headShadowBlur: 4.2,
-            headShadowOffsetY: 1,
+            headShadowColor: 'transparent',
+            headShadowBlur: 0,
+            headShadowOffsetY: 0,
             spriteScale: 1,
             partFit: Object.freeze({
                 headDefault: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
