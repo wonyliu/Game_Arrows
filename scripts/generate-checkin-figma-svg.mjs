@@ -7,8 +7,8 @@ const outputDir = path.join(root, 'docs', 'figma');
 const outputFile = path.join(outputDir, 'checkin-signin-artboard.svg');
 
 const rewardIconMap = {
-  coin: path.join(root, 'assets', 'design-v5', 'clean', 'icon_coin.png'),
-  hint: path.join(root, 'assets', 'design-v2', 'clean', 'icon_hint.png'),
+  coin: path.join(root, 'assets', 'ui', 'themes', 'design-v5', 'icon_coin.png'),
+  hint: path.join(root, 'assets', 'ui', 'shared', 'icons', 'icon_hint.png'),
   theme: path.join(root, 'assets', 'design-v2', 'clean', 'icon_theme.png'),
 };
 
