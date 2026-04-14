@@ -1339,7 +1339,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     // they fall back to the legacy mole-head style and look like wrong assets.
     if (sampled.length < 3) return false;
 
-    const styleTint = null;
+    const styleTint = getStyleTint(style);
     const wiggleStrength = (style === 'remove' ? 2.2 : 0.78) + softPulse * 1.5;
     const thickness = clamp(atlas.cellSize * 0.9, 18, 34);
     const renderProfile = atlas.skinRenderProfile || DEFAULT_SNAKE_RENDER_PROFILE;
@@ -1354,8 +1354,17 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     const headShadowBlur = 0;
     const headShadowOffsetX = 0;
     const headShadowOffsetY = 0;
-    const bodySprite = spriteSet.snakeSegA || spriteSet.snakeSegB;
-    const tailTipSprite = spriteSet.snakeTailTip || spriteSet.snakeTailBase;
+    const colorVariant = atlas.skinAllowHueVariants === false
+        ? null
+        : getSnakeColorVariant(atlas, lineId, colorVariantIndex);
+    const bodySprite = getSnakeVariantSprite(
+        spriteSet.snakeSegA || spriteSet.snakeSegB,
+        colorVariant
+    );
+    const tailTipSprite = getSnakeVariantSprite(
+        spriteSet.snakeTailTip || spriteSet.snakeTailBase,
+        colorVariant
+    );
     if (!bodySprite || !tailTipSprite) {
         return false;
     }
@@ -1488,7 +1497,7 @@ function drawSnakePathWithSprites(ctx, pathPoints, styleState, directionHint = '
     });
 
     const headSprite = pickSnakeHeadSprite(atlas, headExpression);
-    const coloredHeadSprite = headSprite;
+    const coloredHeadSprite = getSnakeVariantSprite(headSprite, colorVariant);
     const headFitKey = expressionToHeadFitKey(headExpression);
     const headFit = partFit[headFitKey] || DEFAULT_SNAKE_PART_FIT[headFitKey];
     const headScale = ((thickness * 1.1 * spriteScale) / coloredHeadSprite.height) * headFit.scale;
@@ -1914,8 +1923,6 @@ export function hashPoint(x, y, seed = 0) {
     value = (value ^ (value >> 13)) * 1274126177;
     return (value >>> 0) / 0xffffffff;
 }
-
-
 
 
 

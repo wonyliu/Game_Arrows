@@ -437,6 +437,7 @@ textarea {
     user-select: none;
     text-shadow: 0 2px 0 rgba(73, 43, 25, 0.68), 0 6px 16px rgba(26, 15, 9, 0.44);
     transform: translateY(20px);
+    margin-left: auto;
 }
 
 .hud-combo-count {
