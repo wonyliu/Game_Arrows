@@ -1294,7 +1294,42 @@ textarea {
 
 .audio-row input[type='range'] {
     width: 100%;
+    min-height: 28px;
     accent-color: #8f5d39;
+    touch-action: pan-x;
+}
+
+.audio-row input[type='range']::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+}
+
+.audio-row input[type='range']::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border: 0;
+}
+
+@media (pointer: coarse) {
+    .audio-row {
+        min-height: 46px;
+        padding: 8px 10px;
+    }
+
+    .audio-row input[type='range'] {
+        min-height: 40px;
+        margin: -6px 0;
+    }
+
+    .audio-row input[type='range']::-webkit-slider-thumb {
+        width: 28px;
+        height: 28px;
+    }
+
+    .audio-row input[type='range']::-moz-range-thumb {
+        width: 28px;
+        height: 28px;
+    }
 }
 
 .audio-row strong {

@@ -9,7 +9,7 @@ import {
     setSfxVolume,
     playCheckinRewardCoinSound,
     playFinalCountdownTickSound
-} from './audio.js?v=62';
+} from './audio.js?v=66';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=27';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
@@ -255,11 +255,6 @@ export class UI {
                 resumeAudioV31();
             } catch (error) {
                 console.warn('Audio resume failed during auto unlock:', error);
-            }
-            if (this.game?.state === 'PLAYING') {
-                this.syncGameplayBgm(true);
-            } else {
-                playBgmForScene(BGM_SCENE_KEYS.HOME, { restart: true });
             }
             unlocked = true;
             cleanup();

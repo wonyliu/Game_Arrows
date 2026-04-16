@@ -346,10 +346,11 @@ async function startWebAudioBgmFallback(reason = '', options = {}) {
             logBgm('webaudio fallback skipped after decode: html audio already playing', { src, reason });
             return false;
         }
+        let startOffset = 0;
         if (forceTakeover && bgmAudioEl) {
+            startOffset = Math.max(0, Number(bgmAudioEl.currentTime) || 0);
             try {
                 bgmAudioEl.pause();
-                bgmAudioEl.currentTime = 0;
             } catch {
                 // noop
             }
@@ -370,12 +371,15 @@ async function startWebAudioBgmFallback(reason = '', options = {}) {
             bgmTrackIndex = (bgmTrackIndex + 1) % bgmPlaylist.length;
             void startWebAudioBgmFallback('track-ended');
         };
-        source.start(ctx.currentTime + 0.01);
+        const normalizedOffset = buffer.duration > 0
+            ? Math.min(Math.max(0, startOffset), Math.max(0, buffer.duration - 0.01))
+            : 0;
+        source.start(ctx.currentTime + 0.01, normalizedOffset);
         bgmWebSourceNode = source;
         bgmWebAudioActive = true;
         pendingBgmPlay = false;
         clearBgmRetryTimer();
-        logBgm('webaudio fallback started', { src, reason, index: safeIndex });
+        logBgm('webaudio fallback started', { src, reason, index: safeIndex, startOffset: normalizedOffset });
         return true;
     } catch (error) {
         logBgm('webaudio fallback failed', {
@@ -624,7 +628,19 @@ function attemptBgmPlayback() {
         return;
     }
     const audio = getBgmAudioElement();
-    if (shouldPreferWebAudioBgmPlayback() && hasUserActivation()) {
+    const preferWebAudioPlayback = shouldPreferWebAudioBgmPlayback() && hasUserActivation();
+    if (!preferWebAudioPlayback && !audio.paused && (audio.currentSrc || audio.src)) {
+        logBgm('skip play: html audio already playing', {
+            src: audio.currentSrc || audio.src || '',
+            scene: bgmSceneKey
+        });
+        pendingBgmPlay = false;
+        clearBgmRetryTimer();
+        bgmConsecutiveErrorCount = 0;
+        updateBgmElementVolume();
+        return;
+    }
+    if (preferWebAudioPlayback) {
         void startWebAudioBgmFallback('prefer-webaudio-playback', { forceTakeover: true }).then((ok) => {
             if (ok) {
                 silenceHtmlBgmElement();
@@ -868,6 +884,7 @@ function playCurrentBgmTrack(options = {}) {
     const audio = getBgmAudioElement();
     const safeIndex = Math.max(0, Math.min(bgmPlaylist.length - 1, bgmTrackIndex));
     const nextSrc = bgmPlaylist[safeIndex];
+    const preferWebAudioPlayback = shouldPreferWebAudioBgmPlayback() && hasUserActivation();
     if (!nextSrc) {
         return;
     }
@@ -878,15 +895,27 @@ function playCurrentBgmTrack(options = {}) {
             audio.pause();
             audio.currentTime = 0;
         }
+        audio.autoplay = !preferWebAudioPlayback;
         audio.src = nextSrc;
-        if (!navigator.userActivation?.hasBeenActive) {
+        if (!navigator.userActivation?.hasBeenActive || preferWebAudioPlayback) {
             audio.muted = true;
             bgmMutedBootstrap = true;
         }
         audio.load();
+        if (preferWebAudioPlayback) {
+            try {
+                audio.pause();
+            } catch {
+                // noop
+            }
+        }
     }
     updateBgmElementVolume();
     pendingBgmPlay = true;
+    if (preferWebAudioPlayback) {
+        attemptBgmPlayback();
+        return;
+    }
     if (!navigator.userActivation?.hasBeenActive && audio.autoplay && audio.muted) {
         logBgm('wait native muted autoplay before manual play', { src: nextSrc });
         clearBgmRetryTimer();
@@ -907,14 +936,27 @@ function playNextBgmTrack() {
     }
     bgmTrackIndex = (bgmTrackIndex + 1) % bgmPlaylist.length;
     const audio = getBgmAudioElement();
+    const preferWebAudioPlayback = shouldPreferWebAudioBgmPlayback() && hasUserActivation();
     stopWebAudioBgm();
     logBgm('switch next track', {
         index: bgmTrackIndex,
         src: bgmPlaylist[bgmTrackIndex],
         total: bgmPlaylist.length
     });
+    audio.autoplay = !preferWebAudioPlayback;
     audio.src = bgmPlaylist[bgmTrackIndex];
+    if (preferWebAudioPlayback) {
+        audio.muted = true;
+        bgmMutedBootstrap = true;
+    }
     audio.load();
+    if (preferWebAudioPlayback) {
+        try {
+            audio.pause();
+        } catch {
+            // noop
+        }
+    }
     updateBgmElementVolume();
     pendingBgmPlay = true;
     attemptBgmPlayback();
@@ -1105,7 +1147,14 @@ export function resumeAudio() {
         clearBgmRetryTimer();
         return;
     }
-    if (shouldPreferWebAudioBgmPlayback() && hasUserActivation()) {
+    const preferWebAudioPlayback = shouldPreferWebAudioBgmPlayback() && hasUserActivation();
+    if (!preferWebAudioPlayback && bgmAudioEl && !bgmAudioEl.paused && (bgmAudioEl.currentSrc || bgmAudioEl.src)) {
+        pendingBgmPlay = false;
+        clearBgmRetryTimer();
+        updateBgmElementVolume();
+        return;
+    }
+    if (preferWebAudioPlayback) {
         void startWebAudioBgmFallback('resume-audio-prefer-webaudio', { forceTakeover: true }).then((ok) => {
             if (ok) {
                 silenceHtmlBgmElement();

@@ -24,7 +24,7 @@ import {
     playReleaseScaleSound,
     resumeAudio,
     setAudioSkinId
-} from './audio.js?v=57';
+} from './audio.js?v=66';
 import { buildGameSpriteAtlas, drawSprite, hashPoint } from './pixel-art.js?v=51';
 import {
     ensureSelectedSkin,
@@ -2660,10 +2660,6 @@ function distanceToRect(px, py, left, top, width, height) {
     }
     return Math.hypot(dx, dy);
 }
-
-
-
-
 
 
 

@@ -3,6 +3,7 @@ const DEVICE_ID_STORAGE_KEY = 'arrowClear_deviceId_v1';
 const USER_ID_COOKIE_KEY = 'arrow_uid';
 const AUTH_OVERLAY_ID = 'userAuthOverlay';
 const API_BASE = '/api/users';
+const AUTH_REQUEST_TIMEOUT_MS = 8000;
 
 let activeSession = null;
 
@@ -253,11 +254,16 @@ function writeCookie(key, value, days) {
 }
 
 async function postJson(url, payload) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller
+        ? setTimeout(() => controller.abort(), AUTH_REQUEST_TIMEOUT_MS)
+        : 0;
     try {
         const response = await fetch(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload || {})
+            body: JSON.stringify(payload || {}),
+            signal: controller ? controller.signal : undefined
         });
         const data = await response.json().catch(() => ({}));
         if (!response.ok) {
@@ -266,5 +272,9 @@ async function postJson(url, payload) {
         return data;
     } catch (error) {
         return { ok: false, error: error?.message || 'network error' };
+    } finally {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
     }
 }
