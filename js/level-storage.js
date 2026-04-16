@@ -11,6 +11,9 @@ const VALID_DIRECTIONS = new Set(['up', 'down', 'left', 'right']);
 const MAX_LEVEL_DISPLAY_NAME_LENGTH = 28;
 const MAX_ARROW_LENGTH = 999;
 const MAX_REWARD_SCORE_PER_BODY_SEGMENT = 100000;
+const DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT = 10;
+const MIN_GRID_DIMENSION = 4;
+const UNBOUNDED_GRID_DIMENSION_MAX = Number.POSITIVE_INFINITY;
 const DEFAULT_LEVEL_CATALOG = Object.freeze({
     normalCount: 100,
     rewardCount: 1
@@ -40,18 +43,18 @@ export function initLevelStorage() {
 }
 
 export function deriveGridSize(dimensionMode, dimensionValue) {
-    const value = clamp(Math.round(Number(dimensionValue) || 0), 4, 40);
+    const value = clamp(Math.round(Number(dimensionValue) || 0), MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX);
 
     if (dimensionMode === 'cols') {
         return {
             gridCols: value,
-            gridRows: clamp(Math.round(value * DEFAULT_PLAYFIELD.height / DEFAULT_PLAYFIELD.width), 6, 60)
+            gridRows: clamp(Math.round(value * DEFAULT_PLAYFIELD.height / DEFAULT_PLAYFIELD.width), 6, UNBOUNDED_GRID_DIMENSION_MAX)
         };
     }
 
     return {
         gridRows: value,
-        gridCols: clamp(Math.round(value * DEFAULT_PLAYFIELD.width / DEFAULT_PLAYFIELD.height), 4, 40)
+        gridCols: clamp(Math.round(value * DEFAULT_PLAYFIELD.width / DEFAULT_PLAYFIELD.height), MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX)
     };
 }
 
@@ -60,19 +63,23 @@ export function buildStoredSettings(baseConfig, overrides = {}) {
     const dimensionMode = rawDimensionMode === 'cols' || rawDimensionMode === 'custom'
         ? rawDimensionMode
         : 'rows';
-    const fallbackGridCols = clamp(Math.round(Number(baseConfig.gridCols) || 18), 4, 40);
-    const fallbackGridRows = clamp(Math.round(Number(baseConfig.gridRows) || 26), 4, 40);
+    const fallbackGridCols = clamp(Math.round(Number(baseConfig.gridCols) || 18), MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX);
+    const fallbackGridRows = clamp(Math.round(Number(baseConfig.gridRows) || 26), MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX);
     const fallbackValue = dimensionMode === 'cols' ? fallbackGridCols : fallbackGridRows;
-    const dimensionValue = clamp(Math.round(Number(overrides.dimensionValue ?? fallbackValue) || fallbackValue), 4, 40);
+    const dimensionValue = clamp(
+        Math.round(Number(overrides.dimensionValue ?? fallbackValue) || fallbackValue),
+        MIN_GRID_DIMENSION,
+        UNBOUNDED_GRID_DIMENSION_MAX
+    );
     const customGridCols = clamp(
         Math.round(Number(overrides.customGridCols ?? baseConfig.customGridCols ?? fallbackGridCols) || fallbackGridCols),
-        4,
-        40
+        MIN_GRID_DIMENSION,
+        UNBOUNDED_GRID_DIMENSION_MAX
     );
     const customGridRows = clamp(
         Math.round(Number(overrides.customGridRows ?? baseConfig.customGridRows ?? fallbackGridRows) || fallbackGridRows),
-        4,
-        40
+        MIN_GRID_DIMENSION,
+        UNBOUNDED_GRID_DIMENSION_MAX
     );
     const grid = dimensionMode === 'custom'
         ? { gridCols: customGridCols, gridRows: customGridRows }
@@ -100,8 +107,8 @@ export function buildStoredSettings(baseConfig, overrides = {}) {
         Math.round(Number(
             overrides.rewardScorePerBodySegment
             ?? baseConfig.rewardScorePerBodySegment
-            ?? 1000
-        ) || 1000),
+            ?? DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT
+        ) || DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT),
         1,
         MAX_REWARD_SCORE_PER_BODY_SEGMENT
     );
@@ -586,5 +593,3 @@ function normalizeLevelCatalog(catalog) {
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
-
-

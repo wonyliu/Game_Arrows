@@ -176,10 +176,10 @@ textarea {
 
 .hud-top {
     position: absolute;
-    top: calc(var(--header-h) + 6px);
+    top: calc(var(--header-h) + 8px);
     left: 0;
     width: 100%;
-    height: 68px;
+    height: 76px;
 }
 
 .hud-settings-btn {
@@ -247,23 +247,30 @@ textarea {
 
 .hud-coin-chip {
     position: absolute;
-    right: 76px;
-    top: 5px;
+    right: 72px;
+    top: 4px;
     pointer-events: none;
+    z-index: 7;
 }
 
 .hud-center {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: min(244px, calc(100% - 156px));
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 3px;
+    min-width: 0;
 }
 
 .hud-score-pulse {
     position: absolute;
     left: 50%;
-    top: calc(var(--canvas-top-gap) - 10px);
-    width: 250px;
+    top: calc(var(--header-h) + 62px);
+    width: min(188px, calc(100% - 168px));
     transform: translateX(-50%);
     display: flex;
     flex-direction: column;
@@ -277,25 +284,30 @@ textarea {
     --score-base-scale: 1;
     transform: scale(var(--score-base-scale));
     transform-origin: center center;
-    min-height: 44px;
-    padding: 0 8px;
+    min-height: 28px;
+    max-width: 100%;
+    padding: 0 6px;
     font-family: var(--font-display);
-    font-size: 20px;
+    font-size: 16px;
     font-weight: 900;
     line-height: 1;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.25px;
     color: #e6f4d4;
     text-shadow: 0 2px 0 rgba(45, 30, 20, 0.58), 0 6px 12px rgba(38, 23, 16, 0.28);
     text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+    font-variant-numeric: tabular-nums;
     transition: color 120ms linear, text-shadow 120ms linear;
 }
 
 .hud-score-gain {
-    margin-top: -2px;
-    min-height: 20px;
-    padding: 0 8px;
+    margin-top: 0;
+    min-height: 16px;
+    padding: 0 6px;
     font-family: var(--font-ui-clean);
-    font-size: 20px;
+    font-size: 15px;
     font-weight: 900;
     line-height: 1;
     color: #fff4cf;
@@ -303,13 +315,12 @@ textarea {
 }
 
 .hud-status-row {
-    margin-top: 2px;
-    width: 356px;
+    margin-top: 4px;
+    width: 100%;
     display: flex;
     align-items: flex-end;
-    justify-content: space-between;
-    gap: 12px;
-    transform: translateX(2px);
+    justify-content: center;
+    gap: 8px;
     position: relative;
     overflow: visible;
 }
@@ -317,13 +328,17 @@ textarea {
 .hud-level {
     color: #fff3df;
     font-family: var(--font-display);
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.35px;
     text-shadow: 0 2px 0 rgba(66, 40, 22, 0.62);
-    margin-top: 2px;
-    margin-bottom: 6px;
+    margin-top: 0;
+    margin-bottom: 2px;
     text-align: center;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #levelInfo {
@@ -357,17 +372,19 @@ textarea {
 }
 
 .hud-timer {
-    width: 186px;
+    width: min(168px, 100%);
+    flex: 1 1 auto;
+    min-width: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
 }
 
 .hud-timer-track {
     position: relative;
     width: 100%;
-    height: 16px;
+    height: 14px;
     border-radius: 999px;
     border: 2px solid rgba(133, 88, 56, 0.74);
     background: rgba(61, 40, 26, 0.52);
@@ -386,7 +403,7 @@ textarea {
 
 .hud-timer-label {
     color: #fff5e3;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 900;
     line-height: 1;
     text-shadow: 0 1px 0 rgba(35, 22, 15, 0.5);
@@ -406,7 +423,7 @@ textarea {
 }
 
 .hud-timer.timer-last10 .hud-timer-label {
-    font-size: 39px;
+    font-size: 34px;
     line-height: 1;
     font-weight: 900;
     letter-spacing: 0.6px;
@@ -418,17 +435,18 @@ textarea {
 }
 
 .hud-combo {
-    min-width: 172px;
-    height: 48px;
+    min-width: 0;
+    max-width: 108px;
+    height: 42px;
     display: inline-flex;
     align-items: baseline;
-    justify-content: flex-end;
-    gap: 6px;
+    justify-content: center;
+    gap: 4px;
     flex-wrap: nowrap;
     white-space: nowrap;
     font-family: var(--font-display);
     font-weight: 900;
-    font-size: 30px;
+    font-size: 22px;
     line-height: 1;
     letter-spacing: 0.5px;
     text-align: right;
@@ -436,8 +454,7 @@ textarea {
     pointer-events: none;
     user-select: none;
     text-shadow: 0 2px 0 rgba(73, 43, 25, 0.68), 0 6px 16px rgba(26, 15, 9, 0.44);
-    transform: translateY(20px);
-    margin-left: auto;
+    transform: translateY(10px);
 }
 
 .hud-combo-count {
@@ -472,7 +489,7 @@ textarea {
 .hud-reward-toast {
     position: absolute;
     left: 50%;
-    top: 98px;
+    top: 112px;
     width: min(336px, calc(100% - 24px));
     height: 74px;
     display: flex;
@@ -1406,6 +1423,35 @@ textarea {
 
 .rank-list li:nth-child(even) {
     background: rgba(250, 241, 225, 0.9);
+}
+
+.rank-list li.is-self {
+    background: linear-gradient(180deg, rgba(255, 245, 210, 0.96), rgba(255, 236, 178, 0.92));
+    box-shadow: inset 0 0 0 1px rgba(194, 142, 54, 0.28);
+}
+
+.rank-self-section {
+    margin-top: 12px;
+    display: grid;
+    gap: 8px;
+}
+
+.rank-self-label {
+    padding-left: 4px;
+    font-size: 12px;
+    font-weight: 900;
+    color: #875529;
+    letter-spacing: 0.06em;
+}
+
+.rank-list.rank-list-self {
+    border-style: dashed;
+    overflow: visible;
+}
+
+.rank-list.rank-list-self li,
+.rank-list.rank-list-self li:nth-child(even) {
+    background: linear-gradient(180deg, rgba(255, 249, 231, 0.98), rgba(255, 240, 193, 0.94));
 }
 
 .skin-center-meta {
@@ -2897,9 +2943,27 @@ textarea {
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.rank-player-name {
+    min-width: 0;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rank-self-tag {
+    color: #b26618;
+    font-size: 12px;
+    font-weight: 900;
+    flex: 0 0 auto;
 }
 
 .rank-avatar {

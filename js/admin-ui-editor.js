@@ -2,9 +2,8 @@
     initUiLayoutStorage,
     getDefaultUiLayoutConfig,
     readUiLayoutConfig,
-    resetUiLayoutConfig,
     writeUiLayoutConfig
-} from './ui-layout-config.js?v=4';
+} from './ui-layout-config.js?v=5';
 import {
     getLocalDayKey,
     readLiveOpsConfig,
@@ -12,10 +11,14 @@ import {
 } from './liveops-storage.js?v=5';
 
 const el = {
+    sceneSelect: document.getElementById('uiEditorSceneSelect'),
     previewMode: document.getElementById('uiEditorPreviewMode'),
     claimedDays: document.getElementById('uiEditorClaimedDays'),
     nextDay: document.getElementById('uiEditorNextDay'),
     elementSelect: document.getElementById('uiEditorElementSelect'),
+    checkinStateFields: document.getElementById('uiEditorCheckinStateFields'),
+    previewTitle: document.getElementById('uiEditorPreviewTitle'),
+    previewDesc: document.getElementById('uiEditorPreviewDesc'),
     propertyGrid: document.getElementById('uiEditorPropertyGrid'),
     viewport: document.getElementById('uiEditorPreviewViewport'),
     stageWrap: document.getElementById('uiEditorPreviewStageWrap'),
@@ -35,6 +38,7 @@ const el = {
 
 const state = {
     config: readUiLayoutConfig(),
+    sceneId: 'checkin',
     selectedElementId: 'day1-icon',
     selectedElementIds: new Set(['day1-icon']),
     propertyInputs: {},
@@ -49,11 +53,43 @@ const state = {
     frameReady: false
 };
 
-const ELEMENTS = [
+const CHECKIN_ELEMENTS = [
     ...buildElementDescriptors(),
     { id: 'rewardTooltip', label: 'Reward Tooltip' },
     { id: 'status', label: 'Checkin Status' }
 ];
+
+const GAMEPLAY_ELEMENTS = [
+    { id: 'hudTop', label: '顶部 HUD 容器' },
+    { id: 'settingsButton', label: '设置按钮' },
+    { id: 'coinChip', label: '金币条' },
+    { id: 'center', label: '中央信息区' },
+    { id: 'level', label: '关卡标题' },
+    { id: 'timer', label: '计时条' },
+    { id: 'combo', label: 'Combo 文案' },
+    { id: 'scorePulse', label: '积分区' }
+];
+
+const SCENES = Object.freeze({
+    checkin: Object.freeze({
+        label: '签到页',
+        previewTitle: '签到页预览',
+        previewDesc: '点击元素选中后可拖拽。方向键移动 1px，Shift + 方向键移动 10px。',
+        frameSrc: 'index.html?uiEditorPreview=1&uiEditorPanel=checkin',
+        defaultElementId: 'day1-icon',
+        showCheckinState: true,
+        elements: CHECKIN_ELEMENTS
+    }),
+    gameplay: Object.freeze({
+        label: '游戏界面',
+        previewTitle: '游戏界面预览',
+        previewDesc: '当前提供游戏顶部 HUD 的手动排版，拖拽后会直接写入布局配置。',
+        frameSrc: 'index.html?uiEditorPreview=1&uiEditorPanel=gameplay',
+        defaultElementId: 'scorePulse',
+        showCheckinState: false,
+        elements: GAMEPLAY_ELEMENTS
+    })
+});
 
 function buildElementDescriptors() {
     const items = [
@@ -71,6 +107,14 @@ function buildElementDescriptors() {
         items.push({ id: `day${day}-badge`, label: `第${day}天角标` });
     }
     return items;
+}
+
+function getSceneMeta(sceneId = state.sceneId) {
+    return SCENES[sceneId] || SCENES.checkin;
+}
+
+function getSceneElements(sceneId = state.sceneId) {
+    return getSceneMeta(sceneId).elements || CHECKIN_ELEMENTS;
 }
 
 function isUiEditorActive() {
@@ -94,7 +138,8 @@ function clampInt(value, min, max, fallback) {
 }
 
 function getSelectedDescriptor() {
-    return ELEMENTS.find((item) => item.id === state.selectedElementId) || ELEMENTS[0];
+    const elements = getSceneElements();
+    return elements.find((item) => item.id === state.selectedElementId) || elements[0];
 }
 
 function isElementSelected(elementId) {
@@ -113,6 +158,13 @@ function parseDayElementId(elementId) {
 }
 
 function getElementTarget(config, elementId) {
+    if (state.sceneId === 'gameplay') {
+        const scene = config?.gameplay;
+        if (!scene) {
+            return null;
+        }
+        return scene[elementId] || null;
+    }
     const scene = config?.checkin;
     if (!scene) {
         return null;
@@ -280,7 +332,7 @@ function renderElementOptions() {
         return;
     }
     el.elementSelect.innerHTML = '';
-    for (const item of ELEMENTS) {
+    for (const item of getSceneElements()) {
         const target = getElementTarget(state.config, item.id);
         const isHidden = target?.visible === false;
         const option = document.createElement('option');
@@ -392,7 +444,7 @@ function renderOverlay() {
         return;
     }
     el.overlay.innerHTML = '';
-    for (const item of ELEMENTS) {
+    for (const item of getSceneElements()) {
         const rect = rectFromTarget(item.id);
         if (!rect) {
             continue;
@@ -407,7 +459,7 @@ function renderPreview() {
 
     const previewApi = getPreviewApi();
     if (previewApi && typeof previewApi.render === 'function') {
-        previewApi.render(getPreviewOverride());
+        previewApi.render(state.sceneId === 'checkin' ? getPreviewOverride() : { sceneId: state.sceneId });
     }
 
     fitPreviewScale();
@@ -416,7 +468,7 @@ function renderPreview() {
 }
 
 function isFollowMouseElement(elementId) {
-    return elementId === 'rewardTooltip';
+    return state.sceneId === 'checkin' && elementId === 'rewardTooltip';
 }
 
 function getFollowMouseTarget() {
@@ -679,12 +731,16 @@ function onResetCurrentElement() {
 }
 
 function onResetScene() {
-    state.config = resetUiLayoutConfig();
+    const defaults = getDefaultUiLayoutConfig();
+    state.config = writeUiLayoutConfig({
+        ...state.config,
+        [state.sceneId]: JSON.parse(JSON.stringify(defaults[state.sceneId]))
+    });
     updateJsonEditor();
     renderPropertyGrid();
     renderPreview();
     refreshPropertyValues();
-    setStatus('已恢复签到页默认布局。');
+    setStatus(`已恢复${getSceneMeta().label}默认布局。`);
 }
 
 async function onCopyJson() {
@@ -710,8 +766,74 @@ function onImportJson() {
     }
 }
 
+function getGameplayElementFields(elementId, visibilityField) {
+    if (elementId === 'hudTop' || elementId === 'settingsButton' || elementId === 'center') {
+        return [
+            { name: 'x', label: 'X', step: 1 },
+            { name: 'y', label: 'Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'height', label: 'Height', step: 1 },
+            visibilityField
+        ];
+    }
+    if (elementId === 'coinChip') {
+        return [
+            { name: 'x', label: 'X', step: 1 },
+            { name: 'y', label: 'Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'height', label: 'Height', step: 1 },
+            { name: 'fontSize', label: 'Font', step: 1 },
+            visibilityField
+        ];
+    }
+    if (elementId === 'level') {
+        return [
+            { name: 'x', label: 'X', step: 1 },
+            { name: 'y', label: 'Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'fontSize', label: 'Font', step: 1 },
+            visibilityField
+        ];
+    }
+    if (elementId === 'timer') {
+        return [
+            { name: 'x', label: 'X', step: 1 },
+            { name: 'y', label: 'Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'height', label: 'Height', step: 1 },
+            { name: 'labelFontSize', label: 'Label Font', step: 1, wide: true },
+            visibilityField
+        ];
+    }
+    if (elementId === 'combo') {
+        return [
+            { name: 'x', label: 'X', step: 1 },
+            { name: 'y', label: 'Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'height', label: 'Height', step: 1 },
+            { name: 'fontSize', label: 'Font', step: 1 },
+            visibilityField
+        ];
+    }
+    if (elementId === 'scorePulse') {
+        return [
+            { name: 'x', label: 'X', step: 1 },
+            { name: 'y', label: 'Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'height', label: 'Height', step: 1 },
+            { name: 'valueFontSize', label: 'Score Font', step: 1, wide: true },
+            { name: 'gainFontSize', label: 'Gain Font', step: 1, wide: true },
+            visibilityField
+        ];
+    }
+    return [];
+}
+
 function getElementFields(elementId) {
     const visibilityField = { name: 'visible', label: '鏄剧ず', type: 'checkbox', wide: true };
+    if (state.sceneId === 'gameplay') {
+        return getGameplayElementFields(elementId, visibilityField);
+    }
     if (elementId === 'backButton') {
         return [
             { name: 'x', label: 'X', step: 1 },
@@ -828,7 +950,7 @@ function renderPropertyGrid() {
 
     for (const field of fields) {
         const target = field.source === 'scene'
-            ? state.config?.checkin?.scene
+            ? state.config?.[state.sceneId]?.scene
             : getElementTarget(state.config, state.selectedElementId);
         if (!target) {
             continue;
@@ -886,7 +1008,7 @@ function renderPropertyGrid() {
 
 function refreshPropertyValues() {
     const target = getElementTarget(state.config, state.selectedElementId);
-    const scene = state.config?.checkin?.scene;
+    const scene = state.config?.[state.sceneId]?.scene;
     for (const [name, meta] of Object.entries(state.propertyInputs)) {
         const source = meta.source === 'scene' ? scene : target;
         if (!source || !meta.input) {
@@ -898,6 +1020,58 @@ function refreshPropertyValues() {
             meta.input.value = `${source[name] ?? ''}`;
         }
     }
+}
+
+function applySceneMeta() {
+    const scene = getSceneMeta();
+    if (el.sceneSelect) {
+        el.sceneSelect.value = state.sceneId;
+    }
+    if (el.checkinStateFields) {
+        el.checkinStateFields.hidden = !scene.showCheckinState;
+    }
+    if (el.previewTitle) {
+        el.previewTitle.textContent = scene.previewTitle;
+    }
+    if (el.previewDesc) {
+        el.previewDesc.textContent = scene.previewDesc;
+    }
+}
+
+function setScene(sceneId) {
+    const nextSceneId = SCENES[sceneId] ? sceneId : 'checkin';
+    state.sceneId = nextSceneId;
+    applySceneMeta();
+
+    const elements = getSceneElements(nextSceneId);
+    const nextSelectedId = elements.some((item) => item.id === state.selectedElementId)
+        ? state.selectedElementId
+        : (getSceneMeta(nextSceneId).defaultElementId || elements[0]?.id || '');
+    state.selectedElementId = nextSelectedId;
+    state.selectedElementIds = new Set(nextSelectedId ? [nextSelectedId] : []);
+
+    renderElementOptions();
+    renderPropertyGrid();
+    updateJsonEditor();
+    refreshPropertyValues();
+    renderOverlay();
+    renderFollowMouseStage();
+
+    const nextSrc = getSceneMeta(nextSceneId).frameSrc;
+    if (el.previewFrame && el.previewFrame.getAttribute('src') !== nextSrc) {
+        state.frameReady = false;
+        el.previewFrame.setAttribute('src', nextSrc);
+        return;
+    }
+    if (getPreviewApi()) {
+        renderPreview();
+    }
+}
+
+function bindSceneSelect() {
+    el.sceneSelect?.addEventListener('change', () => {
+        setScene(el.sceneSelect.value);
+    });
 }
 
 function bindPreviewStateInputs() {
@@ -974,11 +1148,12 @@ async function init() {
         console.warn('[admin-ui-editor] ui layout init failed', error);
     });
     state.config = readUiLayoutConfig();
+    state.sceneId = SCENES[el.sceneSelect?.value] ? el.sceneSelect.value : 'checkin';
     syncPreviewInputsFromLiveState();
-    renderElementOptions();
-    renderPropertyGrid();
+    applySceneMeta();
     updateJsonEditor();
     fitPreviewScale();
+    bindSceneSelect();
     bindPreviewStateInputs();
     bindElementSelect();
     bindStorageSync();
@@ -992,6 +1167,7 @@ async function init() {
         fitPreviewScale();
         renderOverlay();
     });
+    setScene(state.sceneId);
 }
 
 void init();

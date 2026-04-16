@@ -2,8 +2,8 @@ import {
     getSavedLevelRecord,
     isStoredLevelRecordUsable,
     saveSavedLevelRecord
-} from './level-storage.js?v=56';
-import { getNormalLevelCount } from './levels.js?v=32';
+} from './level-storage.js?v=59';
+import { getNormalLevelCount } from './levels.js?v=34';
 
 const PRELOAD_MODE = 1;
 const MAX_PRELOAD_LEVEL = 1000;
@@ -235,7 +235,7 @@ function getWorker() {
     }
 
     try {
-        const workerUrl = new URL('./level-preload-worker.js?v=6', import.meta.url);
+        const workerUrl = new URL('./level-preload-worker.js?v=8', import.meta.url);
         workerRef = new Worker(workerUrl, { type: 'module' });
         workerRef.addEventListener('message', onWorkerMessage);
         workerRef.addEventListener('error', onWorkerError);
@@ -279,9 +279,9 @@ function onWorkerError(error) {
 
 async function buildRecordOnMainThread(level) {
     const [{ buildPlayableLevelRecord }, { getBaseLevelConfig }, { buildStoredSettings }] = await Promise.all([
-        import('./level-builder.js?v=48'),
-        import('./levels.js?v=32'),
-import('./level-storage.js?v=56')
+        import('./level-builder.js?v=60'),
+        import('./levels.js?v=34'),
+        import('./level-storage.js?v=59')
     ]);
 
     const baseConfig = getBaseLevelConfig(level);
@@ -339,5 +339,3 @@ function yieldToUi(source) {
         setTimeout(() => resolve(source), 0);
     });
 }
-
-

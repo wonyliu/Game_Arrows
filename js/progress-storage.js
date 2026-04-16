@@ -1,4 +1,4 @@
-import { getActiveUserId } from './user-auth.js?v=3';
+import { getActiveUserId } from './user-auth.js?v=4';
 
 const GAME_PROGRESS_FILE = 'game-progress-v1';
 const STORAGE_API_BASE = '/api/storage';
@@ -297,5 +297,4 @@ function isPlainObject(value) {
 function cloneJson(value) {
     return JSON.parse(JSON.stringify(value));
 }
-
 

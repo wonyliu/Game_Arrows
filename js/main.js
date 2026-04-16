@@ -1,28 +1,28 @@
 ﻿/**
  * Main - game entry
  */
-import { Game } from './game.js?v=155';
-import { UI } from './ui.js?v=109';
+import { Game } from './game.js?v=159';
+import { UI } from './ui.js?v=112';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
     startNextUnlockPreload,
     stopNextUnlockPreload
-} from './level-preload.js?v=10';
-import { initLevelStorage } from './level-storage.js?v=56';
+} from './level-preload.js?v=12';
+import { initLevelStorage } from './level-storage.js?v=59';
 import { initUiTheme } from './ui-theme.js?v=2';
-import { initProgressStorage } from './progress-storage.js?v=6';
+import { initProgressStorage } from './progress-storage.js?v=7';
 import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=6';
-import { initLiveOpsStorage } from './liveops-storage.js?v=5';
-import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
+import { initLiveOpsStorage } from './liveops-storage.js?v=6';
+import { initUiLayoutStorage } from './ui-layout-config.js?v=5';
 import { isLegacyColorVariantSkinId } from './skins.js?v=27';
 import { ensureUserSession } from './user-auth.js?v=4';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
 const BOOT_LOG_TAG = '[boot]';
-const APP_BUILD_VERSION = 'build 2026.04.16-226';
+const APP_BUILD_VERSION = 'build 2026.04.17-233';
 const LOCAL_SKIN_CATALOG_STORAGE_KEY = 'arrowClear_localSkinCatalog_v1';
 const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 const SKIN_PRICE_OVERRIDE_STORAGE_KEY = 'arrowClear_skinPriceOverrides_v1';

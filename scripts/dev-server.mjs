@@ -1848,14 +1848,25 @@ async function handleLeaderboardRequest(req, res, requestUrl) {
         sendJson(res, 405, { ok: false, error: 'method not allowed' });
         return;
     }
-    const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 200, 50);
+    const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 100, 100);
+    const currentUserId = sanitizeUserId(requestUrl.searchParams.get('userId'));
     const rows = (await userCenterStore.listLeaderboard(limit))
         .map((row, index) => ({
             rank: index + 1,
             ...row,
             avatarUrl: `${row?.avatarUrl || ''}`.trim() || defaultAvatarByName(`${row?.userId || 'u'}`)
         }));
-    sendJson(res, 200, { ok: true, rows });
+    let me = null;
+    if (currentUserId && typeof userCenterStore.getLeaderboardEntryForUser === 'function') {
+        const selfEntry = await userCenterStore.getLeaderboardEntryForUser(currentUserId);
+        if (selfEntry) {
+            me = {
+                ...selfEntry,
+                avatarUrl: `${selfEntry?.avatarUrl || ''}`.trim() || defaultAvatarByName(`${selfEntry?.userId || currentUserId}`)
+            };
+        }
+    }
+    sendJson(res, 200, { ok: true, limit, rows, me });
 }
 
 async function handleAdminResetGameStateRequest(req, res) {

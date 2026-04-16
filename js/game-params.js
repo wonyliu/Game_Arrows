@@ -1,8 +1,8 @@
 export const GAMEPLAY_PARAM_STORAGE_KEY = 'arrowClear_gameplayParams_v1';
+export const GAMEPLAY_PARAMS_UPDATED_EVENT = 'arrow:gameplay-params-updated';
 
 export const DEFAULT_GAMEPLAY_PARAMS = Object.freeze({
     scorePerCoin: 1000,
-    scorePerBodySegment: 10,
     releaseSfxEveryNScoreEvents: 1,
     scoreBurstStarCount: 4,
     snakeRemoveSpeedMultiplier: 1,
@@ -15,7 +15,6 @@ export const DEFAULT_GAMEPLAY_PARAMS = Object.freeze({
 
 const PARAM_RANGE = Object.freeze({
     scorePerCoin: Object.freeze({ min: 1, max: 100000 }),
-    scorePerBodySegment: Object.freeze({ min: 1, max: 10000 }),
     releaseSfxEveryNScoreEvents: Object.freeze({ min: 1, max: 1000 }),
     scoreBurstStarCount: Object.freeze({ min: 0, max: 20 }),
     snakeRemoveSpeedMultiplier: Object.freeze({ min: 0.2, max: 5 }),
@@ -54,13 +53,6 @@ export function normalizeGameplayParams(rawParams = {}) {
             DEFAULT_GAMEPLAY_PARAMS.scorePerCoin,
             PARAM_RANGE.scorePerCoin.min,
             PARAM_RANGE.scorePerCoin.max,
-            true
-        ),
-        scorePerBodySegment: normalizeNumber(
-            raw.scorePerBodySegment,
-            DEFAULT_GAMEPLAY_PARAMS.scorePerBodySegment,
-            PARAM_RANGE.scorePerBodySegment.min,
-            PARAM_RANGE.scorePerBodySegment.max,
             true
         ),
         releaseSfxEveryNScoreEvents: normalizeNumber(
@@ -145,6 +137,7 @@ export function writeGameplayParams(rawParams) {
     if (storage) {
         storage.setItem(GAMEPLAY_PARAM_STORAGE_KEY, JSON.stringify(normalized));
     }
+    notifyGameplayParamsUpdated(normalized);
     return normalized;
 }
 
@@ -153,5 +146,16 @@ export function clearGameplayParams() {
     if (storage) {
         storage.removeItem(GAMEPLAY_PARAM_STORAGE_KEY);
     }
-    return { ...DEFAULT_GAMEPLAY_PARAMS };
+    const cleared = { ...DEFAULT_GAMEPLAY_PARAMS };
+    notifyGameplayParamsUpdated(cleared);
+    return cleared;
+}
+
+function notifyGameplayParamsUpdated(params) {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+        return;
+    }
+    window.dispatchEvent(new CustomEvent(GAMEPLAY_PARAMS_UPDATED_EVENT, {
+        detail: { params: normalizeGameplayParams(params) }
+    }));
 }

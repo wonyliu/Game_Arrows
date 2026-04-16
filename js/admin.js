@@ -10,8 +10,8 @@ import {
     isRewardLevel,
     rewardIndexFromLevelId,
     toRewardLevelId
-} from './levels.js?v=32';
-import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=58';
+} from './levels.js?v=34';
+import { buildPlayableLevelRecord, buildWeavePath, DIR_VEC, OPPOSITE } from './level-builder.js?v=60';
 import {
     applyStoredSettings,
     buildStoredSettings,
@@ -26,7 +26,10 @@ import {
     savePreviewLevelRecord,
     saveSavedLevelRecord,
     saveLevelCatalog
-} from './level-storage.js?v=56';
+} from './level-storage.js?v=59';
+import { GAMEPLAY_PARAMS_UPDATED_EVENT, readGameplayParams } from './game-params.js?v=6';
+const MIN_GRID_DIMENSION = 4;
+const UNBOUNDED_GRID_DIMENSION_MAX = Number.POSITIVE_INFINITY;
 
 const el = {
     levelSelect: document.getElementById('levelSelect'),
@@ -49,6 +52,8 @@ const el = {
     timerSeconds: document.getElementById('timerSeconds'),
     misclickPenaltySeconds: document.getElementById('misclickPenaltySeconds'),
     rewardScorePerBodySegment: document.getElementById('rewardScorePerBodySegment'),
+    levelTotalScorePreview: document.getElementById('levelTotalScorePreview'),
+    levelTotalCoinsPreview: document.getElementById('levelTotalCoinsPreview'),
     gridText: document.getElementById('gridText'),
     lineText: document.getElementById('lineText'),
     coverageText: document.getElementById('coverageText'),
@@ -67,11 +72,6 @@ const el = {
     btnSave: document.getElementById('btnSave'),
     btnReset: document.getElementById('btnReset'),
     togglePath: document.getElementById('togglePath'),
-    btnPatternSeed: document.getElementById('btnPatternSeed'),
-    generate4Tools: document.getElementById('generate4Tools'),
-    manualGridCols: document.getElementById('manualGridCols'),
-    manualGridRows: document.getElementById('manualGridRows'),
-    btnApplyGridSize: document.getElementById('btnApplyGridSize'),
     previewBoardFrame: document.getElementById('previewBoardFrame'),
     previewCanvasHost: document.getElementById('previewCanvasHost'),
     gameFramePreviewMeta: document.getElementById('gameFramePreviewMeta')
@@ -134,6 +134,10 @@ async function init() {
     el.customGridRows?.addEventListener('input', updateDerived);
     el.minLen.addEventListener('input', updateDerived);
     el.maxLen.addEventListener('input', updateDerived);
+    el.timerSeconds.addEventListener('input', updateDerived);
+    el.misclickPenaltySeconds.addEventListener('input', updateDerived);
+    el.rewardScorePerBodySegment?.addEventListener('input', updateDerived);
+    el.levelDisplayName?.addEventListener('input', updateDerived);
 
     el.btnGenerate.addEventListener('click', () => onGenerate(3));
     el.btnGenerate2.addEventListener('click', onGenerate2);
@@ -144,10 +148,6 @@ async function init() {
     el.btnSave.addEventListener('click', onSave);
     el.btnReset.addEventListener('click', onReset);
     el.togglePath.addEventListener('click', onTogglePath);
-    el.btnPatternSeed?.addEventListener('click', onGenerate4Pattern);
-    el.btnApplyGridSize?.addEventListener('click', onApplyGenerate4GridSize);
-    el.manualGridCols?.addEventListener('change', onGenerate4GridInputChange);
-    el.manualGridRows?.addEventListener('change', onGenerate4GridInputChange);
     el.canvas.addEventListener('mousedown', onCanvasMouseDown);
     el.canvas.addEventListener('mouseup', onCanvasMouseUp);
     el.canvas.addEventListener('mousemove', onCanvasMouseMove);
@@ -155,6 +155,13 @@ async function init() {
 
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('keyup', onKeyUp);
+    window.addEventListener(GAMEPLAY_PARAMS_UPDATED_EVENT, updateDerived);
+    window.addEventListener('storage', (event) => {
+        if (event.key !== null && event.key !== 'arrowClear_gameplayParams_v1') {
+            return;
+        }
+        updateDerived();
+    });
 
     loadLevelState();
 }
@@ -182,9 +189,6 @@ function updateLevelDisplayNameField(level, value = '') {
     const rewardStage = isRewardLevel(level);
     el.levelDisplayNameField.style.display = rewardStage ? '' : 'none';
     el.levelDisplayName.value = rewardStage ? `${value || ''}` : '';
-    if (el.rewardScorePerBodySegment) {
-        el.rewardScorePerBodySegment.disabled = !rewardStage;
-    }
 }
 
 function normalizeCatalog(catalog) {
@@ -317,37 +321,24 @@ function setGenerateMode(mode = 'normal') {
         manualDrawStartCell = null;
         manualDrawCells = [];
     }
-    updateGenerate4UiState();
-}
-
-function updateGenerate4UiState() {
-    const showGenerate4Tools = !!isGenerate4Mode;
-    el.generate4Tools?.classList.toggle('hidden', !showGenerate4Tools);
-    el.btnPatternSeed?.classList.toggle('hidden', !showGenerate4Tools);
     syncEyeButtonState();
 }
 
-function syncManualGridInputs(cols, rows) {
-    if (el.manualGridCols) {
-        el.manualGridCols.value = String(clampInt(cols, 4, 40, 18));
-    }
-    if (el.manualGridRows) {
-        el.manualGridRows.value = String(clampInt(rows, 4, 40, 26));
-    }
+function syncCustomGridInputs(cols, rows) {
     if (el.customGridCols) {
-        el.customGridCols.value = String(clampInt(cols, 4, 40, 18));
+        el.customGridCols.value = String(clampInt(cols, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 18));
     }
     if (el.customGridRows) {
-        el.customGridRows.value = String(clampInt(rows, 4, 40, 26));
+        el.customGridRows.value = String(clampInt(rows, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 26));
     }
 }
 
-function readManualGridSize(fallbackCols, fallbackRows) {
-    const colsSource = el.customGridCols?.value || el.manualGridCols?.value || fallbackCols;
-    const rowsSource = el.customGridRows?.value || el.manualGridRows?.value || fallbackRows;
+function readCustomGridSize(fallbackCols, fallbackRows) {
+    const colsSource = el.customGridCols?.value || fallbackCols;
+    const rowsSource = el.customGridRows?.value || fallbackRows;
     return {
-        cols: clampInt(Number(colsSource), 4, 40, fallbackCols),
-        rows: clampInt(Number(rowsSource), 4, 40, fallbackRows)
+        cols: clampInt(Number(colsSource), MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, fallbackCols),
+        rows: clampInt(Number(rowsSource), MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, fallbackRows)
     };
 }
 
@@ -444,7 +435,7 @@ function loadLevelState() {
             ?? 1000
         );
     }
-    syncManualGridInputs(
+    syncCustomGridInputs(
         settings.customGridCols ?? settings.gridCols ?? base.gridCols,
         settings.customGridRows ?? settings.gridRows ?? base.gridRows
     );
@@ -495,13 +486,12 @@ function collectConfig() {
         ? (el.levelDisplayName?.value || '')
         : '';
     const selectedDimensionMode = `${el.dimensionMode.value || 'rows'}`.toLowerCase();
-    const shouldUseCustomGrid = isGenerate4Mode || selectedDimensionMode === 'custom';
-    const manualSize = readManualGridSize(base.gridCols, base.gridRows);
+    const customGridSize = readCustomGridSize(base.gridCols, base.gridRows);
     const settings = buildStoredSettings(base, {
-        dimensionMode: shouldUseCustomGrid ? 'custom' : selectedDimensionMode,
+        dimensionMode: selectedDimensionMode,
         dimensionValue: Number(el.dimensionValue.value || 0),
-        customGridCols: manualSize.cols,
-        customGridRows: manualSize.rows,
+        customGridCols: customGridSize.cols,
+        customGridRows: customGridSize.rows,
         minLen: Number(el.minLen.value || 0),
         maxLen: Number(el.maxLen.value || 0),
         timerSeconds: Number(el.timerSeconds.value || 0),
@@ -515,18 +505,114 @@ function collectConfig() {
     };
 }
 
+function updateLevelRewardPreview(config) {
+    if (!el.levelTotalScorePreview || !el.levelTotalCoinsPreview) {
+        return;
+    }
+
+    const summary = resolveLevelRewardPreview(config);
+    el.levelTotalScorePreview.textContent = formatLevelRewardPreviewValue(summary.totalScore, summary.estimated);
+    el.levelTotalCoinsPreview.textContent = formatLevelRewardPreviewValue(summary.totalCoins, summary.estimated);
+}
+
+function resolveLevelRewardPreview(config) {
+    const scorePerSegment = Math.max(1, Math.floor(Number(config?.rewardScorePerBodySegment) || 0) || 1);
+    const scorePerCoin = Math.max(1, Math.floor(Number(readGameplayParams()?.scorePerCoin) || 0) || 1);
+    const compatiblePreviewData = resolveCompatibleLevelPreviewData(config);
+    const breakdown = buildLevelRewardBreakdown(
+        compatiblePreviewData ? countLevelLineCells(compatiblePreviewData.lines) : estimateLevelLineCells(config),
+        scorePerSegment,
+        scorePerCoin
+    );
+
+    return {
+        ...breakdown,
+        estimated: !compatiblePreviewData
+    };
+}
+
+function resolveCompatibleLevelPreviewData(config) {
+    const data = previewRecord?.data || renderedLevelData;
+    if (!data || !Array.isArray(data.lines) || data.lines.length === 0) {
+        return null;
+    }
+    if (Number(data.gridCols) !== Number(config.gridCols) || Number(data.gridRows) !== Number(config.gridRows)) {
+        return null;
+    }
+    return data;
+}
+
+function estimateLevelLineCells(config) {
+    const level = getLevel();
+    const baseConfig = getBaseLevelConfig(level);
+    const fillRatio = clamp01(Number(baseConfig?.fillRatio) || 0.82);
+    const totalCells = Math.max(0, Number(config?.gridCols || 0) * Number(config?.gridRows || 0));
+    return Math.round(totalCells * fillRatio);
+}
+
+function countLevelLineCells(lines) {
+    if (!Array.isArray(lines)) {
+        return 0;
+    }
+    return lines.reduce((sum, line) => sum + Math.max(0, Math.floor(Number(line?.cells?.length) || 0)), 0);
+}
+
+function buildLevelRewardBreakdown(totalSegments, scorePerSegment, scorePerCoin) {
+    const normalizedSegments = Math.max(0, Math.floor(Number(totalSegments) || 0));
+    const normalizedSegmentScore = Math.max(1, Math.floor(Number(scorePerSegment) || 0) || 1);
+    const normalizedScorePerCoin = Math.max(1, Math.floor(Number(scorePerCoin) || 0) || 1);
+    const totalScore = normalizedSegments * normalizedSegmentScore;
+    const totalCoins = totalScore > 0
+        ? Math.max(1, Math.ceil(totalScore / normalizedScorePerCoin))
+        : 0;
+
+    return {
+        totalSegments: normalizedSegments,
+        totalScore,
+        totalCoins
+    };
+}
+
+function formatLevelRewardPreviewValue(value, estimated = false) {
+    const normalized = Math.max(0, Math.round(Number(value) || 0));
+    const formatted = new Intl.NumberFormat('zh-CN').format(normalized);
+    return estimated ? `约 ${formatted}` : formatted;
+}
+
 function updateDerived() {
-    const { config } = collectConfig();
+    const { config, settings } = collectConfig();
     updateDimensionUi(config);
     updateGameFramePreview(config);
     el.gridText.textContent = `${config.gridCols} x ${config.gridRows}`;
     el.lineText.textContent = String(estimateLineCount(config.gridCols, config.gridRows, config.minLen, config.maxLen));
+    updateLevelRewardPreview(config);
+    updateLiveStatsPreview(settings);
 
     const cov = previewRecord?.stats
         ? Math.round((previewRecord.stats.coveredCells / previewRecord.stats.totalCells) * 100)
         : 0;
     el.coverageText.textContent = `${cov}%`;
     drawPreviewState();
+}
+
+function updateLiveStatsPreview(settings) {
+    const sourceData = previewRecord?.data || renderedLevelData;
+    const stats = sourceData
+        ? {
+            lineCount: Array.isArray(sourceData.lines) ? sourceData.lines.length : 0,
+            coveredCells: countCoveredCells(sourceData.lines),
+            totalCells: Math.max(0, Number(sourceData.gridCols || 0) * Number(sourceData.gridRows || 0))
+        }
+        : previewRecord?.stats || null;
+    const recordForStats = stats
+        ? {
+            ...(previewRecord || {}),
+            settings,
+            data: sourceData || previewRecord?.data || null,
+            stats
+        }
+        : null;
+    drawStats(recordForStats);
 }
 
 function buildLevelDataSignature(levelData) {
@@ -632,7 +718,6 @@ async function onGenerate2() {
     if (isGenerating) return;
     const { config } = collectConfig();
     setGenerateMode('generate2');
-    syncManualGridInputs(config.gridCols, config.gridRows);
     renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
     previewRecord = null;
     resetPreviewPlayState();
@@ -648,81 +733,33 @@ function onGenerate4() {
     if (isGenerating) return;
     setGenerateMode('generate4');
 
-    const { config } = collectConfig();
-    syncManualGridInputs(config.gridCols, config.gridRows);
-    renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
-    previewRecord = null;
-    activeHamiltonianPath = null;
-    liftedCellsIndices = [];
-    isPathVisible = false;
+    const { config, settings } = collectConfig();
+    const selected = selectGenerate4Pattern(config);
+
+    if (!selected) {
+        renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
+        previewRecord = null;
+        activeHamiltonianPath = null;
+        liftedCellsIndices = [];
+        isPathVisible = false;
+        isErasing = false;
+        isRightMouseDown = false;
+        isDrawingManualLine = false;
+        manualDrawStartCell = null;
+        manualDrawCells = [];
+        resetPreviewPlayState();
+        drawPreviewState();
+        updateDerived();
+        syncEyeButtonState();
+        setStatus('Generate4 未能根据当前尺寸和长度限制生成规则关卡，但仍可继续手动编辑。');
+        return;
+    }
+
     isErasing = false;
     isRightMouseDown = false;
     isDrawingManualLine = false;
     manualDrawStartCell = null;
     manualDrawCells = [];
-    resetPreviewPlayState();
-    drawPreviewState();
-    updateDerived();
-    syncEyeButtonState();
-    setStatus('Generate4 模式：已启用自由编辑。左键拖拽绘制箭头，右键擦除。');
-}
-
-function onGenerate4GridInputChange() {
-    if (!isGenerate4Mode) {
-        return;
-    }
-    const { config } = collectConfig();
-    syncManualGridInputs(config.gridCols, config.gridRows);
-    updateDerived();
-}
-
-function onApplyGenerate4GridSize() {
-    if (!isGenerate4Mode) {
-        setStatus('请先切换到 Generate4 模式。');
-        return;
-    }
-    const { config } = collectConfig();
-    syncManualGridInputs(config.gridCols, config.gridRows);
-    renderedLevelData = buildEmptyRenderedLevelData(config.gridCols, config.gridRows);
-    previewRecord = null;
-    activeHamiltonianPath = null;
-    liftedCellsIndices = [];
-    isPathVisible = false;
-    isDrawingManualLine = false;
-    manualDrawStartCell = null;
-    manualDrawCells = [];
-    resetPreviewPlayState();
-    drawPreviewState();
-    updateDerived();
-    syncEyeButtonState();
-    setStatus(`Generate4 网格已应用：${config.gridCols} x ${config.gridRows}。`);
-}
-
-function onGenerate4Pattern() {
-    if (!isGenerate4Mode) {
-        setStatus('图案生成功能仅在 Generate4 模式可用。');
-        return;
-    }
-    const { config, settings } = collectConfig();
-    syncManualGridInputs(config.gridCols, config.gridRows);
-
-    const recipes = [buildGenerate4RayPattern, buildGenerate4SpiralPattern];
-    const startIndex = Math.floor(Math.random() * recipes.length);
-    let selected = null;
-    for (let step = 0; step < recipes.length; step++) {
-        const recipe = recipes[(startIndex + step) % recipes.length];
-        const candidate = recipe(config);
-        if (candidate && Array.isArray(candidate.lines) && candidate.lines.length > 0) {
-            selected = candidate;
-            break;
-        }
-    }
-
-    if (!selected) {
-        setStatus('按当前网格/长度设置无法生成有效图案。');
-        return;
-    }
-
     renderedLevelData = {
         gridCols: config.gridCols,
         gridRows: config.gridRows,
@@ -731,10 +768,8 @@ function onGenerate4Pattern() {
         generatorVersion: 6
     };
     activeHamiltonianPath = selected.path || null;
-    if (!activeHamiltonianPath) {
-        isPathVisible = false;
-    }
     liftedCellsIndices = [];
+    isPathVisible = false;
     syncEyeButtonState();
     previewRecord = {
         settings,
@@ -750,60 +785,354 @@ function onGenerate4Pattern() {
     drawPreviewState();
     drawStats(previewRecord);
     updateDerived();
-    setStatus(`Generate4 图案已就绪：${selected.name}，线条数 ${selected.lines.length}。`);
+    setStatus(`Generate4 已生成规则关卡：${selected.name}，线条数 ${selected.lines.length}。左键拖拽继续绘制，右键擦除。`);
 }
 
-function buildGenerate4RayPattern(config) {
-    const gridCols = clampInt(config.gridCols, 4, 40, 18);
-    const gridRows = clampInt(config.gridRows, 4, 40, 26);
-    const minLen = clampInt(config.minLen, 2, 999, 2);
-    const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
-    const centerRow = Math.floor((gridRows - 1) / 2);
-    const maxDistance = Math.max(1, Math.max(centerRow, gridRows - 1 - centerRow));
-    const segments = [];
+function selectGenerate4Pattern(config) {
+    const candidates = buildGenerate4PatternCandidates(config)
+        .map((candidate) => finalizeGenerate4PatternCandidate(candidate, config))
+        .filter(Boolean)
+        .sort((left, right) => right.score - left.score);
 
-    for (let row = 0; row < gridRows; row++) {
-        const distance = Math.abs(row - centerRow);
-        const ratio = 1 - (distance / maxDistance);
-        const span = clampInt(
-            Math.round(gridCols * (0.34 + ratio * 0.66)),
-            2,
-            gridCols,
-            gridCols
-        );
-        if (span < minLen) {
+    if (!candidates.length) {
+        return null;
+    }
+
+    return pickGenerate4PatternCandidate(candidates);
+}
+
+function buildGenerate4PatternCandidates(config) {
+    return [
+        buildGenerate4SymmetricLanesPattern(config, { horizontal: true, bias: 0.68 }),
+        buildGenerate4SymmetricLanesPattern(config, { horizontal: false, bias: 0.62 }),
+        buildGenerate4RectangularRingsPattern(config),
+        buildGenerate4SpiralPattern(config),
+        buildGenerate4MeanderBandsPattern(config, { horizontal: true, bandThickness: 3 }),
+        buildGenerate4MeanderBandsPattern(config, { horizontal: false, bandThickness: 3 }),
+        buildGenerate4WaveBandsPattern(config, { horizontal: true, waveform: 'sine', phase: 0 }),
+        buildGenerate4WaveBandsPattern(config, { horizontal: false, waveform: 'sine', phase: 0.25 }),
+        buildGenerate4WaveBandsPattern(config, { horizontal: true, waveform: 'triangle', phase: 0.12 }),
+        buildGenerate4WaveBandsPattern(config, { horizontal: false, waveform: 'triangle', phase: 0.38 })
+    ];
+}
+
+function finalizeGenerate4PatternCandidate(candidate, config) {
+    if (!candidate || !Array.isArray(candidate.lines) || candidate.lines.length === 0) {
+        return null;
+    }
+
+    const score = scoreGenerate4Pattern(candidate, config);
+    if (!Number.isFinite(score)) {
+        return null;
+    }
+
+    return {
+        ...candidate,
+        score
+    };
+}
+
+function pickGenerate4PatternCandidate(candidates) {
+    const topCount = Math.min(5, candidates.length);
+    const topCandidates = candidates.slice(0, topCount);
+    const baseline = topCandidates[topCandidates.length - 1]?.score ?? 0;
+    const weights = topCandidates.map((candidate, index) => {
+        const rankBonus = (topCount - index) * 0.16;
+        return Math.max(0.05, candidate.score - baseline + rankBonus);
+    });
+    const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+    let ticket = Math.random() * totalWeight;
+
+    for (let index = 0; index < topCandidates.length; index++) {
+        ticket -= weights[index];
+        if (ticket <= 0) {
+            return topCandidates[index];
+        }
+    }
+
+    return topCandidates[0];
+}
+
+function scoreGenerate4Pattern(candidate, config) {
+    const lines = Array.isArray(candidate?.lines) ? candidate.lines : [];
+    if (!lines.length) {
+        return Number.NEGATIVE_INFINITY;
+    }
+
+    const totalCells = Math.max(1, config.gridCols * config.gridRows);
+    const coveredCells = countCoveredCells(lines);
+    const coverageRatio = coveredCells / totalCells;
+    const symmetryScore = measureGenerate4SymmetryScore(lines, config.gridCols, config.gridRows);
+    const lengthScore = measureGenerate4LengthHarmony(lines);
+    const turnScore = measureGenerate4TurnRhythm(lines, candidate.meta?.targetTurnRatio);
+    const spanScore = measureGenerate4LineSpanScore(lines, config.gridCols, config.gridRows);
+    const densityScore = measureGenerate4CoverageScore(
+        coverageRatio,
+        candidate.meta?.targetCoverage ?? 0.58,
+        candidate.meta?.coverageTolerance ?? 0.26
+    );
+    const lineCountScore = measureGenerate4LineCountScore(lines, config);
+    const aspectScore = measureGenerate4AspectAffinity(candidate.meta?.preferredAspect, config);
+    const pathBonus = Array.isArray(candidate.path) && candidate.path.length > 1 ? 0.18 : 0;
+    const baseScore = Number(candidate.meta?.baseScore || 0);
+
+    return baseScore
+        + symmetryScore * 3.2
+        + densityScore * 2.4
+        + lengthScore * 1.8
+        + turnScore * 1.25
+        + spanScore * 1.05
+        + lineCountScore * 0.85
+        + aspectScore * 0.8
+        + pathBonus;
+}
+
+function measureGenerate4SymmetryScore(lines, gridCols, gridRows) {
+    const occupied = buildGenerate4OccupiedCellSet(lines);
+    if (!occupied.size) {
+        return 0;
+    }
+
+    const scores = [
+        measureGenerate4CellSymmetry(occupied, gridCols, gridRows, 'horizontal'),
+        measureGenerate4CellSymmetry(occupied, gridCols, gridRows, 'vertical'),
+        measureGenerate4CellSymmetry(occupied, gridCols, gridRows, 'rotational')
+    ];
+
+    if (gridCols === gridRows) {
+        scores.push(measureGenerate4CellSymmetry(occupied, gridCols, gridRows, 'diagonal'));
+        scores.push(measureGenerate4CellSymmetry(occupied, gridCols, gridRows, 'antiDiagonal'));
+    }
+
+    scores.sort((left, right) => right - left);
+    const primary = scores[0] ?? 0;
+    const secondary = scores[1] ?? 0;
+    return clamp01(primary * 0.72 + secondary * 0.28);
+}
+
+function buildGenerate4OccupiedCellSet(lines) {
+    const occupied = new Set();
+    for (const line of lines) {
+        for (const cell of line?.cells || []) {
+            occupied.add(`${cell.col},${cell.row}`);
+        }
+    }
+    return occupied;
+}
+
+function measureGenerate4CellSymmetry(occupied, gridCols, gridRows, mode) {
+    if (!occupied.size) {
+        return 0;
+    }
+
+    let matches = 0;
+    occupied.forEach((key) => {
+        const [rawCol, rawRow] = key.split(',');
+        const col = Number(rawCol);
+        const row = Number(rawRow);
+        let mirrorCol = col;
+        let mirrorRow = row;
+
+        if (mode === 'horizontal') {
+            mirrorRow = gridRows - 1 - row;
+        } else if (mode === 'vertical') {
+            mirrorCol = gridCols - 1 - col;
+        } else if (mode === 'rotational') {
+            mirrorCol = gridCols - 1 - col;
+            mirrorRow = gridRows - 1 - row;
+        } else if (mode === 'diagonal') {
+            mirrorCol = row;
+            mirrorRow = col;
+        } else if (mode === 'antiDiagonal') {
+            mirrorCol = gridCols - 1 - row;
+            mirrorRow = gridRows - 1 - col;
+        }
+
+        if (occupied.has(`${mirrorCol},${mirrorRow}`)) {
+            matches += 1;
+        }
+    });
+
+    return matches / occupied.size;
+}
+
+function measureGenerate4LengthHarmony(lines) {
+    const lengths = lines.map((line) => Math.max(0, line?.cells?.length || 0)).filter(Boolean);
+    if (!lengths.length) {
+        return 0;
+    }
+
+    const mean = lengths.reduce((sum, length) => sum + length, 0) / lengths.length;
+    const variance = lengths.reduce((sum, length) => sum + ((length - mean) ** 2), 0) / lengths.length;
+    const deviation = Math.sqrt(variance);
+    const regularity = 1 - Math.min(1, deviation / Math.max(1, mean));
+    const frequency = new Map();
+    for (const length of lengths) {
+        frequency.set(length, (frequency.get(length) || 0) + 1);
+    }
+    const dominantRatio = Math.max(...frequency.values()) / lengths.length;
+    return clamp01(regularity * 0.7 + dominantRatio * 0.3);
+}
+
+function measureGenerate4TurnRhythm(lines, targetRatio = 0.1) {
+    const ratios = [];
+
+    for (const line of lines) {
+        const cells = Array.isArray(line?.cells) ? line.cells : [];
+        if (cells.length < 3) {
+            ratios.push(0);
             continue;
         }
 
-        const startCol = Math.floor((gridCols - span) / 2);
-        const endCol = startCol + span - 1;
-        const cells = [];
+        let turns = 0;
+        for (let index = 2; index < cells.length; index++) {
+            const a = cells[index - 2];
+            const b = cells[index - 1];
+            const c = cells[index];
+            const dx1 = Math.sign(b.col - a.col);
+            const dy1 = Math.sign(b.row - a.row);
+            const dx2 = Math.sign(c.col - b.col);
+            const dy2 = Math.sign(c.row - b.row);
+            if (dx1 !== dx2 || dy1 !== dy2) {
+                turns += 1;
+            }
+        }
+        ratios.push(turns / Math.max(1, cells.length - 2));
+    }
 
-        if (row % 2 === 0) {
-            for (let col = startCol; col <= endCol; col++) {
-                cells.push({ col, row });
+    const averageRatio = ratios.reduce((sum, value) => sum + value, 0) / Math.max(1, ratios.length);
+    const tolerance = Math.max(0.08, targetRatio * 0.9);
+    return clamp01(1 - Math.abs(averageRatio - targetRatio) / tolerance);
+}
+
+function measureGenerate4LineSpanScore(lines, gridCols, gridRows) {
+    if (!lines.length) {
+        return 0;
+    }
+
+    const spans = lines.map((line) => {
+        const cells = Array.isArray(line?.cells) ? line.cells : [];
+        if (!cells.length) {
+            return 0;
+        }
+        let minCol = cells[0].col;
+        let maxCol = cells[0].col;
+        let minRow = cells[0].row;
+        let maxRow = cells[0].row;
+        for (const cell of cells) {
+            minCol = Math.min(minCol, cell.col);
+            maxCol = Math.max(maxCol, cell.col);
+            minRow = Math.min(minRow, cell.row);
+            maxRow = Math.max(maxRow, cell.row);
+        }
+        const colSpan = (maxCol - minCol + 1) / Math.max(1, gridCols);
+        const rowSpan = (maxRow - minRow + 1) / Math.max(1, gridRows);
+        return Math.max(colSpan, rowSpan);
+    });
+
+    return clamp01(spans.reduce((sum, span) => sum + span, 0) / spans.length);
+}
+
+function measureGenerate4CoverageScore(coverageRatio, targetCoverage, tolerance) {
+    const safeTolerance = Math.max(0.08, tolerance || 0.2);
+    const distance = Math.abs(coverageRatio - targetCoverage);
+    const centeredScore = 1 - Math.min(1, distance / safeTolerance);
+    const safeWindowScore = coverageRatio >= 0.22 && coverageRatio <= 0.92 ? 1 : 0.25;
+    return clamp01(centeredScore * 0.82 + safeWindowScore * 0.18);
+}
+
+function measureGenerate4LineCountScore(lines, config) {
+    const expected = Math.max(1, estimateLineCount(config.gridCols, config.gridRows, config.minLen, config.maxLen));
+    return clamp01(1 - Math.abs(lines.length - expected) / expected);
+}
+
+function measureGenerate4AspectAffinity(preferredAspect, config) {
+    const ratio = config.gridRows / Math.max(1, config.gridCols);
+    if (preferredAspect === 'tall') {
+        return clamp01((ratio - 0.95) / 0.75);
+    }
+    if (preferredAspect === 'wide') {
+        return clamp01((1.1 - ratio) / 0.55);
+    }
+    if (preferredAspect === 'square') {
+        return clamp01(1 - Math.abs(ratio - 1) / 0.45);
+    }
+    return 0.72;
+}
+
+function buildGenerate4SymmetricLanesPattern(config, options = {}) {
+    const gridCols = clampInt(config.gridCols, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 18);
+    const gridRows = clampInt(config.gridRows, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 26);
+    const minLen = clampInt(config.minLen, 2, 999, 2);
+    const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
+    const horizontal = options.horizontal !== false;
+    const axisLength = horizontal ? gridCols : gridRows;
+    const laneCount = horizontal ? gridRows : gridCols;
+    const lineLength = selectGenerate4LineLength(axisLength, minLen, maxLen, options.bias ?? 0.62);
+    if (lineLength < minLen || lineLength > axisLength) {
+        return null;
+    }
+
+    const offsetSequence = buildGenerate4OffsetSequence(Math.max(0, axisLength - lineLength));
+    const segments = [];
+
+    for (let lane = 0; lane < laneCount; lane++) {
+        const mirroredDepth = Math.min(lane, laneCount - 1 - lane);
+        const offset = offsetSequence[mirroredDepth % offsetSequence.length] ?? 0;
+        const cells = [];
+        const secondary = lane;
+        const endPrimary = offset + lineLength - 1;
+
+        if (lane % 2 === 0) {
+            for (let primary = offset; primary <= endPrimary; primary++) {
+                cells.push(makeGenerate4Cell(horizontal, primary, secondary));
             }
         } else {
-            for (let col = endCol; col >= startCol; col--) {
-                cells.push({ col, row });
+            for (let primary = endPrimary; primary >= offset; primary--) {
+                cells.push(makeGenerate4Cell(horizontal, primary, secondary));
             }
         }
         segments.push(cells);
     }
 
-    if (segments.length === 0) {
-        for (let col = 0; col < gridCols; col++) {
-            const cells = [];
-            if (col % 2 === 0) {
-                for (let row = 0; row < gridRows; row++) {
-                    cells.push({ col, row });
-                }
-            } else {
-                for (let row = gridRows - 1; row >= 0; row--) {
-                    cells.push({ col, row });
-                }
-            }
-            segments.push(cells);
+    const lines = buildGenerate4LinesFromSegments(segments, minLen, maxLen, config.colors);
+    if (!lines.length) {
+        return null;
+    }
+
+    return {
+        name: horizontal ? 'Symmetric Lanes' : 'Symmetric Columns',
+        lines,
+        path: null,
+        meta: {
+            baseScore: 0.36,
+            targetCoverage: horizontal ? 0.55 : 0.5,
+            coverageTolerance: 0.24,
+            targetTurnRatio: 0.02,
+            preferredAspect: horizontal ? 'tall' : 'wide'
+        }
+    };
+}
+
+function buildGenerate4RectangularRingsPattern(config) {
+    const gridCols = clampInt(config.gridCols, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 18);
+    const gridRows = clampInt(config.gridRows, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 26);
+    const minLen = clampInt(config.minLen, 2, 999, 2);
+    const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
+    const segments = [];
+
+    for (let inset = 0; inset < Math.min(gridCols, gridRows); inset += 2) {
+        const left = inset;
+        const top = inset;
+        const right = gridCols - 1 - inset;
+        const bottom = gridRows - 1 - inset;
+        if (right - left < 1 || bottom - top < 1) {
+            break;
+        }
+
+        const ringPath = buildGenerate4RectangularRingPath(left, top, right, bottom, inset % 4 === 2);
+        if (ringPath.length >= minLen) {
+            segments.push(ringPath);
         }
     }
 
@@ -811,30 +1140,333 @@ function buildGenerate4RayPattern(config) {
     if (!lines.length) {
         return null;
     }
+
     return {
-        name: 'Center Rays',
+        name: 'Rectangular Rings',
         lines,
-        path: null
+        path: null,
+        meta: {
+            baseScore: 0.44,
+            targetCoverage: 0.52,
+            coverageTolerance: 0.24,
+            targetTurnRatio: 0.14,
+            preferredAspect: 'any'
+        }
     };
 }
 
+function buildGenerate4RectangularRingPath(left, top, right, bottom, reverse = false) {
+    const cells = [];
+
+    for (let col = left; col <= right; col++) {
+        cells.push({ col, row: top });
+    }
+    for (let row = top + 1; row <= bottom; row++) {
+        cells.push({ col: right, row });
+    }
+    for (let col = right - 1; col >= left; col--) {
+        cells.push({ col, row: bottom });
+    }
+    for (let row = bottom - 1; row > top; row--) {
+        cells.push({ col: left, row });
+    }
+
+    return reverse ? cells.reverse() : cells;
+}
+
 function buildGenerate4SpiralPattern(config) {
-    const gridCols = clampInt(config.gridCols, 4, 40, 18);
-    const gridRows = clampInt(config.gridRows, 4, 40, 26);
+    const gridCols = clampInt(config.gridCols, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 18);
+    const gridRows = clampInt(config.gridRows, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 26);
     const minLen = clampInt(config.minLen, 2, 999, 2);
     const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
     const spiralPath = buildGenerate4SpiralPath(gridCols, gridRows);
-    const segments = splitGenerate4SegmentByLength(spiralPath, minLen, maxLen);
+    const usableLength = findGenerate4UsableLength(spiralPath.length, minLen, maxLen);
+    if (usableLength < minLen) {
+        return null;
+    }
+
+    const trimmedPath = spiralPath.slice(0, usableLength);
+    const segments = splitGenerate4SegmentByLength(trimmedPath, minLen, maxLen);
     const lines = buildGenerate4LinesFromSegments(segments, minLen, maxLen, config.colors);
 
     if (!lines.length) {
         return null;
     }
+
     return {
         name: 'Spiral Burst',
         lines,
-        path: spiralPath
+        path: trimmedPath,
+        meta: {
+            baseScore: 0.48,
+            targetCoverage: 0.68,
+            coverageTolerance: 0.2,
+            targetTurnRatio: 0.18,
+            preferredAspect: 'any'
+        }
     };
+}
+
+function buildGenerate4MeanderBandsPattern(config, options = {}) {
+    const gridCols = clampInt(config.gridCols, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 18);
+    const gridRows = clampInt(config.gridRows, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 26);
+    const minLen = clampInt(config.minLen, 2, 999, 2);
+    const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
+    const horizontal = options.horizontal !== false;
+    const primarySize = horizontal ? gridCols : gridRows;
+    const crossSize = horizontal ? gridRows : gridCols;
+    const bandThickness = clampInt(
+        options.bandThickness ?? Math.max(2, Math.min(4, Math.round(crossSize / 6))),
+        2,
+        Math.max(2, crossSize),
+        3
+    );
+    const bandStarts = buildGenerate4BandStarts(crossSize, bandThickness, 1);
+    if (!bandStarts.length) {
+        return null;
+    }
+
+    const indentMax = Math.max(0, Math.min(2, Math.floor((primarySize - minLen) / 3)));
+    const offsetSequence = buildGenerate4OffsetSequence(indentMax);
+    const segments = [];
+
+    for (let index = 0; index < bandStarts.length; index++) {
+        const secondaryStart = bandStarts[index];
+        const secondaryEnd = Math.min(crossSize - 1, secondaryStart + bandThickness - 1);
+        const mirroredDepth = Math.min(index, bandStarts.length - 1 - index);
+        const indent = offsetSequence[mirroredDepth % offsetSequence.length] ?? 0;
+        const primaryStart = indent;
+        const primaryEnd = primarySize - 1 - indent;
+        if ((primaryEnd - primaryStart + 1) < minLen) {
+            continue;
+        }
+
+        segments.push(
+            buildGenerate4BandSnakePath(primaryStart, primaryEnd, secondaryStart, secondaryEnd, horizontal)
+        );
+    }
+
+    const lines = buildGenerate4LinesFromSegments(segments, minLen, maxLen, config.colors);
+    if (!lines.length) {
+        return null;
+    }
+
+    return {
+        name: horizontal ? 'Meander Bands' : 'Meander Columns',
+        lines,
+        path: null,
+        meta: {
+            baseScore: 0.4,
+            targetCoverage: 0.62,
+            coverageTolerance: 0.24,
+            targetTurnRatio: 0.16,
+            preferredAspect: horizontal ? 'tall' : 'wide'
+        }
+    };
+}
+
+function buildGenerate4BandSnakePath(primaryStart, primaryEnd, secondaryStart, secondaryEnd, horizontal) {
+    const cells = [];
+
+    for (let secondary = secondaryStart; secondary <= secondaryEnd; secondary++) {
+        const evenStripe = ((secondary - secondaryStart) % 2) === 0;
+        if (evenStripe) {
+            for (let primary = primaryStart; primary <= primaryEnd; primary++) {
+                cells.push(makeGenerate4Cell(horizontal, primary, secondary));
+            }
+        } else {
+            for (let primary = primaryEnd; primary >= primaryStart; primary--) {
+                cells.push(makeGenerate4Cell(horizontal, primary, secondary));
+            }
+        }
+    }
+
+    return cells;
+}
+
+function buildGenerate4WaveBandsPattern(config, options = {}) {
+    const gridCols = clampInt(config.gridCols, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 18);
+    const gridRows = clampInt(config.gridRows, MIN_GRID_DIMENSION, UNBOUNDED_GRID_DIMENSION_MAX, 26);
+    const minLen = clampInt(config.minLen, 2, 999, 2);
+    const maxLen = clampInt(config.maxLen, minLen, 999, minLen);
+    const horizontal = options.horizontal !== false;
+    const waveform = options.waveform === 'triangle' ? 'triangle' : 'sine';
+    const primarySize = horizontal ? gridCols : gridRows;
+    const crossSize = horizontal ? gridRows : gridCols;
+    const amplitudeCap = Math.max(1, Math.floor((crossSize - 1) / 4));
+    const amplitude = clampInt(
+        Math.round(crossSize / (waveform === 'triangle' ? 9 : 11)),
+        1,
+        amplitudeCap,
+        1
+    );
+    const centers = buildGenerate4BandCenters(crossSize, amplitude, amplitude >= 2 ? 1 : 2);
+    if (!centers.length) {
+        return null;
+    }
+
+    const wavelength = clampInt(
+        Math.round(primarySize / (waveform === 'triangle' ? 2.4 : 2.9)),
+        4,
+        Math.max(4, primarySize),
+        Math.max(4, primarySize)
+    );
+    const segments = centers.map((center, index) => buildGenerate4WaveBandPath({
+        primarySize,
+        crossSize,
+        center,
+        amplitude,
+        wavelength,
+        phase: (options.phase ?? 0) + index * 0.35,
+        waveform,
+        horizontal
+    }));
+
+    const lines = buildGenerate4LinesFromSegments(segments, minLen, maxLen, config.colors);
+    if (!lines.length) {
+        return null;
+    }
+
+    return {
+        name: waveform === 'triangle'
+            ? (horizontal ? 'Chevron Bands' : 'Chevron Columns')
+            : (horizontal ? 'Sine Bands' : 'Sine Columns'),
+        lines,
+        path: null,
+        meta: {
+            baseScore: waveform === 'triangle' ? 0.42 : 0.34,
+            targetCoverage: waveform === 'triangle' ? 0.48 : 0.44,
+            coverageTolerance: 0.22,
+            targetTurnRatio: waveform === 'triangle' ? 0.13 : 0.08,
+            preferredAspect: horizontal ? 'tall' : 'wide'
+        }
+    };
+}
+
+function buildGenerate4WaveBandPath(options) {
+    const {
+        primarySize,
+        crossSize,
+        center,
+        amplitude,
+        wavelength,
+        phase,
+        waveform,
+        horizontal
+    } = options;
+
+    let primary = 0;
+    let secondary = clampInt(
+        Math.round(center + amplitude * evaluateGenerate4Waveform(waveform, phase)),
+        0,
+        crossSize - 1,
+        center
+    );
+    const cells = [makeGenerate4Cell(horizontal, primary, secondary)];
+
+    for (let nextPrimary = 1; nextPrimary < primarySize; nextPrimary++) {
+        const nextSecondary = clampInt(
+            Math.round(center + amplitude * evaluateGenerate4Waveform(waveform, (nextPrimary / wavelength) + phase)),
+            0,
+            crossSize - 1,
+            secondary
+        );
+
+        while (secondary !== nextSecondary) {
+            secondary += Math.sign(nextSecondary - secondary);
+            cells.push(makeGenerate4Cell(horizontal, primary, secondary));
+        }
+
+        primary = nextPrimary;
+        cells.push(makeGenerate4Cell(horizontal, primary, secondary));
+    }
+
+    return cells;
+}
+
+function evaluateGenerate4Waveform(type, value) {
+    if (type === 'triangle') {
+        const cycle = value - Math.floor(value);
+        return 1 - (4 * Math.abs(cycle - 0.5));
+    }
+    return Math.sin(value * Math.PI * 2);
+}
+
+function makeGenerate4Cell(horizontal, primary, secondary) {
+    return horizontal
+        ? { col: primary, row: secondary }
+        : { col: secondary, row: primary };
+}
+
+function selectGenerate4LineLength(axisLength, minLen, maxLen, bias = 0.62) {
+    const upperBound = Math.min(axisLength, maxLen);
+    if (upperBound < minLen) {
+        return 0;
+    }
+
+    const preferred = clampInt(
+        Math.round(axisLength * bias),
+        minLen,
+        upperBound,
+        upperBound
+    );
+    for (let length = preferred; length <= upperBound; length++) {
+        if (length >= minLen) {
+            return length;
+        }
+    }
+    return upperBound;
+}
+
+function buildGenerate4OffsetSequence(maxOffset) {
+    if (maxOffset <= 0) {
+        return [0];
+    }
+
+    const center = Math.floor(maxOffset / 2);
+    const sequence = [center];
+    for (let delta = 1; sequence.length <= maxOffset; delta++) {
+        const left = center - delta;
+        const right = center + delta;
+        if (left >= 0) {
+            sequence.push(left);
+        }
+        if (right <= maxOffset) {
+            sequence.push(right);
+        }
+    }
+    return sequence;
+}
+
+function buildGenerate4BandStarts(totalSize, bandSize, gap = 1) {
+    if (bandSize > totalSize) {
+        return [];
+    }
+
+    const count = Math.max(1, Math.floor((totalSize + gap) / (bandSize + gap)));
+    const occupied = count * bandSize + (count - 1) * gap;
+    const startOffset = Math.max(0, Math.floor((totalSize - occupied) / 2));
+    const starts = [];
+
+    for (let index = 0; index < count; index++) {
+        starts.push(startOffset + index * (bandSize + gap));
+    }
+
+    return starts;
+}
+
+function buildGenerate4BandCenters(totalSize, amplitude, gap = 1) {
+    const starts = buildGenerate4BandStarts(totalSize, amplitude * 2 + 1, gap);
+    return starts.map((start) => start + amplitude);
+}
+
+function findGenerate4UsableLength(total, minLen, maxLen) {
+    for (let length = total; length >= minLen; length--) {
+        if (partitionGenerate4Lengths(length, minLen, maxLen).length) {
+            return length;
+        }
+    }
+    return 0;
 }
 
 function buildGenerate4SpiralPath(gridCols, gridRows) {
@@ -1281,7 +1913,7 @@ function deleteLine(lineId) {
 }
 
 function updatePreviewRecord() {
-    const { settings } = collectConfig();
+    const { settings, config } = collectConfig();
     previewRecord = {
         settings,
         data: cloneLevelData(renderedLevelData),
@@ -1292,6 +1924,11 @@ function updatePreviewRecord() {
         },
         updatedAt: new Date().toISOString()
     };
+    const cov = previewRecord.stats.totalCells > 0
+        ? Math.round((previewRecord.stats.coveredCells / previewRecord.stats.totalCells) * 100)
+        : 0;
+    el.coverageText.textContent = `${cov}%`;
+    updateLevelRewardPreview(config);
     drawStats(previewRecord);
 }
 
@@ -1721,11 +2358,18 @@ function drawStats(record) {
     const total = record.stats.totalCells;
     const covered = record.stats.coveredCells;
     const pct = Math.round((covered / total) * 100);
+    const rewardBreakdown = buildLevelRewardBreakdown(
+        countLevelLineCells(record.data?.lines),
+        record.settings?.rewardScorePerBodySegment,
+        readGameplayParams()?.scorePerCoin
+    );
     if (record.settings?.displayName) {
         pushStat(`关卡名称：${record.settings.displayName}`);
     }
     pushStat(`系统：v6.0 | 覆盖率：${pct}%`);
     pushStat(`线条数量：${record.stats.lineCount}`);
+    pushStat(`本关总积分：${formatLevelRewardPreviewValue(rewardBreakdown.totalScore)}`);
+    pushStat(`本关总金币：${formatLevelRewardPreviewValue(rewardBreakdown.totalCoins)}`);
     pushStat(`计时器：${formatSeconds(record.settings?.timerSeconds ?? 0)}`);
     pushStat(`误触惩罚：${formatPenaltySeconds(record.settings?.misclickPenaltySeconds ?? 1)}`);
     pushStat(`更新时间：${formatTime(record.updatedAt)}`);
@@ -2010,7 +2654,7 @@ function onTogglePath() {
             isPathVisible = false;
             syncEyeButtonState();
             drawPreviewState();
-            setStatus('Generate4 当前没有辅助路径，请先点击花形按钮生成图案。');
+            setStatus('Generate4 当前布局没有辅助路径，可重新点击“生成4”切换到另一种规则图案。');
             return;
         }
 
@@ -2106,4 +2750,6 @@ function clampInt(value, min, max, fallback) {
     return Math.max(min, Math.min(max, base));
 }
 
-
+function clamp01(value) {
+    return Math.max(0, Math.min(1, Number(value) || 0));
+}

@@ -95,6 +95,26 @@ function toDbUserParams(user) {
     ];
 }
 
+function compareLeaderboardEntries(a, b) {
+    if (b.maxClearedLevel !== a.maxClearedLevel) return b.maxClearedLevel - a.maxClearedLevel;
+    if (b.coins !== a.coins) return b.coins - a.coins;
+    return `${b.lastActiveAt}`.localeCompare(`${a.lastActiveAt}`);
+}
+
+function buildJsonLeaderboardEntries(users) {
+    return users
+        .map((user) => ({
+            userId: `${user?.userId || ''}`.trim(),
+            username: `${user?.username || ''}`.trim() || 'Unknown',
+            avatarUrl: `${user?.avatarUrl || ''}`.trim(),
+            maxUnlockedLevel: Math.max(1, Math.floor(Number(user?.maxUnlockedLevel) || Number(user?.progress?.maxUnlockedLevel) || 1)),
+            maxClearedLevel: Math.max(0, Math.floor(Number(user?.maxClearedLevel) || Number(user?.progress?.maxClearedLevel) || 0)),
+            coins: Math.max(0, Math.floor(Number(user?.coins) || Number(user?.progress?.coins) || 0)),
+            lastActiveAt: `${user?.lastActiveAt || ''}`.trim()
+        }))
+        .sort(compareLeaderboardEntries);
+}
+
 class JsonUserCenterStore {
     constructor(options) {
         this.filePath = options.filePath;
@@ -195,22 +215,24 @@ class JsonUserCenterStore {
 
     async listLeaderboard(limit) {
         const db = await this.readDb();
-        return db.users
-            .map((user) => ({
-                userId: `${user?.userId || ''}`.trim(),
-                username: `${user?.username || ''}`.trim() || 'Unknown',
-                avatarUrl: `${user?.avatarUrl || ''}`.trim(),
-                maxUnlockedLevel: Math.max(1, Math.floor(Number(user?.maxUnlockedLevel) || Number(user?.progress?.maxUnlockedLevel) || 1)),
-                maxClearedLevel: Math.max(0, Math.floor(Number(user?.maxClearedLevel) || Number(user?.progress?.maxClearedLevel) || 0)),
-                coins: Math.max(0, Math.floor(Number(user?.coins) || Number(user?.progress?.coins) || 0)),
-                lastActiveAt: `${user?.lastActiveAt || ''}`.trim()
-            }))
-            .sort((a, b) => {
-                if (b.maxClearedLevel !== a.maxClearedLevel) return b.maxClearedLevel - a.maxClearedLevel;
-                if (b.coins !== a.coins) return b.coins - a.coins;
-                return `${b.lastActiveAt}`.localeCompare(`${a.lastActiveAt}`);
-            })
-            .slice(0, limit);
+        return buildJsonLeaderboardEntries(db.users).slice(0, limit);
+    }
+
+    async getLeaderboardEntryForUser(userId) {
+        const safeUserId = `${userId || ''}`.trim();
+        if (!safeUserId) {
+            return null;
+        }
+        const db = await this.readDb();
+        const ranked = buildJsonLeaderboardEntries(db.users);
+        const index = ranked.findIndex((row) => row.userId === safeUserId);
+        if (index < 0) {
+            return null;
+        }
+        return {
+            rank: index + 1,
+            ...ranked[index]
+        };
     }
 
     async countUsers(query = '') {
@@ -466,6 +488,48 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
             coins: Math.max(0, Math.floor(Number(row.coins) || 0)),
             lastActiveAt: row.last_active_at ? new Date(row.last_active_at).toISOString() : ''
         }));
+    }
+
+    async getLeaderboardEntryForUser(userId) {
+        const safeUserId = `${userId || ''}`.trim();
+        if (!safeUserId) {
+            return null;
+        }
+        const result = await this.pgPool.query(
+            `WITH ranked AS (
+                SELECT
+                    user_id,
+                    username,
+                    avatar_url,
+                    max_unlocked_level,
+                    max_cleared_level,
+                    coins,
+                    last_active_at,
+                    ROW_NUMBER() OVER (
+                        ORDER BY max_cleared_level DESC, coins DESC, last_active_at DESC
+                    ) AS rank
+                FROM user_center_users
+            )
+            SELECT *
+            FROM ranked
+            WHERE user_id = $1
+            LIMIT 1`,
+            [safeUserId]
+        );
+        const row = result.rows?.[0];
+        if (!row) {
+            return null;
+        }
+        return {
+            rank: Math.max(1, Math.floor(Number(row.rank) || 1)),
+            userId: `${row.user_id || ''}`.trim(),
+            username: `${row.username || ''}`.trim() || 'Unknown',
+            avatarUrl: `${row.avatar_url || ''}`.trim(),
+            maxUnlockedLevel: Math.max(1, Math.floor(Number(row.max_unlocked_level) || 1)),
+            maxClearedLevel: Math.max(0, Math.floor(Number(row.max_cleared_level) || 0)),
+            coins: Math.max(0, Math.floor(Number(row.coins) || 0)),
+            lastActiveAt: row.last_active_at ? new Date(row.last_active_at).toISOString() : ''
+        };
     }
 
     async countUsers(query = '') {

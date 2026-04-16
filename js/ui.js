@@ -11,8 +11,9 @@ import {
     playFinalCountdownTickSound
 } from './audio.js?v=66';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=27';
-import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
+import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=5';
 import { getUiAsset } from './ui-theme.js?v=2';
+import { bootstrapUserSessionFromStorage, getActiveUserId } from './user-auth.js?v=4';
 
 const MENU_PANEL = Object.freeze({
     HOME: 'HOME',
@@ -78,6 +79,10 @@ export class UI {
         );
 
         this.hud = document.getElementById('hud');
+        this.hudTopEl = this.hud?.querySelector('.hud-top') || null;
+        this.hudSettingsButtonEl = document.getElementById('btnHudSettings');
+        this.hudCoinDisplayEl = document.getElementById('hudCoinDisplay');
+        this.hudCenterEl = this.hud?.querySelector('.hud-center') || null;
         this.livesEl = document.getElementById('lives');
         this.levelInfoEl = document.getElementById('levelInfo');
         this.timerEl = document.getElementById('timer');
@@ -93,6 +98,7 @@ export class UI {
         this.rewardStageGuideOverlayEl = document.getElementById('rewardStageGuideOverlay');
         this.rewardStageGuideTextEl = document.getElementById('rewardStageGuideText');
         this.rewardStageGuideVisible = false;
+        this.hudScorePulseEl = document.getElementById('hudScorePulse');
         this.hudScoreValueEl = document.getElementById('hudScoreValue');
         this.hudScoreGainEl = document.getElementById('hudScoreGain');
         this.hudEnergyLayerEl = document.getElementById('hudEnergyLayer');
@@ -104,6 +110,9 @@ export class UI {
         this.settingsOverlay = document.getElementById('settingsOverlay');
         this.leaderboardOverlay = document.getElementById('leaderboardOverlay');
         this.leaderboardListEl = this.leaderboardOverlay?.querySelector('.rank-list') || null;
+        this.leaderboardSelfSectionEl = document.getElementById('leaderboardSelfSection');
+        this.leaderboardSelfLabelEl = document.getElementById('leaderboardSelfLabel');
+        this.leaderboardSelfListEl = document.getElementById('leaderboardSelfList');
         this.leaderboardEmptyStateEl = this.leaderboardOverlay?.querySelector('.empty-state') || null;
         this.skinsOverlay = document.getElementById('skinsOverlay');
         this.checkinOverlay = document.getElementById('checkinOverlay');
@@ -195,6 +204,7 @@ export class UI {
         this.releaseUiLayoutSubscription = subscribeUiLayoutConfig((nextConfig) => {
             this.uiLayoutConfig = nextConfig;
             this.applyCheckinLayoutConfig();
+            this.applyGameplayLayoutConfig();
             this.refreshCheckinPanel(false);
             this.updateCheckinSceneScale();
         });
@@ -208,6 +218,7 @@ export class UI {
         this.bindGameCallbacks();
         this.applyThemeAssets();
         this.applyCheckinLayoutConfig();
+        this.applyGameplayLayoutConfig();
         this.markUiEditorElements();
         this.setMenuBadges(this.menuBadges);
         this.applyLocalizedText();
@@ -822,6 +833,7 @@ export class UI {
             return;
         }
         this.leaderboardListEl.innerHTML = '';
+        this.renderLeaderboardSelfRow(null);
         const fallbackRowCount = 5;
         const renderFallback = (message) => {
             for (let i = 1; i <= fallbackRowCount; i += 1) {
@@ -835,7 +847,14 @@ export class UI {
         };
 
         try {
-            const response = await fetch('/api/leaderboard?limit=50', {
+            const bootSession = bootstrapUserSessionFromStorage();
+            const requestUserId = `${getActiveUserId() || bootSession?.userId || ''}`.trim();
+            const leaderboardUrl = new URL('/api/leaderboard', window.location.href);
+            leaderboardUrl.searchParams.set('limit', '100');
+            if (requestUserId) {
+                leaderboardUrl.searchParams.set('userId', requestUserId);
+            }
+            const response = await fetch(leaderboardUrl.toString(), {
                 method: 'GET',
                 cache: 'no-store'
             });
@@ -845,48 +864,97 @@ export class UI {
                 renderFallback(this.getLocaleText('暂无排行榜数据。', 'No leaderboard data yet.'));
                 return;
             }
+            const meRow = payload?.me && typeof payload.me === 'object' ? payload.me : null;
+            const selfUserId = `${meRow?.userId || requestUserId || ''}`.trim();
+            let selfRenderedInTop = false;
             for (const row of rows) {
-                const rank = Math.max(1, Math.floor(Number(row?.rank) || 0));
-                const username = `${row?.username || 'Unknown'}`.trim() || 'Unknown';
-                const avatarUrl = `${row?.avatarUrl || 'assets/ui/shared/icons/icon_theme.png'}`.trim();
-                const level = Math.max(0, Math.floor(Number(row?.maxClearedLevel) || 0));
-                const li = document.createElement('li');
-
-                const rankEl = document.createElement('span');
-                rankEl.textContent = `#${rank}`;
-
-                const playerEl = document.createElement('span');
-                playerEl.className = 'rank-player';
-                const avatarEl = document.createElement('img');
-                avatarEl.className = 'rank-avatar';
-                avatarEl.alt = username;
-                avatarEl.src = avatarUrl;
-                avatarEl.referrerPolicy = 'no-referrer';
-                avatarEl.addEventListener('error', () => {
-                    avatarEl.src = 'assets/ui/shared/icons/icon_theme.png';
-                });
-                const nameEl = document.createElement('span');
-                nameEl.textContent = username;
-                playerEl.appendChild(avatarEl);
-                playerEl.appendChild(nameEl);
-
-                const levelEl = document.createElement('span');
-                levelEl.className = 'rank-level';
-                levelEl.textContent = level > 0
-                    ? this.getLocaleText(`通关 ${level}`, `Clear ${level}`)
-                    : this.getLocaleText('未通关', 'Not Cleared');
-
-                li.appendChild(rankEl);
-                li.appendChild(playerEl);
-                li.appendChild(levelEl);
+                const rowUserId = `${row?.userId || ''}`.trim();
+                if (selfUserId && rowUserId === selfUserId) {
+                    selfRenderedInTop = true;
+                }
+                const li = this.buildLeaderboardRow(row, selfUserId);
                 this.leaderboardListEl.appendChild(li);
             }
+            this.renderLeaderboardSelfRow(selfRenderedInTop ? null : meRow, selfUserId);
             if (this.leaderboardEmptyStateEl) {
-                this.leaderboardEmptyStateEl.textContent = this.getLocaleText('按最高通关关卡排行。', 'Sorted by highest cleared level.');
+                this.leaderboardEmptyStateEl.textContent = this.getLocaleText(
+                    '按最高通关关卡排行，仅显示前 100 名。',
+                    'Sorted by highest cleared level. Top 100 only.'
+                );
             }
         } catch {
             renderFallback(this.getLocaleText('排行榜加载失败，请稍后重试。', 'Failed to load leaderboard.'));
         }
+    }
+
+    buildLeaderboardRow(row, selfUserId = '') {
+        const rank = Math.max(1, Math.floor(Number(row?.rank) || 0));
+        const userId = `${row?.userId || ''}`.trim();
+        const username = `${row?.username || 'Unknown'}`.trim() || 'Unknown';
+        const avatarUrl = `${row?.avatarUrl || 'assets/ui/shared/icons/icon_theme.png'}`.trim();
+        const level = Math.max(0, Math.floor(Number(row?.maxClearedLevel) || 0));
+        const isSelf = !!selfUserId && userId === selfUserId;
+
+        const li = document.createElement('li');
+        if (isSelf) {
+            li.classList.add('is-self');
+        }
+
+        const rankEl = document.createElement('span');
+        rankEl.textContent = `#${rank}`;
+
+        const playerEl = document.createElement('span');
+        playerEl.className = 'rank-player';
+        const avatarEl = document.createElement('img');
+        avatarEl.className = 'rank-avatar';
+        avatarEl.alt = username;
+        avatarEl.src = avatarUrl;
+        avatarEl.referrerPolicy = 'no-referrer';
+        avatarEl.addEventListener('error', () => {
+            avatarEl.src = 'assets/ui/shared/icons/icon_theme.png';
+        });
+
+        const nameWrapEl = document.createElement('span');
+        nameWrapEl.className = 'rank-player-name';
+        const nameEl = document.createElement('span');
+        nameEl.textContent = username;
+        nameWrapEl.appendChild(nameEl);
+        if (isSelf) {
+            const selfTagEl = document.createElement('span');
+            selfTagEl.className = 'rank-self-tag';
+            selfTagEl.textContent = this.getLocaleText('（我）', '(Me)');
+            nameWrapEl.appendChild(selfTagEl);
+        }
+
+        playerEl.appendChild(avatarEl);
+        playerEl.appendChild(nameWrapEl);
+
+        const levelEl = document.createElement('span');
+        levelEl.className = 'rank-level';
+        levelEl.textContent = level > 0
+            ? this.getLocaleText(`通关 ${level}`, `Clear ${level}`)
+            : this.getLocaleText('未通关', 'Not Cleared');
+
+        li.appendChild(rankEl);
+        li.appendChild(playerEl);
+        li.appendChild(levelEl);
+        return li;
+    }
+
+    renderLeaderboardSelfRow(row, selfUserId = '') {
+        if (!this.leaderboardSelfSectionEl || !this.leaderboardSelfListEl) {
+            return;
+        }
+        this.leaderboardSelfListEl.innerHTML = '';
+        if (!row) {
+            this.leaderboardSelfSectionEl.classList.add('hidden');
+            return;
+        }
+        if (this.leaderboardSelfLabelEl) {
+            this.leaderboardSelfLabelEl.textContent = this.getLocaleText('我的排名', 'My Rank');
+        }
+        this.leaderboardSelfListEl.appendChild(this.buildLeaderboardRow(row, selfUserId));
+        this.leaderboardSelfSectionEl.classList.remove('hidden');
     }
 
     async syncSkinCatalogForSkinCenter() {
@@ -1080,10 +1148,22 @@ export class UI {
         this.checkinMascotEl?.setAttribute('data-ui-editor-id', 'mascot');
         this.checkinRewardTooltipEl?.setAttribute('data-ui-editor-id', 'rewardTooltip');
         this.checkinStatusEl?.setAttribute('data-ui-editor-id', 'status');
+        this.hudTopEl?.setAttribute('data-ui-editor-id', 'hudTop');
+        this.hudSettingsButtonEl?.setAttribute('data-ui-editor-id', 'settingsButton');
+        this.hudCoinDisplayEl?.setAttribute('data-ui-editor-id', 'coinChip');
+        this.hudCenterEl?.setAttribute('data-ui-editor-id', 'center');
+        this.levelInfoEl?.setAttribute('data-ui-editor-id', 'level');
+        this.timerEl?.setAttribute('data-ui-editor-id', 'timer');
+        this.comboDisplayEl?.setAttribute('data-ui-editor-id', 'combo');
+        this.hudScorePulseEl?.setAttribute('data-ui-editor-id', 'scorePulse');
     }
 
     getCheckinLayoutConfig() {
         return this.uiLayoutConfig?.checkin || readUiLayoutConfig().checkin;
+    }
+
+    getGameplayLayoutConfig() {
+        return this.uiLayoutConfig?.gameplay || readUiLayoutConfig().gameplay;
     }
 
     applyCheckinLayoutConfig() {
@@ -1127,6 +1207,94 @@ export class UI {
             this.checkinStatusEl.style.width = `${layout.status.width}px`;
             this.checkinStatusEl.style.fontSize = `${layout.status.fontSize}px`;
             this.checkinStatusEl.style.display = layout.status.visible === true ? 'block' : 'none';
+        }
+    }
+
+    applyGameplayLayoutConfig() {
+        const layout = this.getGameplayLayoutConfig();
+        if (!layout) {
+            return;
+        }
+
+        if (this.hudTopEl) {
+            this.hudTopEl.style.left = `${layout.hudTop.x}px`;
+            this.hudTopEl.style.top = `${layout.hudTop.y}px`;
+            this.hudTopEl.style.width = `${layout.hudTop.width}px`;
+            this.hudTopEl.style.height = `${layout.hudTop.height}px`;
+            this.hudTopEl.style.display = layout.hudTop.visible === false ? 'none' : '';
+        }
+        if (this.hudSettingsButtonEl) {
+            this.hudSettingsButtonEl.style.left = `${layout.settingsButton.x}px`;
+            this.hudSettingsButtonEl.style.top = `${layout.settingsButton.y}px`;
+            this.hudSettingsButtonEl.style.right = 'auto';
+            this.hudSettingsButtonEl.style.width = `${layout.settingsButton.width}px`;
+            this.hudSettingsButtonEl.style.height = `${layout.settingsButton.height}px`;
+            this.hudSettingsButtonEl.style.display = layout.settingsButton.visible === false ? 'none' : '';
+        }
+        if (this.hudCoinDisplayEl) {
+            this.hudCoinDisplayEl.style.left = `${layout.coinChip.x}px`;
+            this.hudCoinDisplayEl.style.top = `${layout.coinChip.y}px`;
+            this.hudCoinDisplayEl.style.right = 'auto';
+            this.hudCoinDisplayEl.style.width = `${layout.coinChip.width}px`;
+            this.hudCoinDisplayEl.style.minWidth = `${layout.coinChip.width}px`;
+            this.hudCoinDisplayEl.style.height = `${layout.coinChip.height}px`;
+            this.hudCoinDisplayEl.style.minHeight = `${layout.coinChip.height}px`;
+            this.hudCoinDisplayEl.style.display = layout.coinChip.visible === false ? 'none' : '';
+        }
+        if (this.hudCoinValue) {
+            this.hudCoinValue.style.fontSize = `${layout.coinChip.fontSize}px`;
+        }
+        if (this.hudCenterEl) {
+            this.hudCenterEl.style.left = `${layout.center.x}px`;
+            this.hudCenterEl.style.top = `${layout.center.y}px`;
+            this.hudCenterEl.style.width = `${layout.center.width}px`;
+            this.hudCenterEl.style.height = `${layout.center.height}px`;
+            this.hudCenterEl.style.transform = 'none';
+            this.hudCenterEl.style.display = layout.center.visible === false ? 'none' : 'block';
+        }
+        if (this.levelInfoEl) {
+            this.levelInfoEl.style.position = 'absolute';
+            this.levelInfoEl.style.left = `${layout.level.x}px`;
+            this.levelInfoEl.style.top = `${layout.level.y}px`;
+            this.levelInfoEl.style.width = `${layout.level.width}px`;
+            this.levelInfoEl.style.fontSize = `${layout.level.fontSize}px`;
+            this.levelInfoEl.style.display = layout.level.visible === false ? 'none' : 'block';
+        }
+        if (this.timerEl) {
+            this.timerEl.style.position = 'absolute';
+            this.timerEl.style.left = `${layout.timer.x}px`;
+            this.timerEl.style.top = `${layout.timer.y}px`;
+            this.timerEl.style.width = `${layout.timer.width}px`;
+            this.timerEl.style.minHeight = `${layout.timer.height}px`;
+            this.timerEl.style.display = layout.timer.visible === false ? 'none' : '';
+        }
+        if (this.timerLabelEl) {
+            this.timerLabelEl.style.fontSize = `${layout.timer.labelFontSize}px`;
+        }
+        if (this.comboDisplayEl) {
+            this.comboDisplayEl.style.position = 'absolute';
+            this.comboDisplayEl.style.left = `${layout.combo.x}px`;
+            this.comboDisplayEl.style.top = `${layout.combo.y}px`;
+            this.comboDisplayEl.style.width = `${layout.combo.width}px`;
+            this.comboDisplayEl.style.height = `${layout.combo.height}px`;
+            this.comboDisplayEl.style.maxWidth = `${layout.combo.width}px`;
+            this.comboDisplayEl.style.fontSize = `${layout.combo.fontSize}px`;
+            this.comboDisplayEl.style.transform = 'none';
+            this.comboDisplayEl.style.display = layout.combo.visible === false ? 'none' : '';
+        }
+        if (this.hudScorePulseEl) {
+            this.hudScorePulseEl.style.left = `${layout.scorePulse.x}px`;
+            this.hudScorePulseEl.style.top = `${layout.scorePulse.y}px`;
+            this.hudScorePulseEl.style.width = `${layout.scorePulse.width}px`;
+            this.hudScorePulseEl.style.minHeight = `${layout.scorePulse.height}px`;
+            this.hudScorePulseEl.style.transform = 'none';
+            this.hudScorePulseEl.style.display = layout.scorePulse.visible === false ? 'none' : 'flex';
+        }
+        if (this.hudScoreValueEl) {
+            this.hudScoreValueEl.style.fontSize = `${layout.scorePulse.valueFontSize}px`;
+        }
+        if (this.hudScoreGainEl) {
+            this.hudScoreGainEl.style.fontSize = `${layout.scorePulse.gainFontSize}px`;
         }
     }
 
@@ -1733,6 +1901,11 @@ export class UI {
     }
 
     activateUiEditorPreview() {
+        const panel = `${this.uiEditorPreviewOptions.panel || 'checkin'}`.trim().toLowerCase();
+        if (panel === 'gameplay') {
+            this.activateGameplayUiEditorPreview();
+            return;
+        }
         this.appContainerEl?.classList.add('menu-mode');
         this.uiEditorPreviewOverride = {
             previewMode: 'claimable',
@@ -1742,8 +1915,33 @@ export class UI {
         this.openMenuPanel(MENU_PANEL.CHECKIN);
     }
 
+    activateGameplayUiEditorPreview() {
+        this.startSpecificLevel(12);
+        if (typeof this.game?.setExternalPaused === 'function') {
+            this.game.setExternalPaused(true);
+        }
+        this.setMenuChromeVisible(false);
+        this.game.currentLevel = 12;
+        this.game.score = 192000;
+        this.game.combo = 11;
+        this.game.bestComboThisLevel = 11;
+        this.game.hasTimer = true;
+        this.game.maxTimeRemaining = 120;
+        this.game.timeRemaining = 92;
+        this.setCoinDisplayOverride(1703);
+        this.clearTimerEnergyOrbs();
+        this.hud.classList.remove('hidden');
+        this.updateHUD();
+        this.applyGameplayLayoutConfig();
+    }
+
     setUiEditorPreviewState(override = {}) {
         if (!this.uiEditorPreviewOptions.enabled) {
+            return;
+        }
+        const panel = `${this.uiEditorPreviewOptions.panel || 'checkin'}`.trim().toLowerCase();
+        if (panel === 'gameplay') {
+            this.activateGameplayUiEditorPreview();
             return;
         }
         this.uiEditorPreviewOverride = {
@@ -2294,52 +2492,57 @@ export class UI {
     }
 
     resolveScorePulseStyle(totalScore) {
+        const digitCount = `${Math.max(0, Math.floor(Number(totalScore) || 0))}`.length;
+        const applyDigitScalePenalty = (style) => ({
+            ...style,
+            scale: Math.max(0.82, Number(style.scale || 1) - Math.max(0, digitCount - 5) * 0.06)
+        });
         if (totalScore >= 12000) {
-            return {
+            return applyDigitScalePenalty({
                 scale: 1.38,
                 color: '#ff77c1',
                 shadow: '0 2px 0 rgba(56, 23, 37, 0.68), 0 0 12px rgba(255, 103, 186, 0.56), 0 0 24px rgba(255, 89, 176, 0.34)',
                 gainColor: '#ffe8f6'
-            };
+            });
         }
         if (totalScore >= 8000) {
-            return {
+            return applyDigitScalePenalty({
                 scale: 1.30,
                 color: '#ff9766',
                 shadow: '0 2px 0 rgba(63, 35, 20, 0.65), 0 0 10px rgba(255, 143, 92, 0.46), 0 0 20px rgba(255, 129, 73, 0.26)',
                 gainColor: '#fff0d9'
-            };
+            });
         }
         if (totalScore >= 5000) {
-            return {
+            return applyDigitScalePenalty({
                 scale: 1.22,
                 color: '#ffcb72',
                 shadow: '0 2px 0 rgba(66, 42, 21, 0.62), 0 0 8px rgba(255, 206, 117, 0.42), 0 0 18px rgba(255, 176, 77, 0.22)',
                 gainColor: '#fff2c8'
-            };
+            });
         }
         if (totalScore >= 2500) {
-            return {
+            return applyDigitScalePenalty({
                 scale: 1.15,
                 color: '#ffe592',
                 shadow: '0 2px 0 rgba(62, 43, 22, 0.6), 0 0 8px rgba(255, 234, 162, 0.36)',
                 gainColor: '#fff4cf'
-            };
+            });
         }
         if (totalScore >= 1000) {
-            return {
+            return applyDigitScalePenalty({
                 scale: 1.08,
                 color: '#f0ffd2',
                 shadow: '0 2px 0 rgba(45, 30, 20, 0.58), 0 0 6px rgba(225, 255, 166, 0.3)',
                 gainColor: '#f8ffd9'
-            };
+            });
         }
-        return {
+        return applyDigitScalePenalty({
             scale: 1,
             color: '#e6f4d4',
             shadow: '0 2px 0 rgba(45, 30, 20, 0.58), 0 6px 12px rgba(38, 23, 16, 0.28)',
             gainColor: '#fff4cf'
-        };
+        });
     }
 
     updateScorePulseVisual(totalScore, animate = false, gained = 0, combo = 0) {

@@ -8,7 +8,7 @@
     writeLiveOpsConfig,
     writeLiveOpsPlayerState
 } from './liveops-storage.js?v=5';
-import { bootstrapUserSessionFromStorage } from './user-auth.js?v=3';
+import { bootstrapUserSessionFromStorage } from './user-auth.js?v=4';
 
 const el = {
     itemList: document.getElementById('liveopsItemList'),

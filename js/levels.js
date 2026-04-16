@@ -1,4 +1,4 @@
-import { applyStoredSettings, getLevelCatalog, getSavedLevelRecord } from './level-storage.js?v=56';
+import { applyStoredSettings, getLevelCatalog, getSavedLevelRecord } from './level-storage.js?v=59';
 
 export const MAX_NORMAL_LEVEL = 1000;
 export const MAX_REWARD_LEVEL = 200;
@@ -7,6 +7,7 @@ export const BONUS_LEVEL_ID = REWARD_LEVEL_ID_BASE;
 
 const DEFAULT_REWARD_NAME = '奖励关';
 const DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT = 1000;
+const DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT = 10;
 
 export function getNormalLevelCount() {
     const catalog = getLevelCatalog();
@@ -79,6 +80,7 @@ function buildNormalBaseConfig(levelNum) {
             fillRatio: 0.56,
             minLen: 2,
             maxLen: 4,
+            rewardScorePerBodySegment: DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT,
             maxCellUsage: 1,
             isRewardLevel: false,
             displayName: ''
@@ -100,6 +102,7 @@ function buildNormalBaseConfig(levelNum) {
             fillRatio: 1.0,
             minLen: 2,
             maxLen: 12,
+            rewardScorePerBodySegment: DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT,
             maxCellUsage: 1,
             isRewardLevel: false,
             displayName: ''
@@ -121,6 +124,7 @@ function buildNormalBaseConfig(levelNum) {
             fillRatio: 0.86,
             minLen: 2,
             maxLen: 5,
+            rewardScorePerBodySegment: DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT,
             maxCellUsage: 1,
             isRewardLevel: false,
             displayName: ''
@@ -142,6 +146,7 @@ function buildNormalBaseConfig(levelNum) {
         fillRatio: Math.min(0.88, 0.86 + base * 0.002),
         minLen: 2,
         maxLen: Math.min(6, 5 + Math.floor(base / 5)),
+        rewardScorePerBodySegment: DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT,
         maxCellUsage: 1,
         isRewardLevel: false,
         displayName: ''
@@ -177,4 +182,3 @@ function clampInt(value, min, max, fallback) {
     const base = Number.isFinite(parsed) ? parsed : fallback;
     return Math.max(min, Math.min(max, base));
 }
-

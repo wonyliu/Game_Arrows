@@ -105,9 +105,76 @@ function createDefaultCheckinLayout() {
     };
 }
 
+function createDefaultGameplayLayout() {
+    return {
+        hudTop: {
+            x: 0,
+            y: 24,
+            width: 430,
+            height: 76,
+            visible: true
+        },
+        settingsButton: {
+            x: 376,
+            y: -4,
+            width: 46,
+            height: 46,
+            visible: true
+        },
+        coinChip: {
+            x: 280,
+            y: 4,
+            width: 78,
+            height: 34,
+            fontSize: 18,
+            visible: true
+        },
+        center: {
+            x: 93,
+            y: 0,
+            width: 244,
+            height: 76,
+            visible: true
+        },
+        level: {
+            x: 0,
+            y: 0,
+            width: 244,
+            fontSize: 17,
+            visible: true
+        },
+        timer: {
+            x: 0,
+            y: 26,
+            width: 168,
+            height: 32,
+            labelFontSize: 12,
+            visible: true
+        },
+        combo: {
+            x: 176,
+            y: 24,
+            width: 108,
+            height: 42,
+            fontSize: 22,
+            visible: true
+        },
+        scorePulse: {
+            x: 121,
+            y: 78,
+            width: 188,
+            height: 48,
+            valueFontSize: 16,
+            gainFontSize: 15,
+            visible: true
+        }
+    };
+}
+
 export function getDefaultUiLayoutConfig() {
     return {
-        checkin: createDefaultCheckinLayout()
+        checkin: createDefaultCheckinLayout(),
+        gameplay: createDefaultGameplayLayout()
     };
 }
 
@@ -209,9 +276,43 @@ function normalizeCheckinLayout(layout) {
     };
 }
 
+function normalizeGameplayLayout(layout) {
+    const defaults = createDefaultGameplayLayout();
+    return {
+        hudTop: mergeRect(defaults.hudTop, layout?.hudTop),
+        settingsButton: mergeRect(defaults.settingsButton, layout?.settingsButton),
+        coinChip: {
+            ...mergeRect(defaults.coinChip, layout?.coinChip),
+            fontSize: readNumber(layout?.coinChip?.fontSize, defaults.coinChip.fontSize)
+        },
+        center: mergeRect(defaults.center, layout?.center),
+        level: {
+            x: readNumber(layout?.level?.x, defaults.level.x),
+            y: readNumber(layout?.level?.y, defaults.level.y),
+            width: readNumber(layout?.level?.width, defaults.level.width),
+            fontSize: readNumber(layout?.level?.fontSize, defaults.level.fontSize),
+            visible: readBool(layout?.level?.visible, defaults.level.visible)
+        },
+        timer: {
+            ...mergeRect(defaults.timer, layout?.timer),
+            labelFontSize: readNumber(layout?.timer?.labelFontSize, defaults.timer.labelFontSize)
+        },
+        combo: {
+            ...mergeRect(defaults.combo, layout?.combo),
+            fontSize: readNumber(layout?.combo?.fontSize, defaults.combo.fontSize)
+        },
+        scorePulse: {
+            ...mergeRect(defaults.scorePulse, layout?.scorePulse),
+            valueFontSize: readNumber(layout?.scorePulse?.valueFontSize, defaults.scorePulse.valueFontSize),
+            gainFontSize: readNumber(layout?.scorePulse?.gainFontSize, defaults.scorePulse.gainFontSize)
+        }
+    };
+}
+
 export function normalizeUiLayoutConfig(config) {
     return {
-        checkin: normalizeCheckinLayout(config?.checkin)
+        checkin: normalizeCheckinLayout(config?.checkin),
+        gameplay: normalizeGameplayLayout(config?.gameplay)
     };
 }
 

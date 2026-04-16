@@ -34,88 +34,127 @@
                     <p class="sub">配置关卡网格与箭头长度后，可生成并保存。</p>
                     <p class="sub"><a href="index.html" target="_blank" rel="noopener">打开游戏</a></p>
 
-                    <label class="field">
-                        <span>关卡</span>
-                        <select id="levelSelect"></select>
-                    </label>
+                    <div class="level-panel-card">
+                        <div class="level-panel-head">
+                            <h3>关卡范围</h3>
+                            <span>选择关卡与数量</span>
+                        </div>
 
-                    <div class="field">
-                        <span>战役关卡数量</span>
-                        <div class="catalog-row">
-                            <label class="catalog-item">
-                                <span>普通关</span>
-                                <div class="catalog-control">
-                                    <button id="btnNormalLevelMinus" type="button" aria-label="减少普通关数量">-</button>
-                                    <input id="normalLevelCount" type="number" min="1" max="1000" step="1">
-                                    <button id="btnNormalLevelPlus" type="button" aria-label="增加普通关数量">+</button>
-                                </div>
+                        <label class="field">
+                            <span>关卡</span>
+                            <select id="levelSelect"></select>
+                        </label>
+
+                        <div class="field">
+                            <span>战役关卡数量</span>
+                            <div class="catalog-row">
+                                <label class="catalog-item">
+                                    <span>普通关</span>
+                                    <div class="catalog-control">
+                                        <button id="btnNormalLevelMinus" type="button" aria-label="减少普通关数量">-</button>
+                                        <input id="normalLevelCount" type="number" min="1" max="1000" step="1">
+                                        <button id="btnNormalLevelPlus" type="button" aria-label="增加普通关数量">+</button>
+                                    </div>
+                                </label>
+                                <label class="catalog-item">
+                                    <span>奖励关</span>
+                                    <div class="catalog-control">
+                                        <button id="btnRewardLevelMinus" type="button" aria-label="减少奖励关数量">-</button>
+                                        <input id="rewardLevelCount" type="number" min="0" max="200" step="1">
+                                        <button id="btnRewardLevelPlus" type="button" aria-label="增加奖励关数量">+</button>
+                                    </div>
+                                </label>
+                            </div>
+                            <button id="btnSaveLevelCatalog" type="button">保存关卡数量</button>
+                        </div>
+                    </div>
+
+                    <div class="level-panel-card">
+                        <div class="level-panel-head">
+                            <h3>积分配置</h3>
+                            <span>生成前预览奖励</span>
+                        </div>
+
+                        <label class="field" id="levelDisplayNameField" style="display:none;">
+                            <span>奖励关名称</span>
+                            <input id="levelDisplayName" type="text" maxlength="28" placeholder="例如：奖励冲刺">
+                        </label>
+
+                        <div class="level-score-stack">
+                            <label class="field level-score-field">
+                                <span>配件积分（每节）</span>
+                                <input id="rewardScorePerBodySegment" type="number" min="1" max="100000" step="1">
                             </label>
-                            <label class="catalog-item">
-                                <span>奖励关</span>
-                                <div class="catalog-control">
-                                    <button id="btnRewardLevelMinus" type="button" aria-label="减少奖励关数量">-</button>
-                                    <input id="rewardLevelCount" type="number" min="0" max="200" step="1">
-                                    <button id="btnRewardLevelPlus" type="button" aria-label="增加奖励关数量">+</button>
+                            <div class="level-reward-preview">
+                                <div class="level-reward-card">
+                                    <span>本关总积分</span>
+                                    <strong id="levelTotalScorePreview">-</strong>
                                 </div>
+                                <div class="level-reward-card">
+                                    <span>本关总金币</span>
+                                    <strong id="levelTotalCoinsPreview">-</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="level-panel-card">
+                        <div class="level-panel-head">
+                            <h3>棋盘规则</h3>
+                            <span>尺寸与限制</span>
+                        </div>
+
+                        <div class="level-inline-grid">
+                            <label class="field">
+                                <span>尺寸模式</span>
+                                <select id="dimensionMode">
+                                    <option value="rows">固定行数</option>
+                                    <option value="cols">固定列数</option>
+                                    <option value="custom">自定义（手动）</option>
+                                </select>
+                            </label>
+
+                            <label class="field">
+                                <span>尺寸值</span>
+                                <input id="dimensionValue" type="number" min="4" step="1">
                             </label>
                         </div>
-                        <button id="btnSaveLevelCatalog" type="button">保存关卡数量</button>
+
+                        <div id="customGridFields" class="level-inline-grid hidden">
+                            <label class="field">
+                                <span>自定义列数</span>
+                                <input id="customGridCols" type="number" min="4" step="1" value="18">
+                            </label>
+                            <label class="field">
+                                <span>自定义行数</span>
+                                <input id="customGridRows" type="number" min="4" step="1" value="26">
+                            </label>
+                        </div>
+
+                        <div class="level-inline-grid">
+                            <label class="field">
+                                <span>最短箭头长度</span>
+                                <input id="minLen" type="number" min="2" max="12" step="1">
+                            </label>
+
+                            <label class="field">
+                                <span>最长箭头长度</span>
+                                <input id="maxLen" type="number" min="2" max="999" step="1">
+                            </label>
+                        </div>
+
+                        <div class="level-inline-grid">
+                            <label class="field">
+                                <span>关卡计时（秒，0=关闭）</span>
+                                <input id="timerSeconds" type="number" min="0" max="7200" step="1">
+                            </label>
+
+                            <label class="field">
+                                <span>误触惩罚（秒）</span>
+                                <input id="misclickPenaltySeconds" type="number" min="0" max="120" step="1">
+                            </label>
+                        </div>
                     </div>
-
-                    <label class="field" id="levelDisplayNameField" style="display:none;">
-                        <span>奖励关名称</span>
-                        <input id="levelDisplayName" type="text" maxlength="28" placeholder="例如：奖励冲刺">
-                    </label>
-
-                    <label class="field">
-                        <span>奖励关每节蛇身积分</span>
-                        <input id="rewardScorePerBodySegment" type="number" min="1" max="100000" step="1">
-                    </label>
-
-                    <label class="field">
-                        <span>尺寸模式</span>
-                        <select id="dimensionMode">
-                            <option value="rows">固定行数</option>
-                            <option value="cols">固定列数</option>
-                            <option value="custom">自定义（手动）</option>
-                        </select>
-                    </label>
-
-                    <label class="field">
-                        <span>尺寸值</span>
-                        <input id="dimensionValue" type="number" min="4" max="40" step="1">
-                    </label>
-
-                    <div id="customGridFields" class="catalog-row hidden">
-                        <label class="field">
-                            <span>自定义列数</span>
-                            <input id="customGridCols" type="number" min="4" max="40" step="1" value="18">
-                        </label>
-                        <label class="field">
-                            <span>自定义行数</span>
-                            <input id="customGridRows" type="number" min="4" max="40" step="1" value="26">
-                        </label>
-                    </div>
-
-                    <label class="field">
-                        <span>最短箭头长度</span>
-                        <input id="minLen" type="number" min="2" max="12" step="1">
-                    </label>
-
-                    <label class="field">
-                        <span>最长箭头长度</span>
-                        <input id="maxLen" type="number" min="2" max="999" step="1">
-                    </label>
-
-                    <label class="field">
-                        <span>关卡计时（秒，0=关闭）</span>
-                        <input id="timerSeconds" type="number" min="0" max="7200" step="1">
-                    </label>
-
-                    <label class="field">
-                        <span>误触惩罚（秒）</span>
-                        <input id="misclickPenaltySeconds" type="number" min="0" max="120" step="1">
-                    </label>
 
                     <div class="meta">
                         <div>网格：<strong id="gridText">-</strong></div>
@@ -149,21 +188,7 @@
                     <div class="preview-header">
                         <h2 id="previewTitle">预览</h2>
                         <div class="preview-tools">
-                            <div id="generate4Tools" class="generate4-tools hidden">
-                                <label class="mini-field">
-                                    <span>W</span>
-                                    <input id="manualGridCols" type="number" min="4" max="40" step="1" value="18">
-                                </label>
-                                <label class="mini-field">
-                                    <span>H</span>
-                                    <input id="manualGridRows" type="number" min="4" max="40" step="1" value="26">
-                                </label>
-                                <button id="btnApplyGridSize" class="mini-btn" type="button">应用</button>
-                            </div>
-                            <button id="btnPatternSeed" class="icon-btn hidden" type="button" title="生成对称图案（Generate4）">
-                                <span class="icon-flower" aria-hidden="true">&#10047;</span>
-                            </button>
-                            <button id="togglePath" class="icon-btn" type="button" title="显示/隐藏哈密顿路径（Generate2 模式）">
+                            <button id="togglePath" class="icon-btn" type="button" title="显示/隐藏辅助路径">
                                 <svg class="eye-open" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                                 <svg class="eye-closed" viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="display:none;"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                             </button>
@@ -985,32 +1010,35 @@
             <div class="ui-editor-shell">
                 <aside class="controls ui-editor-controls">
                     <h2>界面编辑器</h2>
-                    <p class="sub">所见即所得调整界面布局。当前首版支持签到页，拖拽、方向键微调、字号和缩放会直接同步到游戏页。</p>
+                    <p class="sub">所见即所得调整界面布局。当前支持签到页和游戏界面，拖拽与数值修改会直接同步到预览。</p>
 
                     <div class="field">
                         <span>界面</span>
                         <select id="uiEditorSceneSelect">
                             <option value="checkin">签到页</option>
+                            <option value="gameplay">游戏界面</option>
                         </select>
                     </div>
 
-                    <div class="field">
-                        <span>预览状态</span>
-                        <select id="uiEditorPreviewMode">
-                            <option value="claimable">今天可签到</option>
-                            <option value="claimed">今天已签到</option>
-                        </select>
-                    </div>
+                    <div id="uiEditorCheckinStateFields">
+                        <div class="field">
+                            <span>预览状态</span>
+                            <select id="uiEditorPreviewMode">
+                                <option value="claimable">今天可签到</option>
+                                <option value="claimed">今天已签到</option>
+                            </select>
+                        </div>
 
-                    <div class="catalog-row">
-                        <label class="field">
-                            <span>已签到天数</span>
-                            <input id="uiEditorClaimedDays" type="number" min="0" max="7" value="1">
-                        </label>
-                        <label class="field">
-                            <span>今日天数</span>
-                            <input id="uiEditorNextDay" type="number" min="1" max="7" value="2">
-                        </label>
+                        <div class="catalog-row">
+                            <label class="field">
+                                <span>已签到天数</span>
+                                <input id="uiEditorClaimedDays" type="number" min="0" max="7" value="1">
+                            </label>
+                            <label class="field">
+                                <span>今日天数</span>
+                                <input id="uiEditorNextDay" type="number" min="1" max="7" value="2">
+                            </label>
+                        </div>
                     </div>
 
                     <div class="field">
@@ -1037,8 +1065,8 @@
                 <section class="preview ui-editor-preview-panel">
                     <div class="preview-header">
                         <div>
-                            <h2>签到页预览</h2>
-                            <p class="sub">点击元素选中后可拖拽。方向键移动 1px，Shift + 方向键移动 10px。</p>
+                            <h2 id="uiEditorPreviewTitle">签到页预览</h2>
+                            <p id="uiEditorPreviewDesc" class="sub">点击元素选中后可拖拽。方向键移动 1px，Shift + 方向键移动 10px。</p>
                         </div>
                     </div>
                     <div id="uiEditorPreviewViewport" class="ui-editor-preview-viewport" tabindex="0">
@@ -1198,10 +1226,6 @@
                     <label class="field">
                         <span>积分换算金币系数 (scorePerCoin)</span>
                         <input id="paramScorePerCoin" type="number" min="1" max="100000" step="1">
-                    </label>
-                    <label class="field">
-                        <span>每节蛇身获得积分 (scorePerBodySegment)</span>
-                        <input id="paramScorePerBodySegment" type="number" min="1" max="10000" step="1">
                     </label>
                     <label class="field">
                         <span>每 n 次计分播放一次释放音效 (releaseSfxEveryNScoreEvents)</span>
@@ -1575,15 +1599,15 @@
     </main>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/admin.js?v=69"></script>
-<script type="module" src="js/admin-hub.js?v=13"></script>
+    <script type="module" src="js/admin.js?v=74"></script>
+<script type="module" src="js/admin-hub.js?v=15"></script>
 <script type="module" src="js/admin-skin-manager.js?v=8"></script>
 <script type="module" src="js/admin-skin-fit.js?v=14"></script>
 <script type="module" src="js/admin-skin-gen.js?v=45"></script>
 <script type="module" src="js/admin-sfx-lab.js?v=28"></script>
-    <script type="module" src="js/admin-liveops.js?v=4"></script>
+    <script type="module" src="js/admin-liveops.js?v=5"></script>
     <script type="module" src="js/admin-system.js?v=5"></script>
-    <script type="module" src="js/admin-ui-editor.js?v=16"></script>
+    <script type="module" src="js/admin-ui-editor.js?v=17"></script>
     <script type="module" src="js/admin-db.js?v=2"></script>
   </body>
   </html>

@@ -11,7 +11,7 @@ import {
     normalizeGameplayParams,
     readGameplayParams,
     writeGameplayParams
-} from './game-params.js?v=4';
+} from './game-params.js?v=6';
 
 const ACTIVE_TAB_STORAGE_KEY = 'arrowClear_adminActiveTab';
 
@@ -32,7 +32,6 @@ const el = {
     btnCopySkinPriceJson: document.getElementById('btnCopySkinPriceJson'),
 
     paramScorePerCoin: document.getElementById('paramScorePerCoin'),
-    paramScorePerBodySegment: document.getElementById('paramScorePerBodySegment'),
     paramReleaseSfxEveryNScoreEvents: document.getElementById('paramReleaseSfxEveryNScoreEvents'),
     paramScoreBurstStarCount: document.getElementById('paramScoreBurstStarCount'),
     paramSnakeRemoveSpeedMultiplier: document.getElementById('paramSnakeRemoveSpeedMultiplier'),
@@ -279,7 +278,6 @@ function initSkinPricePanel() {
 
 function fillGameParamInputs(params) {
     if (el.paramScorePerCoin) el.paramScorePerCoin.value = `${params.scorePerCoin}`;
-    if (el.paramScorePerBodySegment) el.paramScorePerBodySegment.value = `${params.scorePerBodySegment}`;
     if (el.paramReleaseSfxEveryNScoreEvents) el.paramReleaseSfxEveryNScoreEvents.value = `${params.releaseSfxEveryNScoreEvents}`;
     if (el.paramScoreBurstStarCount) el.paramScoreBurstStarCount.value = `${params.scoreBurstStarCount}`;
     if (el.paramSnakeRemoveSpeedMultiplier) el.paramSnakeRemoveSpeedMultiplier.value = `${params.snakeRemoveSpeedMultiplier}`;
@@ -312,7 +310,6 @@ function renderHitAreaPreview(scaleValue) {
 function collectGameParamInputs() {
     return {
         scorePerCoin: Number(el.paramScorePerCoin?.value),
-        scorePerBodySegment: Number(el.paramScorePerBodySegment?.value),
         releaseSfxEveryNScoreEvents: Number(el.paramReleaseSfxEveryNScoreEvents?.value),
         scoreBurstStarCount: Number(el.paramScoreBurstStarCount?.value),
         snakeRemoveSpeedMultiplier: Number(el.paramSnakeRemoveSpeedMultiplier?.value),

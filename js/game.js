@@ -8,14 +8,14 @@ import {
     getRewardLevelCount,
     rewardIndexFromLevelId,
     toRewardLevelId
-} from './levels.js?v=32';
-import { AnimationManager } from './animation.js?v=43';
-import { buildPlayableLevel } from './level-builder.js?v=48';
+} from './levels.js?v=34';
+import { AnimationManager } from './animation.js?v=44';
+import { buildPlayableLevel } from './level-builder.js?v=60';
 import {
     deserializeLevelData,
     getSavedLevelRecord,
     isStoredLevelDataUsable
-} from './level-storage.js?v=56';
+} from './level-storage.js?v=59';
 import {
     playClearSoundExclusive,
     playErrorSound,
@@ -33,18 +33,18 @@ import {
     getSkinCatalog as getSkinCatalogList,
     normalizeUnlockedSkins
 } from './skins.js?v=27';
-import { readGameplayParams } from './game-params.js?v=4';
+import { readGameplayParams } from './game-params.js?v=6';
 import {
     readProgressSnapshot,
     saveProgressSnapshot
-} from './progress-storage.js?v=6';
+} from './progress-storage.js?v=7';
 import {
     getBusinessDayKeyByHour,
     getLocalDayKey,
     readLiveOpsConfig,
     readLiveOpsPlayerState,
     writeLiveOpsPlayerState
-} from './liveops-storage.js?v=5';
+} from './liveops-storage.js?v=6';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
@@ -53,7 +53,7 @@ const DEFAULT_TOOL_USES = Object.freeze({
 });
 const GAMEPLAY_PARAMS = readGameplayParams();
 const SCORE_PER_COIN = GAMEPLAY_PARAMS.scorePerCoin;
-const SCORE_PER_BODY_SEGMENT = GAMEPLAY_PARAMS.scorePerBodySegment;
+const DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT = 10;
 const DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT = 1000;
 const RELEASE_SFX_EVERY_N_SCORE_EVENTS = Math.max(
     1,
@@ -131,7 +131,7 @@ export class Game {
         this.pendingRewardReturnLevel = null;
         this.pendingRewardSourceLevel = null;
         this.currentStageLabel = '';
-        this.currentScorePerBodySegment = SCORE_PER_BODY_SEGMENT;
+        this.currentScorePerBodySegment = DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT;
         this.campaignCompleted = false;
         this.rewardGuideShown = false;
         this.bestComboThisLevel = 0;
@@ -911,11 +911,11 @@ export class Game {
     }
 
     resolveScorePerBodySegment(config) {
-        if (!this.isRewardStage) {
-            return SCORE_PER_BODY_SEGMENT;
-        }
         const configured = Math.floor(Number(config?.rewardScorePerBodySegment) || 0);
-        return Math.max(1, configured || DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT);
+        if (configured > 0) {
+            return Math.max(1, configured);
+        }
+        return this.isRewardStage ? DEFAULT_REWARD_SCORE_PER_BODY_SEGMENT : DEFAULT_NORMAL_SCORE_PER_BODY_SEGMENT;
     }
 
     handleClick(event) {
@@ -2660,13 +2660,6 @@ function distanceToRect(px, py, left, top, width, height) {
     }
     return Math.hypot(dx, dy);
 }
-
-
-
-
-
-
-
 
 
 

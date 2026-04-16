@@ -1,5 +1,5 @@
 import { drawPixelParticle } from './pixel-art.js?v=51';
-import { readGameplayParams } from './game-params.js?v=4';
+import { readGameplayParams } from './game-params.js?v=6';
 
 const GAMEPLAY_PARAMS = readGameplayParams();
 const REMOVE_SPEED_MULTIPLIER = GAMEPLAY_PARAMS.snakeRemoveSpeedMultiplier;
@@ -572,5 +572,4 @@ function clamp01(value) {
     if (n >= 1) return 1;
     return n;
 }
-
 
