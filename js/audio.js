@@ -7,7 +7,7 @@ import {
     normalizeRecipe
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig } from './bgm-storage.js?v=7';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, refreshBgmStorage } from './bgm-storage.js?v=8';
 
 export { BGM_SCENE_KEYS };
 
@@ -52,6 +52,9 @@ let earlyBootstrapDone = false;
 let sfxMasterGainNode = null;
 let audioMix = readAudioMixFromStorage();
 let bgmUnlockGestureBound = false;
+let bgmConfigRefreshInFlight = null;
+let bgmConfigLastRefreshAt = 0;
+const BGM_CONFIG_REFRESH_MIN_INTERVAL_MS = 1500;
 const ENABLE_BGM_DEBUG_LOGS = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('debug') === '1';
 
@@ -201,6 +204,10 @@ function shouldPreferWebAudioVolumeControl() {
     return !canControlHtmlMediaVolumeDirectly();
 }
 
+function shouldPreferWebAudioBgmPlayback() {
+    return shouldPreferWebAudioVolumeControl();
+}
+
 function ensureHtmlBgmGainRouting() {
     if (!bgmAudioEl) {
         return false;
@@ -282,13 +289,14 @@ async function decodeBgmBuffer(src) {
     return decoded;
 }
 
-async function startWebAudioBgmFallback(reason = '') {
+async function startWebAudioBgmFallback(reason = '', options = {}) {
     logBgm('webaudio fallback attempt', {
         reason,
         scene: bgmSceneKey,
         playlistSize: bgmPlaylist.length
     });
-    if (isHtmlBgmPlaying()) {
+    const forceTakeover = options?.forceTakeover === true;
+    if (isHtmlBgmPlaying() && !forceTakeover) {
         logBgm('webaudio fallback skipped: html audio already playing', { reason });
         return false;
     }
@@ -334,9 +342,17 @@ async function startWebAudioBgmFallback(reason = '') {
     const src = bgmPlaylist[safeIndex];
     try {
         const buffer = await decodeBgmBuffer(src);
-        if (isHtmlBgmPlaying()) {
+        if (isHtmlBgmPlaying() && !forceTakeover) {
             logBgm('webaudio fallback skipped after decode: html audio already playing', { src, reason });
             return false;
+        }
+        if (forceTakeover && bgmAudioEl) {
+            try {
+                bgmAudioEl.pause();
+                bgmAudioEl.currentTime = 0;
+            } catch {
+                // noop
+            }
         }
         stopWebAudioBgm();
         const gain = getBgmWebGainNode(ctx);
@@ -470,7 +486,9 @@ function scheduleBgmRetry() {
 
 function updateBgmElementVolume() {
     const composed = clamp(bgmSceneVolume * audioMix.music * getCurrentTrackVolume(), 0, 1);
+    const shouldForceMute = composed <= 0.0001;
     if (bgmAudioEl) {
+        bgmAudioEl.muted = bgmMutedBootstrap || shouldForceMute;
         if (ensureHtmlBgmGainRouting() && bgmHtmlMediaGainNode?.context) {
             bgmAudioEl.volume = 1;
             bgmHtmlMediaGainNode.gain.setValueAtTime(composed, bgmHtmlMediaGainNode.context.currentTime);
@@ -496,8 +514,102 @@ function getCurrentTrackVolume() {
     return Number.isFinite(raw) ? clamp(raw, 0, 1) : 1;
 }
 
+function applyCurrentSceneConfig(sceneKey, options = {}) {
+    const requestedSceneKey = `${sceneKey || ''}`.trim() || BGM_SCENE_KEYS.HOME;
+    const restart = options?.restart === true;
+    const scene = getBgmSceneConfig(requestedSceneKey);
+    const signature = playlistSignature(scene.playlist);
+    const shouldReloadPlaylist = restart || signature !== bgmPlaylistSignature;
+
+    bgmSceneKey = requestedSceneKey;
+    bgmSceneVolume = scene.volume;
+    bgmSceneTrackVolumes = scene.trackVolumes || new Map();
+    updateBgmElementVolume();
+    logBgm('apply scene config', {
+        scene: requestedSceneKey,
+        restart,
+        playlist: scene.playlist,
+        volume: scene.volume
+    });
+
+    if (!scene.playlist.length) {
+        stopBgm();
+        return;
+    }
+
+    if (!shouldReloadPlaylist) {
+        if (bgmAudioEl?.paused) {
+            pendingBgmPlay = true;
+            attemptBgmPlayback();
+        }
+        return;
+    }
+
+    bgmPlaylist = [...scene.playlist];
+    bgmTrackIndex = 0;
+    bgmPlaylistSignature = signature;
+    playCurrentBgmTrack({ forceReload: restart });
+}
+
+function requestBgmConfigRefresh(reason = '', options = {}) {
+    if (!bgmStorageReady || bgmConfigRefreshInFlight) {
+        return bgmConfigRefreshInFlight || Promise.resolve(null);
+    }
+    const now = Date.now();
+    if (options?.force !== true && now - bgmConfigLastRefreshAt < BGM_CONFIG_REFRESH_MIN_INTERVAL_MS) {
+        return Promise.resolve(null);
+    }
+    bgmConfigLastRefreshAt = now;
+    const activeSceneKey = `${bgmSceneKey || ''}`.trim();
+    const previousSignature = bgmPlaylistSignature;
+    bgmConfigRefreshInFlight = refreshBgmStorage()
+        .then(() => {
+            if (!activeSceneKey || activeSceneKey !== bgmSceneKey) {
+                return;
+            }
+            const scene = getBgmSceneConfig(activeSceneKey);
+            const nextSignature = playlistSignature(scene.playlist);
+            bgmSceneVolume = scene.volume;
+            bgmSceneTrackVolumes = scene.trackVolumes || new Map();
+            updateBgmElementVolume();
+            if (!scene.playlist.length) {
+                stopBgm();
+                return;
+            }
+            if (nextSignature !== previousSignature) {
+                bgmPlaylist = [...scene.playlist];
+                bgmTrackIndex = 0;
+                bgmPlaylistSignature = nextSignature;
+                playCurrentBgmTrack({ forceReload: true });
+            }
+            logBgm('refresh scene config', {
+                reason,
+                scene: activeSceneKey,
+                signatureChanged: nextSignature !== previousSignature,
+                volume: scene.volume
+            });
+        })
+        .finally(() => {
+            bgmConfigRefreshInFlight = null;
+        });
+    return bgmConfigRefreshInFlight;
+}
+
 function isHtmlBgmPlaying() {
     return !!(bgmAudioEl && !bgmAudioEl.paused);
+}
+
+function silenceHtmlBgmElement() {
+    if (!bgmAudioEl) {
+        return;
+    }
+    try {
+        bgmAudioEl.pause();
+        bgmAudioEl.currentTime = 0;
+    } catch {
+        // noop
+    }
+    bgmAudioEl.muted = true;
 }
 
 function attemptBgmPlayback() {
@@ -512,6 +624,23 @@ function attemptBgmPlayback() {
         return;
     }
     const audio = getBgmAudioElement();
+    if (shouldPreferWebAudioBgmPlayback() && hasUserActivation()) {
+        void startWebAudioBgmFallback('prefer-webaudio-playback', { forceTakeover: true }).then((ok) => {
+            if (ok) {
+                silenceHtmlBgmElement();
+                pendingBgmPlay = false;
+                clearBgmRetryTimer();
+                bgmConsecutiveErrorCount = 0;
+                return;
+            }
+            logBgm('webaudio takeover failed; fallback to html playback');
+            const playPromise = audio.play();
+            if (playPromise && typeof playPromise.catch === 'function') {
+                void playPromise.catch(() => {});
+            }
+        });
+        return;
+    }
     logBgm('play attempt', {
         src: audio.currentSrc || audio.src || '',
         paused: audio.paused,
@@ -673,6 +802,7 @@ function getBgmAudioElement() {
         updateBgmElementVolume();
         if (typeof document !== 'undefined') {
             const retry = () => {
+                void requestBgmConfigRefresh('visibility-retry');
                 if (pendingBgmPlay) {
                     attemptBgmPlayback();
                 }
@@ -956,6 +1086,7 @@ export function resumeAudio() {
     void initBgmStorage().then(() => {
         bgmStorageReady = true;
         logBgm('storage ready from resumeAudio');
+        void requestBgmConfigRefresh('resume-audio', { force: true });
     }).catch(() => {});
     const ctx = getAudioContext();
     if (ctx.state === 'suspended') {
@@ -969,6 +1100,21 @@ export function resumeAudio() {
     }
     applySfxMixVolume();
     updateBgmElementVolume();
+    if (bgmWebAudioActive) {
+        pendingBgmPlay = false;
+        clearBgmRetryTimer();
+        return;
+    }
+    if (shouldPreferWebAudioBgmPlayback() && hasUserActivation()) {
+        void startWebAudioBgmFallback('resume-audio-prefer-webaudio', { forceTakeover: true }).then((ok) => {
+            if (ok) {
+                silenceHtmlBgmElement();
+            } else {
+                attemptBgmPlayback();
+            }
+        });
+        return;
+    }
     attemptBgmPlayback();
 }
 
@@ -1002,39 +1148,8 @@ export function playBgmForScene(sceneKey, options = {}) {
         ensureBgmStorageReadyForReplay(requestedSceneKey);
         return;
     }
-    const scene = getBgmSceneConfig(requestedSceneKey);
-    const signature = playlistSignature(scene.playlist);
-    const audio = getBgmAudioElement();
-    bgmSceneVolume = scene.volume;
-    bgmSceneTrackVolumes = scene.trackVolumes || new Map();
-    updateBgmElementVolume();
-    logBgm('play scene', {
-        scene: requestedSceneKey,
-        restart,
-        playlist: scene.playlist,
-        volume: scene.volume
-    });
-
-    if (!scene.playlist.length) {
-        stopBgm();
-        return;
-    }
-
-    if (!restart && signature === bgmPlaylistSignature) {
-        bgmSceneKey = requestedSceneKey;
-        if (audio.paused) {
-            logBgm('reuse current playlist; resume');
-            pendingBgmPlay = true;
-            attemptBgmPlayback();
-        }
-        return;
-    }
-
-    bgmSceneKey = requestedSceneKey;
-    bgmPlaylist = [...scene.playlist];
-    bgmTrackIndex = 0;
-    bgmPlaylistSignature = signature;
-    playCurrentBgmTrack({ forceReload: restart });
+    applyCurrentSceneConfig(requestedSceneKey, { restart });
+    void requestBgmConfigRefresh('play-scene');
 }
 
 export function playClearSound() {

@@ -2,7 +2,7 @@
  * Main - game entry
  */
 import { Game } from './game.js?v=154';
-import { UI } from './ui.js?v=106';
+import { UI } from './ui.js?v=108';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -17,7 +17,7 @@ import { initSfxStorage } from './sfx-storage.js?v=6';
 import { initLiveOpsStorage } from './liveops-storage.js?v=5';
 import { initUiLayoutStorage } from './ui-layout-config.js?v=4';
 import { isLegacyColorVariantSkinId } from './skins.js?v=27';
-import { earlyBgmBootstrap } from './audio.js?v=57';
+import { earlyBgmBootstrap } from './audio.js?v=62';
 import { ensureUserSession } from './user-auth.js?v=3';
 
 const DESIGN_WIDTH = 430;
@@ -497,10 +497,4 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
-
-
-
-
-
-
 

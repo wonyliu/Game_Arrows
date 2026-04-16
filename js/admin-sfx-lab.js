@@ -22,7 +22,7 @@ import {
     writeSkinSfxBindings
 } from './sfx-storage.js?v=6';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig } from './bgm-storage.js?v=7';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig, writeBgmConfigAndSync } from './bgm-storage.js?v=8';
 
 const EXPORT_SAMPLE_RATE = 48_000;
 const PACK_VARIANT_COUNT = 5;
@@ -1860,10 +1860,14 @@ async function refreshGameMusicTrackLibrary() {
     }
 }
 
-function saveGameMusicConfigFromUi() {
+async function saveGameMusicConfigFromUi() {
     const payload = collectGameMusicConfigFromUi();
-    writeBgmConfig(payload);
-    setGameMusicStatus('已保存游戏音乐配置。');
+    const result = await writeBgmConfigAndSync(payload);
+    if (result?.ok) {
+        setGameMusicStatus('已保存游戏音乐配置。');
+    } else {
+        setGameMusicStatus('保存失败：服务器未确认写入。', true);
+    }
 }
 
 function saveGameMusicConfigFromUiSilently() {
@@ -1883,10 +1887,14 @@ function scheduleAutoSaveGameMusicConfig() {
     }, GAME_MUSIC_AUTO_SAVE_DELAY_MS);
 }
 
-function resetGameMusicConfigToDefault() {
-    writeBgmConfig({});
+async function resetGameMusicConfigToDefault() {
+    const result = await writeBgmConfigAndSync({});
     refreshGameMusicUiFromConfig();
-    setGameMusicStatus('已恢复默认音乐配置。');
+    if (result?.ok) {
+        setGameMusicStatus('已恢复默认音乐配置。');
+    } else {
+        setGameMusicStatus('重置失败：服务器未确认写入。', true);
+    }
 }
 
 function saveSelectedSkinBinding() {

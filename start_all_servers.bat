@@ -4,8 +4,11 @@ setlocal
 cd /d "%~dp0"
 
 set "PORT=4173"
-set "HOST=127.0.0.1"
-set "BASE_URL=http://%HOST%:%PORT%"
+if not defined HOST set "HOST=0.0.0.0"
+set "ACCESS_HOST="
+for /f "usebackq delims=" %%V in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$ips = Get-NetIPAddress -AddressFamily IPv4 -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -match '^192\\.168\\.|^10\\.|^172\\.(1[6-9]|2[0-9]|3[0-1])\\.' -and $_.IPAddress -ne '127.0.0.1' } | Select-Object -ExpandProperty IPAddress; if($ips){ $ips[0] }"`) do set "ACCESS_HOST=%%V"
+if not defined ACCESS_HOST set "ACCESS_HOST=127.0.0.1"
+set "BASE_URL=http://%ACCESS_HOST%:%PORT%"
 set "DEFAULT_LOCAL_DB_URL=postgres://game_arrows:GameArrows_2026_db@127.0.0.1:5432/game_arrows"
 
 echo [1/8] Checking Node.js...
@@ -45,7 +48,7 @@ if errorlevel 1 (
     set "USER_CENTER_DATABASE_URL=%DEFAULT_LOCAL_DB_URL%"
 )
 
-set "CORS_ALLOWED_ORIGINS=https://wonyliu.github.io,http://127.0.0.1:%PORT%,http://localhost:%PORT%"
+set "CORS_ALLOWED_ORIGINS=https://wonyliu.github.io,http://127.0.0.1:%PORT%,http://localhost:%PORT%,http://%ACCESS_HOST%:%PORT%"
 set "CORS_ALLOW_TRYCLOUDFLARE=1"
 
 echo   USER_CENTER_BACKEND=%USER_CENTER_BACKEND%
@@ -86,9 +89,12 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "Start-Process ($base + '/index.html'); Start-Process ($base + '/admin.html')" >nul 2>nul
 
 echo [7/8] Starting dev server in this window...
-echo URL: %BASE_URL%/
+echo Bind Host: %HOST%
+echo Local URL: http://127.0.0.1:%PORT%/
+echo Mobile URL: %BASE_URL%/
 echo Press Ctrl+C to stop server.
 echo.
+set "HOST=%HOST%"
 node scripts\dev-server.mjs %PORT%
 
 echo.

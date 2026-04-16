@@ -9,7 +9,7 @@ import {
     setSfxVolume,
     playCheckinRewardCoinSound,
     playFinalCountdownTickSound
-} from './audio.js?v=57';
+} from './audio.js?v=62';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=27';
 import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=4';
 import { getUiAsset } from './ui-theme.js?v=2';
@@ -534,6 +534,15 @@ export class UI {
         const element = document.getElementById(id);
         if (!element) return;
 
+        this.bindPressAction(element, handler, { audioId: id });
+    }
+
+    bindPressAction(element, handler, options = {}) {
+        if (!element || typeof handler !== 'function') {
+            return;
+        }
+
+        const { audioId = 'dynamic-button' } = options;
         let lastTriggerAt = Number.NEGATIVE_INFINITY;
         const invoke = (event = null) => {
             if (event && typeof event.preventDefault === 'function') {
@@ -554,7 +563,7 @@ export class UI {
                     playClickSoundV31();
                 }
             } catch (error) {
-                console.warn(`Audio click failed for #${id}:`, error);
+                console.warn(`Audio click failed for #${audioId}:`, error);
             }
 
             handler();
@@ -566,6 +575,7 @@ export class UI {
                 invoke(event);
             }
         });
+        element.addEventListener('touchend', (event) => invoke(event), { passive: false });
     }
 
     bindHomeStartVisualFallback() {
@@ -1689,7 +1699,9 @@ export class UI {
                     node.classList.add('is-clickable');
                     node.tabIndex = 0;
                     node.setAttribute('role', 'button');
-                    node.addEventListener('click', () => this.claimCheckinReward());
+                    this.bindPressAction(node, () => this.claimCheckinReward(), {
+                        audioId: `checkin-day-${day}`
+                    });
                     node.addEventListener('keydown', (event) => {
                         if (event.key === 'Enter' || event.key === ' ') {
                             event.preventDefault();
@@ -2853,7 +2865,7 @@ export class UI {
                 action.disabled = true;
             } else if (unlocked) {
                 action.textContent = this.getLocaleText('\u88c5\u5907', 'Use');
-                action.addEventListener('click', () => {
+                this.bindPressAction(action, () => {
                     if (this.game.selectSkin(skin.id)) {
                         this.renderSkinCenter();
                     }
@@ -2864,7 +2876,7 @@ export class UI {
                     `Unlock (${skin.coinCost})`
                 );
                 action.disabled = !canUnlock;
-                action.addEventListener('click', () => {
+                this.bindPressAction(action, () => {
                     const result = this.game.unlockSkin(skin.id);
                     if (result?.ok) {
                         this.renderSkinCenter();
@@ -3011,5 +3023,3 @@ export class UI {
 }
 
 export { MENU_PANEL };
-
-

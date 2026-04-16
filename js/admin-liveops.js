@@ -116,7 +116,7 @@ function bindEvents() {
         }
         loadConfig();
         renderAll();
-        setActivityStatus('妫€娴嬪埌娲诲姩閰嶇疆鍙樻洿锛屽凡鍒锋柊銆?);
+        setActivityStatus('检测到活动配置变更，已刷新。');
     });
 }
 
@@ -209,11 +209,11 @@ function onSaveItem() {
     const type = normalizeType(el.itemType?.value || 'item');
 
     if (!id) {
-        setItemStatus('閬撳叿 ID 涓嶈兘涓虹┖銆?, true);
+        setItemStatus('道具 ID 不能为空。', true);
         return;
     }
     if (!nameZh) {
-        setItemStatus('涓枃鍚嶄笉鑳戒负绌恒€?, true);
+        setItemStatus('中文名不能为空。', true);
         return;
     }
 
@@ -249,7 +249,7 @@ function onSaveItem() {
 function onDeleteItem() {
     const id = sanitizeId(el.itemId?.value || '');
     if (!id) {
-        setItemStatus('璇峰厛閫夋嫨瑕佸垹闄ょ殑閬撳叿銆?, true);
+        setItemStatus('请先选择要删除的道具。', true);
         return;
     }
     const items = [...getItems()];
@@ -259,7 +259,7 @@ function onDeleteItem() {
         return;
     }
     if (target.builtin) {
-        setItemStatus(`鍐呯疆閬撳叿涓嶈兘鍒犻櫎锛?{id}`, true);
+        setItemStatus(`内置道具不能删除：${id}`, true);
         return;
     }
 
@@ -435,7 +435,7 @@ function onSaveActivities() {
         const itemId = sanitizeId(row.itemId);
         const amount = clampInt(row.amount, 1, 9999999, 1);
         if (!itemId || !validItemIds.has(itemId)) {
-            setActivityStatus(`绛惧埌濂栧姳瀛樺湪鏃犳晥閬撳叿 ID锛?{row.itemId || '-'}`, true);
+            setActivityStatus(`签到奖励存在无效道具 ID：${row.itemId || '-'}`, true);
             return;
         }
         checkinRewards[day - 1].push({ itemId, amount });
@@ -448,7 +448,7 @@ function onSaveActivities() {
         const itemId = sanitizeId(row.itemId);
         const amount = clampInt(row.amount, 1, 9999999, 1);
         if (!itemId || !validItemIds.has(itemId)) {
-            setActivityStatus(`鍦ㄧ嚎濂栧姳瀛樺湪鏃犳晥閬撳叿 ID锛?{row.itemId || '-'}`, true);
+            setActivityStatus(`在线奖励存在无效道具 ID：${row.itemId || '-'}`, true);
             return;
         }
         if (!tierMap.has(tier)) {
@@ -463,7 +463,7 @@ function onSaveActivities() {
         .map(([, value]) => value);
 
     if (onlineTiers.length === 0) {
-        setActivityStatus('璇疯嚦灏戦厤缃竴涓湪绾垮鍔辨。浣嶃€?, true);
+        setActivityStatus('请至少配置一个在线奖励档位。', true);
         return;
     }
 
@@ -483,7 +483,7 @@ function onSaveActivities() {
         }
     });
     fillActivitiesFromConfig();
-    setActivityStatus('娲诲姩閰嶇疆宸蹭繚瀛樸€?);
+    setActivityStatus('活动配置已保存。');
 }
 
 function onResetActivities() {
@@ -492,7 +492,7 @@ function onResetActivities() {
         activities: DEFAULT_LIVEOPS_CONFIG.activities
     });
     fillActivitiesFromConfig();
-    setActivityStatus('宸叉仮澶嶉粯璁ゆ椿鍔ㄩ厤缃€?);
+    setActivityStatus('已恢复默认活动配置。');
 }
 
 async function resetCheckinState() {
@@ -608,4 +608,3 @@ function escapeHtml(text) {
 }
 
 void init();
-

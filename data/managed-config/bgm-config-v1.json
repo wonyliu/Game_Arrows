@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updatedAt": "2026-04-10T09:50:19.508Z",
+  "updatedAt": "2026-04-16T07:09:20.274Z",
   "scenes": {
     "home": {
       "playlist": [
@@ -15,10 +15,10 @@
       "playlist": [
         {
           "url": "assets/audio/bgm/小蛇出不去4.mp3",
-          "volume": 0.3
+          "volume": 0.1
         }
       ],
-      "volume": 0.4
+      "volume": 1
     },
     "reward": {
       "playlist": [

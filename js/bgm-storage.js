@@ -35,6 +35,7 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
 });
 
 let bgmInitPromise = null;
+let bgmRefreshPromise = null;
 let bgmConfigState = normalizeBgmConfig(null);
 
 export function initBgmStorage() {
@@ -51,6 +52,21 @@ export function readBgmConfig() {
     return cloneJson(bgmConfigState);
 }
 
+export function refreshBgmStorage() {
+    if (bgmRefreshPromise) {
+        return bgmRefreshPromise;
+    }
+    bgmRefreshPromise = hydrateBgmFromServer()
+        .catch((error) => {
+            console.warn('[bgm-storage] refresh failed, keep current config', error);
+        })
+        .then(() => cloneJson(bgmConfigState))
+        .finally(() => {
+            bgmRefreshPromise = null;
+        });
+    return bgmRefreshPromise;
+}
+
 export function writeBgmConfig(value, options = {}) {
     const normalized = normalizeBgmConfig(value, { forceTouchUpdatedAt: true });
     bgmConfigState = normalized;
@@ -58,6 +74,16 @@ export function writeBgmConfig(value, options = {}) {
         void persistBgmToServer(normalized);
     }
     return cloneJson(normalized);
+}
+
+export async function writeBgmConfigAndSync(value) {
+    const normalized = normalizeBgmConfig(value, { forceTouchUpdatedAt: true });
+    bgmConfigState = normalized;
+    const ok = await persistBgmToServer(normalized);
+    return {
+        ok,
+        config: cloneJson(normalized)
+    };
 }
 
 async function hydrateBgmFromServer() {

@@ -57,18 +57,18 @@ const ELEMENTS = [
 
 function buildElementDescriptors() {
     const items = [
-        { id: 'backButton', label: '杩斿洖鎸夐挳' },
-        { id: 'notebook', label: '绛惧埌绾稿紶' },
-        { id: 'ribbon', label: '椤堕儴涓濆甫' },
-        { id: 'ribbonTitle', label: '绛惧埌鏍囬' },
-        { id: 'mascot', label: '鍙充笅瑙掑皬铔? }
+        { id: 'backButton', label: '返回按钮' },
+        { id: 'notebook', label: '签到卡片' },
+        { id: 'ribbon', label: '顶部丝带' },
+        { id: 'ribbonTitle', label: '签到标题' },
+        { id: 'mascot', label: '右下角小蛇' }
     ];
     for (let day = 1; day <= 7; day += 1) {
-        items.push({ id: `day${day}-card`, label: `绗?{day}澶╁崱鐗嘸 });
-        items.push({ id: `day${day}-title`, label: `绗?{day}澶╂爣棰榒 });
-        items.push({ id: `day${day}-icon`, label: `绗?{day}澶╁浘鏍嘸 });
-        items.push({ id: `day${day}-amount`, label: `绗?{day}澶╂暟閲廯 });
-        items.push({ id: `day${day}-badge`, label: `绗?{day}澶╃豢鍕綻 });
+        items.push({ id: `day${day}-card`, label: `第${day}天卡片` });
+        items.push({ id: `day${day}-title`, label: `第${day}天标题` });
+        items.push({ id: `day${day}-icon`, label: `第${day}天图标` });
+        items.push({ id: `day${day}-amount`, label: `第${day}天数量` });
+        items.push({ id: `day${day}-badge`, label: `第${day}天角标` });
     }
     return items;
 }
@@ -136,15 +136,15 @@ function legacyGetElementFields(elementId) {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
-            { name: 'width', label: '瀹?, step: 1 },
-            { name: 'height', label: '楂?, step: 1 },
+            { name: 'width', label: '宽', step: 1 },
+            { name: 'height', label: '高', step: 1 },
             { name: 'fontSize', label: '瀛楀彿', step: 1 }
         ];
     }
     if (elementId === 'notebook') {
         return [
-            { name: 'width', label: '瀹?, step: 1 },
-            { name: 'height', label: '楂?, step: 1 },
+            { name: 'width', label: '宽', step: 1 },
+            { name: 'height', label: '高', step: 1 },
             { name: 'paddingTop', label: '椤堕儴鐣欑櫧', step: 1, wide: true },
             { name: 'scaleMultiplier', label: '娓告垙缂╂斁鍊嶇巼', step: 0.05, source: 'scene', wide: true }
         ];
@@ -153,8 +153,8 @@ function legacyGetElementFields(elementId) {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
-            { name: 'width', label: '瀹?, step: 1 },
-            { name: 'height', label: '楂?, step: 1 }
+            { name: 'width', label: '宽', step: 1 },
+            { name: 'height', label: '高', step: 1 }
         ];
     }
     if (elementId === 'ribbonTitle') {
@@ -168,8 +168,8 @@ function legacyGetElementFields(elementId) {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
-            { name: 'width', label: '瀹?, step: 1 },
-            { name: 'height', label: '楂?, step: 1 }
+            { name: 'width', label: '宽', step: 1 },
+            { name: 'height', label: '高', step: 1 }
         ];
     }
 
@@ -181,15 +181,15 @@ function legacyGetElementFields(elementId) {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
-            { name: 'width', label: '瀹?, step: 1 },
-            { name: 'height', label: '楂?, step: 1 }
+            { name: 'width', label: '宽', step: 1 },
+            { name: 'height', label: '高', step: 1 }
         ];
     }
     if (parsed.part === 'title') {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
-            { name: 'width', label: '瀹?, step: 1 },
+            { name: 'width', label: '宽', step: 1 },
             { name: 'fontSize', label: '瀛楀彿', step: 1 },
             { name: 'align', label: '瀵归綈', type: 'select', options: ['center', 'left'], wide: true }
         ];
@@ -326,7 +326,7 @@ function legacyRenderPropertyGrid() {
             input.value = `${target[field.name] ?? field.options?.[0] ?? ''}`;
             input.addEventListener('change', () => {
                 target[field.name] = input.value;
-                persistLayout(`宸叉洿鏂?${getSelectedDescriptor().label}銆俙);
+                persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
             });
         } else {
             input = document.createElement('input');
@@ -339,7 +339,7 @@ function legacyRenderPropertyGrid() {
                     return;
                 }
                 target[field.name] = parsed;
-                persistLayout(`宸叉洿鏂?${getSelectedDescriptor().label}銆俙);
+                persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
             });
         }
 
@@ -483,7 +483,7 @@ function onFollowMousePointerMove(event) {
     }
     target.x = Math.round(state.followMouseDrag.startX + (event.clientX - state.followMouseDrag.startClientX));
     target.y = Math.round(state.followMouseDrag.startY + (event.clientY - state.followMouseDrag.startClientY));
-    persistLayout(`宸叉洿鏂?${getSelectedDescriptor().label} 鐨勮窡闅忛紶鏍囧亸绉籤);
+    persistLayout(`已更新 ${getSelectedDescriptor().label} 的跟随鼠标偏移。`);
 }
 
 function onFollowMousePointerUp() {
@@ -505,10 +505,10 @@ function renderFollowMouseStage() {
     }
     const sourceNode = getFollowMouseSourceNode();
     if (!(sourceNode instanceof HTMLElement)) {
-        el.followMouseHint.textContent = '褰撳墠鍏冪礌杩樻病鏈夋樉绀哄嚭鏉ワ紝鍏堟妸瀹冩樉绀哄嚭鏉ワ紝鍐嶈皟鏁磋窡闅忛紶鏍囧亸绉汇€?;
+        el.followMouseHint.textContent = '当前元素还没有显示出来，先让它显示，再调整跟随鼠标偏移。';
         return;
     }
-    el.followMouseHint.textContent = '涓ぎ绠ご浠ｈ〃榧犳爣浣嶇疆銆傛嫋鎷戒笅鏂瑰厓绱狅紝鎴栫洿鎺ヤ慨鏀?X / Y锛岃皟鏁寸浉瀵归紶鏍囩殑鍋忕Щ銆?;
+    el.followMouseHint.textContent = '中间十字代表鼠标位置。拖拽下方元素，或直接修改 X / Y，来调整相对鼠标的偏移。';
     const previewNode = sourceNode.cloneNode(true);
     previewNode.classList.remove('hidden');
     previewNode.classList.add('ui-editor-follow-mouse-proxy');
@@ -521,7 +521,7 @@ function renderFollowMouseStage() {
     previewNode.style.visibility = '';
 }
 
-function persistLayout(message = '甯冨眬宸插悓姝ュ埌娓告垙椤点€?) {
+function persistLayout(message = '布局已同步到预览。') {
     state.config = writeUiLayoutConfig(state.config);
     updateJsonEditor();
     renderPreview();
@@ -610,7 +610,7 @@ function onWindowPointerMove(event) {
         target.x = Math.round(item.startX + deltaX);
         target.y = Math.round(item.startY + deltaY);
     }
-    persistLayout(`宸叉嫋鎷?${getSelectedDescriptor().label}銆俙);
+    persistLayout(`已拖拽 ${getSelectedDescriptor().label}。`);
 }
 
 function onWindowPointerUp() {
@@ -631,7 +631,7 @@ function nudgeSelected(dx, dy) {
         moved = true;
     }
     if (moved) {
-        persistLayout(`宸插井璋?${getSelectedDescriptor().label}銆俙);
+        persistLayout(`已微调 ${getSelectedDescriptor().label}。`);
     }
 }
 
@@ -675,7 +675,7 @@ function onResetCurrentElement() {
         Object.keys(target).forEach((key) => delete target[key]);
         Object.assign(target, JSON.parse(JSON.stringify(fallback)));
     }
-    persistLayout(`宸查噸缃?${getSelectedDescriptor().label}銆俙);
+    persistLayout(`已重置 ${getSelectedDescriptor().label}。`);
 }
 
 function onResetScene() {
@@ -684,15 +684,15 @@ function onResetScene() {
     renderPropertyGrid();
     renderPreview();
     refreshPropertyValues();
-    setStatus('宸叉仮澶嶇鍒伴〉榛樿甯冨眬銆?);
+    setStatus('已恢复签到页默认布局。');
 }
 
 async function onCopyJson() {
     try {
         await navigator.clipboard.writeText(el.json?.value || '');
-        setStatus('甯冨眬 JSON 宸插鍒躲€?);
+        setStatus('布局 JSON 已复制。');
     } catch {
-        setStatus('澶嶅埗澶辫触锛岃鎵嬪姩澶嶅埗銆?, true);
+        setStatus('复制失败，请手动复制。', true);
     }
 }
 
@@ -704,9 +704,9 @@ function onImportJson() {
         renderPropertyGrid();
         renderPreview();
         refreshPropertyValues();
-        setStatus('甯冨眬 JSON 瀵煎叆鎴愬姛銆?);
+        setStatus('布局 JSON 导入成功。');
     } catch {
-        setStatus('甯冨眬 JSON 鏍煎紡閿欒銆?, true);
+        setStatus('布局 JSON 格式错误。', true);
     }
 }
 
@@ -848,7 +848,7 @@ function renderPropertyGrid() {
             input.checked = !!target[field.name];
             input.addEventListener('change', () => {
                 target[field.name] = !!input.checked;
-                persistLayout(`宸叉洿鏂?${getSelectedDescriptor().label}`);
+                persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
             });
         } else if (field.type === 'select') {
             input = document.createElement('select');
@@ -861,7 +861,7 @@ function renderPropertyGrid() {
             input.value = `${target[field.name] ?? field.options?.[0] ?? ''}`;
             input.addEventListener('change', () => {
                 target[field.name] = input.value;
-                persistLayout(`宸叉洿鏂?${getSelectedDescriptor().label}`);
+                persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
             });
         } else {
             input = document.createElement('input');
@@ -874,7 +874,7 @@ function renderPropertyGrid() {
                     return;
                 }
                 target[field.name] = parsed;
-                persistLayout(`宸叉洿鏂?${getSelectedDescriptor().label}`);
+                persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
             });
         }
 
@@ -937,7 +937,7 @@ function bindStorageSync() {
             state.liveopsPlayer = readLiveOpsPlayerState();
             syncPreviewInputsFromLiveState();
             renderPreview();
-            setStatus('宸插悓姝ュ綋鍓嶆椿鍔ㄩ厤缃拰绛惧埌鐘舵€併€?);
+            setStatus('已同步当前活动配置和签到状态。');
         }
         if (event.key === 'arrowClear_uiLayout_v1') {
             state.config = readUiLayoutConfig();
@@ -995,4 +995,3 @@ async function init() {
 }
 
 void init();
-

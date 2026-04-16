@@ -1493,6 +1493,7 @@ textarea {
     font-size: 12px;
     font-weight: 900;
     padding: 0 10px;
+    touch-action: manipulation;
 }
 
 .skin-action-btn:disabled {
@@ -1617,6 +1618,7 @@ textarea {
 
 .checkin-day.is-clickable {
     cursor: pointer;
+    touch-action: manipulation;
 }
 
 .checkin-day.is-clickable:focus-visible {
