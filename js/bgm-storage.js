@@ -8,6 +8,7 @@ export const BGM_SCENE_KEYS = Object.freeze({
     HOME: 'home',
     NORMAL: 'normal',
     REWARD: 'reward',
+    LEVEL_PASS: 'levelPass',
     CAMPAIGN_COMPLETE: 'campaignComplete'
 });
 
@@ -16,7 +17,7 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
     updatedAt: '',
     scenes: Object.freeze({
         [BGM_SCENE_KEYS.HOME]: Object.freeze({
-            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3', volume: 1 }]),
+            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp4', volume: 1 }]),
             volume: 0.65
         }),
         [BGM_SCENE_KEYS.NORMAL]: Object.freeze({
@@ -26,6 +27,10 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
         [BGM_SCENE_KEYS.REWARD]: Object.freeze({
             playlist: Object.freeze([{ url: 'assets/audio/bgm/\u626d\u626d\u821e.mp3', volume: 1 }]),
             volume: 0.75
+        }),
+        [BGM_SCENE_KEYS.LEVEL_PASS]: Object.freeze({
+            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb3.mp3', volume: 1 }]),
+            volume: 0.76
         }),
         [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: Object.freeze({
             playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb3.mp3', volume: 1 }]),
@@ -220,6 +225,7 @@ function normalizeBgmConfig(value, options = {}) {
             [BGM_SCENE_KEYS.HOME]: normalizeScene(scenesRaw[BGM_SCENE_KEYS.HOME], defaults[BGM_SCENE_KEYS.HOME]),
             [BGM_SCENE_KEYS.NORMAL]: normalizeScene(scenesRaw[BGM_SCENE_KEYS.NORMAL], defaults[BGM_SCENE_KEYS.NORMAL]),
             [BGM_SCENE_KEYS.REWARD]: normalizeScene(scenesRaw[BGM_SCENE_KEYS.REWARD], defaults[BGM_SCENE_KEYS.REWARD]),
+            [BGM_SCENE_KEYS.LEVEL_PASS]: normalizeScene(scenesRaw[BGM_SCENE_KEYS.LEVEL_PASS], defaults[BGM_SCENE_KEYS.LEVEL_PASS]),
             [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: normalizeScene(
                 scenesRaw[BGM_SCENE_KEYS.CAMPAIGN_COMPLETE],
                 defaults[BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]
@@ -303,7 +309,7 @@ function normalizeTrackPath(rawPath) {
     if (text.startsWith('assets/audio/bgm/')) {
         return text;
     }
-    if (/^[^/\\]+\.(mp3|wav|ogg|m4a|flac|aac)$/i.test(text)) {
+    if (/^[^/\\]+\.(mp3|wav|ogg|m4a|flac|aac|mp4)$/i.test(text)) {
         return `assets/audio/bgm/${text}`;
     }
     return '';

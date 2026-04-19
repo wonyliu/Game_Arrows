@@ -1,9 +1,9 @@
-﻿import {
+import {
   LOCAL_SKIN_CATALOG_STORAGE_KEY,
   LOCAL_SKIN_COLOR_VARIANTS_STORAGE_KEY,
   getSkinCatalog,
   isLegacyColorVariantSkinId
-} from './skins.js?v=27';
+} from './skins.js?v=31';
 
 const DRAFT_KEY = 'arrowClear_skinGenWorkflowDraft_v1';
 const DEFAULT_TEMPLATE_SKIN_ID = 'classic-burrow';

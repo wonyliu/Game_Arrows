@@ -3,7 +3,7 @@
     getDefaultUiLayoutConfig,
     readUiLayoutConfig,
     writeUiLayoutConfig
-} from './ui-layout-config.js?v=5';
+} from './ui-layout-config.js?v=7';
 import {
     getLocalDayKey,
     readLiveOpsConfig,
@@ -20,6 +20,10 @@ const el = {
     previewTitle: document.getElementById('uiEditorPreviewTitle'),
     previewDesc: document.getElementById('uiEditorPreviewDesc'),
     propertyGrid: document.getElementById('uiEditorPropertyGrid'),
+    scalePercent: document.getElementById('uiEditorScalePercent'),
+    btnScaleApply: document.getElementById('btnUiEditorScaleApply'),
+    btnScaleDown: document.getElementById('btnUiEditorScaleDown'),
+    btnScaleUp: document.getElementById('btnUiEditorScaleUp'),
     viewport: document.getElementById('uiEditorPreviewViewport'),
     stageWrap: document.getElementById('uiEditorPreviewStageWrap'),
     previewFrame: document.getElementById('uiEditorPreviewFrame'),
@@ -62,12 +66,26 @@ const CHECKIN_ELEMENTS = [
 const GAMEPLAY_ELEMENTS = [
     { id: 'hudTop', label: '顶部 HUD 容器' },
     { id: 'settingsButton', label: '设置按钮' },
+    { id: 'settingsIcon', label: '设置图标' },
     { id: 'coinChip', label: '金币条' },
+    { id: 'coinIcon', label: '金币图标' },
+    { id: 'coinValue', label: '金币数值' },
     { id: 'center', label: '中央信息区' },
+    { id: 'lives', label: '生命值行' },
     { id: 'level', label: '关卡标题' },
-    { id: 'timer', label: '计时条' },
-    { id: 'combo', label: 'Combo 文案' },
-    { id: 'scorePulse', label: '积分区' }
+    { id: 'timer', label: '计时区' },
+    { id: 'timerTrack', label: '计时条轨道' },
+    { id: 'timerLabel', label: '计时文本' },
+    { id: 'combo', label: 'Combo 容器' },
+    { id: 'comboCount', label: 'Combo 数值' },
+    { id: 'comboLabel', label: 'Combo 标签' },
+    { id: 'scorePulse', label: '积分区' },
+    { id: 'scoreValue', label: '总积分' },
+    { id: 'scoreGain', label: '得分增量' }
+];
+
+const HOME_ELEMENTS = [
+    { id: 'mascot', label: '首页小蛇动画' }
 ];
 
 const SCENES = Object.freeze({
@@ -83,11 +101,20 @@ const SCENES = Object.freeze({
     gameplay: Object.freeze({
         label: '游戏界面',
         previewTitle: '游戏界面预览',
-        previewDesc: '当前提供游戏顶部 HUD 的手动排版，拖拽后会直接写入布局配置。',
+        previewDesc: '支持对游戏 HUD 的容器和子元素做细分调整，拖拽后会直接写入布局配置。',
         frameSrc: 'index.html?uiEditorPreview=1&uiEditorPanel=gameplay',
         defaultElementId: 'scorePulse',
         showCheckinState: false,
         elements: GAMEPLAY_ELEMENTS
+    }),
+    home: Object.freeze({
+        label: '主界面',
+        previewTitle: '主界面预览',
+        previewDesc: '可拖拽和微调首页跳舞小蛇动画的位置与尺寸。',
+        frameSrc: 'index.html?uiEditorPreview=1&uiEditorPanel=home',
+        defaultElementId: 'mascot',
+        showCheckinState: false,
+        elements: HOME_ELEMENTS
     })
 });
 
@@ -158,6 +185,14 @@ function parseDayElementId(elementId) {
 }
 
 function getElementTarget(config, elementId) {
+    if (state.sceneId === 'home') {
+        const scene = config?.home;
+        if (!scene) {
+            return null;
+        }
+        if (elementId === 'mascot') return scene.mascot;
+        return null;
+    }
     if (state.sceneId === 'gameplay') {
         const scene = config?.gameplay;
         if (!scene) {
@@ -327,6 +362,47 @@ function fitPreviewScale() {
     el.stageWrap.style.top = '50%';
 }
 
+function parseNumericDraft(value) {
+    const text = `${value ?? ''}`.trim();
+    if (!text || text === '-' || text === '.' || text === '-.') {
+        return null;
+    }
+    const parsed = Number(text);
+    return Number.isFinite(parsed) ? parsed : null;
+}
+
+function bindNumericFieldInput(input, target, fieldName) {
+    const commit = () => {
+        const parsed = parseNumericDraft(input.value);
+        if (parsed === null) {
+            input.value = `${target?.[fieldName] ?? ''}`;
+            return;
+        }
+        if (target?.[fieldName] === parsed) {
+            input.value = `${parsed}`;
+            return;
+        }
+        target[fieldName] = parsed;
+        persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
+    };
+
+    input.addEventListener('input', () => {
+        const parsed = parseNumericDraft(input.value);
+        if (parsed === null) {
+            return;
+        }
+        target[fieldName] = parsed;
+        persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
+    });
+    input.addEventListener('change', commit);
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            input.blur();
+        }
+    });
+}
+
 function renderElementOptions() {
     if (!el.elementSelect) {
         return;
@@ -385,14 +461,7 @@ function legacyRenderPropertyGrid() {
             input.type = 'number';
             input.step = `${field.step || 1}`;
             input.value = `${target[field.name] ?? ''}`;
-            input.addEventListener('input', () => {
-                const parsed = Number(input.value);
-                if (!Number.isFinite(parsed)) {
-                    return;
-                }
-                target[field.name] = parsed;
-                persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
-            });
+            bindNumericFieldInput(input, target, field.name);
         }
 
         state.propertyInputs[field.name] = { input, source: field.source || 'target' };
@@ -458,6 +527,9 @@ function renderPreview() {
     state.liveopsPlayer = readLiveOpsPlayerState();
 
     const previewApi = getPreviewApi();
+    if (previewApi && typeof previewApi.setLayoutConfig === 'function') {
+        previewApi.setLayoutConfig(state.config);
+    }
     if (previewApi && typeof previewApi.render === 'function') {
         previewApi.render(state.sceneId === 'checkin' ? getPreviewOverride() : { sceneId: state.sceneId });
     }
@@ -579,6 +651,45 @@ function persistLayout(message = '布局已同步到预览。') {
     renderPreview();
     refreshPropertyValues();
     setStatus(message);
+}
+
+function scaleNumericField(target, fieldName, factor) {
+    const current = Number(target?.[fieldName]);
+    if (!Number.isFinite(current)) {
+        return false;
+    }
+    target[fieldName] = Math.round(current * factor);
+    return true;
+}
+
+function applyScaleToSelected(factor) {
+    const normalizedFactor = Number(factor);
+    if (!Number.isFinite(normalizedFactor) || normalizedFactor <= 0) {
+        setStatus('缩放比例无效。', true);
+        return;
+    }
+
+    let changed = false;
+    for (const elementId of state.selectedElementIds) {
+        const target = getElementTarget(state.config, elementId);
+        if (!target) {
+            continue;
+        }
+        changed = scaleNumericField(target, 'width', normalizedFactor) || changed;
+        changed = scaleNumericField(target, 'height', normalizedFactor) || changed;
+        changed = scaleNumericField(target, 'fontSize', normalizedFactor) || changed;
+        changed = scaleNumericField(target, 'size', normalizedFactor) || changed;
+        changed = scaleNumericField(target, 'labelFontSize', normalizedFactor) || changed;
+        changed = scaleNumericField(target, 'valueFontSize', normalizedFactor) || changed;
+        changed = scaleNumericField(target, 'gainFontSize', normalizedFactor) || changed;
+    }
+
+    if (!changed) {
+        setStatus('当前选中元素没有可按比例调整的尺寸字段。', true);
+        return;
+    }
+
+    persistLayout(`已按 ${(normalizedFactor * 100).toFixed(0)}% 缩放 ${getSelectedDescriptor().label}。`);
 }
 
 function setSelectedElements(ids, primaryId) {
@@ -776,12 +887,29 @@ function getGameplayElementFields(elementId, visibilityField) {
             visibilityField
         ];
     }
+    if (elementId === 'settingsIcon' || elementId === 'coinIcon' || elementId === 'lives' || elementId === 'timerTrack') {
+        return [
+            { name: 'x', label: 'Offset X', step: 1 },
+            { name: 'y', label: 'Offset Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'height', label: 'Height', step: 1 },
+            visibilityField
+        ];
+    }
     if (elementId === 'coinChip') {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
             { name: 'width', label: 'Width', step: 1 },
             { name: 'height', label: 'Height', step: 1 },
+            visibilityField
+        ];
+    }
+    if (elementId === 'coinValue' || elementId === 'timerLabel' || elementId === 'comboCount' || elementId === 'comboLabel' || elementId === 'scoreValue' || elementId === 'scoreGain') {
+        return [
+            { name: 'x', label: 'Offset X', step: 1 },
+            { name: 'y', label: 'Offset Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
             { name: 'fontSize', label: 'Font', step: 1 },
             visibilityField
         ];
@@ -801,7 +929,6 @@ function getGameplayElementFields(elementId, visibilityField) {
             { name: 'y', label: 'Y', step: 1 },
             { name: 'width', label: 'Width', step: 1 },
             { name: 'height', label: 'Height', step: 1 },
-            { name: 'labelFontSize', label: 'Label Font', step: 1, wide: true },
             visibilityField
         ];
     }
@@ -811,7 +938,6 @@ function getGameplayElementFields(elementId, visibilityField) {
             { name: 'y', label: 'Y', step: 1 },
             { name: 'width', label: 'Width', step: 1 },
             { name: 'height', label: 'Height', step: 1 },
-            { name: 'fontSize', label: 'Font', step: 1 },
             visibilityField
         ];
     }
@@ -821,8 +947,19 @@ function getGameplayElementFields(elementId, visibilityField) {
             { name: 'y', label: 'Y', step: 1 },
             { name: 'width', label: 'Width', step: 1 },
             { name: 'height', label: 'Height', step: 1 },
-            { name: 'valueFontSize', label: 'Score Font', step: 1, wide: true },
-            { name: 'gainFontSize', label: 'Gain Font', step: 1, wide: true },
+            visibilityField
+        ];
+    }
+    return [];
+}
+
+function getHomeElementFields(elementId, visibilityField) {
+    if (elementId === 'mascot') {
+        return [
+            { name: 'x', label: 'X', step: 1 },
+            { name: 'y', label: 'Y', step: 1 },
+            { name: 'width', label: 'Width', step: 1 },
+            { name: 'height', label: 'Height', step: 1 },
             visibilityField
         ];
     }
@@ -831,6 +968,9 @@ function getGameplayElementFields(elementId, visibilityField) {
 
 function getElementFields(elementId) {
     const visibilityField = { name: 'visible', label: '鏄剧ず', type: 'checkbox', wide: true };
+    if (state.sceneId === 'home') {
+        return getHomeElementFields(elementId, visibilityField);
+    }
     if (state.sceneId === 'gameplay') {
         return getGameplayElementFields(elementId, visibilityField);
     }
@@ -990,14 +1130,7 @@ function renderPropertyGrid() {
             input.type = 'number';
             input.step = `${field.step || 1}`;
             input.value = `${target[field.name] ?? ''}`;
-            input.addEventListener('input', () => {
-                const parsed = Number(input.value);
-                if (!Number.isFinite(parsed)) {
-                    return;
-                }
-                target[field.name] = parsed;
-                persistLayout(`已更新 ${getSelectedDescriptor().label}。`);
-            });
+            bindNumericFieldInput(input, target, field.name);
         }
 
         state.propertyInputs[field.name] = { input, source: field.source || 'target' };
@@ -1104,6 +1237,18 @@ function bindElementSelect() {
     });
 }
 
+function bindScaleTools() {
+    el.btnScaleApply?.addEventListener('click', () => {
+        const percent = clampInt(el.scalePercent?.value, 1, 1000, 100);
+        if (el.scalePercent) {
+            el.scalePercent.value = `${percent}`;
+        }
+        applyScaleToSelected(percent / 100);
+    });
+    el.btnScaleDown?.addEventListener('click', () => applyScaleToSelected(0.9));
+    el.btnScaleUp?.addEventListener('click', () => applyScaleToSelected(1.1));
+}
+
 function bindStorageSync() {
     window.addEventListener('storage', (event) => {
         if (event.key === 'arrowClear_liveopsConfig_v1' || event.key === 'arrowClear_liveopsPlayer_v1') {
@@ -1113,7 +1258,7 @@ function bindStorageSync() {
             renderPreview();
             setStatus('已同步当前活动配置和签到状态。');
         }
-        if (event.key === 'arrowClear_uiLayout_v1') {
+        if (event.key === 'arrowClear_uiLayoutConfig_v1') {
             state.config = readUiLayoutConfig();
             updateJsonEditor();
             renderPropertyGrid();
@@ -1156,6 +1301,7 @@ async function init() {
     bindSceneSelect();
     bindPreviewStateInputs();
     bindElementSelect();
+    bindScaleTools();
     bindStorageSync();
     initPreviewFrame();
     el.btnResetElement?.addEventListener('click', onResetCurrentElement);

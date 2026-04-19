@@ -1,0 +1,35 @@
+{
+  "skinId": "gemini-atlas-sheet",
+  "generatedAt": "2026-04-19T00:00:00+08:00",
+  "source": "User-provided atlas sheet",
+  "mechanism": "atlas-sheet",
+  "preview": "/assets/skins/gemini-atlas-sheet/skin_preview.png?v=1",
+  "sourceSize": {
+    "width": 1984,
+    "height": 2174
+  },
+  "inputs": {
+    "atlas": "skin_atlas.png"
+  },
+  "outputs": [
+    "skin_atlas.png",
+    "skin_preview.png"
+  ],
+  "layout": {
+    "heads": {
+      "default": { "x": 98, "y": 80, "width": 824, "height": 646, "sourceWidth": 1984, "sourceHeight": 2174 },
+      "curious": { "x": 1051, "y": 80, "width": 827, "height": 646, "sourceWidth": 1984, "sourceHeight": 2174 },
+      "sleepy": { "x": 98, "y": 792, "width": 824, "height": 644, "sourceWidth": 1984, "sourceHeight": 2174 },
+      "surprised": { "x": 1053, "y": 792, "width": 827, "height": 644, "sourceWidth": 1984, "sourceHeight": 2174 }
+    },
+    "body": {
+      "segA": { "x": 104, "y": 1493, "width": 848, "height": 613, "sourceWidth": 1984, "sourceHeight": 2174 },
+      "segB": { "x": 104, "y": 1493, "width": 848, "height": 613, "sourceWidth": 1984, "sourceHeight": 2174 }
+    },
+    "tail": {
+      "base": { "x": 1059, "y": 1516, "width": 817, "height": 519, "sourceWidth": 1984, "sourceHeight": 2174 },
+      "tip": { "x": 1059, "y": 1516, "width": 817, "height": 519, "sourceWidth": 1984, "sourceHeight": 2174 }
+    }
+  },
+  "notes": "Prototype atlas skin. Runtime crops parts directly from one sheet and removes the green background with chroma-key alpha."
+}

@@ -1,6 +1,9 @@
 {
   "orange-jelly-snake": "custom-a",
-  "classic-burrow": "candy-crunch",
-  "aurora-jelly": "custom-a",
-  "candy-star-snake": "custom-ouch"
+  "classic-burrow": "audio-candy-crunch",
+  "aurora-jelly": "audio-jelly-duang",
+  "candy-star-snake": "custom-ouch",
+  "gemini-candy": "audio-gummy-stretch",
+  "candy-dream": "audio-syrup-pop",
+  "aqua-jelly-snake": "audio-fail-plop"
 }

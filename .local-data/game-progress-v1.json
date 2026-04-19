@@ -1,1 +1,14 @@
-{}
+{
+  "version": 1,
+  "updatedAt": "2026-04-16T15:56:43.468Z",
+  "maxUnlockedLevel": 1,
+  "maxClearedLevel": 0,
+  "currentLevel": 1,
+  "coins": 0,
+  "unlockedSkinIds": [
+    "classic-burrow"
+  ],
+  "selectedSkinId": "classic-burrow",
+  "nextRewardLevelIndex": 1,
+  "rewardGuideShown": false
+}

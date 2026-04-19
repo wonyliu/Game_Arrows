@@ -1,4 +1,4 @@
-﻿import { getSkinById, getSkinCatalog } from './skins.js?v=27';
+import { getSkinById, getSkinCatalog } from './skins.js?v=31';
 import {
     initSkinPartFitStorage,
     readSkinPartFitOverrides,
@@ -368,18 +368,36 @@ function buildMaskLayers(maskImage) {
 }
 
 async function loadImage(path) {
-    if (imageCache.has(path)) {
-        return imageCache.get(path);
+    const safePath = typeof path === 'string' ? path.trim() : '';
+    if (!safePath || safePath === '[object Object]') {
+        throw new Error(`Invalid image path: ${path}`);
+    }
+    if (imageCache.has(safePath)) {
+        return imageCache.get(safePath);
     }
     const promise = new Promise((resolve, reject) => {
         const image = new Image();
         image.decoding = 'async';
         image.onload = () => resolve(image);
-        image.onerror = () => reject(new Error(`Failed to load image: ${path}`));
-        image.src = path;
+        image.onerror = () => reject(new Error(`Failed to load image: ${safePath}`));
+        image.src = safePath;
     });
-    imageCache.set(path, promise);
+    imageCache.set(safePath, promise);
     return promise;
+}
+
+function resolveAssetPath(asset) {
+    if (typeof asset === 'string') {
+        const text = asset.trim();
+        return text && text !== '[object Object]' ? text : '';
+    }
+    if (asset && typeof asset === 'object') {
+        const direct = `${asset.src || asset.url || asset.path || asset.href || ''}`.trim();
+        if (direct && direct !== '[object Object]') {
+            return direct;
+        }
+    }
+    return '';
 }
 
 function toOpaqueImageSurface(image) {
@@ -412,8 +430,8 @@ async function loadPartImages() {
     const skin = resolveSkinConfig(state.skinId);
     const maskSkin = getSkinById(DEFAULT_SKIN_ID);
     const part = getPartMeta(state.partKey);
-    const skinPath = skin?.assets?.[part.assetKey];
-    const maskPath = maskSkin?.assets?.[part.assetKey];
+    const skinPath = resolveAssetPath(skin?.assets?.[part.assetKey]);
+    const maskPath = resolveAssetPath(maskSkin?.assets?.[part.assetKey]);
     if (!skinPath || !maskPath) {
         throw new Error(`Missing asset path for part: ${part.key}`);
     }

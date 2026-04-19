@@ -1,5 +1,5 @@
 import { DIR_VECTORS } from './grid.js?v=40';
-import { drawArrowPathPixels } from './pixel-art.js?v=51';
+import { drawArrowPathPixels } from './pixel-art.js?v=52';
 
 export class Line {
     constructor(id, cells, direction, color = '#1a1c3d') {

@@ -86,6 +86,7 @@ const GAME_HUD_BOTTOM_HEIGHT = 108;
 const GAME_CONTENT_PAD_X = 5;
 const PREVIEW_CANVAS_BASE_WIDTH = 430;
 const PREVIEW_CANVAS_BASE_HEIGHT = 664;
+const PREVIEW_GRID_MARGIN = 5;
 let previewRecord = null;
 let renderedLevelData = null;
 let previewPlayState = null;
@@ -342,7 +343,7 @@ function readCustomGridSize(fallbackCols, fallbackRows) {
     };
 }
 
-function updateDimensionUi(config = null) {
+function legacyUpdateDimensionUi(config = null) {
     const mode = `${el.dimensionMode?.value || 'rows'}`.toLowerCase();
     const isCustom = mode === 'custom';
     el.customGridFields?.classList.toggle('hidden', !isCustom);
@@ -356,7 +357,7 @@ function updateDimensionUi(config = null) {
     }
 }
 
-function updateGameFramePreview(config) {
+function legacyUpdateGameFramePreview(config) {
     if (!el.previewBoardFrame || !el.previewCanvasHost) return;
     const gameContainerHeight = GAME_DESIGN_HEIGHT - GAME_HEADER_HEIGHT;
     const wrapperWidth = GAME_DESIGN_WIDTH - GAME_CONTENT_PAD_X * 2;
@@ -390,9 +391,93 @@ function updateGameFramePreview(config) {
     }
 }
 
-function createPreviewGrid(cols, rows) {
+function legacyCreatePreviewGrid(cols, rows) {
     const grid = new Grid(cols, rows);
     grid.resize(PREVIEW_CANVAS_BASE_WIDTH, PREVIEW_CANVAS_BASE_HEIGHT);
+    return grid;
+}
+
+function getPreviewFrameMetrics() {
+    const gameContainerHeight = GAME_DESIGN_HEIGHT - GAME_HEADER_HEIGHT;
+    return {
+        wrapperWidth: GAME_DESIGN_WIDTH - GAME_CONTENT_PAD_X * 2,
+        wrapperHeight: gameContainerHeight - GAME_CANVAS_TOP_GAP - GAME_HUD_BOTTOM_HEIGHT
+    };
+}
+
+function measurePreviewCanvas(cols, rows) {
+    const safeCols = Math.max(1, Math.floor(Number(cols) || 1));
+    const safeRows = Math.max(1, Math.floor(Number(rows) || 1));
+    const { wrapperWidth, wrapperHeight } = getPreviewFrameMetrics();
+    const cellSize = Math.max(1, Math.floor(Math.min(
+        (wrapperWidth - PREVIEW_GRID_MARGIN * 2) / safeCols,
+        (wrapperHeight - PREVIEW_GRID_MARGIN * 2) / safeRows
+    )));
+    const canvasWidth = Math.max(1, safeCols * cellSize + PREVIEW_GRID_MARGIN * 2);
+    const canvasHeight = Math.max(1, safeRows * cellSize + PREVIEW_GRID_MARGIN * 2);
+
+    return {
+        wrapperWidth,
+        wrapperHeight,
+        canvasWidth,
+        canvasHeight,
+        canvasLeft: Math.round((wrapperWidth - canvasWidth) / 2),
+        canvasTop: Math.round((wrapperHeight - canvasHeight) / 2),
+        aspect: canvasWidth / canvasHeight
+    };
+}
+
+function updateDimensionUi(config = null) {
+    const mode = `${el.dimensionMode?.value || 'rows'}`.toLowerCase();
+    const isCustom = mode === 'custom';
+    el.customGridFields?.classList.toggle('hidden', !isCustom);
+    if (el.dimensionValue) {
+        el.dimensionValue.disabled = isCustom;
+    }
+    if (!config) return;
+    const previewMetrics = measurePreviewCanvas(config.gridCols, config.gridRows);
+    if (el.gameFramePreviewMeta) {
+        el.gameFramePreviewMeta.textContent = `${config.gridCols} x ${config.gridRows} \u00b7 \u5916\u6846 ${previewMetrics.wrapperWidth} x ${previewMetrics.wrapperHeight} \u00b7 \u767d\u76d8 ${previewMetrics.canvasWidth} x ${previewMetrics.canvasHeight} \u00b7 \u5bbd\u9ad8\u6bd4 ${previewMetrics.aspect.toFixed(3)}`;
+    }
+}
+
+function updateGameFramePreview(config) {
+    if (!el.previewBoardFrame || !el.previewCanvasHost) return;
+    const previewMetrics = measurePreviewCanvas(config.gridCols, config.gridRows);
+    const {
+        wrapperWidth,
+        wrapperHeight,
+        canvasWidth,
+        canvasHeight,
+        canvasLeft,
+        canvasTop
+    } = previewMetrics;
+
+    el.previewBoardFrame.style.left = `${(GAME_CONTENT_PAD_X / GAME_DESIGN_WIDTH) * 100}%`;
+    el.previewBoardFrame.style.top = `${((GAME_HEADER_HEIGHT + GAME_CANVAS_TOP_GAP) / GAME_DESIGN_HEIGHT) * 100}%`;
+    el.previewBoardFrame.style.width = `${(wrapperWidth / GAME_DESIGN_WIDTH) * 100}%`;
+    el.previewBoardFrame.style.height = `${(wrapperHeight / GAME_DESIGN_HEIGHT) * 100}%`;
+
+    el.previewCanvasHost.style.left = `${(canvasLeft / wrapperWidth) * 100}%`;
+    el.previewCanvasHost.style.top = `${(canvasTop / wrapperHeight) * 100}%`;
+    el.previewCanvasHost.style.width = `${(canvasWidth / wrapperWidth) * 100}%`;
+    el.previewCanvasHost.style.height = `${(canvasHeight / wrapperHeight) * 100}%`;
+
+    if (el.canvas.width !== canvasWidth || el.canvas.height !== canvasHeight) {
+        el.canvas.width = canvasWidth;
+        el.canvas.height = canvasHeight;
+    }
+
+    if (previewPlayState?.grid) {
+        previewPlayState.grid.resize(el.canvas.width, el.canvas.height);
+    }
+}
+
+function createPreviewGrid(cols, rows) {
+    const grid = new Grid(cols, rows);
+    const canvasWidth = Math.max(1, Number(el.canvas?.width) || PREVIEW_CANVAS_BASE_WIDTH);
+    const canvasHeight = Math.max(1, Number(el.canvas?.height) || PREVIEW_CANVAS_BASE_HEIGHT);
+    grid.resize(canvasWidth, canvasHeight);
     return grid;
 }
 
@@ -1585,7 +1670,8 @@ function partitionGenerate4Lengths(total, minLen, maxLen) {
 
 function onKeyDown(e) {
     if (e.repeat) return; // Critical: Ignore auto-repeated key events from OS
-    const key = e.key.toLowerCase();
+    const key = `${e?.key || ''}`.toLowerCase();
+    if (!key) return;
     let dir = null;
     if (key === 'w') dir = 'up';
     else if (key === 'a') dir = 'left';
@@ -2434,6 +2520,9 @@ function syncPlayStateLine(lineId, cells, direction) {
     line.cells = cells.map((cell) => ({ col: cell.col, row: cell.row }));
     line.headCell = line.cells[line.cells.length - 1];
     line.direction = direction;
+    line.currentRenderPts = [];
+    line._screenPointsCache = null;
+    line._screenPointsCacheKey = '';
 }
 
 function drawPreviewState() {

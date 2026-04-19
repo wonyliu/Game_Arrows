@@ -1,13 +1,16 @@
 import {
+    getAudioLibraryItemById,
+    getGameSfxBindingOptions,
     getGameSfxPresetId,
     getSfxPresetById,
     getSfxPresetSample,
+    getSkinSfxAudioItemId,
     getSkinSfxPresetId,
     initSfxStorage,
     normalizeRecipe
-} from './sfx-storage.js?v=6';
-import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, refreshBgmStorage } from './bgm-storage.js?v=8';
+} from './sfx-storage.js?v=11';
+import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=3';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, refreshBgmStorage } from './bgm-storage.js?v=10';
 
 export { BGM_SCENE_KEYS };
 
@@ -16,6 +19,7 @@ const DEFAULT_AUDIO_MIX = Object.freeze({
     music: 0.65,
     sfx: 0.55
 });
+const DEFAULT_HOME_BGM_SRC = 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp4';
 
 let audioCtx = null;
 let initPromise = null;
@@ -55,6 +59,9 @@ let bgmUnlockGestureBound = false;
 let bgmConfigRefreshInFlight = null;
 let bgmConfigLastRefreshAt = 0;
 const BGM_CONFIG_REFRESH_MIN_INTERVAL_MS = 1500;
+const gameEventLoopNodes = new Map();
+const gameEventLoopSessions = new Map();
+let gameEventLoopSessionSeq = 0;
 const ENABLE_BGM_DEBUG_LOGS = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('debug') === '1';
 
@@ -120,6 +127,31 @@ function applySfxMixVolume() {
         return;
     }
     sfxMasterGainNode.gain.setValueAtTime(clamp(audioMix.sfx, 0, 1), ctx.currentTime);
+}
+
+function resetSfxOutputGraph() {
+    const ctx = audioCtx;
+    if (!ctx || !sfxMasterGainNode) {
+        return;
+    }
+    try {
+        sfxMasterGainNode.gain.cancelScheduledValues(ctx.currentTime);
+        sfxMasterGainNode.gain.setValueAtTime(0, ctx.currentTime);
+    } catch {
+        // noop
+    }
+    try {
+        sfxMasterGainNode.disconnect();
+    } catch {
+        // noop
+    }
+    sfxMasterGainNode = null;
+}
+
+function stopAllActiveSfx() {
+    stopAllGameEventLoops();
+    clearSoundExclusiveUntil = 0;
+    resetSfxOutputGraph();
 }
 
 function getAudioContext() {
@@ -804,7 +836,7 @@ function getBgmAudioElement() {
             });
             bgmConsecutiveErrorCount += 1;
             if (bgmConsecutiveErrorCount >= Math.max(1, bgmPlaylist.length)) {
-                bgmPlaylist = ['assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3'];
+                bgmPlaylist = [DEFAULT_HOME_BGM_SRC];
                 bgmSceneTrackVolumes = new Map([[bgmPlaylist[0], 1]]);
                 bgmTrackIndex = 0;
                 bgmPlaylistSignature = playlistSignature(bgmPlaylist);
@@ -843,6 +875,19 @@ function getBgmSceneConfig(sceneKey) {
     const playlist = normalizedPlaylist.map((item) => item.url);
     const trackVolumes = new Map(normalizedPlaylist.map((item) => [item.url, item.volume]));
     const volume = Math.max(0, Math.min(1, Number(scene.volume) || 0));
+    if (key === BGM_SCENE_KEYS.HOME) {
+        const homeTrackVolume = clamp(
+            Number(trackVolumes.get(DEFAULT_HOME_BGM_SRC)),
+            0,
+            1,
+            clamp(Number(normalizedPlaylist[0]?.volume), 0, 1, 1)
+        );
+        return {
+            playlist: [DEFAULT_HOME_BGM_SRC],
+            trackVolumes: new Map([[DEFAULT_HOME_BGM_SRC, homeTrackVolume]]),
+            volume
+        };
+    }
     return {
         playlist,
         trackVolumes,
@@ -857,10 +902,10 @@ function normalizePlaylistForPlayback(rawPlaylist) {
     for (const row of rows) {
         let url = '';
         let volume = 1;
-        if (typeof row === 'string') {
-            url = row.trim();
-        } else if (row && typeof row === 'object') {
-            url = `${row.url || row.src || row.path || ''}`.trim();
+        if (typeof row === 'string' || (row && typeof row === 'object')) {
+            url = readBgmPlaylistUrlValue(row);
+        }
+        if (row && typeof row === 'object') {
             volume = clamp(Number(row.volume), 0, 1);
         }
         if (!url || seen.has(url)) {
@@ -1000,6 +1045,66 @@ function dataUrlToArrayBuffer(dataUrl) {
     return bytes.buffer;
 }
 
+function normalizeSampleUrl(value) {
+    if (typeof value === 'string') {
+        const text = value.trim();
+        if (!text || text === '[object Object]') {
+            return '';
+        }
+        return text;
+    }
+    if (value && typeof value === 'object') {
+        const nested = value.url || value.src || value.path || value.href || '';
+        if (typeof nested !== 'string') {
+            return '';
+        }
+        const text = nested.trim();
+        if (!text || text === '[object Object]') {
+            return '';
+        }
+        return text;
+    }
+    return '';
+}
+
+function buildSampleSignature(sample, fallback = '') {
+    if (sample?.dataUrl) {
+        return `data:${sample.dataUrl.length}:${sample.fileName || fallback}`;
+    }
+    const sampleUrl = normalizeSampleUrl(sample?.url);
+    if (sampleUrl) {
+        return `url:${sampleUrl}:${sample.fileName || fallback}`;
+    }
+    if (sample?.refKind === 'preset-sample' && sample?.refId) {
+        return `ref:${sample.refKind}:${sample.refId}:${sample.fileName || fallback}`;
+    }
+    return `missing:${fallback}`;
+}
+
+async function sampleToArrayBuffer(sample) {
+    if (sample?.dataUrl) {
+        return dataUrlToArrayBuffer(sample.dataUrl);
+    }
+    const sampleUrl = normalizeSampleUrl(sample?.url);
+    if (sampleUrl) {
+        const response = await fetch(sampleUrl, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            throw new Error(`audio fetch failed (${response.status})`);
+        }
+        return response.arrayBuffer();
+    }
+    if (sample?.refKind === 'preset-sample' && sample?.refId) {
+        const refSample = getSfxPresetSample(sample.refId);
+        if (refSample?.dataUrl) {
+            return dataUrlToArrayBuffer(refSample.dataUrl);
+        }
+    }
+    return null;
+}
+
 async function decodePresetSampleBuffer(ctx, presetId) {
     const sample = getSfxPresetSample(presetId);
     if (!sample?.dataUrl) {
@@ -1013,6 +1118,29 @@ async function decodePresetSampleBuffer(ctx, presetId) {
     const arrayBuffer = dataUrlToArrayBuffer(sample.dataUrl);
     const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
     sampleBufferCache.set(presetId, {
+        signature,
+        buffer: decoded
+    });
+    return decoded;
+}
+
+async function decodeAudioLibraryItemBuffer(ctx, itemId) {
+    const item = getAudioLibraryItemById(itemId);
+    const sample = item?.sample;
+    if (!sample) {
+        return null;
+    }
+    const signature = `${item.id}:${buildSampleSignature(sample, item.updatedAt || '')}:${item.updatedAt || ''}`;
+    const cached = sampleBufferCache.get(`audio-library:${item.id}`);
+    if (cached && cached.signature === signature && cached.buffer) {
+        return cached.buffer;
+    }
+    const arrayBuffer = await sampleToArrayBuffer(sample);
+    if (!arrayBuffer) {
+        return null;
+    }
+    const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    sampleBufferCache.set(`audio-library:${item.id}`, {
         signature,
         buffer: decoded
     });
@@ -1035,6 +1163,246 @@ function buildSamplePlaybackPlan(params = {}, seed = Date.now()) {
     };
     const impactGain = clamp(Math.pow(impact / 0.8, 1.15), 0.08, 2.9);
     return { impact, impactGain, bounce, repeats, baseRate, jitter };
+}
+
+function getSkinSfxAudioItem() {
+    const itemId = getSkinSfxAudioItemId(currentSkinId, '');
+    return itemId ? getAudioLibraryItemById(itemId) : null;
+}
+
+function getGameEventAudioBindings(eventKey) {
+    const options = getGameSfxBindingOptions(eventKey, '');
+    const out = [];
+    for (const option of options) {
+        const itemId = `${option?.audioItemId || ''}`.trim();
+        if (!itemId) {
+            continue;
+        }
+        const item = getAudioLibraryItemById(itemId);
+        if (!item || item.audioType === 'music') {
+            continue;
+        }
+        out.push({
+            item,
+            loop: option?.loop === true
+        });
+    }
+    return out;
+}
+
+function readBgmPlaylistUrlValue(rawValue) {
+    if (typeof rawValue === 'string') {
+        const text = rawValue.trim();
+        return text && text !== '[object Object]' ? text : '';
+    }
+    if (!rawValue || typeof rawValue !== 'object') {
+        return '';
+    }
+    const nested = rawValue.url || rawValue.src || rawValue.path || rawValue.href || rawValue.file || '';
+    if (typeof nested === 'string') {
+        const text = nested.trim();
+        return text && text !== '[object Object]' ? text : '';
+    }
+    if (nested && typeof nested === 'object') {
+        return readBgmPlaylistUrlValue(nested);
+    }
+    return '';
+}
+
+function stopGameEventLoop(eventKey, options = {}) {
+    const key = `${eventKey || ''}`.trim();
+    if (!key) {
+        return;
+    }
+    const activeNodes = gameEventLoopNodes.get(key) || [];
+    for (const node of activeNodes) {
+        try {
+            node.source.onended = null;
+            node.source.stop();
+        } catch {
+            // noop
+        }
+        try {
+            node.source.disconnect();
+        } catch {
+            // noop
+        }
+        try {
+            node.gain.disconnect();
+        } catch {
+            // noop
+        }
+    }
+    gameEventLoopNodes.delete(key);
+    if (options.keepSession !== true) {
+        gameEventLoopSessions.delete(key);
+    }
+}
+
+function stopAllGameEventLoops() {
+    const keys = Array.from(new Set([
+        ...gameEventLoopNodes.keys(),
+        ...gameEventLoopSessions.keys()
+    ]));
+    for (const key of keys) {
+        stopGameEventLoop(key);
+    }
+}
+
+function registerGameEventLoopNode(eventKey, source, gain) {
+    const key = `${eventKey || ''}`.trim();
+    if (!key || !source || !gain) {
+        return;
+    }
+    const list = gameEventLoopNodes.get(key) || [];
+    list.push({ source, gain });
+    gameEventLoopNodes.set(key, list);
+}
+
+function removeGameEventLoopNode(eventKey, source) {
+    const key = `${eventKey || ''}`.trim();
+    const list = gameEventLoopNodes.get(key) || [];
+    if (list.length <= 0) {
+        return;
+    }
+    const next = list.filter((node) => node.source !== source);
+    if (next.length > 0) {
+        gameEventLoopNodes.set(key, next);
+    } else {
+        gameEventLoopNodes.delete(key);
+    }
+}
+
+async function playLoopingAudioLibraryItem(eventKey, item, gainBoost = 1, playbackRateMul = 1, sessionId = 0) {
+    if (!item?.sample || item.audioType === 'music') {
+        return false;
+    }
+    const key = `${eventKey || ''}`.trim();
+    if (!key) {
+        return false;
+    }
+    const ctx = getAudioContext();
+    const buffer = await decodeAudioLibraryItemBuffer(ctx, item.id);
+    if (!buffer) {
+        return false;
+    }
+    if (gameEventLoopSessions.get(key) !== sessionId) {
+        return false;
+    }
+
+    const duration = Math.max(0, Number(buffer.duration || item.durationSeconds || 0));
+    const trimStart = duration > 0
+        ? clamp(Number(item.trimStart || 0), 0, Math.max(0, duration - 0.01))
+        : 0;
+    const trimEnd = duration > 0
+        ? clamp(Number(item.trimEnd || duration), trimStart + 0.01, duration)
+        : Math.max(0.01, duration);
+    const loopStart = Math.max(0, trimStart);
+    const loopEnd = Math.max(loopStart + 0.01, trimEnd);
+    const params = item.params || {};
+    const plan = buildSamplePlaybackPlan(params, Date.now());
+    const volumeGain = clamp(Number(item.volume || 1), 0, 2);
+    const source = ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    source.loopStart = loopStart;
+    source.loopEnd = loopEnd;
+    source.playbackRate.setValueAtTime(
+        clamp(plan.baseRate * playbackRateMul, 0.45, 2.2),
+        ctx.currentTime
+    );
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(
+        clamp(plan.impactGain * volumeGain * gainBoost, 0.02, 4),
+        ctx.currentTime
+    );
+    source.connect(gain);
+    gain.connect(getSfxOutputNode(ctx));
+    source.onended = () => {
+        removeGameEventLoopNode(key, source);
+    };
+    source.start(ctx.currentTime + 0.003, loopStart);
+    registerGameEventLoopNode(key, source, gain);
+    return true;
+}
+
+function playGameEventSoundBindings(eventKey, gainBoost = 1, playbackRateMul = 1) {
+    const key = `${eventKey || ''}`.trim();
+    if (!key) {
+        return false;
+    }
+    const bindings = getGameEventAudioBindings(key);
+    if (bindings.length <= 0) {
+        stopGameEventLoop(key);
+        return false;
+    }
+    const sessionId = gameEventLoopSessionSeq + 1;
+    gameEventLoopSessionSeq = sessionId;
+    gameEventLoopSessions.set(key, sessionId);
+    stopGameEventLoop(key, { keepSession: true });
+
+    let handled = false;
+    let hasLoop = false;
+    for (const binding of bindings) {
+        if (binding.loop) {
+            hasLoop = true;
+            handled = true;
+            void playLoopingAudioLibraryItem(key, binding.item, gainBoost, playbackRateMul, sessionId).catch(() => {});
+            continue;
+        }
+        handled = true;
+        void playAudioLibraryItem(binding.item, gainBoost, playbackRateMul).catch(() => {});
+    }
+    if (!hasLoop) {
+        gameEventLoopSessions.delete(key);
+    }
+    return handled;
+}
+
+async function playAudioLibraryItem(item, gainBoost = 1, playbackRateMul = 1) {
+    if (!item?.sample || item.audioType === 'music') {
+        return false;
+    }
+    const ctx = getAudioContext();
+    const buffer = await decodeAudioLibraryItemBuffer(ctx, item.id);
+    if (!buffer) {
+        return false;
+    }
+    const params = item.params || {};
+    const plan = buildSamplePlaybackPlan(params, Date.now());
+    const duration = Math.max(0, Number(buffer.duration || item.durationSeconds || 0));
+    const trimStart = duration > 0
+        ? clamp(Number(item.trimStart || 0), 0, Math.max(0, duration - 0.01))
+        : 0;
+    const trimEnd = duration > 0
+        ? clamp(Number(item.trimEnd || duration), trimStart + 0.01, duration)
+        : duration;
+    const segmentDuration = Math.max(0.01, trimEnd - trimStart);
+    const volumeGain = clamp(Number(item.volume || 1), 0, 2);
+    let cursor = ctx.currentTime + 0.003;
+    for (let i = 0; i < plan.repeats; i += 1) {
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        const rate = clamp(plan.baseRate * playbackRateMul * plan.jitter(i), 0.45, 2.2);
+        source.playbackRate.setValueAtTime(rate, cursor);
+
+        const gain = ctx.createGain();
+        const repeatDecay = Math.pow(0.82 - plan.bounce * 0.14, i);
+        gain.gain.setValueAtTime(
+            clamp(plan.impactGain * volumeGain * gainBoost * repeatDecay, 0.02, 4),
+            cursor
+        );
+        source.connect(gain);
+        gain.connect(getSfxOutputNode(ctx));
+
+        source.start(cursor, trimStart, segmentDuration);
+        const renderedDuration = segmentDuration / rate;
+        source.stop(cursor + renderedDuration + 0.02);
+        const overlapFactor = clamp(0.62 - plan.bounce * 0.22, 0.28, 0.72);
+        cursor += renderedDuration * overlapFactor;
+    }
+    return true;
 }
 
 async function playPresetSample(recipe, gainBoost = 1, playbackRateMul = 1) {
@@ -1168,6 +1536,7 @@ export function resumeAudio() {
 }
 
 export function stopBgm() {
+    stopAllActiveSfx();
     bgmSceneKey = '';
     bgmPlaylist = [];
     bgmTrackIndex = 0;
@@ -1193,6 +1562,9 @@ export function playBgmForScene(sceneKey, options = {}) {
     const requestedSceneKey = `${sceneKey || ''}`.trim() || BGM_SCENE_KEYS.HOME;
     const sceneChanged = !!bgmSceneKey && bgmSceneKey !== requestedSceneKey;
     const restart = options?.restart === true || sceneChanged;
+    if (restart) {
+        stopAllActiveSfx();
+    }
     if (!bgmStorageReady) {
         ensureBgmStorageReadyForReplay(requestedSceneKey);
         return;
@@ -1203,6 +1575,11 @@ export function playBgmForScene(sceneKey, options = {}) {
 
 export function playClearSound() {
     void initAudioProfileStorage();
+    const audioItem = getSkinSfxAudioItem();
+    if (audioItem) {
+        void playAudioLibraryItem(audioItem, 1.05, 1).catch(() => {});
+        return;
+    }
     const recipe = getActiveRecipe();
     void playPresetSample(recipe, 1.05, 1).then((played) => {
         if (!played) {
@@ -1217,6 +1594,11 @@ export function playClearSound() {
 
 export function playClearSoundExclusive() {
     void initAudioProfileStorage();
+    const audioItem = getSkinSfxAudioItem();
+    if (audioItem) {
+        void playAudioLibraryItem(audioItem, 1.05, 1).catch(() => {});
+        return;
+    }
     const recipe = getActiveRecipe();
     const ctx = getAudioContext();
     const estimatedDuration = estimateRecipeDuration(recipe, recipe.presetId);
@@ -1273,6 +1655,9 @@ export function playReleaseScaleSound(comboCount = 0) {
 
 export function playErrorSound() {
     void initAudioProfileStorage();
+    if (playGameEventSoundBindings('error', 0.96, 1)) {
+        return;
+    }
     const recipe = getGameEventRecipe('error', 'fail-plop');
     void playPresetSample(recipe, 0.96, 1).then((played) => {
         if (!played) {
@@ -1287,6 +1672,9 @@ export function playErrorSound() {
 
 export function playLevelCompleteSound() {
     void initAudioProfileStorage();
+    if (playGameEventSoundBindings('levelComplete', 0.95, 1)) {
+        return;
+    }
     const ctx = getAudioContext();
     const base = getGameEventRecipe('levelComplete', 'candy-crunch');
     void playPresetSample(base, 0.95, 1).then((played) => {
@@ -1315,6 +1703,9 @@ export function playLevelCompleteSound() {
 
 export function playGameOverSound() {
     void initAudioProfileStorage();
+    if (playGameEventSoundBindings('gameOver', 0.92, 1)) {
+        return;
+    }
     const ctx = getAudioContext();
     const base = getGameEventRecipe('gameOver', 'fail-plop');
     void playPresetSample(base, 0.92, 1).then((played) => {
@@ -1343,6 +1734,9 @@ export function playGameOverSound() {
 
 export function playClickSound() {
     void initAudioProfileStorage();
+    if (playGameEventSoundBindings('click', 0.84, 1)) {
+        return;
+    }
     const recipe = getGameEventRecipe('click', 'syrup-pop');
     void playPresetSample(recipe, 0.84, 1).then((played) => {
         if (!played) {
@@ -1357,6 +1751,9 @@ export function playClickSound() {
 
 export function playCoinPopSound() {
     void initAudioProfileStorage();
+    if (playGameEventSoundBindings('coin', 0.9, 1)) {
+        return;
+    }
     const recipe = getGameEventRecipe('coin', 'syrup-pop');
     void playPresetSample(recipe, 0.9, 1).then((played) => {
         if (!played) {
@@ -1371,6 +1768,9 @@ export function playCoinPopSound() {
 
 export function playCheckinRewardCoinSound() {
     void initAudioProfileStorage();
+    if (playGameEventSoundBindings('checkinCoinTrail', 0.88, 1.06)) {
+        return;
+    }
     const recipe = getGameEventRecipe('checkinCoinTrail', 'syrup-pop');
     void playPresetSample(recipe, 0.88, 1.06).then((played) => {
         if (!played) {
@@ -1423,7 +1823,7 @@ export function earlyBgmBootstrap() {
     }
     earlyBootstrapDone = true;
     logBgm('early bootstrap start');
-    const defaultSrc = 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp3';
+    const defaultSrc = DEFAULT_HOME_BGM_SRC;
     const audio = getBgmAudioElement();
     bgmSceneKey = 'home';
     bgmPlaylist = [defaultSrc];

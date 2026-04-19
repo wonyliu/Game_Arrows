@@ -1,0 +1,194 @@
+{
+  "skinId": "skin00_atlas",
+  "generatedAt": "2026-04-19T08:26:54.767Z",
+  "source": "admin atlas import",
+  "mechanism": "atlas-sheet",
+  "preview": "/assets/skins/skin00_atlas/skin_preview.png?v=mo5i5o6m",
+  "atlas": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+  "allowHueVariants": true,
+  "greenKey": {
+    "color": "#239638",
+    "tolerance": 74,
+    "feather": 18
+  },
+  "assets": {
+    "snakeHead": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 98,
+        "y": 80,
+        "width": 824,
+        "height": 646,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    },
+    "snakeHeadCurious": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 1051,
+        "y": 80,
+        "width": 827,
+        "height": 646,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    },
+    "snakeHeadSleepy": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 98,
+        "y": 792,
+        "width": 824,
+        "height": 644,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    },
+    "snakeHeadSurprised": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 1053,
+        "y": 792,
+        "width": 827,
+        "height": 644,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    },
+    "snakeSegA": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 104,
+        "y": 1493,
+        "width": 848,
+        "height": 613,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    },
+    "snakeSegB": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 104,
+        "y": 1493,
+        "width": 848,
+        "height": 613,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    },
+    "snakeTailBase": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 1059,
+        "y": 1516,
+        "width": 817,
+        "height": 519,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    },
+    "snakeTailTip": {
+      "src": "/assets/skins/skin00_atlas/skin_atlas.png?v=mo5i5o6m",
+      "crop": {
+        "x": 1059,
+        "y": 1516,
+        "width": 817,
+        "height": 519,
+        "sourceWidth": 1984,
+        "sourceHeight": 2174
+      },
+      "chromaKey": {
+        "color": "#239638",
+        "tolerance": 74,
+        "feather": 18
+      }
+    }
+  },
+  "layout": {
+    "snakeHead": {
+      "x": 98,
+      "y": 80,
+      "width": 824,
+      "height": 646
+    },
+    "snakeHeadCurious": {
+      "x": 1051,
+      "y": 80,
+      "width": 827,
+      "height": 646
+    },
+    "snakeHeadSleepy": {
+      "x": 98,
+      "y": 792,
+      "width": 824,
+      "height": 644
+    },
+    "snakeHeadSurprised": {
+      "x": 1053,
+      "y": 792,
+      "width": 827,
+      "height": 644
+    },
+    "snakeSegA": {
+      "x": 104,
+      "y": 1493,
+      "width": 848,
+      "height": 613
+    },
+    "snakeSegB": {
+      "x": 104,
+      "y": 1493,
+      "width": 848,
+      "height": 613
+    },
+    "snakeTailBase": {
+      "x": 1059,
+      "y": 1516,
+      "width": 817,
+      "height": 519
+    },
+    "snakeTailTip": {
+      "x": 1059,
+      "y": 1516,
+      "width": 817,
+      "height": 519
+    }
+  }
+}

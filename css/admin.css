@@ -113,6 +113,10 @@ body { padding: clamp(12px, 2vw, 20px); }
     align-items: start;
 }
 
+.sfx-admin-shell-single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
 .controls, .preview {
     background: var(--panel);
     border-radius: 20px;
@@ -678,6 +682,129 @@ button:disabled {
     border-radius: 8px;
 }
 
+.sfx-audio-preview-panel {
+    margin: 8px 0;
+    border: 1px solid rgba(65, 83, 187, 0.22);
+    border-radius: 12px;
+    background: #f7f9ff;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.sfx-audio-preview-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.sfx-audio-preview-head strong {
+    font-size: 13px;
+    line-height: 1.35;
+    color: #25306b;
+}
+
+.sfx-audio-preview-state {
+    font-size: 12px;
+    font-weight: 800;
+    color: #456016;
+    white-space: nowrap;
+}
+
+.sfx-audio-preview-panel audio {
+    display: none;
+}
+
+.sfx-audio-progress-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+    color: #5d6895;
+    font-weight: 700;
+}
+
+.sfx-audio-seek {
+    width: 100%;
+    min-height: auto;
+    margin: 0;
+}
+
+.sfx-audio-load {
+    display: grid;
+    gap: 4px;
+}
+
+.sfx-audio-load-track {
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(91, 107, 196, 0.14);
+}
+
+.sfx-audio-load-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #6f82ff 0%, #4c6ff6 100%);
+    transition: width 0.12s ease;
+}
+
+.sfx-audio-load-text {
+    font-size: 12px;
+    color: #5d6895;
+}
+
+.audio-library-list {
+    display: grid;
+    gap: 8px;
+    max-height: 640px;
+    overflow: auto;
+    padding-right: 2px;
+}
+
+.audio-library-card {
+    width: 100%;
+    min-height: auto;
+    border-radius: 12px;
+    border: 1px solid rgba(49, 61, 134, 0.2);
+    background: #f7f8ff;
+    padding: 10px;
+    display: grid;
+    gap: 6px;
+    text-align: left;
+}
+
+.audio-library-card:hover {
+    border-color: rgba(65, 85, 196, 0.42);
+}
+
+.audio-library-card.is-active {
+    border-color: rgba(65, 85, 196, 0.72);
+    box-shadow: 0 10px 20px rgba(61, 86, 199, 0.18);
+}
+
+.audio-library-card strong {
+    font-size: 13px;
+    color: #283066;
+}
+
+.audio-library-card-meta,
+.sfx-audio-library-meta {
+    font-size: 12px;
+    line-height: 1.45;
+    color: #535d8f;
+}
+
+.audio-library-card-keywords {
+    font-size: 11px;
+    color: #30408f;
+    font-weight: 700;
+}
+
 .sfx-external-preview {
     border-top: 1px dashed rgba(58, 80, 191, 0.24);
     padding-top: 8px;
@@ -818,6 +945,98 @@ button:disabled {
 
 .skin-sfx-preview-btn:hover {
     background: #e4e9ff;
+}
+
+.game-sfx-binding-list {
+    display: grid;
+    gap: 10px;
+}
+
+.game-sfx-event-card {
+    border: 1px solid rgba(52, 69, 151, 0.2);
+    border-radius: 12px;
+    background: #f6f7ff;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+}
+
+.game-sfx-event-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.game-sfx-event-head strong {
+    font-size: 13px;
+    color: #2c3569;
+}
+
+.game-sfx-event-head .sub {
+    margin: 0;
+}
+
+.game-sfx-option-list {
+    display: grid;
+    gap: 8px;
+}
+
+.game-sfx-option-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    gap: 8px;
+    align-items: center;
+}
+
+.game-sfx-option-row select {
+    min-height: 36px;
+    padding: 0 10px;
+    border-radius: 10px;
+}
+
+.game-sfx-loop-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    padding: 0 10px;
+    border: 1px solid rgba(52, 69, 151, 0.2);
+    border-radius: 10px;
+    background: #ffffff;
+    font-size: 12px;
+    color: #344080;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.game-sfx-loop-label input[type='checkbox'] {
+    margin: 0;
+}
+
+.game-sfx-mini-btn {
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(52, 69, 151, 0.36);
+    background: #eef1ff;
+    color: #27316b;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.game-sfx-mini-btn:hover {
+    background: #e4e9ff;
+}
+
+.game-sfx-mini-btn.is-danger {
+    border-color: rgba(194, 31, 78, 0.35);
+    color: #8f2244;
+    background: #fff0f4;
+}
+
+.game-sfx-mini-btn.is-danger:hover {
+    background: #ffe8ef;
 }
 
 .music-sfx-shell {
@@ -1529,6 +1748,12 @@ button:disabled {
     }
     .skin-sfx-binding-row {
         grid-template-columns: 1fr;
+    }
+    .game-sfx-option-row {
+        grid-template-columns: 1fr;
+    }
+    .game-sfx-loop-label {
+        justify-content: center;
     }
     .skin-workspace-head {
         flex-direction: column;
@@ -2490,6 +2715,21 @@ button.skin-gen-style-preview:hover {
 
 .ui-editor-property-grid .field.is-wide {
     grid-column: 1 / -1;
+}
+
+.ui-editor-scale-tools {
+    display: grid;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    border: 1px solid rgba(45, 59, 128, 0.12);
+    background: rgba(245, 247, 255, 0.85);
+}
+
+.ui-editor-scale-actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
 }
 
 .ui-editor-preview-panel {

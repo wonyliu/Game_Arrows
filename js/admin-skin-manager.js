@@ -1,11 +1,15 @@
-﻿import {
+import {
     LOCAL_SKIN_CATALOG_STORAGE_KEY,
     LOCAL_SKIN_COLOR_VARIANTS_STORAGE_KEY,
+    clearSkinPriceOverrides,
     getDefaultCoinCostBySkinId,
+    isBuiltInSkinId,
     getSkinById,
     getSkinCatalog,
-    isLegacyColorVariantSkinId
-} from './skins.js?v=27';
+    isLegacyColorVariantSkinId,
+    readSkinPriceOverrides,
+    writeSkinPriceOverrides
+} from './skins.js?v=32';
 
 const NAME_ZH_OVERRIDE_KEY = 'arrowClear_skinNameZhOverrides_v1';
 const NAME_EN_OVERRIDE_KEY = 'arrowClear_skinNameEnOverrides_v1';
@@ -13,6 +17,23 @@ const DESC_ZH_OVERRIDE_KEY = 'arrowClear_skinDescZhOverrides_v1';
 const DESC_EN_OVERRIDE_KEY = 'arrowClear_skinDescEnOverrides_v1';
 const LOCAL_SKIN_PRICE_KEY = 'arrowClear_localSkinPriceOverrides_v1';
 const DEFAULT_SKIN_ID = 'classic-burrow';
+const ATLAS_SOURCE_SIZE = Object.freeze({ width: 1984, height: 2174 });
+const ATLAS_PART_LAYOUT = Object.freeze({
+    snakeHead: Object.freeze({ x: 98, y: 80, width: 824, height: 646 }),
+    snakeHeadCurious: Object.freeze({ x: 1051, y: 80, width: 827, height: 646 }),
+    snakeHeadSleepy: Object.freeze({ x: 98, y: 792, width: 824, height: 644 }),
+    snakeHeadSurprised: Object.freeze({ x: 1053, y: 792, width: 827, height: 644 }),
+    snakeSegA: Object.freeze({ x: 104, y: 1493, width: 848, height: 613 }),
+    snakeSegB: Object.freeze({ x: 104, y: 1493, width: 848, height: 613 }),
+    snakeTailBase: Object.freeze({ x: 1059, y: 1516, width: 817, height: 519 }),
+    snakeTailTip: Object.freeze({ x: 1059, y: 1516, width: 817, height: 519 })
+});
+const ATLAS_GREEN_KEY = Object.freeze({
+    color: '#239638',
+    tolerance: 74,
+    feather: 18
+});
+const ASSET_PREVIEW_CACHE = new Map();
 
 const PARTS = Object.freeze([
     Object.freeze({ key: 'headDefault', label: 'Head Default', file: 'snake_head.png', assetKey: 'snakeHead' }),
@@ -32,7 +53,9 @@ const el = {
     select: document.getElementById('skinPriceSelect'),
     btnRefresh: document.getElementById('btnSkinRefreshList'),
     btnOpenGenA: document.getElementById('btnShowSkinGenView'),
+    btnImportAtlas: document.getElementById('btnImportAtlasSkin'),
     btnCloseGen: document.getElementById('btnCloseSkinGenView'),
+    importAtlasInput: document.getElementById('inputImportAtlasSkin'),
 
     detailView: document.getElementById('skinDetailView'),
     genView: document.getElementById('skinGenView'),
@@ -62,7 +85,9 @@ const REQUIRED_KEYS = [
     'select',
     'btnRefresh',
     'btnOpenGenA',
+    'btnImportAtlas',
     'btnCloseGen',
+    'importAtlasInput',
     'detailView',
     'genView',
     'workspaceTitle',
@@ -112,9 +137,15 @@ function writeJsonStorage(key, value) {
 }
 
 function writeLocalSkinCatalog(savedRows, catalogSkins = []) {
-    const builtInIds = new Set((Array.isArray(catalogSkins) ? catalogSkins : []).map((skin) => sanitizeId(skin?.id)));
+    const builtInIds = new Set([DEFAULT_SKIN_ID]);
     const savedIds = (Array.isArray(savedRows) ? savedRows : []).map((row) => sanitizeId(row?.id)).filter(Boolean);
     const candidateBaseIdSet = new Set([...builtInIds, ...savedIds, DEFAULT_SKIN_ID]);
+    const existingRows = readJsonStorage(LOCAL_SKIN_CATALOG_STORAGE_KEY, []);
+    const existingById = new Map(
+        (Array.isArray(existingRows) ? existingRows : [])
+            .map((row) => [sanitizeId(row?.id), row])
+            .filter(([id]) => Boolean(id))
+    );
     const payload = [];
     for (const row of (Array.isArray(savedRows) ? savedRows : [])) {
         const id = sanitizeId(row?.id);
@@ -141,7 +172,31 @@ function writeLocalSkinCatalog(savedRows, catalogSkins = []) {
             descriptionZh,
             descriptionEn,
             preview: `${row?.preview || `/assets/skins/${id}/snake_head.png`}`.split('?')[0],
-            coinCost: Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[id]) || 0))
+            coinCost: Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[id]) || 0)),
+            ...(row?.assets && typeof row.assets === 'object' ? { assets: row.assets } : {}),
+            ...(typeof row?.allowHueVariants === 'boolean' ? { allowHueVariants: row.allowHueVariants } : {})
+        });
+    }
+    for (const [id, row] of existingById.entries()) {
+        if (!id || id === DEFAULT_SKIN_ID || builtInIds.has(id)) {
+            continue;
+        }
+        if (payload.some((entry) => sanitizeId(entry.id) === id)) {
+            continue;
+        }
+        if (isLegacyColorVariantSkinId(id, candidateBaseIdSet) || isLegacyColorVariantSkinId(id)) {
+            continue;
+        }
+        payload.push({
+            id,
+            nameZh: normalizeLabel(state.nameZhOverrides[id], normalizeLabel(row?.nameZh, id)),
+            nameEn: normalizeLabel(state.nameEnOverrides[id], normalizeLabel(row?.nameEn, id)),
+            descriptionZh: normalizeDescription(state.descZhOverrides[id], normalizeDescription(row?.descriptionZh, 'AI generated skin.')),
+            descriptionEn: normalizeDescription(state.descEnOverrides[id], normalizeDescription(row?.descriptionEn, 'AI generated skin.')),
+            preview: `${row?.preview || `/assets/skins/${id}/snake_head.png`}`.split('?')[0],
+            coinCost: Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[id]) || row?.coinCost || 0)),
+            ...(row?.assets && typeof row.assets === 'object' ? { assets: row.assets } : {}),
+            ...(typeof row?.allowHueVariants === 'boolean' ? { allowHueVariants: row.allowHueVariants } : {})
         });
     }
     localStorage.setItem(LOCAL_SKIN_CATALOG_STORAGE_KEY, JSON.stringify(payload, null, 2));
@@ -181,6 +236,260 @@ function buildLocalAssets(skinId) {
     };
 }
 
+function buildAtlasAssetsForSkin(skinId, cacheTag = '1') {
+    const id = sanitizeId(skinId);
+    const atlasSrc = `/assets/skins/${id}/skin_atlas.png?v=${cacheTag}`;
+    const assets = {};
+    for (const [key, crop] of Object.entries(ATLAS_PART_LAYOUT)) {
+        assets[key] = {
+            src: atlasSrc,
+            crop: { ...crop, sourceWidth: ATLAS_SOURCE_SIZE.width, sourceHeight: ATLAS_SOURCE_SIZE.height },
+            chromaKey: { ...ATLAS_GREEN_KEY }
+        };
+    }
+    return assets;
+}
+
+function normalizeAssetUrl(asset, fallback = '') {
+    if (typeof asset === 'string') {
+        return asset;
+    }
+    if (asset && typeof asset === 'object' && typeof asset.src === 'string') {
+        return asset.src;
+    }
+    return fallback;
+}
+
+function resolveAssetPreview(img, asset, fallback = '') {
+    if (!(img instanceof HTMLImageElement)) {
+        return;
+    }
+    if (typeof asset === 'string') {
+        img.src = asset || fallback;
+        return;
+    }
+    if (!asset || typeof asset !== 'object' || typeof asset.src !== 'string') {
+        img.src = fallback;
+        return;
+    }
+    const crop = asset.crop && typeof asset.crop === 'object' ? asset.crop : null;
+    if (!crop) {
+        img.src = asset.src;
+        return;
+    }
+    const cacheKey = JSON.stringify({ src: asset.src, crop, chromaKey: asset.chromaKey || null });
+    const cached = ASSET_PREVIEW_CACHE.get(cacheKey);
+    if (cached) {
+        img.src = cached;
+        return;
+    }
+    const source = new Image();
+    source.decoding = 'async';
+    source.onload = () => {
+        const basisWidth = Math.max(1, Math.round(Number(crop.sourceWidth) || source.naturalWidth));
+        const basisHeight = Math.max(1, Math.round(Number(crop.sourceHeight) || source.naturalHeight));
+        const scaleX = source.naturalWidth / basisWidth;
+        const scaleY = source.naturalHeight / basisHeight;
+        const width = Math.max(1, Math.round((Number(crop.width) || source.naturalWidth) * scaleX));
+        const height = Math.max(1, Math.round((Number(crop.height) || source.naturalHeight) * scaleY));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d', { willReadFrequently: true }) || canvas.getContext('2d');
+        if (!ctx) {
+            img.src = asset.src;
+            return;
+        }
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(
+            source,
+            Math.max(0, Math.round((Number(crop.x) || 0) * scaleX)),
+            Math.max(0, Math.round((Number(crop.y) || 0) * scaleY)),
+            width,
+            height,
+            0,
+            0,
+            width,
+            height
+        );
+        const chromaKey = asset.chromaKey && typeof asset.chromaKey === 'object' ? asset.chromaKey : null;
+        if (chromaKey) {
+            const data = ctx.getImageData(0, 0, width, height);
+            const pixels = data.data;
+            const color = `${chromaKey.color || '#00ff00'}`.trim().toLowerCase();
+            const r = Number.parseInt(color.slice(1, 3), 16) || 0;
+            const g = Number.parseInt(color.slice(3, 5), 16) || 255;
+            const b = Number.parseInt(color.slice(5, 7), 16) || 0;
+            const tolerance = Math.max(1, Number(chromaKey.tolerance) || 60);
+            const feather = Math.max(0, Math.min(tolerance, Number(chromaKey.feather) || 0));
+            const hardCutoff = Math.max(0, tolerance - feather);
+            for (let i = 0; i < pixels.length; i += 4) {
+                if (pixels[i + 3] === 0) continue;
+                const dr = pixels[i] - r;
+                const dg = pixels[i + 1] - g;
+                const db = pixels[i + 2] - b;
+                const distance = Math.sqrt((dr * dr) + (dg * dg) + (db * db));
+                if (distance > tolerance) continue;
+                if (distance <= hardCutoff || feather <= 0) {
+                    pixels[i + 3] = 0;
+                } else {
+                    const progress = (distance - hardCutoff) / Math.max(1e-6, feather);
+                    pixels[i + 3] = Math.round(pixels[i + 3] * Math.max(0, Math.min(1, progress)));
+                }
+            }
+            ctx.putImageData(data, 0, 0);
+        }
+        const dataUrl = canvas.toDataURL('image/png');
+        ASSET_PREVIEW_CACHE.set(cacheKey, dataUrl);
+        img.src = dataUrl;
+    };
+    source.onerror = () => {
+        img.src = fallback || normalizeAssetUrl(asset, '');
+    };
+    source.src = asset.src;
+}
+
+function deriveImportedSkinBaseName(filename = '') {
+    const raw = `${filename || ''}`.replace(/\.[^.]+$/, '').trim();
+    return raw || `imported-atlas-${Date.now().toString(36)}`;
+}
+
+function createImportedSkinId(baseName) {
+    const baseId = sanitizeId(baseName) || `imported-atlas-${Date.now().toString(36)}`;
+    let nextId = baseId;
+    let attempt = 1;
+    const usedIds = new Set(state.skins.map((skin) => skin.id));
+    while (usedIds.has(nextId)) {
+        attempt += 1;
+        nextId = `${baseId}-${attempt}`;
+    }
+    return nextId;
+}
+
+function readFileAsDataUrl(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(typeof reader.result === 'string' ? reader.result : '');
+        reader.onerror = () => reject(reader.error || new Error('file read failed'));
+        reader.readAsDataURL(file);
+    });
+}
+
+function createAtlasPreviewDataUrl(dataUrl, crop = ATLAS_PART_LAYOUT.snakeHead) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+            const basisWidth = Math.max(1, Math.round(Number(crop.sourceWidth) || ATLAS_SOURCE_SIZE.width));
+            const basisHeight = Math.max(1, Math.round(Number(crop.sourceHeight) || ATLAS_SOURCE_SIZE.height));
+            const scaleX = image.naturalWidth / basisWidth;
+            const scaleY = image.naturalHeight / basisHeight;
+            const width = Math.max(1, Math.round(crop.width * scaleX));
+            const height = Math.max(1, Math.round(crop.height * scaleY));
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true }) || canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('preview canvas unavailable'));
+                return;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(
+                image,
+                Math.max(0, Math.round(crop.x * scaleX)),
+                Math.max(0, Math.round(crop.y * scaleY)),
+                width,
+                height,
+                0,
+                0,
+                width,
+                height
+            );
+            const data = ctx.getImageData(0, 0, width, height);
+            const pixels = data.data;
+            const r = 0x23;
+            const g = 0x96;
+            const b = 0x38;
+            const tolerance = ATLAS_GREEN_KEY.tolerance;
+            const feather = ATLAS_GREEN_KEY.feather;
+            const hardCutoff = Math.max(0, tolerance - feather);
+            for (let i = 0; i < pixels.length; i += 4) {
+                if (pixels[i + 3] === 0) continue;
+                const dr = pixels[i] - r;
+                const dg = pixels[i + 1] - g;
+                const db = pixels[i + 2] - b;
+                const distance = Math.sqrt((dr * dr) + (dg * dg) + (db * db));
+                if (distance > tolerance) continue;
+                if (distance <= hardCutoff) {
+                    pixels[i + 3] = 0;
+                } else {
+                    const progress = (distance - hardCutoff) / Math.max(1e-6, feather);
+                    pixels[i + 3] = Math.round(pixels[i + 3] * Math.max(0, Math.min(1, progress)));
+                }
+            }
+            ctx.putImageData(data, 0, 0);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        image.onerror = () => reject(new Error('atlas preview decode failed'));
+        image.src = dataUrl;
+    });
+}
+
+function convertImageDataUrlToPng(dataUrl) {
+    return new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = Math.max(1, image.naturalWidth || image.width || 1);
+            canvas.height = Math.max(1, image.naturalHeight || image.height || 1);
+            const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('atlas canvas unavailable'));
+                return;
+            }
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/png'));
+        };
+        image.onerror = () => reject(new Error('atlas decode failed'));
+        image.src = dataUrl;
+    });
+}
+
+function upsertLocalCatalogRow(nextRow) {
+    const id = sanitizeId(nextRow?.id);
+    if (!id || id === DEFAULT_SKIN_ID) {
+        return;
+    }
+    const rows = readJsonStorage(LOCAL_SKIN_CATALOG_STORAGE_KEY, []);
+    const filtered = (Array.isArray(rows) ? rows : []).filter((row) => sanitizeId(row?.id) !== id);
+    filtered.push({
+        id,
+        nameZh: normalizeLabel(nextRow?.nameZh, id),
+        nameEn: normalizeLabel(nextRow?.nameEn, id),
+        descriptionZh: normalizeDescription(nextRow?.descriptionZh, 'Imported atlas skin.'),
+        descriptionEn: normalizeDescription(nextRow?.descriptionEn, 'Imported atlas skin.'),
+        preview: `${nextRow?.preview || `/assets/skins/${id}/skin_preview.png`}`.split('?')[0],
+        coinCost: Math.max(0, Math.floor(Number(nextRow?.coinCost) || 0)),
+        ...(nextRow?.assets && typeof nextRow.assets === 'object' ? { assets: nextRow.assets } : {}),
+        ...(typeof nextRow?.allowHueVariants === 'boolean' ? { allowHueVariants: nextRow.allowHueVariants } : {})
+    });
+    localStorage.setItem(LOCAL_SKIN_CATALOG_STORAGE_KEY, JSON.stringify(filtered, null, 2));
+}
+
+function removeLocalCatalogRow(skinId) {
+    const id = sanitizeId(skinId);
+    if (!id) {
+        return;
+    }
+    const rows = readJsonStorage(LOCAL_SKIN_CATALOG_STORAGE_KEY, []);
+    const filtered = (Array.isArray(rows) ? rows : []).filter((row) => sanitizeId(row?.id) !== id);
+    localStorage.setItem(LOCAL_SKIN_CATALOG_STORAGE_KEY, JSON.stringify(filtered, null, 2));
+}
+
 function setListStatus(text, isError = false) {
     el.listStatus.textContent = text || '';
     el.listStatus.style.color = isError ? '#c21f4e' : '#3f6b22';
@@ -205,7 +514,9 @@ async function fetchSavedSkins() {
                 descriptionEn: normalizeDescription(row?.descriptionEn),
                 complete: !!row?.complete,
                 preview: typeof row?.preview === 'string' ? row.preview : '',
-                protected: !!row?.protected
+                protected: !!row?.protected,
+                assets: row?.assets && typeof row.assets === 'object' ? row.assets : null,
+                allowHueVariants: row?.allowHueVariants !== false
             }))
             .filter((row) => !!row.id && row.complete);
         const candidateBaseIdSet = new Set(normalizedRows.map((row) => row.id));
@@ -240,15 +551,29 @@ function buildMergedSkins(catalog, savedRows) {
         if (!id) continue;
 
         const saved = savedById.get(id);
-        const shouldKeep = id === DEFAULT_SKIN_ID || Boolean(saved);
-        if (!shouldKeep) continue;
+        if (!saved && id !== DEFAULT_SKIN_ID) {
+            byId.set(id, {
+                id,
+                source: 'catalog',
+                protected: id === DEFAULT_SKIN_ID,
+                preview: typeof skin.preview === 'string' ? skin.preview.split('?')[0] : '',
+                assets: skin.assets,
+                defaultPrice: Math.max(0, Math.floor(Number(getDefaultCoinCostBySkinId(id)) || 0)),
+                currentPrice: Math.max(0, Math.floor(Number(getSkinById(id)?.coinCost) || 0)),
+                defaultZh: normalizeLabel(getSkinDisplayName(skin, 'zh-CN'), id),
+                defaultEn: normalizeLabel(getSkinDisplayName(skin, 'en-US'), id),
+                defaultDescZh: normalizeDescription(getSkinDescriptionByLocale(skin, 'zh-CN'), 'AI generated skin.'),
+                defaultDescEn: normalizeDescription(getSkinDescriptionByLocale(skin, 'en-US'), 'AI generated skin.')
+            });
+            continue;
+        }
 
         byId.set(id, {
             id,
             source: 'catalog',
             protected: id === DEFAULT_SKIN_ID,
             preview: saved?.preview || `${skin.preview || skin.assets?.snakeHead || ''}`.split('?')[0],
-            assets: saved ? buildLocalAssets(id) : skin.assets,
+            assets: saved?.assets || (saved ? buildLocalAssets(id) : skin.assets),
             defaultPrice: Math.max(0, Math.floor(Number(getDefaultCoinCostBySkinId(id)) || 0)),
             currentPrice: Math.max(0, Math.floor(Number(getSkinById(id)?.coinCost) || 0)),
             defaultZh: normalizeLabel(saved?.nameZh || getSkinDisplayName(skin, 'zh-CN'), id),
@@ -266,7 +591,7 @@ function buildMergedSkins(catalog, savedRows) {
             source: 'local',
             protected: row.id === DEFAULT_SKIN_ID,
             preview: row.preview || `/assets/skins/${row.id}/snake_head.png`,
-            assets: buildLocalAssets(row.id),
+            assets: row.assets && typeof row.assets === 'object' ? row.assets : buildLocalAssets(row.id),
             defaultPrice: 0,
             currentPrice: Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[row.id]) || 0)),
             defaultZh: row.nameZh || row.id,
@@ -327,7 +652,7 @@ function renderPartList(skin) {
         const img = document.createElement('img');
         img.alt = part.label;
         img.loading = 'lazy';
-        img.src = skin?.assets?.[part.assetKey] || '';
+        resolveAssetPreview(img, skin?.assets?.[part.assetKey], skin.preview || '');
         thumb.appendChild(img);
 
         const meta = document.createElement('div');
@@ -359,8 +684,10 @@ function renderMeta(skin) {
     el.descZh.value = resolveDescZh(skin);
     el.descEn.value = resolveDescEn(skin);
 
-    const currentPrice = skin.source === 'catalog'
-        ? Math.max(0, Math.floor(Number(getSkinById(skin.id)?.coinCost) || 0))
+    const catalogSkin = getSkinById(skin.id);
+    const hasExactCatalogSkin = catalogSkin?.id === skin.id;
+    const currentPrice = hasExactCatalogSkin
+        ? Math.max(0, Math.floor(Number(catalogSkin.coinCost) || 0))
         : Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[skin.id]) || 0));
 
     if (el.priceDefault) {
@@ -391,7 +718,7 @@ function renderLibrary() {
         img.className = 'skin-library-thumb';
         img.alt = skin.id;
         img.loading = 'lazy';
-        img.src = skin.preview || '';
+        img.src = skin.preview || normalizeAssetUrl(skin.assets?.snakeHead, '');
 
         const label = document.createElement('div');
         label.className = 'skin-library-name';
@@ -467,10 +794,26 @@ async function saveMeta() {
 
     await saveNames(skin);
 
-    if (skin.source === 'catalog') {
-        el.btnSavePriceLegacy.click();
+    const price = Math.max(0, Math.floor(Number(el.priceInput.value) || 0));
+    if (isBuiltInSkinId(skin.id)) {
+        const defaultPrice = Math.max(0, Math.floor(Number(getDefaultCoinCostBySkinId(skin.id)) || 0));
+        const nextOverrides = {
+            ...readSkinPriceOverrides()
+        };
+        if (price === defaultPrice) {
+            delete nextOverrides[skin.id];
+        } else {
+            nextOverrides[skin.id] = price;
+        }
+        const normalizedOverrides = writeSkinPriceOverrides(nextOverrides);
+        if (!normalizedOverrides || Object.keys(normalizedOverrides).length <= 0) {
+            clearSkinPriceOverrides();
+        }
+        if (Object.prototype.hasOwnProperty.call(state.localSkinPriceOverrides, skin.id)) {
+            delete state.localSkinPriceOverrides[skin.id];
+            writeJsonStorage(LOCAL_SKIN_PRICE_KEY, state.localSkinPriceOverrides);
+        }
     } else {
-        const price = Math.max(0, Math.floor(Number(el.priceInput.value) || 0));
         state.localSkinPriceOverrides[skin.id] = price;
         writeJsonStorage(LOCAL_SKIN_PRICE_KEY, state.localSkinPriceOverrides);
     }
@@ -514,6 +857,7 @@ async function deleteSkin() {
         writeJsonStorage(DESC_ZH_OVERRIDE_KEY, state.descZhOverrides);
         writeJsonStorage(DESC_EN_OVERRIDE_KEY, state.descEnOverrides);
         writeJsonStorage(LOCAL_SKIN_PRICE_KEY, state.localSkinPriceOverrides);
+        removeLocalCatalogRow(skin.id);
 
         await refreshCatalog(true);
         window.dispatchEvent(new CustomEvent('admin-skin-catalog-updated'));
@@ -542,6 +886,46 @@ async function refreshCatalog(resetSelection) {
     window.dispatchEvent(new CustomEvent('admin-skin-catalog-updated'));
 }
 
+async function importAtlasSkinFromFile(file) {
+    if (!(file instanceof File)) {
+        return;
+    }
+    const derivedBase = deriveImportedSkinBaseName(file.name);
+    const skinId = createImportedSkinId(derivedBase);
+    const skinNameZh = normalizeLabel(derivedBase, skinId);
+    const sourceDataUrl = await readFileAsDataUrl(file);
+    const imageDataUrl = await convertImageDataUrlToPng(sourceDataUrl);
+    const previewDataUrl = await createAtlasPreviewDataUrl(imageDataUrl);
+    const res = await fetch('/api/skin-gen/import-atlas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            skinId,
+            skinNameZh,
+            atlasImageDataUrl: imageDataUrl,
+            previewImageDataUrl: previewDataUrl
+        })
+    });
+    const payload = await res.json().catch(() => ({}));
+    if (!res.ok || !payload?.ok) {
+        throw new Error(payload?.error || `导入失败 (${res.status})`);
+    }
+    upsertLocalCatalogRow({
+        id: skinId,
+        nameZh: skinNameZh,
+        nameEn: skinId,
+        descriptionZh: '导入的 atlas 贴图皮肤。',
+        descriptionEn: 'Imported atlas-sheet skin.',
+        preview: payload.preview || `/assets/skins/${skinId}/skin_preview.png`,
+        assets: payload.assets || buildAtlasAssetsForSkin(skinId, payload.cacheTag || Date.now().toString(36)),
+        allowHueVariants: true,
+        coinCost: 0
+    });
+    await refreshCatalog(false);
+    selectSkin(skinId, false);
+    setMetaStatus(`已导入 atlas 皮肤：${skinId}`);
+}
+
 function bindEvents() {
     el.search.addEventListener('input', () => {
         state.filterText = `${el.search.value || ''}`.trim();
@@ -555,7 +939,21 @@ function bindEvents() {
 
     const openGen = () => setWorkspaceView('gen');
     el.btnOpenGenA.addEventListener('click', openGen);
+    el.btnImportAtlas.addEventListener('click', () => {
+        el.importAtlasInput.value = '';
+        el.importAtlasInput.click();
+    });
     el.btnCloseGen.addEventListener('click', () => setWorkspaceView('detail'));
+    el.importAtlasInput.addEventListener('change', () => {
+        const file = el.importAtlasInput.files?.[0] || null;
+        if (!file) {
+            return;
+        }
+        setMetaStatus(`正在导入 atlas：${file.name}`);
+        void importAtlasSkinFromFile(file).catch((error) => {
+            setMetaStatus(error?.message || '导入 atlas 失败', true);
+        });
+    });
 
     window.addEventListener('admin-skin-catalog-refresh', () => {
         void refreshCatalog(false);

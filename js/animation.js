@@ -1,4 +1,4 @@
-import { drawPixelParticle } from './pixel-art.js?v=51';
+import { drawPixelParticle } from './pixel-art.js?v=52';
 import { readGameplayParams } from './game-params.js?v=6';
 
 const GAMEPLAY_PARAMS = readGameplayParams();

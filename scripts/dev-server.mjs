@@ -9,6 +9,10 @@ import { createUserCenterStore } from './user-center-store.mjs';
 const ROOT_DIR = process.cwd();
 const DATA_DIR = path.join(ROOT_DIR, '.local-data');
 const MANAGED_CONFIG_DIR = path.join(ROOT_DIR, 'data', 'managed-config');
+const LEGACY_AUDIO_LIBRARY_ASSET_DIR = path.join(DATA_DIR, 'audio-library-assets');
+const AUDIO_DIR = path.join(ROOT_DIR, 'assets', 'audio');
+const AUDIO_SFX_DIR = path.join(AUDIO_DIR, 'sfx');
+const AUDIO_LIBRARY_ASSET_DIR = AUDIO_SFX_DIR;
 const SKIN_GEN_DIR = path.join(DATA_DIR, 'skin-gen');
 const SKIN_GEN_NAME_MAP_PATH = path.join(SKIN_GEN_DIR, 'skin-name-map.json');
 const SKIN_GEN_CONTEXTS_DIR = path.join(SKIN_GEN_DIR, 'skin-contexts');
@@ -41,6 +45,25 @@ const ALLOWED_PART_NAMES = Object.freeze([
     'snake_tail_tip.png'
 ]);
 const ALLOWED_PART_SET = new Set(ALLOWED_PART_NAMES);
+const ATLAS_IMPORT_LAYOUT = Object.freeze({
+    snakeHead: Object.freeze({ x: 98, y: 80, width: 824, height: 646 }),
+    snakeHeadCurious: Object.freeze({ x: 1051, y: 80, width: 827, height: 646 }),
+    snakeHeadSleepy: Object.freeze({ x: 98, y: 792, width: 824, height: 644 }),
+    snakeHeadSurprised: Object.freeze({ x: 1053, y: 792, width: 827, height: 644 }),
+    snakeSegA: Object.freeze({ x: 104, y: 1493, width: 848, height: 613 }),
+    snakeSegB: Object.freeze({ x: 104, y: 1493, width: 848, height: 613 }),
+    snakeTailBase: Object.freeze({ x: 1059, y: 1516, width: 817, height: 519 }),
+    snakeTailTip: Object.freeze({ x: 1059, y: 1516, width: 817, height: 519 })
+});
+const ATLAS_IMPORT_SOURCE_SIZE = Object.freeze({
+    width: 1984,
+    height: 2174
+});
+const ATLAS_IMPORT_GREEN_KEY = Object.freeze({
+    color: '#239638',
+    tolerance: 74,
+    feather: 18
+});
 const ALLOWED_FREESOUND_PROXY_HOSTS = Object.freeze([
     'freesound.org',
     'www.freesound.org',
@@ -79,6 +102,7 @@ const ASSET_SCAN_SKIP_DIR_NAMES = new Set([
     'node_modules'
 ]);
 const ASSET_IMAGE_REF_PATTERN = /\/?assets\/[^"'`\s)>\]]+?\.(?:png|jpg|jpeg|webp|svg|gif)(?:\?[^"'`\s)>\]]+)?/gi;
+const pendingJsonWriteByPath = new Map();
 
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
@@ -118,8 +142,14 @@ const MANAGED_STORAGE_KEYS = new Set([
 
 await fs.mkdir(DATA_DIR, { recursive: true });
 await fs.mkdir(MANAGED_CONFIG_DIR, { recursive: true });
+await fs.mkdir(AUDIO_DIR, { recursive: true });
+await fs.mkdir(AUDIO_SFX_DIR, { recursive: true });
+await fs.mkdir(LEGACY_AUDIO_LIBRARY_ASSET_DIR, { recursive: true });
+await fs.mkdir(AUDIO_LIBRARY_ASSET_DIR, { recursive: true });
 await fs.mkdir(SKIN_GEN_DIR, { recursive: true });
 await fs.mkdir(SKIN_GEN_CONTEXTS_DIR, { recursive: true });
+await migrateLegacyAudioLibraryAssetsToAudioDir();
+await migrateAudioLibraryAssetUrlsToAudioDir();
 
 const userCenterStore = await createUserCenterStore({
     backend: USER_CENTER_BACKEND,
@@ -268,6 +298,10 @@ const server = http.createServer(async (req, res) => {
             await handleSkinSaveFinalRequest(req, res);
             return;
         }
+        if (requestUrl.pathname === '/api/skin-gen/import-atlas') {
+            await handleSkinImportAtlasRequest(req, res);
+            return;
+        }
         if (requestUrl.pathname === '/api/skin-gen/delete-skin') {
             await handleSkinDeleteRequest(req, res);
             return;
@@ -278,6 +312,10 @@ const server = http.createServer(async (req, res) => {
         }
         if (requestUrl.pathname === '/api/skin-gen/skin-context') {
             await handleSkinContextRequest(req, res, requestUrl);
+            return;
+        }
+        if (requestUrl.pathname.startsWith('/api/audio-library/assets/')) {
+            await handleAudioLibraryAssetRequest(req, res, requestUrl);
             return;
         }
         if (requestUrl.pathname === '/api/sfx/providers') {
@@ -313,6 +351,7 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, HOST, () => {
     console.log(`Dev server running at http://${HOST}:${PORT}`);
     console.log(`Persistent storage dir: ${DATA_DIR}`);
+    console.log(`Audio SFX dir: ${AUDIO_SFX_DIR}`);
     console.log(`User center backend: ${userCenterStoreMeta.backend}`);
     if (ADMIN_REQUIRE_KEY || ADMIN_API_KEY) {
         console.log('Admin API auth: enabled');
@@ -671,16 +710,26 @@ async function handleSkinSavedSkinListRequest(req, res) {
                 // ignored: part missing
             }
         }
+        const manifestPath = path.join(skinsRoot, skinId, 'manifest.json');
+        const manifest = await readJsonFile(manifestPath, null);
+        const isAtlasManifest = isPlainObject(manifest) && `${manifest?.mechanism || ''}`.trim().toLowerCase() === 'atlas-sheet';
         const hasGenerationContext = await hasSkinGenerationContext(skinId);
+        const preview = typeof manifest?.preview === 'string' && manifest.preview.trim()
+            ? manifest.preview.trim()
+            : (partFiles.includes('snake_head.png') ? `/assets/skins/${skinId}/snake_head.png` : null);
+        const assets = isPlainObject(manifest?.assets) ? manifest.assets : null;
+        const complete = isAtlasManifest ? Boolean(assets) : partFiles.length === ALLOWED_PART_NAMES.length;
 
         skins.push({
             id: skinId,
             nameZh: typeof nameMap?.[skinId] === 'string' ? sanitizeSkinDisplayName(nameMap[skinId]) : '',
             partCount: partFiles.length,
-            complete: partFiles.length === ALLOWED_PART_NAMES.length,
+            complete,
             protected: PROTECTED_SKIN_IDS.has(skinId),
             hasGenerationContext,
-            preview: partFiles.includes('snake_head.png') ? `/assets/skins/${skinId}/snake_head.png` : null
+            preview,
+            assets,
+            allowHueVariants: manifest?.allowHueVariants !== false
         });
     }
 
@@ -884,6 +933,109 @@ async function handleSkinSaveFinalRequest(req, res) {
         writtenParts: writeCount,
         preview,
         generationContext
+    });
+}
+
+function buildAtlasImportAssets(skinId, cacheTag = '') {
+    const safeId = sanitizeSlug(skinId, '');
+    const atlasSrc = `/assets/skins/${safeId}/skin_atlas.png${cacheTag ? `?v=${cacheTag}` : ''}`;
+    return {
+        snakeHead: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeHead, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } },
+        snakeHeadCurious: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeHeadCurious, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } },
+        snakeHeadSleepy: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeHeadSleepy, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } },
+        snakeHeadSurprised: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeHeadSurprised, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } },
+        snakeSegA: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeSegA, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } },
+        snakeSegB: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeSegB, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } },
+        snakeTailBase: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeTailBase, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } },
+        snakeTailTip: { src: atlasSrc, crop: { ...ATLAS_IMPORT_LAYOUT.snakeTailTip, sourceWidth: ATLAS_IMPORT_SOURCE_SIZE.width, sourceHeight: ATLAS_IMPORT_SOURCE_SIZE.height }, chromaKey: { ...ATLAS_IMPORT_GREEN_KEY } }
+    };
+}
+
+async function handleSkinImportAtlasRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_SKIN_GEN_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    if (!isPlainObject(body)) {
+        sendJson(res, 400, { ok: false, error: 'body must be an object' });
+        return;
+    }
+
+    const skinId = sanitizeSlug(body.skinId, '');
+    if (!skinId) {
+        sendJson(res, 400, { ok: false, error: 'skinId is required' });
+        return;
+    }
+    if (PROTECTED_SKIN_IDS.has(skinId)) {
+        sendJson(res, 400, { ok: false, error: `cannot overwrite protected skin: ${skinId}` });
+        return;
+    }
+    const skinNameZh = sanitizeSkinDisplayName(body.skinNameZh || skinId);
+
+    let atlasImage;
+    let previewImage;
+    try {
+        atlasImage = decodeImageDataUrl(body.atlasImageDataUrl);
+        previewImage = decodeImageDataUrl(body.previewImageDataUrl);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid atlas image data' });
+        return;
+    }
+    if (atlasImage.mime !== 'image/png' || previewImage.mime !== 'image/png') {
+        sendJson(res, 400, { ok: false, error: 'atlas and preview must be image/png' });
+        return;
+    }
+
+    const skinsRoot = path.join(ROOT_DIR, 'assets', 'skins');
+    const targetDir = path.join(skinsRoot, skinId);
+    const rel = path.relative(skinsRoot, targetDir);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) {
+        sendJson(res, 400, { ok: false, error: 'invalid target path' });
+        return;
+    }
+    await fs.mkdir(targetDir, { recursive: true });
+
+    const atlasPath = path.join(targetDir, 'skin_atlas.png');
+    const previewPath = path.join(targetDir, 'skin_preview.png');
+    await fs.writeFile(atlasPath, atlasImage.buffer);
+    await fs.writeFile(previewPath, previewImage.buffer);
+
+    const cacheTag = Date.now().toString(36);
+    const assets = buildAtlasImportAssets(skinId, cacheTag);
+    const manifest = {
+        skinId,
+        generatedAt: nowIso(),
+        source: 'admin atlas import',
+        mechanism: 'atlas-sheet',
+        preview: `/assets/skins/${skinId}/skin_preview.png?v=${cacheTag}`,
+        atlas: `/assets/skins/${skinId}/skin_atlas.png?v=${cacheTag}`,
+        allowHueVariants: true,
+        greenKey: { ...ATLAS_IMPORT_GREEN_KEY },
+        assets,
+        layout: ATLAS_IMPORT_LAYOUT
+    };
+    await writeJsonAtomic(path.join(targetDir, 'manifest.json'), manifest);
+
+    const nameMap = await readJsonFile(SKIN_GEN_NAME_MAP_PATH, {});
+    nameMap[skinId] = skinNameZh;
+    await writeJsonAtomic(SKIN_GEN_NAME_MAP_PATH, nameMap);
+
+    sendJson(res, 200, {
+        ok: true,
+        skinId,
+        skinNameZh,
+        preview: manifest.preview,
+        atlas: manifest.atlas,
+        cacheTag,
+        assets
     });
 }
 
@@ -1236,6 +1388,87 @@ function resolveStorageFilePath(key) {
     const safeKey = `${key || ''}`.trim();
     const baseDir = MANAGED_STORAGE_KEYS.has(safeKey) ? MANAGED_CONFIG_DIR : DATA_DIR;
     return path.join(baseDir, `${safeKey}.json`);
+}
+
+function parseAudioLibraryAssetId(pathname) {
+    const match = `${pathname || ''}`.match(/^\/api\/audio-library\/assets\/([^/]+)$/);
+    if (!match) {
+        return '';
+    }
+    return sanitizeSlug(decodeURIComponent(match[1] || ''), '');
+}
+
+function detectAudioAssetExtension(fileName = '', contentType = '') {
+    const mime = `${contentType || ''}`.trim().toLowerCase().split(';')[0];
+    if (mime === 'audio/mpeg' || mime === 'audio/mp3') return '.mp3';
+    if (mime === 'audio/wav' || mime === 'audio/x-wav' || mime === 'audio/wave') return '.wav';
+    if (mime === 'audio/ogg') return '.ogg';
+    if (mime === 'audio/mp4' || mime === 'audio/x-m4a') return '.m4a';
+    if (mime === 'audio/flac' || mime === 'audio/x-flac') return '.flac';
+    const ext = path.extname(`${fileName || ''}`).toLowerCase();
+    if (['.mp3', '.wav', '.ogg', '.m4a', '.flac'].includes(ext)) {
+        return ext;
+    }
+    return '.wav';
+}
+
+async function removeAudioLibraryAssetFiles(itemId) {
+    const safeId = sanitizeSlug(itemId, '');
+    if (!safeId) {
+        return;
+    }
+    const dirs = [AUDIO_LIBRARY_ASSET_DIR, LEGACY_AUDIO_LIBRARY_ASSET_DIR];
+    for (const dirPath of dirs) {
+        const entries = await fs.readdir(dirPath, { withFileTypes: true }).catch(() => []);
+        for (const entry of entries) {
+            if (!entry?.isFile?.()) {
+                continue;
+            }
+            if (entry.name === safeId || entry.name.startsWith(`${safeId}.`)) {
+                await fs.rm(path.join(dirPath, entry.name), { force: true }).catch(() => {});
+            }
+        }
+    }
+}
+
+async function handleAudioLibraryAssetRequest(req, res, requestUrl) {
+    const itemId = parseAudioLibraryAssetId(requestUrl.pathname);
+    if (!itemId) {
+        sendJson(res, 400, { ok: false, error: 'invalid audio library asset id' });
+        return;
+    }
+    if (req.method === 'DELETE') {
+        await removeAudioLibraryAssetFiles(itemId);
+        sendJson(res, 200, { ok: true, itemId });
+        return;
+    }
+    if (req.method !== 'PUT') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let buffer;
+    try {
+        buffer = await readRequestBuffer(req, 32 * 1024 * 1024);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid request body' });
+        return;
+    }
+    if (!buffer || buffer.length <= 0) {
+        sendJson(res, 400, { ok: false, error: 'audio asset body is required' });
+        return;
+    }
+    const fileName = `${requestUrl.searchParams.get('fileName') || ''}`.trim();
+    const ext = detectAudioAssetExtension(fileName, req.headers['content-type']);
+    await removeAudioLibraryAssetFiles(itemId);
+    const filePath = path.join(AUDIO_LIBRARY_ASSET_DIR, `${itemId}${ext}`);
+    await fs.writeFile(filePath, buffer);
+    const url = `/assets/audio/sfx/${path.basename(filePath)}`;
+    sendJson(res, 200, {
+        ok: true,
+        itemId,
+        fileName: path.basename(filePath),
+        url
+    });
 }
 
 function sanitizeUserId(raw) {
@@ -2403,6 +2636,12 @@ function parseAdminDbUserId(pathname) {
     return sanitizeUserId(decodeURIComponent(match[1] || ''));
 }
 
+function parseAdminDbInitializePlayerUserId(pathname) {
+    const match = `${pathname || ''}`.match(/^\/api\/admin\/db\/users\/([^/]+)\/initialize-player$/);
+    if (!match) return '';
+    return sanitizeUserId(decodeURIComponent(match[1] || ''));
+}
+
 async function handleAdminDbOverviewRequest(req, res) {
     if (req.method !== 'GET') {
         sendJson(res, 405, { ok: false, error: 'method not allowed' });
@@ -2484,6 +2723,32 @@ async function handleAdminDbUsersRequest(req, res, requestUrl) {
 }
 
 async function handleAdminDbUserDetailRequest(req, res, requestUrl) {
+    const initializePlayerUserId = parseAdminDbInitializePlayerUserId(requestUrl.pathname);
+    if (initializePlayerUserId) {
+        if (req.method !== 'POST') {
+            sendJson(res, 405, { ok: false, error: 'method not allowed' });
+            return;
+        }
+        const user = await userCenterStore.findUserById(initializePlayerUserId);
+        if (!user) {
+            sendJson(res, 404, { ok: false, error: 'user not found' });
+            return;
+        }
+        const progress = buildDefaultProgress();
+        const liveopsPlayer = buildDefaultLiveopsPlayerState();
+        const nextUser = {
+            ...user,
+            progress,
+            liveopsPlayer,
+            coins: progress.coins,
+            maxUnlockedLevel: progress.maxUnlockedLevel,
+            maxClearedLevel: progress.maxClearedLevel,
+            unlockedSkinIds: collectUniqueSkinIds(progress.unlockedSkinIds)
+        };
+        await userCenterStore.updateUser(nextUser);
+        sendJson(res, 200, { ok: true, user: toAdminSafeUserDetail(nextUser) });
+        return;
+    }
     const userId = parseAdminDbUserId(requestUrl.pathname);
     if (!userId) {
         sendJson(res, 400, { ok: false, error: 'invalid user id' });
@@ -2690,7 +2955,14 @@ async function handleSfxFreesoundProxyRequest(req, res, requestUrl) {
 
     let response;
     try {
-        response = await fetch(parsed.toString(), { method: 'GET' });
+        const fetchHeaders = {};
+        if (typeof req.headers.range === 'string' && req.headers.range.trim()) {
+            fetchHeaders.range = req.headers.range.trim();
+        }
+        response = await fetch(parsed.toString(), {
+            method: 'GET',
+            headers: fetchHeaders
+        });
     } catch (error) {
         sendJson(res, 502, { ok: false, error: error?.message || 'proxy request failed' });
         return;
@@ -2706,14 +2978,48 @@ async function handleSfxFreesoundProxyRequest(req, res, requestUrl) {
         return;
     }
 
-    const arrayBuffer = await response.arrayBuffer();
     const contentType = response.headers.get('content-type') || 'audio/mpeg';
-    res.writeHead(200, {
+    const contentLength = response.headers.get('content-length') || '';
+    const contentRange = response.headers.get('content-range') || '';
+    const acceptRanges = response.headers.get('accept-ranges') || '';
+    res.writeHead(response.status, {
         ...buildSecurityHeaders(),
         'Content-Type': contentType,
+        ...(contentLength ? { 'Content-Length': contentLength } : {}),
+        ...(contentRange ? { 'Content-Range': contentRange } : {}),
+        ...(acceptRanges ? { 'Accept-Ranges': acceptRanges } : {}),
         'Cache-Control': 'no-store'
     });
-    res.end(Buffer.from(arrayBuffer));
+
+    if (!response.body || typeof response.body.getReader !== 'function') {
+        const arrayBuffer = await response.arrayBuffer();
+        res.end(Buffer.from(arrayBuffer));
+        return;
+    }
+
+    const reader = response.body.getReader();
+    const handleClientClose = () => {
+        void reader.cancel().catch(() => {});
+    };
+    req.on('close', handleClientClose);
+
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (value && value.byteLength > 0) {
+                res.write(Buffer.from(value));
+            }
+        }
+        res.end();
+    } catch (error) {
+        if (!res.writableEnded) {
+            res.destroy(error instanceof Error ? error : new Error('proxy stream failed'));
+        }
+    } finally {
+        req.off('close', handleClientClose);
+        reader.releaseLock?.();
+    }
 }
 
 function decodeAudioBufferFromPayload(payload) {
@@ -3077,6 +3383,68 @@ async function handleBgmListRequest(req, res) {
     sendJson(res, 200, { ok: true, tracks });
 }
 
+async function migrateLegacyAudioLibraryAssetsToAudioDir() {
+    const legacyEntries = await fs.readdir(LEGACY_AUDIO_LIBRARY_ASSET_DIR, { withFileTypes: true }).catch(() => []);
+    if (!Array.isArray(legacyEntries) || legacyEntries.length <= 0) {
+        return;
+    }
+    let mirroredCount = 0;
+    for (const entry of legacyEntries) {
+        if (!entry?.isFile?.()) {
+            continue;
+        }
+        const fromPath = path.join(LEGACY_AUDIO_LIBRARY_ASSET_DIR, entry.name);
+        const toPath = path.join(AUDIO_LIBRARY_ASSET_DIR, entry.name);
+        const hasTarget = await fs.access(toPath).then(() => true).catch(() => false);
+        if (hasTarget) {
+            continue;
+        }
+        try {
+            await fs.copyFile(fromPath, toPath);
+            mirroredCount += 1;
+        } catch {
+            // keep legacy file when mirror fails
+        }
+    }
+    if (mirroredCount > 0) {
+        console.log(`Mirrored ${mirroredCount} legacy audio assets to ${AUDIO_LIBRARY_ASSET_DIR}`);
+    }
+}
+
+async function migrateAudioLibraryAssetUrlsToAudioDir() {
+    const filePath = path.join(DATA_DIR, 'audio-library-v1.json');
+    const doc = await readJsonFile(filePath, null);
+    if (!doc || !Array.isArray(doc.items)) {
+        return;
+    }
+    let changed = 0;
+    for (const item of doc.items) {
+        if (!item || typeof item !== 'object' || !item.sample || typeof item.sample !== 'object') {
+            continue;
+        }
+        const rawUrl = `${item.sample.url || ''}`.trim();
+        if (!rawUrl) {
+            continue;
+        }
+        const lower = rawUrl.toLowerCase();
+        const isLegacy = lower.startsWith('/.local-data/audio-library-assets/')
+            || lower.startsWith('.local-data/audio-library-assets/');
+        if (!isLegacy) {
+            continue;
+        }
+        const fileName = path.basename(rawUrl.split('?')[0] || '');
+        if (!fileName) {
+            continue;
+        }
+        item.sample.url = `/assets/audio/sfx/${fileName}`;
+        changed += 1;
+    }
+    if (changed > 0) {
+        await writeJsonAtomic(filePath, doc);
+        console.log(`Rewrote ${changed} legacy audio-library sample URLs to /assets/audio/sfx`);
+    }
+}
+
 async function serveStaticFile(_req, res, pathname) {
     let requestedPath = pathname === '/' ? '/index.html' : pathname;
     requestedPath = decodeURIComponent(requestedPath);
@@ -3138,13 +3506,39 @@ async function readJsonFile(filePath, fallback) {
 }
 
 async function writeJsonAtomic(filePath, payload) {
-    const tempPath = `${filePath}.tmp`;
-    const raw = `${JSON.stringify(payload, null, 2)}\n`;
-    await fs.writeFile(tempPath, raw, 'utf8');
-    await fs.rename(tempPath, filePath);
+    const previousWrite = pendingJsonWriteByPath.get(filePath) || Promise.resolve();
+    const nextWrite = previousWrite
+        .catch(() => {})
+        .then(async () => {
+            const tempPath = `${filePath}.${process.pid}.${Date.now()}.${crypto.randomUUID()}.tmp`;
+            const raw = `${JSON.stringify(payload, null, 2)}\n`;
+            try {
+                await fs.writeFile(tempPath, raw, 'utf8');
+                await fs.rename(tempPath, filePath);
+            } finally {
+                await fs.rm(tempPath, { force: true }).catch(() => {});
+            }
+        });
+    pendingJsonWriteByPath.set(filePath, nextWrite);
+    try {
+        await nextWrite;
+    } finally {
+        if (pendingJsonWriteByPath.get(filePath) === nextWrite) {
+            pendingJsonWriteByPath.delete(filePath);
+        }
+    }
 }
 
 async function readRequestJson(req, maxBytes = MAX_JSON_BODY_BYTES) {
+    const buffer = await readRequestBuffer(req, maxBytes);
+    const bodyText = buffer.toString('utf8').trim();
+    if (!bodyText) {
+        return {};
+    }
+    return JSON.parse(bodyText);
+}
+
+async function readRequestBuffer(req, maxBytes = MAX_JSON_BODY_BYTES) {
     const chunks = [];
     let size = 0;
 
@@ -3155,12 +3549,7 @@ async function readRequestJson(req, maxBytes = MAX_JSON_BODY_BYTES) {
         }
         chunks.push(chunk);
     }
-
-    const bodyText = Buffer.concat(chunks).toString('utf8').trim();
-    if (!bodyText) {
-        return {};
-    }
-    return JSON.parse(bodyText);
+    return Buffer.concat(chunks);
 }
 
 function decodeImageDataUrl(dataUrl) {

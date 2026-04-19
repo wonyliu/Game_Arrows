@@ -1,33 +1,41 @@
-﻿import { getSkinCatalog, isLegacyColorVariantSkinId } from './skins.js?v=27';
+import { getSkinCatalog, isLegacyColorVariantSkinId } from './skins.js?v=31';
 import {
     BUILTIN_SFX_PRESETS,
     SFX_PARAM_SCHEMA,
     deleteCustomSfxPreset,
+    deleteAudioLibraryItem,
+    getAudioLibraryCatalog,
     getSfxPresetById,
     getSfxPresetCatalog,
     getSfxPresetSample,
-    getGameSfxPresetId,
+    getGameSfxBindingOptions,
+    getSkinSfxAudioItemId,
     initSfxStorage,
     normalizeRecipe,
+    planAudioLibraryItemIdentity,
+    readAudioLibrary,
     readGameSfxBindings,
     readSfxLabState,
     readSkinSfxBindings,
+    setGameSfxBindingOptions,
     setCustomSfxPresetSample,
-    setGameSfxPresetId,
     setSfxPresetParamOverride,
+    setSkinSfxAudioItemId,
     setSkinSfxPresetId,
+    upsertAudioLibraryItem,
     upsertCustomSfxPreset,
     writeGameSfxBindings,
     writeSfxLabState,
     writeSkinSfxBindings
-} from './sfx-storage.js?v=6';
-import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=2';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig, writeBgmConfigAndSync } from './bgm-storage.js?v=8';
+} from './sfx-storage.js?v=11';
+import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=3';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig, writeBgmConfigAndSync } from './bgm-storage.js?v=9';
 
 const EXPORT_SAMPLE_RATE = 48_000;
 const PACK_VARIANT_COUNT = 5;
 const DEFAULT_SKIN_ID = 'classic-burrow';
 const GAME_MUSIC_AUTO_SAVE_DELAY_MS = 260;
+const AUDIO_LIBRARY_ASSET_API_BASE = '/api/audio-library/assets';
 
 const paramFieldConfig = [
     { key: 'impact', rangeId: 'sfxImpactRange', numberId: 'sfxImpactNumber' },
@@ -50,9 +58,6 @@ const el = {
     customDesc: document.getElementById('sfxCustomDesc'),
     status: document.getElementById('sfxStatus'),
     btnPlay: document.getElementById('btnSfxPlay'),
-    btnPlayBurst: document.getElementById('btnSfxPlayBurst'),
-    btnDownloadWav: document.getElementById('btnSfxDownloadWav'),
-    btnDownloadPack: document.getElementById('btnSfxDownloadPack'),
     btnReset: document.getElementById('btnSfxReset'),
     btnSaveAsNewPreset: document.getElementById('btnSfxSaveAsNewPreset'),
     btnUpdatePreset: document.getElementById('btnSfxUpdatePreset'),
@@ -63,27 +68,18 @@ const el = {
     btnSkinReset: document.getElementById('btnSkinSfxReset'),
     skinStatus: document.getElementById('skinSfxStatus'),
     skinBindingList: document.getElementById('skinSfxBindingList'),
-    gameSfxClickPresetSelect: document.getElementById('gameSfxClickPresetSelect'),
-    gameSfxCoinPresetSelect: document.getElementById('gameSfxCoinPresetSelect'),
-    gameSfxCheckinCoinTrailPresetSelect: document.getElementById('gameSfxCheckinCoinTrailPresetSelect'),
-    gameSfxErrorPresetSelect: document.getElementById('gameSfxErrorPresetSelect'),
-    gameSfxLevelCompletePresetSelect: document.getElementById('gameSfxLevelCompletePresetSelect'),
-    gameSfxGameOverPresetSelect: document.getElementById('gameSfxGameOverPresetSelect'),
+    gameSfxBindingList: document.getElementById('gameSfxBindingList'),
     btnGameSfxSave: document.getElementById('btnGameSfxSave'),
     btnGameSfxReset: document.getElementById('btnGameSfxReset'),
     gameSfxStatus: document.getElementById('gameSfxStatus'),
-    btnGameSfxPreviewClick: document.getElementById('btnGameSfxPreviewClick'),
-    btnGameSfxPreviewCoin: document.getElementById('btnGameSfxPreviewCoin'),
-    btnGameSfxPreviewCheckinCoinTrail: document.getElementById('btnGameSfxPreviewCheckinCoinTrail'),
-    btnGameSfxPreviewError: document.getElementById('btnGameSfxPreviewError'),
-    btnGameSfxPreviewLevelComplete: document.getElementById('btnGameSfxPreviewLevelComplete'),
-    btnGameSfxPreviewGameOver: document.getElementById('btnGameSfxPreviewGameOver'),
     gameMusicHomeTracks: document.getElementById('gameMusicHomeTracks'),
     gameMusicHomeVolume: document.getElementById('gameMusicHomeVolume'),
     gameMusicNormalTracks: document.getElementById('gameMusicNormalTracks'),
     gameMusicNormalVolume: document.getElementById('gameMusicNormalVolume'),
     gameMusicRewardTracks: document.getElementById('gameMusicRewardTracks'),
     gameMusicRewardVolume: document.getElementById('gameMusicRewardVolume'),
+    gameMusicLevelPassTracks: document.getElementById('gameMusicLevelPassTracks'),
+    gameMusicLevelPassVolume: document.getElementById('gameMusicLevelPassVolume'),
     gameMusicCompleteTracks: document.getElementById('gameMusicCompleteTracks'),
     gameMusicCompleteVolume: document.getElementById('gameMusicCompleteVolume'),
     btnGameMusicRefreshLibrary: document.getElementById('btnGameMusicRefreshLibrary'),
@@ -103,7 +99,34 @@ const el = {
     fsLicense: document.getElementById('sfxFsLicense'),
     btnFsSearch: document.getElementById('btnSfxFsSearch'),
     fsStatus: document.getElementById('sfxFsStatus'),
+    fsPreviewPanel: document.getElementById('sfxFsPreviewPanel'),
+    fsPreviewAudio: document.getElementById('sfxFsPreviewAudio'),
+    fsPreviewTitle: document.getElementById('sfxFsPreviewTitle'),
+    fsPreviewState: document.getElementById('sfxFsPreviewState'),
+    fsCurrentTime: document.getElementById('sfxFsCurrentTime'),
+    fsDuration: document.getElementById('sfxFsDuration'),
+    fsSeek: document.getElementById('sfxFsSeek'),
+    fsLoadFill: document.getElementById('sfxFsLoadFill'),
+    fsLoadText: document.getElementById('sfxFsLoadText'),
+    btnFsTogglePlay: document.getElementById('btnSfxFsTogglePlay'),
+    btnFsStop: document.getElementById('btnSfxFsStop'),
+    fsPreviewError: document.getElementById('sfxFsPreviewError'),
     fsResults: document.getElementById('sfxFsResults'),
+    audioLibrarySearch: document.getElementById('audioLibrarySearch'),
+    btnAudioLibraryRefresh: document.getElementById('btnAudioLibraryRefresh'),
+    audioLibraryName: document.getElementById('audioLibraryName'),
+    audioLibraryKeywords: document.getElementById('audioLibraryKeywords'),
+    audioLibraryVolume: document.getElementById('audioLibraryVolume'),
+    audioLibraryTrimStart: document.getElementById('audioLibraryTrimStart'),
+    audioLibraryTrimEnd: document.getElementById('audioLibraryTrimEnd'),
+    audioLibraryMeta: document.getElementById('audioLibraryMeta'),
+    audioLibraryPreviewAudio: document.getElementById('audioLibraryPreviewAudio'),
+    btnAudioLibraryPreview: document.getElementById('btnAudioLibraryPreview'),
+    btnAudioLibraryImport: document.getElementById('btnAudioLibraryImport'),
+    btnAudioLibrarySave: document.getElementById('btnAudioLibrarySave'),
+    btnAudioLibraryDelete: document.getElementById('btnAudioLibraryDelete'),
+    audioLibraryStatus: document.getElementById('audioLibraryStatus'),
+    audioLibraryList: document.getElementById('audioLibraryList'),
     aiPrompt: document.getElementById('sfxAiPrompt'),
     aiDuration: document.getElementById('sfxAiDuration'),
     btnAiGenerate: document.getElementById('btnSfxAiGenerate'),
@@ -118,6 +141,7 @@ const el = {
     btnResetTrim: document.getElementById('btnSfxResetTrim'),
     trimStatus: document.getElementById('sfxTrimStatus'),
     btnUseExternalAsPreview: document.getElementById('btnSfxUseExternalAsPreview'),
+    btnImportExternalToLibrary: document.getElementById('btnImportExternalToLibrary'),
     btnBindExternalToPreset: document.getElementById('btnSfxBindExternalToPreset'),
     btnClearExternal: document.getElementById('btnSfxClearExternal')
 };
@@ -133,7 +157,8 @@ const state = {
     skinRows: [],
     skinBindings: {},
     gameSfxBindings: {},
-    sourceMode: 'synth',
+    gameSfxDraftByEvent: {},
+    sourceMode: 'freesound',
     previewMode: 'synth',
     providerCaps: {
         freesound: false,
@@ -141,6 +166,27 @@ const state = {
         stableAudioFal: false,
         stableAudioHf: false,
         stableAudioBackend: ''
+    },
+    fsPreview: {
+        rowId: 0,
+        title: '',
+        sourceUrl: '',
+        duration: 0,
+        currentTime: 0,
+        loadRatio: 0,
+        bufferedEnd: 0,
+        isLoading: false,
+        isReady: false,
+        isPlaying: false,
+        statusText: '未开始',
+        error: ''
+    },
+    audioLibrary: [],
+    selectedAudioLibraryId: '',
+    audioLibraryPreview: {
+        itemId: '',
+        trimStart: 0,
+        trimEnd: 0
     },
     bgmTrackLibrary: [],
     bgmPreview: {
@@ -155,6 +201,8 @@ const state = {
 
 let realtimeAudioCtx = null;
 const presetSampleBufferCache = new Map();
+const audioLibraryBufferCache = new Map();
+const gameSfxPreviewLoops = new Map();
 
 function sanitizeId(rawId) {
     return `${rawId || ''}`
@@ -242,6 +290,12 @@ function setFsStatus(text, isError = false) {
     el.fsStatus.style.color = isError ? '#c21f4e' : '#3f6b22';
 }
 
+function setAudioLibraryStatus(text, isError = false) {
+    if (!el.audioLibraryStatus) return;
+    el.audioLibraryStatus.textContent = text || '';
+    el.audioLibraryStatus.style.color = isError ? '#c21f4e' : '#3f6b22';
+}
+
 function setAiStatus(text, isError = false) {
     if (!el.aiStatus) return;
     el.aiStatus.textContent = text || '';
@@ -269,7 +323,7 @@ function slugifyLabel(text, fallback = 'external-sfx') {
 }
 
 function setSourceMode(mode) {
-    const nextMode = ['synth', 'upload', 'freesound', 'stable-audio'].includes(mode) ? mode : 'synth';
+    const nextMode = ['synth', 'upload', 'freesound', 'stable-audio'].includes(mode) ? mode : 'freesound';
     state.sourceMode = nextMode;
     if (el.sourceMode) el.sourceMode.value = nextMode;
 
@@ -308,10 +362,307 @@ function clearExternalPreviewAudioUrl() {
     }
 }
 
+function formatAudioClock(seconds) {
+    const safe = Math.max(0, Number(seconds) || 0);
+    const mins = Math.floor(safe / 60);
+    const secs = Math.floor(safe % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function describeAudioElementError(audio) {
+    const code = Number(audio?.error?.code || 0);
+    switch (code) {
+        case 1:
+            return '加载已取消。';
+        case 2:
+            return '音频网络请求失败。';
+        case 3:
+            return '音频解码失败，可能格式不受支持。';
+        case 4:
+            return '浏览器不支持当前音频格式或地址无效。';
+        default:
+            return '音频加载失败。';
+    }
+}
+
+function updateFsPreviewLoadProgress() {
+    const audio = el.fsPreviewAudio;
+    const duration = Number(audio?.duration || state.fsPreview.duration || 0);
+    if (!audio || !Number.isFinite(duration) || duration <= 0 || !audio.buffered || audio.buffered.length <= 0) {
+        return;
+    }
+    const bufferedEnd = Math.max(0, Number(audio.buffered.end(audio.buffered.length - 1)) || 0);
+    state.fsPreview.bufferedEnd = bufferedEnd;
+    state.fsPreview.loadRatio = Math.max(0, Math.min(1, bufferedEnd / duration));
+    renderFsPreviewState();
+}
+
+function renderFsPreviewState() {
+    const preview = state.fsPreview;
+    const visible = !!(
+        preview.title
+        || preview.isLoading
+        || preview.isReady
+        || preview.error
+        || preview.loadRatio > 0
+    );
+    if (el.fsPreviewPanel) {
+        el.fsPreviewPanel.hidden = !visible;
+    }
+    if (!visible) {
+        return;
+    }
+
+    const duration = Math.max(0, Number(preview.duration) || 0);
+    const currentTime = Math.max(0, Math.min(duration || Number.POSITIVE_INFINITY, Number(preview.currentTime) || 0));
+    const loadRatio = Math.max(0, Math.min(1, Number(preview.loadRatio) || 0));
+    const canSeek = preview.isReady && duration > 0;
+    let loadText = '未加载';
+    if (preview.isLoading) {
+        if (duration > 0 && preview.bufferedEnd > 0) {
+            loadText = `已缓冲 ${Math.round(loadRatio * 100)}% (${formatAudioClock(preview.bufferedEnd)} / ${formatAudioClock(duration)})`;
+        } else {
+            loadText = '正在建立连接...';
+        }
+    } else if (preview.isReady) {
+        if (duration > 0 && preview.bufferedEnd > 0 && preview.bufferedEnd < duration) {
+            loadText = `已缓冲 ${Math.round(loadRatio * 100)}% (${formatAudioClock(preview.bufferedEnd)} / ${formatAudioClock(duration)})`;
+        } else {
+            loadText = '已可播放，后续按需加载';
+        }
+    } else if (preview.error) {
+        loadText = '加载失败';
+    }
+
+    if (el.fsPreviewTitle) {
+        el.fsPreviewTitle.textContent = preview.title || '未选择试听音频';
+    }
+    if (el.fsPreviewState) {
+        el.fsPreviewState.textContent = preview.statusText || '未开始';
+        el.fsPreviewState.style.color = preview.error
+            ? '#c21f4e'
+            : (preview.isLoading ? '#4a5fc1' : '#456016');
+    }
+    if (el.fsCurrentTime) {
+        el.fsCurrentTime.textContent = formatAudioClock(currentTime);
+    }
+    if (el.fsDuration) {
+        el.fsDuration.textContent = formatAudioClock(duration);
+    }
+    if (el.fsSeek) {
+        el.fsSeek.disabled = !canSeek;
+        el.fsSeek.value = canSeek ? `${Math.round((currentTime / duration) * 1000)}` : '0';
+    }
+    if (el.fsLoadFill) {
+        el.fsLoadFill.style.width = `${Math.round(loadRatio * 100)}%`;
+    }
+    if (el.fsLoadText) {
+        el.fsLoadText.textContent = loadText;
+    }
+    if (el.btnFsTogglePlay) {
+        el.btnFsTogglePlay.disabled = !preview.isReady;
+        el.btnFsTogglePlay.textContent = preview.isPlaying ? '暂停' : '播放';
+    }
+    if (el.btnFsStop) {
+        el.btnFsStop.disabled = !(preview.isReady || preview.isLoading);
+    }
+    if (el.fsPreviewError) {
+        el.fsPreviewError.textContent = preview.error || ' ';
+        el.fsPreviewError.style.color = preview.error ? '#c21f4e' : '#3f6b22';
+    }
+}
+
+function syncFsPreviewFromAudio() {
+    const audio = el.fsPreviewAudio;
+    if (!audio) return;
+    state.fsPreview.currentTime = Math.max(0, Number(audio.currentTime) || 0);
+    if (Number.isFinite(audio.duration) && audio.duration > 0) {
+        state.fsPreview.duration = audio.duration;
+    }
+    updateFsPreviewLoadProgress();
+    renderFsPreviewState();
+}
+
+function resetFsPreviewTransport(clearTitle = false) {
+    const audio = el.fsPreviewAudio;
+    if (audio) {
+        audio.pause();
+        audio.currentTime = 0;
+        audio.removeAttribute('src');
+        audio.load();
+    }
+    state.fsPreview.sourceUrl = '';
+    state.fsPreview.isLoading = false;
+    state.fsPreview.isReady = false;
+    state.fsPreview.isPlaying = false;
+    state.fsPreview.duration = 0;
+    state.fsPreview.currentTime = 0;
+    state.fsPreview.loadRatio = 0;
+    state.fsPreview.bufferedEnd = 0;
+    state.fsPreview.statusText = '未开始';
+    state.fsPreview.error = '';
+    state.fsPreview.rowId = clearTitle ? 0 : state.fsPreview.rowId;
+    if (clearTitle) {
+        state.fsPreview.title = '';
+    }
+    renderFsPreviewState();
+}
+
+function stopFsPreviewPlayback() {
+    const audio = el.fsPreviewAudio;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    state.fsPreview.currentTime = 0;
+    state.fsPreview.isPlaying = false;
+    state.fsPreview.isLoading = false;
+    state.fsPreview.isReady = !!audio.src;
+    state.fsPreview.statusText = '已停止';
+    renderFsPreviewState();
+}
+
+async function waitForFsPreviewMetadata(audio) {
+    if (!audio) {
+        throw new Error('preview audio element not found');
+    }
+    if (audio.readyState >= 1 && Number.isFinite(audio.duration) && audio.duration > 0) {
+        return;
+    }
+    await new Promise((resolve, reject) => {
+        const cleanup = () => {
+            audio.removeEventListener('loadedmetadata', onReady);
+            audio.removeEventListener('canplay', onReady);
+            audio.removeEventListener('error', onError);
+        };
+        const onReady = () => {
+            cleanup();
+            resolve();
+        };
+        const onError = () => {
+            cleanup();
+            reject(new Error(describeAudioElementError(audio)));
+        };
+        audio.addEventListener('loadedmetadata', onReady);
+        audio.addEventListener('canplay', onReady);
+        audio.addEventListener('error', onError);
+    });
+}
+
+async function playFsPreviewAudio() {
+    const audio = el.fsPreviewAudio;
+    if (!audio || !audio.src) {
+        throw new Error('当前没有可播放的试听音频。');
+    }
+    try {
+        state.fsPreview.error = '';
+        await audio.play();
+    } catch (error) {
+        state.fsPreview.isPlaying = false;
+        state.fsPreview.statusText = '播放失败';
+        state.fsPreview.error = error?.message || '浏览器阻止了音频播放。';
+        renderFsPreviewState();
+        throw error;
+    }
+}
+
+async function startFsPreview(row) {
+    const originKey = Number(row?.id) > 0 ? `freesound:${Number(row.id)}` : '';
+    const cachedItem = findAudioLibraryItemByOriginKey(originKey);
+    const previewUrl = getAudioSamplePlayableUrl(cachedItem?.sample) || row?.previewUrl || '';
+    if (!previewUrl) {
+        setFsStatus('该结果没有可试听的预览地址。', true);
+        return;
+    }
+
+    if (state.fsPreview.rowId === row.id && state.fsPreview.isReady) {
+        const audio = el.fsPreviewAudio;
+        if (audio) {
+            audio.currentTime = 0;
+        }
+        state.fsPreview.currentTime = 0;
+        state.fsPreview.error = '';
+        state.fsPreview.statusText = '准备播放';
+        renderFsPreviewState();
+        try {
+            await playFsPreviewAudio();
+            setFsStatus(`试听：${row.name}`);
+        } catch (error) {
+            setFsStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
+        }
+        return;
+    }
+
+    resetFsPreviewTransport(false);
+    state.fsPreview.rowId = Number(row.id) || 0;
+    state.fsPreview.title = row.name || `sound-${row.id || 'unknown'}`;
+    state.fsPreview.duration = Math.max(0, Number(row.duration) || 0);
+    state.fsPreview.statusText = '正在加载...';
+    state.fsPreview.error = '';
+    state.fsPreview.isLoading = true;
+    state.fsPreview.isReady = false;
+    state.fsPreview.isPlaying = false;
+    state.fsPreview.sourceUrl = previewUrl;
+    renderFsPreviewState();
+    setFsStatus(cachedItem ? `使用本地素材库试听：${state.fsPreview.title}` : `正在流式加载试听：${state.fsPreview.title}`);
+
+    try {
+        const audio = el.fsPreviewAudio;
+        if (!audio) {
+            throw new Error('preview audio element not found');
+        }
+
+        audio.pause();
+        audio.currentTime = 0;
+        audio.src = getAudioSamplePlayableUrl(cachedItem?.sample)
+            || `/api/sfx/freesound/proxy?url=${encodeURIComponent(row.previewUrl)}`;
+        audio.load();
+
+        await waitForFsPreviewMetadata(audio);
+        state.fsPreview.isLoading = false;
+        state.fsPreview.isReady = true;
+        state.fsPreview.duration = Number.isFinite(audio.duration) && audio.duration > 0
+            ? audio.duration
+            : Math.max(0, Number(row.duration) || 0);
+        state.fsPreview.currentTime = 0;
+        state.fsPreview.statusText = '已就绪';
+        updateFsPreviewLoadProgress();
+        renderFsPreviewState();
+
+        await playFsPreviewAudio();
+        setFsStatus(`试听：${state.fsPreview.title}`);
+    } catch (error) {
+        state.fsPreview.isLoading = false;
+        state.fsPreview.isReady = false;
+        state.fsPreview.isPlaying = false;
+        state.fsPreview.statusText = '加载失败';
+        state.fsPreview.error = error?.message || 'Unknown error';
+        renderFsPreviewState();
+        setFsStatus(`试听失败：${state.fsPreview.error}`, true);
+    }
+}
+
 function renderExternalSampleState() {
     const hasExternal = !!state.externalSample;
     if (el.externalPreviewWrap) {
         el.externalPreviewWrap.hidden = !hasExternal;
+    }
+    if (el.btnUseExternalAsPreview) {
+        el.btnUseExternalAsPreview.disabled = !hasExternal;
+    }
+    if (el.btnImportExternalToLibrary) {
+        el.btnImportExternalToLibrary.disabled = !hasExternal;
+        el.btnImportExternalToLibrary.title = hasExternal
+            ? '将当前工坊里这条音频保存到音频库'
+            : '先把音频载入工坊，或直接在 Freesound 搜索结果里点“导入音频库”';
+    }
+    if (el.btnApplyTrim) {
+        el.btnApplyTrim.disabled = !hasExternal;
+    }
+    if (el.btnResetTrim) {
+        el.btnResetTrim.disabled = !hasExternal;
+    }
+    if (el.btnClearExternal) {
+        el.btnClearExternal.disabled = !hasExternal;
     }
     if (!hasExternal) {
         clearExternalPreviewAudioUrl();
@@ -378,6 +729,165 @@ function dataUrlToArrayBuffer(dataUrl) {
     return bytes.buffer;
 }
 
+function parseDataUrlMimeType(dataUrl, fallback = 'audio/wav') {
+    const match = `${dataUrl || ''}`.match(/^data:([^;,]+)[;,]/i);
+    return match?.[1] ? match[1].toLowerCase() : fallback;
+}
+
+function dataUrlToBlob(dataUrl, fallbackMime = 'audio/wav') {
+    const arrayBuffer = dataUrlToArrayBuffer(dataUrl);
+    const mimeType = parseDataUrlMimeType(dataUrl, fallbackMime);
+    return new Blob([arrayBuffer], { type: mimeType });
+}
+
+function normalizeResourceUrl(value) {
+    if (typeof value === 'string') {
+        const text = value.trim();
+        if (!text || text === '[object Object]') {
+            return '';
+        }
+        return text;
+    }
+    if (value && typeof value === 'object') {
+        const nested = value.url || value.src || value.path || value.href || '';
+        if (typeof nested !== 'string') {
+            return '';
+        }
+        const text = nested.trim();
+        if (!text || text === '[object Object]') {
+            return '';
+        }
+        return text;
+    }
+    return '';
+}
+
+function buildAudioSampleSignature(sample, fallback = '') {
+    if (sample?.dataUrl) {
+        return `data:${sample.dataUrl.length}:${sample.fileName || fallback}`;
+    }
+    const sampleUrl = normalizeResourceUrl(sample?.url);
+    if (sampleUrl) {
+        return `url:${sampleUrl}:${sample.fileName || fallback}`;
+    }
+    if (sample?.refKind === 'preset-sample' && sample?.refId) {
+        return `ref:${sample.refKind}:${sample.refId}:${sample.fileName || fallback}`;
+    }
+    return `missing:${fallback}`;
+}
+
+function getAudioSamplePlayableUrl(sample) {
+    if (sample?.dataUrl) {
+        return sample.dataUrl;
+    }
+    const sampleUrl = normalizeResourceUrl(sample?.url);
+    if (sampleUrl) {
+        return sampleUrl;
+    }
+    if (sample?.refKind === 'preset-sample' && sample?.refId) {
+        return getSfxPresetSample(sample.refId)?.dataUrl || '';
+    }
+    return '';
+}
+
+async function sampleToArrayBuffer(sample, fallbackMime = 'audio/wav') {
+    if (sample?.dataUrl) {
+        return dataUrlToArrayBuffer(sample.dataUrl);
+    }
+    const sampleUrl = normalizeResourceUrl(sample?.url);
+    if (sampleUrl) {
+        const response = await fetch(sampleUrl, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            throw new Error(`音频拉取失败 (${response.status})`);
+        }
+        return response.arrayBuffer();
+    }
+    if (sample?.refKind === 'preset-sample' && sample?.refId) {
+        const presetSample = getSfxPresetSample(sample.refId);
+        if (presetSample?.dataUrl) {
+            return dataUrlToArrayBuffer(presetSample.dataUrl);
+        }
+    }
+    throw new Error('素材缺少可读取的音频源');
+}
+
+async function resolveAudioDurationFromSample(sample, fallbackMime = 'audio/wav') {
+    const ctx = ensureAudioContext();
+    const arrayBuffer = await sampleToArrayBuffer(sample, fallbackMime);
+    const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    return Math.max(0, Number(decoded.duration || 0));
+}
+
+async function uploadAudioLibrarySampleAsset(itemId, blob, fileName = '', mimeType = 'audio/wav') {
+    const safeItemId = `${itemId || ''}`.trim();
+    if (!safeItemId) {
+        throw new Error('invalid audio item id');
+    }
+    const response = await fetch(`${AUDIO_LIBRARY_ASSET_API_BASE}/${encodeURIComponent(safeItemId)}?fileName=${encodeURIComponent(fileName || '')}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': `${mimeType || blob?.type || 'application/octet-stream'}`
+        },
+        body: blob
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(payload?.error || `audio asset upload failed (${response.status})`);
+    }
+    return payload;
+}
+
+async function deleteAudioLibrarySampleAsset(itemId) {
+    const safeItemId = `${itemId || ''}`.trim();
+    if (!safeItemId) {
+        return;
+    }
+    await fetch(`${AUDIO_LIBRARY_ASSET_API_BASE}/${encodeURIComponent(safeItemId)}`, {
+        method: 'DELETE'
+    }).catch(() => {});
+}
+
+async function buildStoredAudioLibrarySample(blob, sampleInfo = {}, itemId = '') {
+    const sourceLabel = `${sampleInfo.sourceLabel || 'audio item'}`.trim() || 'audio item';
+    const fileName = `${sampleInfo.fileName || `${itemId || 'audio-item'}.wav`}`.trim() || `${itemId || 'audio-item'}.wav`;
+    const mimeType = `${sampleInfo.mimeType || blob?.type || 'audio/wav'}`.trim() || 'audio/wav';
+    const uploaded = await uploadAudioLibrarySampleAsset(itemId, blob, fileName, mimeType);
+    return {
+        dataUrl: '',
+        url: `${uploaded?.url || ''}`.trim(),
+        refKind: '',
+        refId: '',
+        mimeType,
+        fileName,
+        sourceLabel
+    };
+}
+
+function splitKeywordText(rawText) {
+    return `${rawText || ''}`
+        .split(/[,\n]/g)
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+}
+
+function buildKeywordListFromQuery(query, extras = []) {
+    const base = `${query || ''}`
+        .split(/[\s,]+/g)
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean);
+    const merged = [...base, ...extras];
+    return Array.from(new Set(merged)).slice(0, 24);
+}
+
+function trimFileExtension(text) {
+    const value = `${text || ''}`.trim();
+    const dotIndex = value.lastIndexOf('.');
+    return dotIndex > 0 ? value.slice(0, dotIndex) : value;
+}
+
 async function decodePresetSampleBuffer(ctx, presetId) {
     const sample = getSfxPresetSample(presetId);
     if (!sample?.dataUrl) {
@@ -438,6 +948,708 @@ async function setExternalSampleFromBlob(blob, sourceLabel = 'external-sfx', exp
     state.previewMode = 'external';
     renderExternalSampleState();
     refreshCustomEditorByPreset();
+}
+
+function refreshAudioLibraryState(preferredId = '') {
+    state.audioLibrary = readAudioLibrary();
+    const nextId = sanitizeId(preferredId || state.selectedAudioLibraryId || '');
+    if (nextId && state.audioLibrary.some((item) => item.id === nextId)) {
+        state.selectedAudioLibraryId = nextId;
+    } else {
+        state.selectedAudioLibraryId = state.audioLibrary[0]?.id || '';
+    }
+}
+
+function getSelectedAudioLibraryItem() {
+    const itemId = sanitizeId(state.selectedAudioLibraryId);
+    return state.audioLibrary.find((item) => item.id === itemId) || null;
+}
+
+function findAudioLibraryItemByOriginKey(originKey) {
+    const key = `${originKey || ''}`.trim();
+    if (!key) {
+        return null;
+    }
+    return state.audioLibrary.find((item) => item.originKey === key) || null;
+}
+
+function findStoredAudioLibraryItemByOriginKey(originKey) {
+    const key = `${originKey || ''}`.trim();
+    if (!key) {
+        return null;
+    }
+    return readAudioLibrary().find((item) => item.originKey === key) || null;
+}
+
+function isProjectManagedAudioItem(item) {
+    const kind = `${item?.sourceKind || ''}`.trim().toLowerCase();
+    return kind === 'bgm' || kind === 'preset-sample' || kind === 'preset-render';
+}
+
+function buildAudioLibraryDraft(item = getSelectedAudioLibraryItem()) {
+    if (!item) {
+        return null;
+    }
+    const useEditorValues = item.id === sanitizeId(state.selectedAudioLibraryId);
+    const duration = Math.max(0, Number(item.durationSeconds || 0));
+    const rawStart = Number(useEditorValues ? (el.audioLibraryTrimStart?.value || item.trimStart || 0) : (item.trimStart || 0));
+    const rawEnd = Number(useEditorValues ? (el.audioLibraryTrimEnd?.value || item.trimEnd || duration) : (item.trimEnd || duration));
+    const start = duration > 0 ? clamp(Number.isFinite(rawStart) ? rawStart : 0, 0, Math.max(0, duration - 0.01)) : 0;
+    const end = duration > 0 ? clamp(Number.isFinite(rawEnd) ? rawEnd : duration, start + 0.01, duration) : 0;
+    const rawVolume = Number(useEditorValues ? (el.audioLibraryVolume?.value || item.volume || 1) : (item.volume || 1));
+    const volume = clamp(Number.isFinite(rawVolume) ? rawVolume : 1, 0, 2);
+    return {
+        ...item,
+        name: useEditorValues
+            ? (`${el.audioLibraryName?.value || ''}`.trim() || item.name || item.id)
+            : (item.name || item.id),
+        keywords: useEditorValues
+            ? splitKeywordText(el.audioLibraryKeywords?.value || item.keywords || '')
+            : (Array.isArray(item.keywords) ? [...item.keywords] : []),
+        trimStart: Number(start.toFixed(2)),
+        trimEnd: Number(end.toFixed(2)),
+        volume: Number(volume.toFixed(2))
+    };
+}
+
+async function resolveAudioDurationFromDataUrl(dataUrl, fallbackMime = 'audio/wav') {
+    const blob = dataUrlToBlob(dataUrl, fallbackMime);
+    const ctx = ensureAudioContext();
+    const arrayBuffer = await blob.arrayBuffer();
+    const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    return Math.max(0, Number(decoded.duration || 0));
+}
+
+async function upsertProjectAudioLibraryItem({
+    originKey = '',
+    sourceKind = 'manual',
+    audioType = 'sfx',
+    sourceLabel = '',
+    name = '',
+    description = '',
+    fileName = '',
+    keywords = [],
+    sample = null,
+    mimeType = '',
+    params = null
+} = {}) {
+    if (!originKey || !sample) {
+        return null;
+    }
+    const existing = findStoredAudioLibraryItemByOriginKey(originKey);
+    const nextMimeType = `${mimeType || sample?.mimeType || 'audio/wav'}`.trim() || 'audio/wav';
+    const nextName = `${name || existing?.name || fileName || 'audio-item'}`.trim();
+    const nextSourceLabel = `${sourceLabel || existing?.sourceLabel || name || fileName || 'audio item'}`.trim();
+    const nextFileName = `${fileName || sample?.fileName || existing?.sample?.fileName || nextName || 'audio-item'}`.trim();
+    const itemIdentity = planAudioLibraryItemIdentity(
+        {
+            id: existing?.id || '',
+            name: nextName,
+            originKey,
+            sample
+        },
+        existing ? { enforceUpdateId: existing.id } : {}
+    );
+    const targetItemId = `${itemIdentity?.id || existing?.id || ''}`.trim();
+    const existingSampleUrl = normalizeResourceUrl(existing?.sample?.url);
+    const incomingSampleUrl = normalizeResourceUrl(sample?.url);
+    const nextSample = {
+        ...(existing?.sample || {}),
+        ...sample,
+        mimeType: nextMimeType,
+        fileName: nextFileName,
+        sourceLabel: `${sample?.sourceLabel || existing?.sample?.sourceLabel || nextSourceLabel}`.trim()
+    };
+    if (!incomingSampleUrl && existingSampleUrl) {
+        nextSample.url = existingSampleUrl;
+    }
+    if (sourceKind === 'preset-render' && targetItemId) {
+        const resolvedUrl = normalizeResourceUrl(nextSample.url);
+        const dataUrl = `${nextSample?.dataUrl || ''}`.trim();
+        if (!resolvedUrl && dataUrl.startsWith('data:audio/')) {
+            try {
+                const renderedBlob = dataUrlToBlob(dataUrl, nextMimeType);
+                const storedSample = await buildStoredAudioLibrarySample(
+                    renderedBlob,
+                    {
+                        fileName: nextFileName,
+                        mimeType: nextMimeType,
+                        sourceLabel: nextSample.sourceLabel || nextSourceLabel
+                    },
+                    targetItemId
+                );
+                Object.assign(nextSample, storedSample);
+            } catch (error) {
+                console.warn('[admin-sfx-lab] preset-render sample upload failed, fallback to dataUrl', error);
+            }
+        } else if (resolvedUrl) {
+            nextSample.dataUrl = '';
+        }
+    }
+    const sampleChanged = buildAudioSampleSignature(existing?.sample, existing?.id || originKey) !== buildAudioSampleSignature(nextSample, originKey);
+    let durationSeconds = Math.max(0, Number(existing?.durationSeconds || 0));
+    if (sampleChanged || durationSeconds <= 0) {
+        durationSeconds = await resolveAudioDurationFromSample(nextSample, nextMimeType);
+    }
+    const mergedKeywords = Array.from(new Set([
+        ...(Array.isArray(existing?.keywords) ? existing.keywords : []),
+        ...(Array.isArray(keywords) ? keywords : [])
+    ])).slice(0, 24);
+    const saved = upsertAudioLibraryItem({
+        ...(existing || {}),
+        id: targetItemId || undefined,
+        name: nextName,
+        description: `${existing?.description || description || ''}`.trim(),
+        audioType,
+        sourceKind,
+        sourceLabel: nextSourceLabel,
+        originKey,
+        keywords: mergedKeywords,
+        params: audioType === 'sfx'
+            ? normalizeRecipe({ presetId: state.presetId, params: params || existing?.params || state.params }, state.presetId).params
+            : null,
+        durationSeconds,
+        volume: Number.isFinite(Number(existing?.volume)) ? Number(existing.volume) : 1,
+        trimStart: sampleChanged ? 0 : Number(existing?.trimStart || 0),
+        trimEnd: sampleChanged ? durationSeconds : Number(existing?.trimEnd || durationSeconds),
+        sample: nextSample
+    }, existing ? { enforceUpdateId: existing.id } : {});
+    if (saved && sampleChanged) {
+        audioLibraryBufferCache.delete(saved.id);
+    }
+    return saved;
+}
+
+function buildPresetRenderSeed(presetId = '') {
+    let hash = 2166136261;
+    const text = `${presetId || ''}`.trim().toLowerCase();
+    for (let i = 0; i < text.length; i += 1) {
+        hash ^= text.charCodeAt(i);
+        hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+}
+
+async function buildRenderedPresetLibrarySample(preset) {
+    const recipe = normalizeRecipe({
+        presetId: preset.id,
+        params: { ...preset.defaults }
+    }, preset.id);
+    const blob = await renderRecipeToWav(recipe, buildPresetRenderSeed(preset.id));
+    const dataUrl = await blobToDataUrl(blob);
+    return {
+        dataUrl,
+        url: '',
+        refKind: '',
+        refId: '',
+        mimeType: blob.type || 'audio/wav',
+        fileName: `${preset.id}.wav`,
+        sourceLabel: `合成预设：${preset.name}`
+    };
+}
+
+async function syncPresetSamplesToAudioLibrary(expectedOriginKeys) {
+    const presets = getSfxPresetCatalog();
+    for (const preset of presets) {
+        const hasPresetSample = !!preset?.sample?.dataUrl;
+        const originKey = hasPresetSample
+            ? `preset-sample:${preset.id}`
+            : `preset-render:${preset.id}`;
+        expectedOriginKeys.add(originKey);
+        const sample = hasPresetSample
+            ? {
+                dataUrl: '',
+                url: '',
+                refKind: 'preset-sample',
+                refId: preset.id,
+                mimeType: preset.sample?.mimeType || parseDataUrlMimeType(preset.sample.dataUrl, 'audio/wav'),
+                fileName: preset.sample?.fileName || `${preset.id}.wav`,
+                sourceLabel: `模板采样：${preset.name}`
+            }
+            : await buildRenderedPresetLibrarySample(preset);
+        await upsertProjectAudioLibraryItem({
+            originKey,
+            audioType: 'sfx',
+            sourceKind: hasPresetSample ? 'preset-sample' : 'preset-render',
+            sourceLabel: hasPresetSample ? `模板采样：${preset.name}` : `合成预设：${preset.name}`,
+            name: hasPresetSample ? `${preset.name}（模板采样）` : `${preset.name}（原合成音效）`,
+            description: preset.description || '',
+            fileName: sample.fileName || `${preset.id}.wav`,
+            keywords: buildKeywordListFromQuery(
+                preset.name,
+                hasPresetSample ? ['sfx', 'preset'] : ['sfx', 'preset', 'legacy', 'synth']
+            ),
+            sample,
+            mimeType: sample.mimeType || 'audio/wav',
+            params: preset.defaults
+        });
+    }
+}
+
+async function syncBgmTracksToAudioLibrary(expectedOriginKeys) {
+    for (const track of state.bgmTrackLibrary) {
+        const originKey = `bgm:${track.url}`;
+        expectedOriginKeys.add(originKey);
+        await upsertProjectAudioLibraryItem({
+            originKey,
+            audioType: 'music',
+            sourceKind: 'bgm',
+            sourceLabel: `游戏音乐：${track.name}`,
+            name: `${track.name}（音乐）`,
+            fileName: track.fileName || track.name || formatTrackLabel(track.url),
+            keywords: buildKeywordListFromQuery(track.name || track.fileName || track.url, ['music', 'bgm']),
+            sample: {
+                dataUrl: '',
+                url: track.url,
+                refKind: '',
+                refId: '',
+                mimeType: 'audio/mpeg',
+                fileName: track.fileName || track.name || formatTrackLabel(track.url),
+                sourceLabel: `游戏音乐：${track.name}`
+            },
+            mimeType: 'audio/mpeg'
+        });
+    }
+}
+
+async function syncProjectAudioLibrary(options = {}) {
+    const refreshBgm = options.refreshBgm !== false;
+    const expectedOriginKeys = new Set();
+    const errors = [];
+    try {
+        await syncPresetSamplesToAudioLibrary(expectedOriginKeys);
+    } catch (error) {
+        errors.push(`模板采样同步失败：${error?.message || 'Unknown error'}`);
+    }
+    try {
+        if (refreshBgm || !Array.isArray(state.bgmTrackLibrary) || state.bgmTrackLibrary.length <= 0) {
+            state.bgmTrackLibrary = await fetchBgmTrackLibrary();
+        }
+        await syncBgmTracksToAudioLibrary(expectedOriginKeys);
+    } catch (error) {
+        errors.push(`项目音乐同步失败：${error?.message || 'Unknown error'}`);
+    }
+    const current = readAudioLibrary();
+    for (const item of current) {
+        if (isProjectManagedAudioItem(item) && !expectedOriginKeys.has(item.originKey)) {
+            deleteAudioLibraryItem(item.id);
+            audioLibraryBufferCache.delete(item.id);
+        }
+    }
+    refreshAudioLibraryState(state.selectedAudioLibraryId);
+    return {
+        total: state.audioLibrary.length,
+        errors
+    };
+}
+
+function syncAudioLibraryEditorFromSelection() {
+    const item = getSelectedAudioLibraryItem();
+    const hasItem = !!item;
+    const isSfxItem = hasItem && `${item.audioType || 'sfx'}`.trim().toLowerCase() === 'sfx';
+    if (el.audioLibraryName) {
+        el.audioLibraryName.value = hasItem ? (item.name || '') : '';
+        el.audioLibraryName.disabled = !hasItem;
+    }
+    if (el.audioLibraryKeywords) {
+        el.audioLibraryKeywords.value = hasItem ? (Array.isArray(item.keywords) ? item.keywords.join(', ') : '') : '';
+        el.audioLibraryKeywords.disabled = !hasItem;
+    }
+    if (el.audioLibraryVolume) {
+        el.audioLibraryVolume.value = hasItem ? Number(item.volume || 1).toFixed(2) : '1.00';
+        el.audioLibraryVolume.disabled = !hasItem;
+    }
+    if (el.audioLibraryTrimStart) {
+        el.audioLibraryTrimStart.value = hasItem ? Number(item.trimStart || 0).toFixed(2) : '0';
+        el.audioLibraryTrimStart.disabled = !hasItem;
+    }
+    if (el.audioLibraryTrimEnd) {
+        const duration = Number(item?.durationSeconds || 0);
+        el.audioLibraryTrimEnd.value = hasItem ? Number(item.trimEnd || duration || 0).toFixed(2) : '0';
+        el.audioLibraryTrimEnd.disabled = !hasItem;
+    }
+    if (el.audioLibraryMeta) {
+        if (!hasItem) {
+            el.audioLibraryMeta.textContent = '未选择素材。';
+        } else {
+            const keywords = Array.isArray(item.keywords) && item.keywords.length > 0
+                ? item.keywords.join(', ')
+                : '无';
+            const projectHint = isProjectManagedAudioItem(item)
+                ? ' | 项目自动汇总资源'
+                : '';
+            el.audioLibraryMeta.textContent = `类型：${getAudioTypeLabel(item.audioType)} | 来源：${item.sourceLabel || '-'} | 时长：${Number(item.durationSeconds || 0).toFixed(2)}s | 关键词：${keywords}${projectHint}`;
+        }
+    }
+    if (el.btnAudioLibraryPreview) {
+        el.btnAudioLibraryPreview.disabled = !hasItem;
+    }
+    if (el.btnAudioLibraryImport) {
+        el.btnAudioLibraryImport.disabled = !hasItem || !isSfxItem;
+        el.btnAudioLibraryImport.title = !hasItem
+            ? ''
+            : (isSfxItem ? '将当前音效导回工坊继续编辑' : '音乐素材不能导入音效工坊');
+    }
+    if (el.btnAudioLibrarySave) {
+        el.btnAudioLibrarySave.disabled = !hasItem;
+    }
+    if (el.btnAudioLibraryDelete) {
+        el.btnAudioLibraryDelete.disabled = !hasItem || isProjectManagedAudioItem(item);
+    }
+}
+
+function renderAudioLibraryList() {
+    if (!el.audioLibraryList) return;
+    const query = `${el.audioLibrarySearch?.value || ''}`.trim().toLowerCase();
+    el.audioLibraryList.innerHTML = '';
+    const rows = state.audioLibrary.filter((item) => {
+        if (!query) {
+            return true;
+        }
+        const haystack = [
+            item.name,
+            getAudioTypeLabel(item.audioType),
+            item.audioType,
+            item.sourceLabel,
+            item.description,
+            ...(Array.isArray(item.keywords) ? item.keywords : [])
+        ].join(' ').toLowerCase();
+        return haystack.includes(query);
+    });
+    if (rows.length <= 0) {
+        const empty = document.createElement('div');
+        empty.className = 'sfx-source-result-item';
+        empty.textContent = query ? '没有匹配的素材。' : '素材库为空。先从音效工坊导入一些音频。';
+        el.audioLibraryList.appendChild(empty);
+        return;
+    }
+    for (const item of rows) {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'audio-library-card';
+        card.classList.toggle('is-active', item.id === state.selectedAudioLibraryId);
+
+        const title = document.createElement('strong');
+        title.textContent = item.name || item.id;
+        card.appendChild(title);
+
+        const meta = document.createElement('div');
+        meta.className = 'audio-library-card-meta';
+        meta.textContent = `${getAudioTypeLabel(item.audioType)} | ${item.sourceLabel || item.sourceKind || '-'} | ${Number(item.durationSeconds || 0).toFixed(2)}s | 音量 ${Number(item.volume || 1).toFixed(2)}`;
+        card.appendChild(meta);
+
+        const keywordLine = document.createElement('div');
+        keywordLine.className = 'audio-library-card-keywords';
+        keywordLine.textContent = Array.isArray(item.keywords) && item.keywords.length > 0
+            ? item.keywords.map((keyword) => `#${keyword}`).join(' ')
+            : '#无关键词';
+        card.appendChild(keywordLine);
+
+        card.addEventListener('click', () => {
+            state.selectedAudioLibraryId = item.id;
+            syncAudioLibraryEditorFromSelection();
+            renderAudioLibraryList();
+        });
+        el.audioLibraryList.appendChild(card);
+    }
+}
+
+function refreshAudioLibraryUi(preferredId = '') {
+    refreshAudioLibraryState(preferredId);
+    syncAudioLibraryEditorFromSelection();
+    renderAudioLibraryList();
+    refreshSkinPresetSelectOptions();
+    syncSelectedSkinBindingUi();
+    renderSkinBindingList();
+    renderGameSfxBindingList();
+}
+
+async function decodeAudioLibraryBuffer(item) {
+    if (!item?.sample) {
+        throw new Error('素材缺少音频数据');
+    }
+    const signature = `${item.id}:${buildAudioSampleSignature(item.sample, item.updatedAt || '')}:${item.updatedAt || ''}`;
+    const cached = audioLibraryBufferCache.get(item.id);
+    if (cached && cached.signature === signature && cached.buffer) {
+        return cached.buffer;
+    }
+    const ctx = ensureAudioContext();
+    const arrayBuffer = await sampleToArrayBuffer(item.sample, item.sample?.mimeType || 'audio/wav');
+    const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    audioLibraryBufferCache.set(item.id, {
+        signature,
+        buffer: decoded
+    });
+    return decoded;
+}
+
+async function buildProcessedAudioLibraryBlob(item) {
+    const buffer = await decodeAudioLibraryBuffer(item);
+    const duration = Number(buffer.duration || item.durationSeconds || 0);
+    const start = clamp(Number(item.trimStart || 0), 0, Math.max(0, duration - 0.01));
+    const end = clamp(Number(item.trimEnd || duration), start + 0.01, duration);
+    const gain = clamp(Number(item.volume || 1), 0, 2);
+    return audioBufferSegmentToWavBlob(buffer, start, end, gain);
+}
+
+async function saveCurrentExternalSampleToLibrary(overrides = {}) {
+    if (!state.externalSample?.blob) {
+        throw new Error('当前工坊没有外部采样');
+    }
+    const trim = resolveExternalTrimWindow();
+    const sourceBlob = trim
+        ? audioBufferSegmentToWavBlob(state.externalSample.buffer, trim.start, trim.end)
+        : state.externalSample.blob;
+    const duration = trim
+        ? Math.max(0.01, trim.end - trim.start)
+        : Math.max(0, Number(state.externalSample?.buffer?.duration || 0));
+    const nextName = `${overrides.name || trimFileExtension(state.externalSample?.fileName || 'audio-item')}`.trim() || 'audio-item';
+    const identity = planAudioLibraryItemIdentity({
+        id: overrides.id,
+        name: nextName,
+        originKey: overrides.originKey || ''
+    }, overrides.enforceUpdateId ? { enforceUpdateId: overrides.enforceUpdateId } : {});
+    const storedSample = await buildStoredAudioLibrarySample(sourceBlob, {
+        fileName: state.externalSample?.fileName || `${identity.id}.wav`,
+        mimeType: sourceBlob.type || state.externalSample?.blob?.type || 'audio/wav',
+        sourceLabel: overrides.sourceLabel || state.externalSample?.sourceLabel || '工坊导入音效'
+    }, identity.id);
+    const saved = upsertAudioLibraryItem({
+        id: identity.id,
+        name: nextName,
+        description: overrides.description || '',
+        audioType: overrides.audioType || 'sfx',
+        sourceKind: overrides.sourceKind || 'manual',
+        sourceLabel: overrides.sourceLabel || state.externalSample?.sourceLabel || storedSample.sourceLabel,
+        originKey: overrides.originKey || '',
+        keywords: Array.isArray(overrides.keywords)
+            ? overrides.keywords
+            : splitKeywordText(el.audioLibraryKeywords?.value || ''),
+        params: normalizeRecipe({ presetId: state.presetId, params: overrides.params || state.params }, state.presetId).params,
+        durationSeconds: duration,
+        volume: Number.isFinite(Number(overrides.volume)) ? Number(overrides.volume) : 1,
+        trimStart: 0,
+        trimEnd: duration,
+        sample: storedSample
+    }, overrides.enforceUpdateId ? { enforceUpdateId: overrides.enforceUpdateId } : {});
+    if (!saved) {
+        throw new Error('保存素材失败');
+    }
+    refreshAudioLibraryUi(saved.id);
+    return saved;
+}
+
+async function importCurrentExternalToAudioLibrary() {
+    if (!state.externalSample?.blob) {
+        throw new Error('请先在工坊中载入一个音频');
+    }
+    const saved = await saveCurrentExternalSampleToLibrary({
+        name: trimFileExtension(state.externalSample.fileName || state.externalSample.sourceLabel || 'audio-item'),
+        sourceKind: state.sourceMode === 'stable-audio'
+            ? 'stable-audio'
+            : (state.sourceMode === 'upload' ? 'upload' : (state.sourceMode === 'freesound' ? 'freesound' : 'manual')),
+        sourceLabel: state.externalSample.sourceLabel || '工坊导入音效',
+        keywords: buildKeywordListFromQuery(
+            [
+                el.fsQuery?.value,
+                el.aiPrompt?.value,
+                trimFileExtension(state.externalSample.fileName || '')
+            ].filter(Boolean).join(' ')
+        ),
+        audioType: 'sfx',
+        params: state.params
+    });
+    setAudioLibraryStatus(`已导入音频库：${saved.name}`);
+    setMusicSfxSubTab('audio-library');
+    return saved;
+}
+
+function buildFreesoundRowKeywords(row) {
+    return buildKeywordListFromQuery(el.fsQuery?.value, [row?.licenseTag, 'freesound']);
+}
+
+async function fetchFreesoundRowBlob(row) {
+    if (!row?.previewUrl) {
+        throw new Error('该结果没有可导入的音频地址');
+    }
+    const proxyUrl = `/api/sfx/freesound/proxy?url=${encodeURIComponent(row.previewUrl)}`;
+    const response = await fetch(proxyUrl);
+    if (!response.ok) {
+        throw new Error(`proxy fetch failed (${response.status})`);
+    }
+    return response.blob();
+}
+
+async function importFreesoundRowToAudioLibrary(row) {
+    const originKey = Number(row?.id) > 0 ? `freesound:${Number(row.id)}` : '';
+    const searchKeywords = buildFreesoundRowKeywords(row);
+    const cached = findAudioLibraryItemByOriginKey(originKey);
+    if (cached) {
+        const mergedKeywords = Array.from(new Set([...(cached.keywords || []), ...searchKeywords]));
+        const saved = mergedKeywords.length !== (cached.keywords || []).length
+            ? (upsertAudioLibraryItem({
+                ...cached,
+                keywords: mergedKeywords
+            }, { enforceUpdateId: cached.id }) || cached)
+            : cached;
+        refreshAudioLibraryUi(saved.id);
+        setMusicSfxSubTab('audio-library');
+        setAudioLibraryStatus(`音频已在库中：${saved.name}`);
+        return saved;
+    }
+
+    const blob = await fetchFreesoundRowBlob(row);
+    await setExternalSampleFromBlob(
+        blob,
+        `Freesound: ${row.name} (#${row.id})`,
+        `${slugifyLabel(row.name || `fs-${row.id}`, `freesound-${row.id}`)}.wav`
+    );
+    state.previewMode = 'external';
+    const saved = await saveCurrentExternalSampleToLibrary({
+        name: trimFileExtension(state.externalSample?.fileName || row.name || `freesound-${row.id}`),
+        audioType: 'sfx',
+        sourceKind: 'freesound',
+        sourceLabel: `Freesound: ${row.name} (#${row.id})`,
+        originKey,
+        keywords: searchKeywords,
+        params: state.params
+    });
+    setMusicSfxSubTab('audio-library');
+    setAudioLibraryStatus(`已导入音频库：${saved.name}`);
+    setStatus(`已从 Freesound 导入音频库：${saved.name}`);
+    return saved;
+}
+
+async function importAudioLibraryItemToWorkbench(item = getSelectedAudioLibraryItem()) {
+    if (!item) {
+        throw new Error('请先选择素材');
+    }
+    if (`${item.audioType || 'sfx'}`.trim().toLowerCase() !== 'sfx') {
+        throw new Error('音乐素材不能导入音效工坊');
+    }
+    const draft = buildAudioLibraryDraft(item) || item;
+    const processedBlob = await buildProcessedAudioLibraryBlob(draft);
+    await setExternalSampleFromBlob(
+        processedBlob,
+        draft.sourceLabel || draft.name || 'audio library item',
+        `${slugifyLabel(draft.name || draft.sample?.fileName || draft.id, 'audio-library')}.wav`
+    );
+    applyRecipe(
+        {
+            presetId: state.presetId,
+            params: draft.params || state.params
+        },
+        true
+    );
+    setMusicSfxSubTab('sfx-lab');
+    setStatus(`已从素材库导入到工坊：${draft.name}`);
+}
+
+function stopAudioLibraryPreview(reset = false) {
+    const audio = el.audioLibraryPreviewAudio;
+    if (!audio) return;
+    audio.pause();
+    audio.currentTime = 0;
+    state.audioLibraryPreview.itemId = '';
+    state.audioLibraryPreview.trimStart = 0;
+    state.audioLibraryPreview.trimEnd = 0;
+    if (reset) {
+        audio.removeAttribute('src');
+        audio.load();
+    }
+}
+
+async function previewAudioLibraryItem(item = getSelectedAudioLibraryItem()) {
+    if (!item) {
+        throw new Error('请先选择素材');
+    }
+    const draft = buildAudioLibraryDraft(item) || item;
+    const audio = el.audioLibraryPreviewAudio;
+    if (!audio) {
+        throw new Error('preview audio element not found');
+    }
+    const duration = Math.max(0, Number(draft.durationSeconds || 0));
+    const trimStart = clamp(Number(draft.trimStart || 0), 0, Math.max(0, duration - 0.01));
+    const trimEnd = duration > 0
+        ? clamp(Number(draft.trimEnd || duration), trimStart + 0.01, duration)
+        : 0;
+    state.audioLibraryPreview.itemId = draft.id;
+    state.audioLibraryPreview.trimStart = trimStart;
+    state.audioLibraryPreview.trimEnd = trimEnd;
+    audio.volume = clamp(Number(draft.volume || 1), 0, 2);
+    const sampleUrl = getAudioSamplePlayableUrl(draft.sample);
+    if (!sampleUrl) {
+        throw new Error('素材缺少可播放音频');
+    }
+    if (audio.src !== sampleUrl) {
+        audio.src = sampleUrl;
+        audio.load();
+    }
+    if (audio.readyState < 1) {
+        await new Promise((resolve, reject) => {
+            const cleanup = () => {
+                audio.removeEventListener('loadedmetadata', onReady);
+                audio.removeEventListener('canplay', onReady);
+                audio.removeEventListener('error', onError);
+            };
+            const onReady = () => {
+                cleanup();
+                resolve();
+            };
+            const onError = () => {
+                cleanup();
+                reject(new Error('素材预览加载失败'));
+            };
+            audio.addEventListener('loadedmetadata', onReady, { once: true });
+            audio.addEventListener('canplay', onReady, { once: true });
+            audio.addEventListener('error', onError, { once: true });
+        });
+    }
+    audio.currentTime = trimStart;
+    await audio.play();
+    setAudioLibraryStatus(`试听素材：${draft.name}`);
+}
+
+function saveSelectedAudioLibraryEdits() {
+    const item = getSelectedAudioLibraryItem();
+    if (!item) {
+        setAudioLibraryStatus('请先选择素材。', true);
+        return;
+    }
+    const draft = buildAudioLibraryDraft(item);
+    const saved = upsertAudioLibraryItem(draft, { enforceUpdateId: item.id });
+    if (!saved) {
+        setAudioLibraryStatus('保存素材修改失败。', true);
+        return;
+    }
+    if (state.audioLibraryPreview.itemId === saved.id && el.audioLibraryPreviewAudio) {
+        el.audioLibraryPreviewAudio.volume = saved.volume;
+        state.audioLibraryPreview.trimStart = saved.trimStart;
+        state.audioLibraryPreview.trimEnd = saved.trimEnd;
+    }
+    refreshAudioLibraryUi(saved.id);
+    setAudioLibraryStatus(`已保存素材：${saved.name}`);
+}
+
+async function deleteSelectedAudioLibraryRecord() {
+    const item = getSelectedAudioLibraryItem();
+    if (!item) {
+        setAudioLibraryStatus('请先选择素材。', true);
+        return;
+    }
+    if (isProjectManagedAudioItem(item)) {
+        setAudioLibraryStatus('这是项目自动汇总的资源，请在原始模板或音乐资源处移除。', true);
+        return;
+    }
+    if (!deleteAudioLibraryItem(item.id)) {
+        setAudioLibraryStatus('删除素材失败。', true);
+        return;
+    }
+    await deleteAudioLibrarySampleAsset(item.id);
+    audioLibraryBufferCache.delete(item.id);
+    stopAudioLibraryPreview(true);
+    refreshAudioLibraryUi('');
+    setAudioLibraryStatus(`已删除素材：${item.name}`);
 }
 
 function getPreviewMode() {
@@ -749,7 +1961,7 @@ function writeWavString(view, offset, text) {
     }
 }
 
-function audioBufferSegmentToWavBlob(buffer, startSeconds = 0, endSeconds = null) {
+function audioBufferSegmentToWavBlob(buffer, startSeconds = 0, endSeconds = null, gainMultiplier = 1) {
     const sampleRate = buffer.sampleRate;
     const channels = buffer.numberOfChannels;
     const totalFrames = buffer.length;
@@ -780,10 +1992,11 @@ function audioBufferSegmentToWavBlob(buffer, startSeconds = 0, endSeconds = null
 
     let offset = 44;
     const data = [];
+    const gain = Number.isFinite(Number(gainMultiplier)) ? Math.max(0, Number(gainMultiplier)) : 1;
     for (let c = 0; c < channels; c += 1) data.push(buffer.getChannelData(c));
     for (let i = startFrame; i < endFrame; i += 1) {
         for (let c = 0; c < channels; c += 1) {
-            const sample = clamp(data[c][i], -1, 1);
+            const sample = clamp(data[c][i] * gain, -1, 1);
             const pcm = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
             view.setInt16(offset, pcm, true);
             offset += bytesPerSample;
@@ -1059,6 +2272,8 @@ function renderFreesoundResults(rows = []) {
     }
 
     for (const row of rows) {
+        const originKey = Number(row?.id) > 0 ? `freesound:${Number(row.id)}` : '';
+        const cachedItem = findAudioLibraryItemByOriginKey(originKey);
         const item = document.createElement('div');
         item.className = 'sfx-source-result-item';
 
@@ -1068,7 +2283,7 @@ function renderFreesoundResults(rows = []) {
 
         const meta = document.createElement('div');
         meta.className = 'sfx-source-result-meta';
-        meta.textContent = `by ${row.user || 'unknown'} | ${Number(row.duration || 0).toFixed(2)}s | ${row.licenseTag || 'unknown'}`;
+        meta.textContent = `by ${row.user || 'unknown'} | ${Number(row.duration || 0).toFixed(2)}s | ${row.licenseTag || 'unknown'}${cachedItem ? ' | 已入库' : ''}`;
         item.appendChild(meta);
 
         const actions = document.createElement('div');
@@ -1077,39 +2292,44 @@ function renderFreesoundResults(rows = []) {
         const btnPreview = document.createElement('button');
         btnPreview.type = 'button';
         btnPreview.textContent = '试听';
+        btnPreview.disabled = !row.previewUrl;
         btnPreview.addEventListener('click', () => {
-            if (!row.previewUrl) return;
-            const proxyUrl = `/api/sfx/freesound/proxy?url=${encodeURIComponent(row.previewUrl)}`;
-            if (el.externalPreviewAudio) {
-                clearExternalPreviewAudioUrl();
-                el.externalPreviewAudio.src = proxyUrl;
-                el.externalPreviewAudio.play().catch(() => {});
-            }
-            setFsStatus(`试听：${row.name}`);
+            void startFsPreview(row);
         });
         actions.appendChild(btnPreview);
 
         const btnUse = document.createElement('button');
         btnUse.type = 'button';
         btnUse.className = 'primary';
-        btnUse.textContent = '导入工坊';
+        btnUse.textContent = cachedItem ? '载入工坊编辑（库）' : '载入工坊编辑';
         btnUse.addEventListener('click', async () => {
             if (!row.previewUrl) return;
             btnUse.disabled = true;
             try {
-                const proxyUrl = `/api/sfx/freesound/proxy?url=${encodeURIComponent(row.previewUrl)}`;
-                const response = await fetch(proxyUrl);
-                if (!response.ok) {
-                    throw new Error(`proxy fetch failed (${response.status})`);
+                const searchKeywords = buildFreesoundRowKeywords(row);
+                const cached = findAudioLibraryItemByOriginKey(originKey);
+                if (cached) {
+                    const mergedKeywords = Array.from(new Set([...(cached.keywords || []), ...searchKeywords]));
+                    const reusable = mergedKeywords.length !== (cached.keywords || []).length
+                        ? (upsertAudioLibraryItem({
+                            ...cached,
+                            keywords: mergedKeywords
+                        }, { enforceUpdateId: cached.id }) || cached)
+                        : cached;
+                    refreshAudioLibraryUi(reusable.id);
+                    await importAudioLibraryItemToWorkbench(reusable);
+                    setFsStatus(`已从素材库导入：${reusable.name}`);
+                    return;
                 }
-                const blob = await response.blob();
+                const blob = await fetchFreesoundRowBlob(row);
                 await setExternalSampleFromBlob(
                     blob,
                     `Freesound: ${row.name} (#${row.id})`,
                     `${slugifyLabel(row.name || `fs-${row.id}`, `freesound-${row.id}`)}.wav`
                 );
-                setFsStatus(`已导入：${row.name}`);
-                setStatus(`External sample ready: ${row.name}`);
+                state.previewMode = 'external';
+                setFsStatus(`已载入工坊，可继续裁剪/调参数：${row.name}`);
+                setStatus(`已载入工坊：${row.name}`);
             } catch (error) {
                 setFsStatus(`导入失败：${error?.message || 'Unknown error'}`, true);
             } finally {
@@ -1117,6 +2337,22 @@ function renderFreesoundResults(rows = []) {
             }
         });
         actions.appendChild(btnUse);
+
+        const btnImportLibrary = document.createElement('button');
+        btnImportLibrary.type = 'button';
+        btnImportLibrary.textContent = cachedItem ? '导入音频库（已入库）' : '导入音频库';
+        btnImportLibrary.addEventListener('click', async () => {
+            btnImportLibrary.disabled = true;
+            try {
+                const saved = await importFreesoundRowToAudioLibrary(row);
+                setFsStatus(`已导入音频库：${saved.name}`);
+            } catch (error) {
+                setFsStatus(`导入音频库失败：${error?.message || 'Unknown error'}`, true);
+            } finally {
+                btnImportLibrary.disabled = false;
+            }
+        });
+        actions.appendChild(btnImportLibrary);
 
         item.appendChild(actions);
         el.fsResults.appendChild(item);
@@ -1183,11 +2419,11 @@ async function handleStableAudioGenerate() {
             `${slugifyLabel(prompt.slice(0, 48), 'stable-audio')}.wav`
         );
         if (state.providerCaps.stableAudioBackend === 'fal' || state.providerCaps.stableAudioFal) {
-            setAiStatus('生成成功（fal.ai），已导入工坊。');
+            setAiStatus('生成成功（fal.ai），已导入工坊，可继续编辑后导入音频库。');
         } else {
-            setAiStatus('生成成功，已导入工坊。');
+            setAiStatus('生成成功，已导入工坊，可继续编辑后导入音频库。');
         }
-        setStatus('Stable Audio sample ready.');
+        setStatus('Stable Audio 音频已载入工坊。');
     } catch (error) {
         setAiStatus(`生成失败：${error?.message || 'Unknown error'}`, true);
     } finally {
@@ -1199,7 +2435,8 @@ async function handleSampleUpload(file) {
     if (!file) return;
     try {
         await setExternalSampleFromBlob(file, `本地采样: ${file.name}`, file.name);
-        setStatus(`Loaded local sample: ${file.name}`);
+        state.previewMode = 'external';
+        setStatus(`已载入工坊：${file.name}`);
     } catch (error) {
         setStatus(`Load sample failed: ${error?.message || 'Unknown error'}`, true);
     }
@@ -1241,9 +2478,193 @@ function getSkinLabel(row) {
     return `${row.nameZh || row.id} (${row.id})`;
 }
 
-function resolveSkinBindingPreset(skinId) {
-    const key = sanitizeId(skinId);
-    return getSfxPresetById(state.skinBindings[key] || BUILTIN_SFX_PRESETS[0].id).id;
+function getAudioTypeLabel(audioType = 'sfx') {
+    return `${audioType || ''}`.trim().toLowerCase() === 'music' ? '音乐' : '音效';
+}
+
+function buildLegacyPresetSelectOption(bindingId) {
+    const presetId = sanitizeId(bindingId);
+    if (!presetId) {
+        return null;
+    }
+    const preset = getSfxPresetById(presetId);
+    if (preset.id !== presetId) {
+        return null;
+    }
+    return {
+        value: presetId,
+        label: `合成预设：${preset.name || presetId}`
+    };
+}
+
+function resolveSkinBindingSelectionState(skinId) {
+    const itemId = getSkinSfxAudioItemId(skinId, '');
+    if (itemId) {
+        return { value: itemId, legacyOption: null };
+    }
+    const bindings = readSkinSfxBindings();
+    const bindingId = sanitizeId(bindings[sanitizeId(skinId)]);
+    return {
+        value: bindingId,
+        legacyOption: buildLegacyPresetSelectOption(bindingId)
+    };
+}
+
+function getSfxAudioLibraryOptions() {
+    return state.audioLibrary
+        .filter((item) => item.audioType === 'sfx')
+        .sort((a, b) => {
+            const aManaged = isProjectManagedAudioItem(a) ? 1 : 0;
+            const bManaged = isProjectManagedAudioItem(b) ? 1 : 0;
+            if (aManaged !== bManaged) {
+                return aManaged - bManaged;
+            }
+            return `${a.name || a.id}`.localeCompare(`${b.name || b.id}`, 'zh-CN');
+        });
+}
+
+function fillSfxAudioLibrarySelect(select, preferredId = '', legacyOption = null) {
+    if (!select) {
+        return;
+    }
+    const options = getSfxAudioLibraryOptions();
+    const preferred = sanitizeId(preferredId);
+    select.innerHTML = '';
+    const empty = document.createElement('option');
+    empty.value = '';
+    empty.textContent = '未设置（使用默认合成音效）';
+    select.appendChild(empty);
+    if (legacyOption && sanitizeId(legacyOption.value) === preferred && !options.some((item) => item.id === preferred)) {
+        const option = document.createElement('option');
+        option.value = preferred;
+        option.textContent = legacyOption.label;
+        select.appendChild(option);
+    }
+    for (const item of options) {
+        const option = document.createElement('option');
+        option.value = item.id;
+        option.textContent = item.name || item.id;
+        select.appendChild(option);
+    }
+    if (options.some((item) => item.id === preferred)) {
+        select.value = preferred;
+        return;
+    }
+    if (legacyOption && sanitizeId(legacyOption.value) === preferred) {
+        select.value = preferred;
+        return;
+    }
+    select.value = '';
+}
+
+function stopGameSfxPreviewLoop(previewKey = '') {
+    const key = `${previewKey || ''}`.trim();
+    if (!key) {
+        return;
+    }
+    const node = gameSfxPreviewLoops.get(key);
+    if (!node) {
+        return;
+    }
+    try {
+        node.source.onended = null;
+        node.source.stop();
+    } catch {
+        // noop
+    }
+    try {
+        node.source.disconnect();
+    } catch {
+        // noop
+    }
+    try {
+        node.gain.disconnect();
+    } catch {
+        // noop
+    }
+    gameSfxPreviewLoops.delete(key);
+}
+
+function stopAllGameSfxPreviewLoops() {
+    const keys = Array.from(gameSfxPreviewLoops.keys());
+    for (const key of keys) {
+        stopGameSfxPreviewLoop(key);
+    }
+}
+
+async function playAudioLibraryBindingPreview(itemId, label = '', options = {}) {
+    const statusTarget = options?.statusTarget === 'game' ? 'game' : 'skin';
+    const setStatus = statusTarget === 'game' ? setGameSfxStatus : setSkinStatus;
+    const loop = options?.loop === true;
+    const previewKey = `${options?.previewKey || ''}`.trim();
+    const item = state.audioLibrary.find((row) => row.id === sanitizeId(itemId));
+    if (!item) {
+        const legacyOption = buildLegacyPresetSelectOption(itemId);
+        if (legacyOption) {
+            setStatus(`当前绑定为${legacyOption.label}，游戏内可正常播放；后台试听仅支持音频库条目。`);
+            return;
+        }
+        setStatus('请先从音频库选择一个音效。', true);
+        return;
+    }
+    try {
+        const ctx = await ensureAudioReady();
+        const buffer = await decodeAudioLibraryBuffer(item);
+        const duration = Math.max(0, Number(buffer.duration || item.durationSeconds || 0));
+        const trimStart = duration > 0 ? clamp(Number(item.trimStart || 0), 0, Math.max(0, duration - 0.01)) : 0;
+        const trimEnd = duration > 0 ? clamp(Number(item.trimEnd || duration), trimStart + 0.01, duration) : duration;
+        const plan = buildExternalPlaybackPlan(item.params || {}, Date.now());
+        const volumeGain = clamp(Number(item.volume || 1), 0, 2);
+        if (loop && previewKey) {
+            if (gameSfxPreviewLoops.has(previewKey)) {
+                stopGameSfxPreviewLoop(previewKey);
+                setStatus(`已停止循环试听：${label || item.name}`);
+                return;
+            }
+            stopGameSfxPreviewLoop(previewKey);
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.loop = true;
+            source.loopStart = trimStart;
+            source.loopEnd = Math.max(trimStart + 0.01, trimEnd);
+            source.playbackRate.setValueAtTime(clamp(plan.baseRate, 0.45, 2.2), ctx.currentTime);
+
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(clamp(plan.impactGain * volumeGain, 0.02, 4), ctx.currentTime);
+            source.connect(gain);
+            gain.connect(ctx.destination);
+            source.onended = () => {
+                if (gameSfxPreviewLoops.get(previewKey)?.source === source) {
+                    gameSfxPreviewLoops.delete(previewKey);
+                }
+            };
+            source.start(ctx.currentTime + 0.01, trimStart);
+            gameSfxPreviewLoops.set(previewKey, { source, gain });
+            setStatus(`开始循环试听：${label || item.name}`);
+            return;
+        }
+        let cursor = ctx.currentTime + 0.02;
+        for (let i = 0; i < plan.repeats; i += 1) {
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            const rate = clamp(plan.baseRate * plan.jitter(i), 0.45, 2.2);
+            source.playbackRate.setValueAtTime(rate, cursor);
+
+            const gain = ctx.createGain();
+            const repeatDecay = Math.pow(0.82 - plan.bounce * 0.14, i);
+            gain.gain.setValueAtTime(clamp(plan.impactGain * volumeGain * repeatDecay, 0.02, 4), cursor);
+            source.connect(gain);
+            gain.connect(ctx.destination);
+
+            const partDuration = Math.max(0.01, trimEnd - trimStart);
+            source.start(cursor, trimStart, partDuration);
+            source.stop(cursor + partDuration / rate + 0.02);
+            cursor += (partDuration / rate) * clamp(0.62 - plan.bounce * 0.22, 0.28, 0.72);
+        }
+        setStatus(`试听：${label || item.name}`);
+    } catch (error) {
+        setStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
+    }
 }
 
 function refreshSkinSelectOptions() {
@@ -1261,27 +2682,19 @@ function refreshSkinSelectOptions() {
 
 function refreshSkinPresetSelectOptions() {
     if (!el.skinPresetSelect) return;
-    const current = sanitizeId(el.skinPresetSelect.value || state.presetId);
-    const presets = getSfxPresetCatalog();
-    el.skinPresetSelect.innerHTML = '';
-    for (const preset of presets) {
-        const option = document.createElement('option');
-        option.value = preset.id;
-        option.textContent = preset.custom ? `${preset.name} (Custom)` : preset.name;
-        el.skinPresetSelect.appendChild(option);
-    }
-    el.skinPresetSelect.value = presets.some((preset) => preset.id === current) ? current : (presets[0]?.id || BUILTIN_SFX_PRESETS[0].id);
+    const state = resolveSkinBindingSelectionState(el.skinSelect?.value || '');
+    fillSfxAudioLibrarySelect(el.skinPresetSelect, state.value, state.legacyOption);
 }
 
 function syncSelectedSkinBindingUi() {
     if (!el.skinSelect || !el.skinPresetSelect) return;
-    el.skinPresetSelect.value = resolveSkinBindingPreset(el.skinSelect.value);
+    const state = resolveSkinBindingSelectionState(el.skinSelect.value);
+    fillSfxAudioLibrarySelect(el.skinPresetSelect, state.value, state.legacyOption);
 }
 
 function renderSkinBindingList() {
     if (!el.skinBindingList) return;
     el.skinBindingList.innerHTML = '';
-    const presets = getSfxPresetCatalog();
     for (const row of state.skinRows) {
         const item = document.createElement('div');
         item.className = 'skin-sfx-binding-row';
@@ -1299,19 +2712,15 @@ function renderSkinBindingList() {
         actions.className = 'skin-sfx-binding-actions';
 
         const select = document.createElement('select');
-        for (const preset of presets) {
-            const option = document.createElement('option');
-            option.value = preset.id;
-            option.textContent = preset.custom ? `${preset.name} (Custom)` : preset.name;
-            select.appendChild(option);
-        }
-        select.value = resolveSkinBindingPreset(row.id);
+        const bindingState = resolveSkinBindingSelectionState(row.id);
+        fillSfxAudioLibrarySelect(select, bindingState.value, bindingState.legacyOption);
         select.addEventListener('change', () => {
-            state.skinBindings = setSkinSfxPresetId(row.id, select.value);
+            state.skinBindings = setSkinSfxAudioItemId(row.id, select.value);
             if (sanitizeId(el.skinSelect?.value || '') === row.id) {
-                el.skinPresetSelect.value = getSfxPresetById(select.value).id;
+                el.skinPresetSelect.value = sanitizeId(select.value || '');
             }
-            setSkinStatus(`Updated: ${row.nameZh || row.id} -> ${getSfxPresetById(select.value).name}`);
+            const selectedItem = state.audioLibrary.find((audioItem) => audioItem.id === sanitizeId(select.value));
+            setSkinStatus(`Updated: ${row.nameZh || row.id} -> ${selectedItem?.name || '默认合成音效'}`);
         });
         actions.appendChild(select);
 
@@ -1320,7 +2729,7 @@ function renderSkinBindingList() {
         btnPreview.className = 'skin-sfx-preview-btn';
         btnPreview.textContent = '试听';
         btnPreview.addEventListener('click', () => {
-            void playPresetPreview(select.value, row.nameZh || row.id);
+            void playAudioLibraryBindingPreview(select.value, row.nameZh || row.id);
         });
         actions.appendChild(btnPreview);
 
@@ -1341,57 +2750,149 @@ async function refreshSkinBindingUi() {
 }
 
 const GAME_SFX_EVENT_FIELD_MAP = Object.freeze({
-    click: 'gameSfxClickPresetSelect',
-    coin: 'gameSfxCoinPresetSelect',
-    checkinCoinTrail: 'gameSfxCheckinCoinTrailPresetSelect',
-    error: 'gameSfxErrorPresetSelect',
-    levelComplete: 'gameSfxLevelCompletePresetSelect',
-    gameOver: 'gameSfxGameOverPresetSelect'
+    click: '点击反馈音效',
+    coin: '金币获得音效',
+    checkinCoinTrail: '签到飞金币音效',
+    error: '错误/惩罚音效',
+    levelComplete: '通关音效',
+    gameOver: '失败音效'
 });
 
 function refreshGameSfxState() {
     state.gameSfxBindings = readGameSfxBindings();
+    const draft = {};
+    for (const eventKey of Object.keys(GAME_SFX_EVENT_FIELD_MAP)) {
+        const rows = getGameSfxBindingOptions(eventKey, '')
+            .map((row) => ({
+                audioItemId: sanitizeId(row?.audioItemId || ''),
+                loop: row?.loop === true
+            }))
+            .filter((row) => !!row.audioItemId);
+        draft[eventKey] = rows.length > 0 ? rows : [{ audioItemId: '', loop: false }];
+    }
+    state.gameSfxDraftByEvent = draft;
 }
 
-function refreshGameSfxPresetOptions() {
-    const presets = getSfxPresetCatalog();
-    for (const [eventKey, fieldName] of Object.entries(GAME_SFX_EVENT_FIELD_MAP)) {
-        const select = el[fieldName];
-        if (!select) {
-            continue;
+function renderGameSfxBindingList() {
+    if (!el.gameSfxBindingList) {
+        return;
+    }
+    stopAllGameSfxPreviewLoops();
+    el.gameSfxBindingList.innerHTML = '';
+    for (const [eventKey, label] of Object.entries(GAME_SFX_EVENT_FIELD_MAP)) {
+        const options = state.gameSfxDraftByEvent[eventKey] || [{ audioItemId: '', loop: false }];
+
+        const card = document.createElement('div');
+        card.className = 'game-sfx-event-card';
+
+        const head = document.createElement('div');
+        head.className = 'game-sfx-event-head';
+        const title = document.createElement('strong');
+        title.textContent = label;
+        const btnAdd = document.createElement('button');
+        btnAdd.type = 'button';
+        btnAdd.className = 'game-sfx-mini-btn';
+        btnAdd.textContent = '+';
+        btnAdd.title = `为「${label}」增加一条音频配置`;
+        btnAdd.addEventListener('click', () => {
+            options.push({ audioItemId: '', loop: false });
+            state.gameSfxDraftByEvent[eventKey] = options;
+            renderGameSfxBindingList();
+        });
+        head.append(title, btnAdd);
+        card.appendChild(head);
+
+        const list = document.createElement('div');
+        list.className = 'game-sfx-option-list';
+        for (let index = 0; index < options.length; index += 1) {
+            const row = options[index];
+            const previewKey = `${eventKey}:${index}`;
+            const node = document.createElement('div');
+            node.className = 'game-sfx-option-row';
+
+            const select = document.createElement('select');
+            fillSfxAudioLibrarySelect(select, row.audioItemId || '');
+            select.addEventListener('change', () => {
+                row.audioItemId = sanitizeId(select.value || '');
+                const selectedItem = state.audioLibrary.find((item) => item.id === row.audioItemId);
+                setGameSfxStatus(`已更新：${label} -> ${selectedItem?.name || '未设置'}`);
+            });
+            node.appendChild(select);
+
+            const loopLabel = document.createElement('label');
+            loopLabel.className = 'game-sfx-loop-label';
+            const loopInput = document.createElement('input');
+            loopInput.type = 'checkbox';
+            loopInput.checked = row.loop === true;
+            const loopText = document.createElement('span');
+            loopText.textContent = '循环';
+            loopLabel.append(loopInput, loopText);
+            loopInput.addEventListener('change', () => {
+                row.loop = loopInput.checked === true;
+                if (!row.loop) {
+                    stopGameSfxPreviewLoop(previewKey);
+                }
+            });
+            node.appendChild(loopLabel);
+
+            const btnPreview = document.createElement('button');
+            btnPreview.type = 'button';
+            btnPreview.className = 'game-sfx-mini-btn';
+            btnPreview.textContent = '试听';
+            btnPreview.addEventListener('click', () => {
+                void playAudioLibraryBindingPreview(row.audioItemId, `${label} ${index + 1}`, {
+                    statusTarget: 'game',
+                    loop: row.loop === true,
+                    previewKey
+                });
+            });
+            node.appendChild(btnPreview);
+
+            const btnRemove = document.createElement('button');
+            btnRemove.type = 'button';
+            btnRemove.className = 'game-sfx-mini-btn is-danger';
+            btnRemove.textContent = '删';
+            btnRemove.disabled = options.length <= 1;
+            btnRemove.addEventListener('click', () => {
+                stopGameSfxPreviewLoop(previewKey);
+                options.splice(index, 1);
+                if (options.length <= 0) {
+                    options.push({ audioItemId: '', loop: false });
+                }
+                state.gameSfxDraftByEvent[eventKey] = options;
+                renderGameSfxBindingList();
+            });
+            node.appendChild(btnRemove);
+
+            list.appendChild(node);
         }
-        const previous = sanitizeId(select.value || '');
-        select.innerHTML = '';
-        for (const preset of presets) {
-            const option = document.createElement('option');
-            option.value = preset.id;
-            option.textContent = preset.custom ? `${preset.name} (Custom)` : preset.name;
-            select.appendChild(option);
-        }
-        const boundPresetId = getGameSfxPresetId(eventKey);
-        const fallbackPresetId = presets[0]?.id || BUILTIN_SFX_PRESETS[0].id;
-        const nextValue = presets.some((preset) => preset.id === previous)
-            ? previous
-            : (presets.some((preset) => preset.id === boundPresetId) ? boundPresetId : fallbackPresetId);
-        select.value = nextValue;
+        card.appendChild(list);
+        el.gameSfxBindingList.appendChild(card);
     }
 }
 
 function saveGameSfxBindingsFromUi() {
-    for (const [eventKey, fieldName] of Object.entries(GAME_SFX_EVENT_FIELD_MAP)) {
-        const select = el[fieldName];
-        if (!select) {
-            continue;
-        }
-        state.gameSfxBindings = setGameSfxPresetId(eventKey, select.value);
+    stopAllGameSfxPreviewLoops();
+    for (const eventKey of Object.keys(GAME_SFX_EVENT_FIELD_MAP)) {
+        const rows = Array.isArray(state.gameSfxDraftByEvent[eventKey]) ? state.gameSfxDraftByEvent[eventKey] : [];
+        const payload = rows
+            .map((row) => ({
+                audioItemId: sanitizeId(row?.audioItemId || ''),
+                loop: row?.loop === true
+            }))
+            .filter((row) => !!row.audioItemId);
+        state.gameSfxBindings = setGameSfxBindingOptions(eventKey, payload);
     }
+    refreshGameSfxState();
+    renderGameSfxBindingList();
     setGameSfxStatus('已保存游戏音效配置。');
 }
 
 function resetGameSfxBindingsToDefault() {
+    stopAllGameSfxPreviewLoops();
     state.gameSfxBindings = writeGameSfxBindings({});
     refreshGameSfxState();
-    refreshGameSfxPresetOptions();
+    renderGameSfxBindingList();
     setGameSfxStatus('已恢复默认游戏音效。');
 }
 
@@ -1399,6 +2900,7 @@ const GAME_MUSIC_SCENE_FIELD_MAP = Object.freeze({
     [BGM_SCENE_KEYS.HOME]: { tracks: 'gameMusicHomeTracks', volume: 'gameMusicHomeVolume', label: '主界面' },
     [BGM_SCENE_KEYS.NORMAL]: { tracks: 'gameMusicNormalTracks', volume: 'gameMusicNormalVolume', label: '普通关卡' },
     [BGM_SCENE_KEYS.REWARD]: { tracks: 'gameMusicRewardTracks', volume: 'gameMusicRewardVolume', label: '奖励关卡' },
+    [BGM_SCENE_KEYS.LEVEL_PASS]: { tracks: 'gameMusicLevelPassTracks', volume: 'gameMusicLevelPassVolume', label: '过关' },
     [BGM_SCENE_KEYS.CAMPAIGN_COMPLETE]: { tracks: 'gameMusicCompleteTracks', volume: 'gameMusicCompleteVolume', label: '全部通关' }
 });
 
@@ -1517,11 +3019,12 @@ function setSelectedValues(containerEl, values) {
     const rows = Array.isArray(values) ? values : [];
     const normalizedRows = rows.map((item) => {
         if (typeof item === 'string') {
-            return { raw: item, url: item, volume: 1 };
+            const safeUrl = normalizeResourceUrl(item);
+            return safeUrl ? { raw: safeUrl, url: safeUrl, volume: 1 } : null;
         }
         if (item && typeof item === 'object') {
-            const raw = `${item.url || item.src || item.path || ''}`.trim();
-            return { raw, url: raw, volume: clampTrackVolume(item.volume, 1) };
+            const raw = normalizeResourceUrl(item.url || item.src || item.path || '');
+            return raw ? { raw, url: raw, volume: clampTrackVolume(item.volume, 1) } : null;
         }
         return null;
     }).filter((item) => item && item.url);
@@ -1597,7 +3100,7 @@ async function fetchBgmTrackLibrary() {
         const tracks = Array.isArray(payload?.tracks) ? payload.tracks : [];
         return tracks
             .map((track) => {
-                const url = `${track?.url || ''}`.trim();
+                const url = normalizeResourceUrl(track?.url);
                 const name = `${track?.name || ''}`.trim();
                 const fileName = `${track?.fileName || ''}`.trim();
                 if (!url) {
@@ -1858,6 +3361,11 @@ async function refreshGameMusicTrackLibrary() {
             el.gameMusicLibraryHint.style.color = '#c21f4e';
         }
     }
+    const result = await syncProjectAudioLibrary({ refreshBgm: false });
+    refreshAudioLibraryUi(state.selectedAudioLibraryId);
+    if (result.errors.length > 0) {
+        setAudioLibraryStatus(result.errors.join('；'), true);
+    }
 }
 
 async function saveGameMusicConfigFromUi() {
@@ -1900,10 +3408,11 @@ async function resetGameMusicConfigToDefault() {
 function saveSelectedSkinBinding() {
     const skinId = sanitizeId(el.skinSelect?.value || '');
     if (!skinId) return setSkinStatus('Please select a skin first.', true);
-    const presetId = getSfxPresetById(el.skinPresetSelect?.value || '').id;
-    state.skinBindings = setSkinSfxPresetId(skinId, presetId);
+    const audioItemId = sanitizeId(el.skinPresetSelect?.value || '');
+    state.skinBindings = setSkinSfxAudioItemId(skinId, audioItemId);
     renderSkinBindingList();
-    setSkinStatus(`Saved: ${skinId} -> ${getSfxPresetById(presetId).name}`);
+    const item = state.audioLibrary.find((row) => row.id === audioItemId);
+    setSkinStatus(`Saved: ${skinId} -> ${item?.name || '默认合成音效'}`);
 }
 
 function resetSelectedSkinBinding() {
@@ -1930,12 +3439,17 @@ function saveAsNewPreset() {
         });
         refreshPresetSelectOptions();
         refreshSkinPresetSelectOptions();
-        refreshGameSfxPresetOptions();
+        renderGameSfxBindingList();
         setPreset(saved.id, true);
         renderSkinBindingList();
         setStatus(samplePayload
             ? `Saved preset with sample: ${saved.name}`
             : `Saved preset: ${saved.name}`);
+        if (samplePayload) {
+            void syncProjectAudioLibrary({ refreshBgm: false }).then(() => {
+                refreshAudioLibraryUi();
+            });
+        }
     }).catch((error) => {
         setStatus(`Save preset failed: ${error?.message || 'Unknown error'}`, true);
     });
@@ -1965,10 +3479,15 @@ async function bindExternalSampleToCurrentPreset() {
         }
         refreshPresetSelectOptions();
         refreshSkinPresetSelectOptions();
-        refreshGameSfxPresetOptions();
+        renderGameSfxBindingList();
         setPreset(saved.id, true);
         renderSkinBindingList();
         setStatus(`已保存外部采样到模板：${saved.name}`);
+        const syncResult = await syncProjectAudioLibrary({ refreshBgm: false });
+        refreshAudioLibraryUi();
+        if (syncResult.errors.length > 0) {
+            setAudioLibraryStatus(syncResult.errors.join('；'), true);
+        }
     } catch (error) {
         setStatus(`保存外部采样失败：${error?.message || 'Unknown error'}`, true);
     }
@@ -2039,12 +3558,17 @@ function updateCurrentPreset() {
         );
         refreshPresetSelectOptions();
         refreshSkinPresetSelectOptions();
-        refreshGameSfxPresetOptions();
+        renderGameSfxBindingList();
         setPreset(saved.id, true);
         renderSkinBindingList();
         setStatus(samplePayload
             ? `Updated preset with sample: ${saved.name}`
             : `Updated preset: ${saved.name}`);
+        if (samplePayload || preset.sample) {
+            void syncProjectAudioLibrary({ refreshBgm: false }).then(() => {
+                refreshAudioLibraryUi();
+            });
+        }
     }).catch((error) => {
         setStatus(`Update preset failed: ${error?.message || 'Unknown error'}`, true);
     });
@@ -2060,10 +3584,13 @@ function removeCurrentPreset() {
     }
     refreshPresetSelectOptions();
     refreshSkinPresetSelectOptions();
-    refreshGameSfxPresetOptions();
+    renderGameSfxBindingList();
     setPreset(BUILTIN_SFX_PRESETS[0].id, true);
     renderSkinBindingList();
     setStatus(`Deleted preset: ${preset.name}`);
+    void syncProjectAudioLibrary({ refreshBgm: false }).then(() => {
+        refreshAudioLibraryUi();
+    });
 }
 
 function bindEvents() {
@@ -2081,18 +3608,24 @@ function bindEvents() {
     });
 
     el.btnPlay?.addEventListener('click', handlePlay);
-    el.btnPlayBurst?.addEventListener('click', handlePlayBurst);
-    el.btnDownloadWav?.addEventListener('click', handleDownloadSingle);
-    el.btnDownloadPack?.addEventListener('click', handleDownloadPack);
     el.btnReset?.addEventListener('click', () => {
-        setPreset(state.presetId, true);
-        setStatus('Reset to preset defaults.');
+        const fallbackPreset = BUILTIN_SFX_PRESETS[0];
+        applyRecipe(
+            {
+                presetId: fallbackPreset.id,
+                params: { ...fallbackPreset.defaults }
+            },
+            true
+        );
+        setStatus('已恢复默认参数。');
     });
     el.btnSaveAsNewPreset?.addEventListener('click', saveAsNewPreset);
     el.btnUpdatePreset?.addEventListener('click', updateCurrentPreset);
     el.btnDeletePreset?.addEventListener('click', removeCurrentPreset);
-    el.btnBindExternalToPreset?.addEventListener('click', () => {
-        void bindExternalSampleToCurrentPreset();
+    el.btnImportExternalToLibrary?.addEventListener('click', () => {
+        void importCurrentExternalToAudioLibrary().catch((error) => {
+            setStatus(`导入音频库失败：${error?.message || 'Unknown error'}`, true);
+        });
     });
 
     el.sourceMode?.addEventListener('change', () => {
@@ -2110,7 +3643,154 @@ function bindEvents() {
             void handleFreesoundSearch();
         }
     });
+    el.fsSeek?.addEventListener('input', () => {
+        const audio = el.fsPreviewAudio;
+        const duration = Number(audio?.duration || state.fsPreview.duration || 0);
+        if (!audio || !Number.isFinite(duration) || duration <= 0) {
+            return;
+        }
+        const ratio = Math.max(0, Math.min(1, Number(el.fsSeek.value || 0) / 1000));
+        audio.currentTime = duration * ratio;
+        state.fsPreview.currentTime = audio.currentTime;
+        state.fsPreview.statusText = audio.paused ? '已跳转' : '正在播放';
+        renderFsPreviewState();
+    });
+    el.btnFsTogglePlay?.addEventListener('click', () => {
+        const audio = el.fsPreviewAudio;
+        if (!audio || !state.fsPreview.isReady) {
+            return;
+        }
+        if (audio.paused) {
+            void playFsPreviewAudio().then(() => {
+                setFsStatus(`试听：${state.fsPreview.title}`);
+            }).catch((error) => {
+                setFsStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
+            });
+            return;
+        }
+        audio.pause();
+    });
+    el.btnFsStop?.addEventListener('click', () => {
+        stopFsPreviewPlayback();
+    });
+    el.fsPreviewAudio?.addEventListener('loadedmetadata', syncFsPreviewFromAudio);
+    el.fsPreviewAudio?.addEventListener('durationchange', syncFsPreviewFromAudio);
+    el.fsPreviewAudio?.addEventListener('timeupdate', syncFsPreviewFromAudio);
+    el.fsPreviewAudio?.addEventListener('progress', updateFsPreviewLoadProgress);
+    el.fsPreviewAudio?.addEventListener('playing', () => {
+        state.fsPreview.isLoading = false;
+        state.fsPreview.isReady = true;
+        state.fsPreview.isPlaying = true;
+        state.fsPreview.error = '';
+        state.fsPreview.statusText = '正在播放';
+        syncFsPreviewFromAudio();
+    });
+    el.fsPreviewAudio?.addEventListener('pause', () => {
+        if (state.fsPreview.isLoading) {
+            return;
+        }
+        state.fsPreview.isPlaying = false;
+        if (state.fsPreview.isReady && state.fsPreview.statusText !== '已停止' && state.fsPreview.statusText !== '播放结束') {
+            state.fsPreview.statusText = '已暂停';
+        }
+        renderFsPreviewState();
+    });
+    el.fsPreviewAudio?.addEventListener('waiting', () => {
+        if (!state.fsPreview.isReady) {
+            return;
+        }
+        state.fsPreview.statusText = '缓冲中...';
+        renderFsPreviewState();
+    });
+    el.fsPreviewAudio?.addEventListener('ended', () => {
+        state.fsPreview.isPlaying = false;
+        state.fsPreview.currentTime = state.fsPreview.duration;
+        state.fsPreview.statusText = '播放结束';
+        renderFsPreviewState();
+    });
+    el.fsPreviewAudio?.addEventListener('error', () => {
+        state.fsPreview.isLoading = false;
+        state.fsPreview.isPlaying = false;
+        state.fsPreview.isReady = false;
+        state.fsPreview.statusText = '播放失败';
+        state.fsPreview.error = describeAudioElementError(el.fsPreviewAudio);
+        renderFsPreviewState();
+        setFsStatus(`试听失败：${state.fsPreview.error}`, true);
+    });
     el.btnAiGenerate?.addEventListener('click', handleStableAudioGenerate);
+    el.audioLibrarySearch?.addEventListener('input', () => {
+        renderAudioLibraryList();
+    });
+    el.btnAudioLibraryRefresh?.addEventListener('click', () => {
+        void syncProjectAudioLibrary({ refreshBgm: true }).then((result) => {
+            refreshAudioLibraryUi(state.selectedAudioLibraryId);
+            if (result.errors.length > 0) {
+                setAudioLibraryStatus(result.errors.join('；'), true);
+                return;
+            }
+            setAudioLibraryStatus(`总库已同步，共 ${state.audioLibrary.length} 条。`);
+        }).catch((error) => {
+            setAudioLibraryStatus(`同步失败：${error?.message || 'Unknown error'}`, true);
+        });
+    });
+    el.btnAudioLibraryPreview?.addEventListener('click', () => {
+        void previewAudioLibraryItem().catch((error) => {
+            setAudioLibraryStatus(`试听失败：${error?.message || 'Unknown error'}`, true);
+        });
+    });
+    el.btnAudioLibraryImport?.addEventListener('click', () => {
+        void importAudioLibraryItemToWorkbench().then(() => {
+            const item = buildAudioLibraryDraft();
+            if (item) {
+                setAudioLibraryStatus(`已导入到工坊：${item.name}`);
+            }
+        }).catch((error) => {
+            setAudioLibraryStatus(`导入失败：${error?.message || 'Unknown error'}`, true);
+        });
+    });
+    el.btnAudioLibrarySave?.addEventListener('click', saveSelectedAudioLibraryEdits);
+    el.btnAudioLibraryDelete?.addEventListener('click', deleteSelectedAudioLibraryRecord);
+    el.audioLibraryPreviewAudio?.addEventListener('loadedmetadata', () => {
+        const audio = el.audioLibraryPreviewAudio;
+        if (!audio) {
+            return;
+        }
+        if (state.audioLibraryPreview.trimStart > 0) {
+            audio.currentTime = state.audioLibraryPreview.trimStart;
+        }
+    });
+    el.audioLibraryPreviewAudio?.addEventListener('play', () => {
+        const audio = el.audioLibraryPreviewAudio;
+        if (!audio) {
+            return;
+        }
+        audio.volume = clamp(Number(buildAudioLibraryDraft()?.volume || 1), 0, 2);
+        if (audio.currentTime < state.audioLibraryPreview.trimStart) {
+            audio.currentTime = state.audioLibraryPreview.trimStart;
+        }
+    });
+    el.audioLibraryPreviewAudio?.addEventListener('timeupdate', () => {
+        const audio = el.audioLibraryPreviewAudio;
+        if (!audio) {
+            return;
+        }
+        if (audio.currentTime < state.audioLibraryPreview.trimStart) {
+            audio.currentTime = state.audioLibraryPreview.trimStart;
+            return;
+        }
+        if (state.audioLibraryPreview.trimEnd > state.audioLibraryPreview.trimStart
+            && audio.currentTime >= state.audioLibraryPreview.trimEnd) {
+            audio.pause();
+            audio.currentTime = state.audioLibraryPreview.trimStart;
+            const item = getSelectedAudioLibraryItem();
+            if (item) {
+                setAudioLibraryStatus(`试听完成：${item.name}`);
+            }
+        }
+    });
+    el.audioLibraryPreviewAudio?.addEventListener('error', () => {
+        setAudioLibraryStatus('素材预览加载失败。', true);
+    });
 
     el.btnUseExternalAsPreview?.addEventListener('click', () => {
         if (!state.externalSample) {
@@ -2133,27 +3813,6 @@ function bindEvents() {
 
     el.btnGameSfxSave?.addEventListener('click', saveGameSfxBindingsFromUi);
     el.btnGameSfxReset?.addEventListener('click', resetGameSfxBindingsToDefault);
-    el.btnGameSfxPreviewClick?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxClickPresetSelect?.value || getGameSfxPresetId('click'), '点击反馈');
-    });
-    el.btnGameSfxPreviewCoin?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxCoinPresetSelect?.value || getGameSfxPresetId('coin'), '金币获得');
-    });
-    el.btnGameSfxPreviewCheckinCoinTrail?.addEventListener('click', () => {
-        void playPresetPreview(
-            el.gameSfxCheckinCoinTrailPresetSelect?.value || getGameSfxPresetId('checkinCoinTrail'),
-            '签到飞金币'
-        );
-    });
-    el.btnGameSfxPreviewError?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxErrorPresetSelect?.value || getGameSfxPresetId('error'), '错误惩罚');
-    });
-    el.btnGameSfxPreviewLevelComplete?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxLevelCompletePresetSelect?.value || getGameSfxPresetId('levelComplete'), '通关');
-    });
-    el.btnGameSfxPreviewGameOver?.addEventListener('click', () => {
-        void playPresetPreview(el.gameSfxGameOverPresetSelect?.value || getGameSfxPresetId('gameOver'), '失败');
-    });
 
     el.btnGameMusicRefreshLibrary?.addEventListener('click', () => {
         void refreshGameMusicTrackLibrary().then(() => {
@@ -2173,30 +3832,38 @@ function bindEvents() {
 
     document.addEventListener('visibilitychange', () => {
         if (document.hidden) {
+            stopFsPreviewPlayback();
+            stopAudioLibraryPreview();
+            stopAllGameSfxPreviewLoops();
             stopBgmTrackPreview();
         }
     });
     window.addEventListener('beforeunload', () => {
+        resetFsPreviewTransport(true);
+        stopAudioLibraryPreview(true);
+        stopAllGameSfxPreviewLoops();
         stopBgmTrackPreview();
     });
 }
 
 async function init() {
-    if (!el.presetSelect) return;
+    if (!el.sourceMode) return;
     await initSfxStorage();
     await initBgmStorage();
     await fetchProviderCaps();
 
     setMusicSfxSubTab('sfx-lab');
     refreshPresetSelectOptions();
-    refreshSkinPresetSelectOptions();
-    refreshGameSfxState();
-    refreshGameSfxPresetOptions();
     await refreshGameMusicTrackLibrary();
+    const initialLibrarySync = await syncProjectAudioLibrary({ refreshBgm: false });
+    refreshAudioLibraryUi();
+    refreshGameSfxState();
+    renderGameSfxBindingList();
     await refreshSkinBindingUi();
     refreshGameMusicUiFromConfig();
     applyRecipe(readSfxLabState(), false);
-    setSourceMode(el.sourceMode?.value || state.sourceMode || 'synth');
+    setSourceMode(el.sourceMode?.value || state.sourceMode || 'freesound');
+    renderFsPreviewState();
     renderFreesoundResults([]);
     renderExternalSampleState();
     bindEvents();
@@ -2206,9 +3873,14 @@ async function init() {
         void refreshSkinBindingUi();
     });
 
-    setStatus('SFX lab ready.');
-    setSkinStatus('Skin SFX binding ready.');
-    setGameSfxStatus('Game SFX binding ready.');
+    setStatus('音效工坊已就绪。');
+    if (initialLibrarySync.errors.length > 0) {
+        setAudioLibraryStatus(initialLibrarySync.errors.join('；'), true);
+    } else {
+        setAudioLibraryStatus(`素材库已就绪，共 ${state.audioLibrary.length} 条。`);
+    }
+    setSkinStatus('皮肤音效绑定已就绪。');
+    setGameSfxStatus('游戏音效绑定已就绪。');
     setGameMusicStatus('游戏音乐配置已就绪。');
 }
 

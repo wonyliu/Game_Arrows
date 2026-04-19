@@ -10,6 +10,32 @@ export const SKIN_VISIBLE_IDS_STORAGE_KEY = 'arrowClear_skinVisibleSkinIds_v1';
 export const SKIN_DESC_ZH_OVERRIDE_STORAGE_KEY = 'arrowClear_skinDescZhOverrides_v1';
 export const SKIN_DESC_EN_OVERRIDE_STORAGE_KEY = 'arrowClear_skinDescEnOverrides_v1';
 
+function createAtlasPartAsset(src, x, y, width, height, chromaKey = null, sourceWidth = 1984, sourceHeight = 2174) {
+    return Object.freeze({
+        src,
+        crop: Object.freeze({ x, y, width, height, sourceWidth, sourceHeight }),
+        ...(chromaKey ? { chromaKey: Object.freeze({ ...chromaKey }) } : {})
+    });
+}
+
+const GEMINI_ATLAS_SHEET_PATH = 'assets/skins/gemini-atlas-sheet/skin_atlas.png?v=1';
+const GEMINI_ATLAS_PREVIEW_PATH = 'assets/skins/gemini-atlas-sheet/skin_preview.png?v=1';
+const GEMINI_ATLAS_GREEN_KEY = Object.freeze({
+    color: '#239638',
+    tolerance: 74,
+    feather: 18
+});
+const SKIN_ASSET_KEYS = Object.freeze([
+    'snakeHead',
+    'snakeHeadCurious',
+    'snakeHeadSleepy',
+    'snakeHeadSurprised',
+    'snakeSegA',
+    'snakeSegB',
+    'snakeTailBase',
+    'snakeTailTip'
+]);
+
 const SKIN_CATALOG = Object.freeze([
     Object.freeze({
         id: DEFAULT_SKIN_ID,
@@ -49,6 +75,56 @@ const SKIN_CATALOG = Object.freeze([
             snakeSegB: 'assets/skins/classic-burrow/snake_seg_b.png',
             snakeTailBase: 'assets/skins/classic-burrow/snake_tail_base.png',
             snakeTailTip: 'assets/skins/classic-burrow/snake_tail_tip.png'
+        })
+    }),
+    Object.freeze({
+        id: 'gemini-atlas-sheet',
+        coinCost: 36,
+        allowHueVariants: true,
+        colorVariants: Object.freeze([
+            Object.freeze({ id: 'atlas-fuchsia', hueShift: 0, saturation: 1.08, lightness: 1.00, contrast: 1.04 }),
+            Object.freeze({ id: 'atlas-tangerine', hueShift: -22, saturation: 1.10, lightness: 1.01, contrast: 1.05 }),
+            Object.freeze({ id: 'atlas-lemon', hueShift: -40, saturation: 1.10, lightness: 1.02, contrast: 1.04 }),
+            Object.freeze({ id: 'atlas-lime', hueShift: 62, saturation: 1.08, lightness: 1.01, contrast: 1.04 }),
+            Object.freeze({ id: 'atlas-cyan', hueShift: 108, saturation: 1.08, lightness: 1.00, contrast: 1.04 }),
+            Object.freeze({ id: 'atlas-violet', hueShift: 148, saturation: 1.10, lightness: 1.00, contrast: 1.05 })
+        ]),
+        renderProfile: Object.freeze({
+            segmentShadowColor: 'rgba(12, 10, 18, 0.30)',
+            segmentShadowBlur: 3.2,
+            segmentShadowOffsetY: 1,
+            headShadowColor: 'rgba(10, 8, 16, 0.34)',
+            headShadowBlur: 3.8,
+            headShadowOffsetY: 1,
+            spriteScale: 1,
+            partFit: Object.freeze({
+                headDefault: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headCurious: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSleepy: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                headSurprised: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segA: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                segB: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 }),
+                tailTip: Object.freeze({ scale: 1, offsetX: 0, offsetY: 0 })
+            })
+        }),
+        preview: GEMINI_ATLAS_PREVIEW_PATH,
+        name: Object.freeze({
+            'zh-CN': '\u7cd6\u679c\u8d34\u56fe\u96c6',
+            'en-US': 'Candy Atlas Sheet'
+        }),
+        description: Object.freeze({
+            'zh-CN': '\u5355\u5f20 atlas \u8d34\u56fe\u76f4\u63a5\u88c1\u51fa 4 \u4e2a\u5934\u90e8\u8868\u60c5\uff0c1 \u4e2a\u8eab\u4f53\uff0c1 \u4e2a\u5c3e\u5df4\uff0c\u7528\u4e8e\u9a8c\u8bc1\u5355\u56fe\u76ae\u80a4\u6e32\u67d3\u903b\u8f91\u3002',
+            'en-US': 'Single atlas-sheet skin prototype with 4 head expressions, 1 body part, and 1 tail part sampled directly from one texture.'
+        }),
+        assets: Object.freeze({
+            snakeHead: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 98, 80, 824, 646, GEMINI_ATLAS_GREEN_KEY),
+            snakeHeadCurious: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 1051, 80, 827, 646, GEMINI_ATLAS_GREEN_KEY),
+            snakeHeadSleepy: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 98, 792, 824, 644, GEMINI_ATLAS_GREEN_KEY),
+            snakeHeadSurprised: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 1053, 792, 827, 644, GEMINI_ATLAS_GREEN_KEY),
+            snakeSegA: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 104, 1493, 848, 613, GEMINI_ATLAS_GREEN_KEY),
+            snakeSegB: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 104, 1493, 848, 613, GEMINI_ATLAS_GREEN_KEY),
+            snakeTailBase: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 1059, 1516, 817, 519, GEMINI_ATLAS_GREEN_KEY),
+            snakeTailTip: createAtlasPartAsset(GEMINI_ATLAS_SHEET_PATH, 1059, 1516, 817, 519, GEMINI_ATLAS_GREEN_KEY)
         })
     }),
     Object.freeze({
@@ -474,9 +550,10 @@ const SKIN_INDEX = new Map(SKIN_CATALOG.map((skin) => [skin.id, skin]));
 const SKIN_ORDER = SKIN_CATALOG.map((skin) => skin.id);
 
 function getStorage() {
-    // Runtime skin configuration must be deterministic across devices.
-    // Disable localStorage-backed skin config overrides entirely.
-    return null;
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return null;
+    }
+    return window.localStorage;
 }
 
 function sanitizeSkinId(rawId) {
@@ -552,6 +629,57 @@ function normalizeAssetPath(rawPath, fallbackPath = '') {
     return normalized;
 }
 
+function normalizeCropRect(rawCrop) {
+    if (!rawCrop || typeof rawCrop !== 'object') {
+        return null;
+    }
+    const x = Math.max(0, Math.round(Number(rawCrop.x) || 0));
+    const y = Math.max(0, Math.round(Number(rawCrop.y) || 0));
+    const width = Math.max(1, Math.round(Number(rawCrop.width ?? rawCrop.w) || 0));
+    const height = Math.max(1, Math.round(Number(rawCrop.height ?? rawCrop.h) || 0));
+    const sourceWidth = Math.max(1, Math.round(Number(rawCrop.sourceWidth ?? rawCrop.basisWidth ?? rawCrop.sheetWidth) || 0)) || null;
+    const sourceHeight = Math.max(1, Math.round(Number(rawCrop.sourceHeight ?? rawCrop.basisHeight ?? rawCrop.sheetHeight) || 0)) || null;
+    return Object.freeze({
+        x,
+        y,
+        width,
+        height,
+        ...(sourceWidth ? { sourceWidth } : {}),
+        ...(sourceHeight ? { sourceHeight } : {})
+    });
+}
+
+function normalizeChromaKey(rawKey) {
+    if (!rawKey || typeof rawKey !== 'object') {
+        return null;
+    }
+    const color = `${rawKey.color || ''}`.trim().toLowerCase();
+    const normalizedColor = /^#[0-9a-f]{6}$/i.test(color) ? color : '#00ff00';
+    const tolerance = Math.max(1, Math.min(441.68, Number(rawKey.tolerance) || 60));
+    const feather = Math.max(0, Math.min(tolerance, Number(rawKey.feather) || 0));
+    return Object.freeze({ color: normalizedColor, tolerance, feather });
+}
+
+function normalizeAssetSpec(rawAsset, fallbackPath = '') {
+    if (typeof rawAsset === 'string') {
+        return normalizeAssetPath(rawAsset, fallbackPath) || fallbackPath;
+    }
+    if (!rawAsset || typeof rawAsset !== 'object') {
+        return fallbackPath;
+    }
+    const src = normalizeAssetPath(rawAsset.src || rawAsset.path || '', fallbackPath) || fallbackPath;
+    if (!src) {
+        return fallbackPath;
+    }
+    const crop = normalizeCropRect(rawAsset.crop || rawAsset.region || rawAsset.rect);
+    const chromaKey = normalizeChromaKey(rawAsset.chromaKey || rawAsset.alphaKey || rawAsset.bgKey);
+    return Object.freeze({
+        src,
+        ...(crop ? { crop } : {}),
+        ...(chromaKey ? { chromaKey } : {})
+    });
+}
+
 function buildLocalSkinAssets(skinId) {
     const id = sanitizeSkinId(skinId);
     const base = `assets/skins/${id}`;
@@ -565,6 +693,18 @@ function buildLocalSkinAssets(skinId) {
         snakeTailBase: `${base}/snake_tail_base.png`,
         snakeTailTip: `${base}/snake_tail_tip.png`
     };
+}
+
+function normalizeLocalSkinAssets(rawAssets, skinId) {
+    const fallbackAssets = buildLocalSkinAssets(skinId);
+    if (!rawAssets || typeof rawAssets !== 'object') {
+        return Object.freeze(fallbackAssets);
+    }
+    const normalized = {};
+    for (const key of SKIN_ASSET_KEYS) {
+        normalized[key] = normalizeAssetSpec(rawAssets[key], fallbackAssets[key]);
+    }
+    return Object.freeze(normalized);
 }
 
 function readRawLocalSkinCatalog() {
@@ -652,7 +792,7 @@ function normalizeLocalSkinCatalog(rawCatalog = []) {
         normalized.push({
             id,
             coinCost,
-            allowHueVariants: false,
+            allowHueVariants: row.allowHueVariants !== false,
             colorVariants: Object.freeze([]),
             preview,
             name: Object.freeze({
@@ -663,7 +803,7 @@ function normalizeLocalSkinCatalog(rawCatalog = []) {
                 'zh-CN': descriptionZh,
                 'en-US': descriptionEn
             }),
-            assets: Object.freeze(buildLocalSkinAssets(id))
+            assets: normalizeLocalSkinAssets(row.assets, id)
         });
         seen.add(id);
     }
@@ -732,9 +872,8 @@ function normalizeLocalSkinColorVariantMap(rawMap = {}) {
 }
 
 function getCatalogBase() {
-    // Keep skin catalog deterministic across devices/hosts:
-    // do not use local cache (visible ids / local catalog) as runtime source.
-    return SKIN_CATALOG;
+    const localCatalog = normalizeLocalSkinCatalog(readRawLocalSkinCatalog());
+    return Object.freeze([...SKIN_CATALOG, ...localCatalog]);
 }
 
 function normalizeCoinCost(rawCost, fallbackCost) {
@@ -885,6 +1024,11 @@ export function getDefaultCoinCostBySkinId(skinId) {
         || baseCatalog.find((skin) => skin.id === DEFAULT_SKIN_ID)
         || SKIN_INDEX.get(DEFAULT_SKIN_ID);
     return normalizeCoinCost(base?.coinCost, 0);
+}
+
+export function isBuiltInSkinId(skinId) {
+    const key = sanitizeSkinId(skinId);
+    return !!key && SKIN_INDEX.has(key);
 }
 
 export function getSkinCatalog() {

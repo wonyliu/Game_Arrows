@@ -1,4 +1,4 @@
-﻿import { getDefaultSkinId, getSkinById } from './skins.js?v=27';
+import { getDefaultSkinId, getSkinById } from './skins.js?v=31';
 
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 
@@ -144,6 +144,7 @@ const MOLE_FAMILIES = [
 
 const EXPRESSIONS = ['goofy', 'smirk', 'sleepy', 'grin'];
 const SPRITE_CACHE = new Map();
+const RASTER_IMAGE_CACHE = new Map();
 const RASTER_SPRITE_CACHE = new Map();
 const SNAKE_VARIANT_SPRITE_CACHE = new Map();
 const MASKED_SNAKE_SPRITE_CACHE = new Map();
@@ -162,6 +163,19 @@ const DEFAULT_SNAKE_COLOR_VARIANTS = Object.freeze([
     Object.freeze({ id: 'berry-violet', hueShift: 138, saturation: 1.34, lightness: 1.03, contrast: 1.03 }),
     Object.freeze({ id: 'coral-sunrise', hueShift: -68, saturation: 1.36, lightness: 1.02, contrast: 1.04 })
 ]);
+const ORIGINAL_SNAKE_COLOR_VARIANT = Object.freeze({
+    id: 'original',
+    hueShift: 0,
+    saturation: 1,
+    lightness: 1,
+    contrast: 1,
+    neutralTintStrength: 0,
+    forceMonochrome: false,
+    monochromeLightness: 0.5,
+    forceBinaryMonochrome: false,
+    invertBinaryMonochrome: false,
+    monochromeThreshold: 0.62
+});
 const DEFAULT_SNAKE_RENDER_PROFILE = Object.freeze({
     segmentShadowColor: 'rgba(20, 16, 28, 0.24)',
     segmentShadowBlur: 2.2,
@@ -194,10 +208,89 @@ const DEFAULT_SNAKE_PART_FIT = Object.freeze({
 });
 const SNAKE_PART_MASK_SPECS = Object.freeze([
     Object.freeze({ spriteKey: 'snakeHead', fitKey: 'headDefault', maskAssetKey: 'snakeHead' }),
+    Object.freeze({ spriteKey: 'snakeHeadCurious', fitKey: 'headCurious', maskAssetKey: 'snakeHeadCurious' }),
+    Object.freeze({ spriteKey: 'snakeHeadSleepy', fitKey: 'headSleepy', maskAssetKey: 'snakeHeadSleepy' }),
+    Object.freeze({ spriteKey: 'snakeHeadSurprised', fitKey: 'headSurprised', maskAssetKey: 'snakeHeadSurprised' }),
     Object.freeze({ spriteKey: 'snakeSegA', fitKey: 'segA', maskAssetKey: 'snakeSegA' }),
     Object.freeze({ spriteKey: 'snakeTailTip', fitKey: 'tailTip', maskAssetKey: 'snakeTailTip' })
 ]);
 const ENABLE_RUNTIME_SNAKE_SHADOW = false;
+
+function normalizeRasterCrop(rawCrop) {
+    if (!rawCrop || typeof rawCrop !== 'object') {
+        return null;
+    }
+    const x = Math.max(0, Math.round(Number(rawCrop.x) || 0));
+    const y = Math.max(0, Math.round(Number(rawCrop.y) || 0));
+    const width = Math.max(1, Math.round(Number(rawCrop.width ?? rawCrop.w) || 0));
+    const height = Math.max(1, Math.round(Number(rawCrop.height ?? rawCrop.h) || 0));
+    const sourceWidth = Math.max(1, Math.round(Number(rawCrop.sourceWidth ?? rawCrop.basisWidth ?? rawCrop.sheetWidth) || 0)) || null;
+    const sourceHeight = Math.max(1, Math.round(Number(rawCrop.sourceHeight ?? rawCrop.basisHeight ?? rawCrop.sheetHeight) || 0)) || null;
+    return {
+        x,
+        y,
+        width,
+        height,
+        ...(sourceWidth ? { sourceWidth } : {}),
+        ...(sourceHeight ? { sourceHeight } : {})
+    };
+}
+
+function normalizeHexColor(value, fallback = '#00ff00') {
+    const raw = `${value || fallback}`.trim().toLowerCase();
+    if (/^#[0-9a-f]{6}$/i.test(raw)) {
+        return raw;
+    }
+    if (/^#[0-9a-f]{3}$/i.test(raw)) {
+        return `#${raw[1]}${raw[1]}${raw[2]}${raw[2]}${raw[3]}${raw[3]}`;
+    }
+    return fallback;
+}
+
+function parseHexColor(value, fallback = '#00ff00') {
+    const normalized = normalizeHexColor(value, fallback);
+    return {
+        r: Number.parseInt(normalized.slice(1, 3), 16),
+        g: Number.parseInt(normalized.slice(3, 5), 16),
+        b: Number.parseInt(normalized.slice(5, 7), 16)
+    };
+}
+
+function normalizeChromaKey(rawKey) {
+    if (!rawKey || typeof rawKey !== 'object') {
+        return null;
+    }
+    const color = parseHexColor(rawKey.color, '#00ff00');
+    const tolerance = clamp(Number(rawKey.tolerance) || 60, 1, 441.68);
+    const feather = clamp(Number(rawKey.feather) || 0, 0, tolerance);
+    return {
+        ...color,
+        tolerance,
+        feather
+    };
+}
+
+function normalizeRasterAssetSpec(asset) {
+    if (!asset) {
+        return null;
+    }
+    if (typeof asset === 'string') {
+        const src = asset.trim();
+        return src ? { src, crop: null, chromaKey: null } : null;
+    }
+    if (typeof asset !== 'object') {
+        return null;
+    }
+    const src = `${asset.src || asset.path || ''}`.trim();
+    if (!src) {
+        return null;
+    }
+    return {
+        src,
+        crop: normalizeRasterCrop(asset.crop || asset.region || asset.rect),
+        chromaKey: normalizeChromaKey(asset.chromaKey || asset.alphaKey || asset.bgKey)
+    };
+}
 
 function normalizeHue(value) {
     let hue = value % 360;
@@ -310,13 +403,24 @@ function resolveSnakeColorVariants(skin) {
     const source = Array.isArray(skin?.colorVariants) && skin.colorVariants.length > 0
         ? skin.colorVariants
         : DEFAULT_SNAKE_COLOR_VARIANTS;
-    return source.map((variant, index) =>
+    const originalVariantId = `${skin?.id || 'snake'}-original`;
+    const normalized = [
         normalizeSnakeColorVariant(
-            variant,
-            DEFAULT_SNAKE_COLOR_VARIANTS[index % DEFAULT_SNAKE_COLOR_VARIANTS.length],
-            index
+            { ...ORIGINAL_SNAKE_COLOR_VARIANT, id: originalVariantId },
+            ORIGINAL_SNAKE_COLOR_VARIANT,
+            0
         )
-    );
+    ];
+    for (let index = 1; index < source.length; index += 1) {
+        normalized.push(
+            normalizeSnakeColorVariant(
+                source[index],
+                DEFAULT_SNAKE_COLOR_VARIANTS[index % DEFAULT_SNAKE_COLOR_VARIANTS.length],
+                index
+            )
+        );
+    }
+    return normalized;
 }
 
 function resolveSkinRenderProfile(skin) {
@@ -760,8 +864,153 @@ function spriteCacheKey(name, scale, paletteKey) {
     return `${name}:${scale}:${paletteKey}`;
 }
 
-function rasterCacheKey(name, path) {
-    return `${name}:${path}`;
+function rasterAssetCacheKey(asset) {
+    const spec = normalizeRasterAssetSpec(asset);
+    if (!spec?.src) {
+        return '';
+    }
+    const crop = spec.crop
+        ? `${spec.crop.x},${spec.crop.y},${spec.crop.width},${spec.crop.height},${spec.crop.sourceWidth || 0},${spec.crop.sourceHeight || 0}`
+        : 'full';
+    const chroma = spec.chromaKey
+        ? `${spec.chromaKey.r},${spec.chromaKey.g},${spec.chromaKey.b},${spec.chromaKey.tolerance},${spec.chromaKey.feather}`
+        : 'none';
+    return `${spec.src}|${crop}|${chroma}`;
+}
+
+function rasterCacheKey(name, asset) {
+    return `${name}:${rasterAssetCacheKey(asset)}`;
+}
+
+function getOrLoadRasterImage(src) {
+    const key = `${src || ''}`.trim();
+    if (!key) {
+        return null;
+    }
+    const existing = RASTER_IMAGE_CACHE.get(key);
+    if (existing) {
+        return existing;
+    }
+
+    const record = {
+        status: 'loading',
+        image: null,
+        listeners: []
+    };
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => {
+        record.status = 'ready';
+        record.image = image;
+        const listeners = [...record.listeners];
+        record.listeners.length = 0;
+        for (const listener of listeners) {
+            try {
+                listener(record);
+            } catch {
+                // Ignore listener failures and keep the source image cached.
+            }
+        }
+    };
+    image.onerror = () => {
+        record.status = 'error';
+        const listeners = [...record.listeners];
+        record.listeners.length = 0;
+        for (const listener of listeners) {
+            try {
+                listener(record);
+            } catch {
+                // Ignore listener failures and keep the source image cached.
+            }
+        }
+    };
+    image.src = key;
+    RASTER_IMAGE_CACHE.set(key, record);
+    return record;
+}
+
+function applyChromaKey(ctx, width, height, chromaKey) {
+    if (!ctx || width <= 0 || height <= 0 || !chromaKey) {
+        return;
+    }
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    const feather = Math.max(0, chromaKey.feather || 0);
+    const hardCutoff = Math.max(0, chromaKey.tolerance - feather);
+    let changed = false;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const alpha = data[i + 3];
+        if (alpha === 0) {
+            continue;
+        }
+        const dr = data[i] - chromaKey.r;
+        const dg = data[i + 1] - chromaKey.g;
+        const db = data[i + 2] - chromaKey.b;
+        const distance = Math.sqrt((dr * dr) + (dg * dg) + (db * db));
+        if (distance > chromaKey.tolerance) {
+            continue;
+        }
+        changed = true;
+        if (distance <= hardCutoff || feather <= 0) {
+            data[i + 3] = 0;
+            continue;
+        }
+        const progress = (distance - hardCutoff) / Math.max(1e-6, feather);
+        data[i + 3] = Math.round(alpha * clamp(progress, 0, 1));
+    }
+
+    if (changed) {
+        ctx.putImageData(imageData, 0, 0);
+    }
+}
+
+function buildRasterSpriteFromImage(name, image, assetSpec) {
+    if (!image || !assetSpec?.src) {
+        return null;
+    }
+    const crop = assetSpec.crop;
+    const basisWidth = Math.max(1, Math.round(Number(crop?.sourceWidth) || image.naturalWidth));
+    const basisHeight = Math.max(1, Math.round(Number(crop?.sourceHeight) || image.naturalHeight));
+    const scaleX = image.naturalWidth / basisWidth;
+    const scaleY = image.naturalHeight / basisHeight;
+    const sourceX = clamp(Math.round((crop?.x || 0) * scaleX), 0, Math.max(0, image.naturalWidth - 1));
+    const sourceY = clamp(Math.round((crop?.y || 0) * scaleY), 0, Math.max(0, image.naturalHeight - 1));
+    const sourceWidth = clamp(
+        Math.round((crop?.width || image.naturalWidth) * scaleX),
+        1,
+        Math.max(1, image.naturalWidth - sourceX)
+    );
+    const sourceHeight = clamp(
+        Math.round((crop?.height || image.naturalHeight) * scaleY),
+        1,
+        Math.max(1, image.naturalHeight - sourceY)
+    );
+    const canvas = createSurface(sourceWidth, sourceHeight);
+    const ctx = getSurfaceContext(canvas, true);
+    if (!ctx) {
+        return null;
+    }
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+    ctx.drawImage(
+        image,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        sourceWidth,
+        sourceHeight
+    );
+    applyChromaKey(ctx, sourceWidth, sourceHeight, assetSpec.chromaKey);
+    return {
+        name,
+        canvas,
+        width: canvas.width,
+        height: canvas.height
+    };
 }
 
 function bleedTransparentEdgePixels(ctx, width, height, passes = 2) {
@@ -962,43 +1211,46 @@ function forceOpaqueAlpha(ctx, width, height) {
     }
 }
 
-function loadRasterSprite(name, path) {
-    const key = rasterCacheKey(name, path);
+function loadRasterSprite(name, asset) {
+    const spec = normalizeRasterAssetSpec(asset);
+    if (!spec?.src) {
+        return null;
+    }
+    const key = rasterCacheKey(name, spec);
     const cached = RASTER_SPRITE_CACHE.get(key);
 
     if (cached?.status === 'ready') {
         return cached.sprite;
     }
+    if (cached?.status === 'error') {
+        return null;
+    }
 
     if (!cached) {
         const record = { status: 'loading', sprite: null };
-        const image = new Image();
-        image.decoding = 'async';
-
-        image.onload = () => {
-            const canvas = createSurface(image.naturalWidth, image.naturalHeight);
-            const ctx = getSurfaceContext(canvas, true);
-            if (!ctx) {
+        const sourceRecord = getOrLoadRasterImage(spec.src);
+        const finalize = (resolved) => {
+            if (resolved?.status !== 'ready' || !resolved.image) {
                 record.status = 'error';
                 return;
             }
-            ctx.imageSmoothingEnabled = true;
-            ctx.imageSmoothingQuality = 'high';
-            ctx.drawImage(image, 0, 0);
+            const sprite = buildRasterSpriteFromImage(name, resolved.image, spec);
+            if (!sprite?.canvas) {
+                record.status = 'error';
+                return;
+            }
             record.status = 'ready';
-            record.sprite = {
-                name,
-                canvas,
-                width: canvas.width,
-                height: canvas.height
-            };
+            record.sprite = sprite;
         };
-
-        image.onerror = () => {
+        if (!sourceRecord) {
             record.status = 'error';
-        };
-
-        image.src = path;
+        } else if (sourceRecord.status === 'ready') {
+            finalize(sourceRecord);
+        } else if (sourceRecord.status === 'error') {
+            record.status = 'error';
+        } else {
+            sourceRecord.listeners.push(finalize);
+        }
         RASTER_SPRITE_CACHE.set(key, record);
     }
 
@@ -1012,13 +1264,26 @@ function ensureSnakeImageSprites(atlas) {
     const cachePrefix = `snake-${skin.id}`;
 
     atlas.sprites.snakeHead = atlas.sprites.snakeHead || loadRasterSprite(`${cachePrefix}-head`, assets.snakeHead);
+    atlas.sprites.snakeHeadCurious = atlas.sprites.snakeHeadCurious
+        || loadRasterSprite(`${cachePrefix}-head-curious`, assets.snakeHeadCurious || assets.snakeHead);
+    atlas.sprites.snakeHeadSleepy = atlas.sprites.snakeHeadSleepy
+        || loadRasterSprite(`${cachePrefix}-head-sleepy`, assets.snakeHeadSleepy || assets.snakeHead);
+    atlas.sprites.snakeHeadSurprised = atlas.sprites.snakeHeadSurprised
+        || loadRasterSprite(`${cachePrefix}-head-surprised`, assets.snakeHeadSurprised || assets.snakeHead);
     atlas.sprites.snakeSegA = atlas.sprites.snakeSegA
         || loadRasterSprite(`${cachePrefix}-seg-a`, assets.snakeSegA || assets.snakeSegB);
+    atlas.sprites.snakeSegB = atlas.sprites.snakeSegB
+        || loadRasterSprite(`${cachePrefix}-seg-b`, assets.snakeSegB || assets.snakeSegA);
+    atlas.sprites.snakeTailBase = atlas.sprites.snakeTailBase
+        || loadRasterSprite(`${cachePrefix}-tail-base`, assets.snakeTailBase || assets.snakeTailTip);
     atlas.sprites.snakeTailTip = atlas.sprites.snakeTailTip
         || loadRasterSprite(`${cachePrefix}-tail-tip`, assets.snakeTailTip || assets.snakeTailBase);
 
     const baseReady = Boolean(
         atlas.sprites.snakeHead &&
+        atlas.sprites.snakeHeadCurious &&
+        atlas.sprites.snakeHeadSleepy &&
+        atlas.sprites.snakeHeadSurprised &&
         atlas.sprites.snakeSegA &&
         atlas.sprites.snakeTailTip
     );
@@ -1829,8 +2094,13 @@ export function buildGameSpriteAtlas(cellSize, dpr = 1, themeName = 'moleFamily'
             particleSquare: renderSprite('particle-leaf', MATRICES.particleLeaf, theme.palette, clamp(scale - 1, 1, 4)),
             particleStar: renderSprite('particle-heart', MATRICES.particleHeart, theme.palette, clamp(scale - 1, 1, 4)),
             snakeHead: loadRasterSprite(`${cachePrefix}-head`, skin.assets.snakeHead),
-            snakeSegA: loadRasterSprite(`${cachePrefix}-seg-a`, skin.assets.snakeSegA),
-            snakeTailTip: loadRasterSprite(`${cachePrefix}-tail-tip`, skin.assets.snakeTailTip)
+            snakeHeadCurious: loadRasterSprite(`${cachePrefix}-head-curious`, skin.assets.snakeHeadCurious || skin.assets.snakeHead),
+            snakeHeadSleepy: loadRasterSprite(`${cachePrefix}-head-sleepy`, skin.assets.snakeHeadSleepy || skin.assets.snakeHead),
+            snakeHeadSurprised: loadRasterSprite(`${cachePrefix}-head-surprised`, skin.assets.snakeHeadSurprised || skin.assets.snakeHead),
+            snakeSegA: loadRasterSprite(`${cachePrefix}-seg-a`, skin.assets.snakeSegA || skin.assets.snakeSegB),
+            snakeSegB: loadRasterSprite(`${cachePrefix}-seg-b`, skin.assets.snakeSegB || skin.assets.snakeSegA),
+            snakeTailBase: loadRasterSprite(`${cachePrefix}-tail-base`, skin.assets.snakeTailBase || skin.assets.snakeTailTip),
+            snakeTailTip: loadRasterSprite(`${cachePrefix}-tail-tip`, skin.assets.snakeTailTip || skin.assets.snakeTailBase)
         }
     };
 }
@@ -1923,11 +2193,3 @@ export function hashPoint(x, y, seed = 0) {
     value = (value ^ (value >> 13)) * 1274126177;
     return (value >>> 0) / 0xffffffff;
 }
-
-
-
-
-
-
-
-

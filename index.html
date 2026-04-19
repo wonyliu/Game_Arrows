@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=108">
+    <link rel="stylesheet" href="css/style.css?v=111">
 </head>
 <body>
     <div class="app-container">
@@ -97,6 +97,29 @@
             <div class="menu-content menu-content-v2">
                 <section class="menu-home-hero">
                     <h1 class="menu-home-title" data-i18n="home.menuTitle">蛇蛇大冒险</h1>
+                    <div id="homeDanceMascot" class="home-dance-mascot" aria-hidden="true">
+                        <canvas
+                            id="homeDanceMascotCanvas"
+                            class="home-dance-mascot-canvas hidden"
+                        ></canvas>
+                        <video
+                            id="homeDanceMascotVideo"
+                            class="home-dance-mascot-video"
+                            src="assets/audio/bgm/小蛇出不去1.mp4"
+                            muted
+                            loop
+                            playsinline
+                            webkit-playsinline="true"
+                            preload="auto"
+                            aria-hidden="true"
+                        ></video>
+                        <img
+                            id="homeDanceMascotSprite"
+                            class="home-dance-mascot-sprite"
+                            src="assets/ui/home/mascots/dance_snake_custom_frame_00.png"
+                            alt=""
+                        >
+                    </div>
                     <div class="play-area play-area-v2">
                         <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">开始冒险</button>
                         <button id="btnLevels" class="current-level-tag" type="button" aria-label="洞穴入口">
@@ -403,6 +426,6 @@
     </div>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/main.js?v=233"></script>
+    <script type="module" src="js/main.js?v=250"></script>
 </body>
 </html>

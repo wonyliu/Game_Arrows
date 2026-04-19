@@ -1,1 +1,50 @@
-﻿{}
+{
+  "click": {
+    "items": [
+      {
+        "audioItemId": "audio-syrup-pop",
+        "loop": false
+      }
+    ]
+  },
+  "coin": {
+    "items": [
+      {
+        "audioItemId": "audio-coinflic6-mp3",
+        "loop": false
+      }
+    ]
+  },
+  "checkinCoinTrail": {
+    "items": [
+      {
+        "audioItemId": "audio-syrup-pop",
+        "loop": false
+      }
+    ]
+  },
+  "error": {
+    "items": [
+      {
+        "audioItemId": "audio-fail-plop",
+        "loop": false
+      }
+    ]
+  },
+  "levelComplete": {
+    "items": [
+      {
+        "audioItemId": "audio-crowd-cheer-7",
+        "loop": false
+      }
+    ]
+  },
+  "gameOver": {
+    "items": [
+      {
+        "audioItemId": "audio-fail-plop",
+        "loop": false
+      }
+    ]
+  }
+}

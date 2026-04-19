@@ -8,12 +8,12 @@
     "repeats": 2
   },
   "candy-crunch": {
-    "impact": 1.09,
-    "pitchSemitone": -11,
-    "length": 0.64,
-    "randomness": 0.07,
-    "bounce": 0.71,
-    "repeats": 3
+    "impact": 0.9,
+    "pitchSemitone": 2,
+    "length": 0.95,
+    "randomness": 0.68,
+    "bounce": 0.22,
+    "repeats": 1
   },
   "gummy-stretch": {
     "impact": 1.57,

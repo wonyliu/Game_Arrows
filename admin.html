@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>箭头消消乐管理后台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=77">
+    <link rel="stylesheet" href="css/admin.css?v=78">
 </head>
 <body>
     <main class="admin-hub">
@@ -217,8 +217,10 @@
 
                     <div class="skin-library-actions">
                         <button id="btnShowSkinGenView" class="primary" type="button">创建新皮肤</button>
+                        <button id="btnImportAtlasSkin" type="button">导入新皮肤</button>
                         <button id="btnSkinRefreshList" type="button">刷新列表</button>
                     </div>
+                    <input id="inputImportAtlasSkin" type="file" accept="image/*" hidden>
 
                     <label class="field">
                         <span>搜索（中文名 / ID）</span>
@@ -788,52 +790,13 @@
                         <section class="controls skin-sfx-controls-panel">
                             <h2>游戏音效管理</h2>
                             <p class="sub">游戏功能音效独立配置，不受皮肤音效影响。</p>
-
-                            <label class="field">
-                                <span>点击反馈音效</span>
-                                <select id="gameSfxClickPresetSelect"></select>
-                            </label>
-                            <label class="field">
-                                <span>金币获得音效</span>
-                                <select id="gameSfxCoinPresetSelect"></select>
-                            </label>
-                            <label class="field">
-                                <span>签到飞金币音效</span>
-                                <select id="gameSfxCheckinCoinTrailPresetSelect"></select>
-                            </label>
-                            <label class="field">
-                                <span>错误/惩罚音效</span>
-                                <select id="gameSfxErrorPresetSelect"></select>
-                            </label>
-                            <label class="field">
-                                <span>通关音效</span>
-                                <select id="gameSfxLevelCompletePresetSelect"></select>
-                            </label>
-                            <label class="field">
-                                <span>失败音效</span>
-                                <select id="gameSfxGameOverPresetSelect"></select>
-                            </label>
+                            <div id="gameSfxBindingList" class="game-sfx-binding-list"></div>
 
                             <div class="actions sfx-actions">
                                 <button id="btnGameSfxSave" class="primary" type="button">保存游戏音效配置</button>
                                 <button id="btnGameSfxReset" type="button">恢复默认游戏音效</button>
                             </div>
                             <p id="gameSfxStatus" class="status">就绪。</p>
-                        </section>
-
-                        <section class="preview skin-sfx-list-panel">
-                            <div class="preview-header">
-                                <h2>快速试听</h2>
-                            </div>
-                            <p class="sub">不进入游戏即可试听各功能音效。</p>
-                            <div class="actions sfx-actions">
-                                <button id="btnGameSfxPreviewClick" type="button">试听：点击反馈</button>
-                                <button id="btnGameSfxPreviewCoin" type="button">试听：金币获得</button>
-                                <button id="btnGameSfxPreviewCheckinCoinTrail" type="button">试听：签到飞金币</button>
-                                <button id="btnGameSfxPreviewError" type="button">试听：错误惩罚</button>
-                                <button id="btnGameSfxPreviewLevelComplete" type="button">试听：通关</button>
-                                <button id="btnGameSfxPreviewGameOver" type="button">试听：失败</button>
-                            </div>
                         </section>
                     </div>
                 </div>
@@ -869,6 +832,15 @@
                         <label class="field">
                             <span>奖励关卡音量（0-1）</span>
                             <input id="gameMusicRewardVolume" type="number" min="0" max="1" step="0.01" value="0.75">
+                        </label>
+
+                        <label class="field">
+                            <span>普通关过关 BGM</span>
+                            <div id="gameMusicLevelPassTracks" class="game-music-track-list"></div>
+                        </label>
+                        <label class="field">
+                            <span>普通关过关音量（0-1）</span>
+                            <input id="gameMusicLevelPassVolume" type="number" min="0" max="1" step="0.01" value="0.76">
                         </label>
 
                         <label class="field">
@@ -1047,6 +1019,18 @@
                     </div>
 
                     <div id="uiEditorPropertyGrid" class="ui-editor-property-grid"></div>
+
+                    <div class="ui-editor-scale-tools">
+                        <label class="field">
+                            <span>按比例缩放</span>
+                            <input id="uiEditorScalePercent" type="number" min="1" max="1000" step="1" value="100">
+                        </label>
+                        <div class="ui-editor-scale-actions">
+                            <button id="btnUiEditorScaleApply" type="button">应用比例</button>
+                            <button id="btnUiEditorScaleDown" type="button">-10%</button>
+                            <button id="btnUiEditorScaleUp" type="button">+10%</button>
+                        </div>
+                    </div>
 
                     <div class="actions">
                         <button id="btnUiEditorResetElement" type="button">重置当前元素</button>
@@ -1599,15 +1583,15 @@
     </main>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/admin.js?v=74"></script>
-<script type="module" src="js/admin-hub.js?v=15"></script>
-<script type="module" src="js/admin-skin-manager.js?v=8"></script>
-<script type="module" src="js/admin-skin-fit.js?v=14"></script>
+    <script type="module" src="js/admin.js?v=75"></script>
+<script type="module" src="js/admin-hub.js?v=16"></script>
+<script type="module" src="js/admin-skin-manager.js?v=11"></script>
+<script type="module" src="js/admin-skin-fit.js?v=15"></script>
 <script type="module" src="js/admin-skin-gen.js?v=45"></script>
-<script type="module" src="js/admin-sfx-lab.js?v=28"></script>
+    <script type="module" src="js/admin-sfx-lab.js?v=36"></script>
     <script type="module" src="js/admin-liveops.js?v=5"></script>
     <script type="module" src="js/admin-system.js?v=5"></script>
-    <script type="module" src="js/admin-ui-editor.js?v=17"></script>
+    <script type="module" src="js/admin-ui-editor.js?v=21"></script>
     <script type="module" src="js/admin-db.js?v=2"></script>
   </body>
   </html>

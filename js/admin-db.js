@@ -10,6 +10,7 @@ const el = {
     btnNext: document.getElementById('btnDbAdminNextPage'),
     btnCreateUser: document.getElementById('btnDbAdminCreateUser'),
     btnResetCreate: document.getElementById('btnDbAdminResetCreate'),
+    btnInitUser: document.getElementById('btnDbAdminInitUser'),
     btnReloadUser: document.getElementById('btnDbAdminReloadUser'),
     btnSaveUser: document.getElementById('btnDbAdminSaveUser'),
     btnDeleteUser: document.getElementById('btnDbAdminDeleteUser'),
@@ -607,6 +608,25 @@ async function handleSaveUser() {
     }
 }
 
+async function handleInitUser() {
+    if (!state.selectedUserId) {
+        setStatus('请先选择用户。', true);
+        return;
+    }
+    if (!window.confirm(`确认将 ${state.selectedUserId} 的玩家数据初始化到刚注册时的状态吗？`)) return;
+    try {
+        setStatus('正在初始化玩家数据...');
+        const result = await fetchAdminJson(`/api/admin/db/users/${encodeURIComponent(state.selectedUserId)}/initialize-player`, {
+            method: 'POST'
+        });
+        populateDetail(result.user || {});
+        await refreshAll(false);
+        setStatus(`已初始化玩家数据：${state.selectedUserId}`);
+    } catch (error) {
+        setStatus(`初始化玩家数据失败：${error?.message || 'unknown error'}`, true);
+    }
+}
+
 async function handleDeleteUser() {
     if (!state.selectedUserId) {
         setStatus('请先选择用户。', true);
@@ -680,6 +700,7 @@ function initEvents() {
     });
     el.btnCreateUser?.addEventListener('click', () => void handleCreateUser());
     el.btnResetCreate?.addEventListener('click', resetCreateForm);
+    el.btnInitUser?.addEventListener('click', () => void handleInitUser());
     el.btnReloadUser?.addEventListener('click', () => {
         if (state.selectedUserId) void loadUserDetail(state.selectedUserId);
     });

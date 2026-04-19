@@ -1,1 +1,19 @@
-{}
+{
+  "version": 1,
+  "updatedAt": "2026-04-16T15:56:43.468Z",
+  "inventory": {
+    "skin_fragment": 0,
+    "hint": 0,
+    "undo": 0,
+    "shuffle": 0
+  },
+  "checkin": {
+    "claimedCount": 0,
+    "lastClaimDayKey": ""
+  },
+  "onlineReward": {
+    "dayKey": "2026-04-16",
+    "tierIndex": 0,
+    "remainingSeconds": 0
+  }
+}

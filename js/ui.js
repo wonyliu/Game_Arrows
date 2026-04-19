@@ -1,4 +1,4 @@
-﻿import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=6';
+import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=6';
 import {
     BGM_SCENE_KEYS,
     playBgmForScene,
@@ -8,10 +8,11 @@ import {
     setMusicVolume,
     setSfxVolume,
     playCheckinRewardCoinSound,
-    playFinalCountdownTickSound
-} from './audio.js?v=66';
-import { getSkinDescription, getSkinDisplayName } from './skins.js?v=27';
-import { readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=5';
+    playFinalCountdownTickSound,
+    stopBgm
+} from './audio.js?v=73';
+import { getSkinDescription, getSkinDisplayName } from './skins.js?v=31';
+import { cloneUiLayoutConfig, readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=7';
 import { getUiAsset } from './ui-theme.js?v=2';
 import { bootstrapUserSessionFromStorage, getActiveUserId } from './user-auth.js?v=4';
 
@@ -64,7 +65,11 @@ const CHECKIN_COIN_FLY_COUNT = 6;
 const CHECKIN_COIN_FLY_DURATION_MS = 920;
 const CHECKIN_COIN_COUNTER_DURATION_MS = 1040;
 const REWARD_GUIDE_TEXT = '在奖励关中试试按住划动手指吧！';
-
+const HOME_MASCOT_VIDEO_SRC = 'assets/audio/bgm/小蛇出不去1.mp4';
+const HOME_MASCOT_BLACK_KEY_MIN = 18;
+const HOME_MASCOT_BLACK_KEY_SOFT = 54;
+const HOME_MASCOT_VIDEO_CROP_RIGHT = 70;
+const HOME_MASCOT_VIDEO_CROP_BOTTOM = 26;
 export class UI {
     constructor(game, options = {}) {
         this.game = game;
@@ -81,11 +86,14 @@ export class UI {
         this.hud = document.getElementById('hud');
         this.hudTopEl = this.hud?.querySelector('.hud-top') || null;
         this.hudSettingsButtonEl = document.getElementById('btnHudSettings');
+        this.hudSettingsIconEl = this.hudSettingsButtonEl?.querySelector('.hud-settings-icon') || null;
         this.hudCoinDisplayEl = document.getElementById('hudCoinDisplay');
+        this.hudCoinIconEl = this.hudCoinDisplayEl?.querySelector('.coin-chip-icon') || null;
         this.hudCenterEl = this.hud?.querySelector('.hud-center') || null;
         this.livesEl = document.getElementById('lives');
         this.levelInfoEl = document.getElementById('levelInfo');
         this.timerEl = document.getElementById('timer');
+        this.timerTrackEl = this.timerEl?.querySelector('.hud-timer-track') || null;
         this.timerFillEl = document.getElementById('timerFill');
         this.timerLabelEl = document.getElementById('timerLabel');
         this.lastCountdownTickSecond = null;
@@ -181,6 +189,19 @@ export class UI {
         this.rewardFlyLayerEl = document.getElementById('rewardFlyLayer');
         this.appContainerEl = document.querySelector('.app-container');
         this.buildVersionTagEl = document.getElementById('buildVersionTag');
+        this.homeDanceMascotEl = document.getElementById('homeDanceMascot');
+        this.homeDanceMascotCanvasEl = document.getElementById('homeDanceMascotCanvas');
+        this.homeDanceMascotVideoEl = document.getElementById('homeDanceMascotVideo');
+        this.homeDanceMascotSpriteEl = document.getElementById('homeDanceMascotSprite');
+        this.homeDanceMascotFrameUrls = ['assets/ui/home/mascots/dance_snake_custom_frame_00.png'];
+        this.homeDanceMascotFrameIndex = 0;
+        this.homeDanceMascotTimer = 0;
+        this.homeDanceMascotCanvasCtx = null;
+        this.homeDanceMascotRenderRaf = 0;
+        this.homeDanceMascotVideoReady = false;
+        this.homeDanceMascotUseVideo = false;
+        this.homeDanceMascotCanvasWidth = 0;
+        this.homeDanceMascotCanvasHeight = 0;
         this.perfDebugPanelEl = document.getElementById('perfDebugPanel');
         this.perfDebugTextEl = document.getElementById('perfDebugText');
         this.btnPerfDebugCloseEl = document.getElementById('btnPerfDebugClose');
@@ -200,9 +221,11 @@ export class UI {
         this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
         this.audioEnabled = this.uiEditorPreviewOptions.enabled !== true;
         this.uiEditorPreviewOverride = null;
+        this.uiEditorGameplayPreviewInitialized = false;
         this.uiLayoutConfig = readUiLayoutConfig();
         this.releaseUiLayoutSubscription = subscribeUiLayoutConfig((nextConfig) => {
             this.uiLayoutConfig = nextConfig;
+            this.applyHomeLayoutConfig();
             this.applyCheckinLayoutConfig();
             this.applyGameplayLayoutConfig();
             this.refreshCheckinPanel(false);
@@ -210,6 +233,7 @@ export class UI {
         });
 
         this.bindEvents();
+        this.initHomeDanceMascot();
         this.initPerfDebugGesture();
         this.initAudioSettingsUi();
         if (this.audioEnabled) {
@@ -217,6 +241,7 @@ export class UI {
         }
         this.bindGameCallbacks();
         this.applyThemeAssets();
+        this.applyHomeLayoutConfig();
         this.applyCheckinLayoutConfig();
         this.applyGameplayLayoutConfig();
         this.markUiEditorElements();
@@ -229,7 +254,7 @@ export class UI {
         }, 1000);
         window.addEventListener('resize', () => this.updateCheckinSceneScale());
         if (this.audioEnabled) {
-            playBgmForScene(BGM_SCENE_KEYS.HOME);
+            stopBgm();
         }
 
         if (this.game.isPlaytestMode) {
@@ -267,6 +292,8 @@ export class UI {
             } catch (error) {
                 console.warn('Audio resume failed during auto unlock:', error);
             }
+            this.syncHomeDanceMascotMediaAudio();
+            this.updateHomeDanceMascotPlayback();
             unlocked = true;
             cleanup();
         };
@@ -283,6 +310,7 @@ export class UI {
         this.bindAudioSlider(this.settingsMusicVolumeEl, (ratio) => {
             setMusicVolume(ratio);
             this.updateAudioSliderValueText(this.settingsMusicVolumeValueEl, ratio);
+            this.syncHomeDanceMascotMediaAudio();
         });
         this.bindAudioSlider(this.settingsSfxVolumeEl, (ratio) => {
             setSfxVolume(ratio);
@@ -315,6 +343,17 @@ export class UI {
         }
         this.updateAudioSliderValueText(this.settingsMusicVolumeValueEl, musicPercent / 100);
         this.updateAudioSliderValueText(this.settingsSfxVolumeValueEl, sfxPercent / 100);
+        this.syncHomeDanceMascotMediaAudio();
+    }
+
+    syncHomeDanceMascotMediaAudio() {
+        if (!(this.homeDanceMascotVideoEl instanceof HTMLVideoElement)) {
+            return;
+        }
+        const config = readAudioMixConfig();
+        const musicVolume = Math.max(0, Math.min(1, Number(config.music) || 0));
+        this.homeDanceMascotVideoEl.volume = musicVolume;
+        this.homeDanceMascotVideoEl.muted = !this.audioEnabled || musicVolume <= 0.0001;
     }
 
     updateAudioSliderValueText(targetEl, ratio) {
@@ -390,6 +429,206 @@ export class UI {
 
         this.bindHomeStartVisualFallback();
         this.bindRewardStageGuideEvents();
+    }
+
+    initHomeDanceMascot() {
+        this.initHomeDanceMascotFrameFallback();
+        this.initHomeDanceMascotVideo();
+    }
+
+    initHomeDanceMascotFrameFallback() {
+        if (!(this.homeDanceMascotSpriteEl instanceof HTMLImageElement) || this.homeDanceMascotFrameUrls.length === 0) {
+            return;
+        }
+        const startLoop = (durationMs = 120) => {
+            if (this.homeDanceMascotTimer) {
+                clearInterval(this.homeDanceMascotTimer);
+            }
+            this.homeDanceMascotFrameIndex = 0;
+            this.homeDanceMascotSpriteEl.src = this.homeDanceMascotFrameUrls[0];
+            this.homeDanceMascotTimer = window.setInterval(() => {
+                if (this.menuOverlay?.classList.contains('hidden') || this.homeDanceMascotUseVideo) {
+                    return;
+                }
+                this.homeDanceMascotFrameIndex = (this.homeDanceMascotFrameIndex + 1) % this.homeDanceMascotFrameUrls.length;
+                this.homeDanceMascotSpriteEl.src = this.homeDanceMascotFrameUrls[this.homeDanceMascotFrameIndex];
+            }, durationMs);
+        };
+        startLoop();
+        if (typeof fetch !== 'function') {
+            return;
+        }
+        fetch('assets/ui/home/mascots/manifest.json', { cache: 'no-store' })
+            .then((response) => response.ok ? response.json() : null)
+            .then((manifest) => {
+                const frameCount = Math.max(1, Math.floor(Number(manifest?.frameCount) || 0));
+                const framePrefix = `${manifest?.framePrefix || 'dance_snake_custom_frame_'}`.trim() || 'dance_snake_custom_frame_';
+                const framePadding = Math.max(1, Math.floor(Number(manifest?.framePadding) || 2));
+                const frameDurationMs = Math.max(40, Math.floor(Number(manifest?.frameDurationMs) || 120));
+                if (!frameCount) {
+                    return;
+                }
+                this.homeDanceMascotFrameUrls = Array.from({ length: frameCount }, (_, index) =>
+                    `assets/ui/home/mascots/${framePrefix}${`${index}`.padStart(framePadding, '0')}.png`
+                );
+                startLoop(frameDurationMs);
+            })
+            .catch(() => {
+                // Keep the built-in fallback frame list when manifest is unavailable.
+            });
+    }
+
+    initHomeDanceMascotVideo() {
+        if (!(this.homeDanceMascotCanvasEl instanceof HTMLCanvasElement)
+            || !(this.homeDanceMascotVideoEl instanceof HTMLVideoElement)
+            || !(this.homeDanceMascotSpriteEl instanceof HTMLImageElement)) {
+            return;
+        }
+
+        const context = this.homeDanceMascotCanvasEl.getContext('2d', { willReadFrequently: true });
+        if (!context) {
+            return;
+        }
+        this.homeDanceMascotCanvasCtx = context;
+
+        const videoEl = this.homeDanceMascotVideoEl;
+        videoEl.loop = true;
+        videoEl.playsInline = true;
+        videoEl.preload = 'auto';
+        this.syncHomeDanceMascotMediaAudio();
+        if (`${videoEl.getAttribute('src') || ''}`.trim() !== HOME_MASCOT_VIDEO_SRC) {
+            videoEl.src = HOME_MASCOT_VIDEO_SRC;
+        }
+
+        videoEl.addEventListener('loadeddata', () => {
+            this.homeDanceMascotVideoReady = true;
+            this.homeDanceMascotUseVideo = true;
+            this.homeDanceMascotSpriteEl.classList.add('hidden');
+            this.homeDanceMascotCanvasEl?.classList.remove('hidden');
+            this.syncHomeDanceMascotCanvasSize();
+            this.updateHomeDanceMascotPlayback();
+        });
+        videoEl.addEventListener('error', () => {
+            this.homeDanceMascotVideoReady = false;
+            this.homeDanceMascotUseVideo = false;
+            this.stopHomeDanceMascotRenderLoop();
+            this.homeDanceMascotCanvasEl?.classList.add('hidden');
+            this.homeDanceMascotSpriteEl.classList.remove('hidden');
+        });
+        videoEl.load();
+    }
+
+    syncHomeDanceMascotCanvasSize() {
+        if (!(this.homeDanceMascotCanvasEl instanceof HTMLCanvasElement) || !this.homeDanceMascotEl) {
+            return;
+        }
+        const rect = this.homeDanceMascotEl.getBoundingClientRect();
+        const dpr = Math.max(1, Math.min(2, Number(window.devicePixelRatio) || 1));
+        const nextWidth = Math.max(2, Math.round(rect.width * dpr));
+        const nextHeight = Math.max(2, Math.round(rect.height * dpr));
+        if (nextWidth === this.homeDanceMascotCanvasWidth && nextHeight === this.homeDanceMascotCanvasHeight) {
+            return;
+        }
+        this.homeDanceMascotCanvasWidth = nextWidth;
+        this.homeDanceMascotCanvasHeight = nextHeight;
+        this.homeDanceMascotCanvasEl.width = nextWidth;
+        this.homeDanceMascotCanvasEl.height = nextHeight;
+    }
+
+    drawHomeDanceMascotVideoFrame() {
+        this.homeDanceMascotRenderRaf = 0;
+        if (!this.homeDanceMascotUseVideo
+            || !(this.homeDanceMascotCanvasEl instanceof HTMLCanvasElement)
+            || !(this.homeDanceMascotVideoEl instanceof HTMLVideoElement)
+            || !this.homeDanceMascotCanvasCtx) {
+            return;
+        }
+        const ctx = this.homeDanceMascotCanvasCtx;
+        const videoEl = this.homeDanceMascotVideoEl;
+        if (videoEl.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+            this.homeDanceMascotRenderRaf = window.requestAnimationFrame(() => this.drawHomeDanceMascotVideoFrame());
+            return;
+        }
+
+        this.syncHomeDanceMascotCanvasSize();
+        const canvas = this.homeDanceMascotCanvasEl;
+        const sourceWidth = Math.max(1, videoEl.videoWidth - HOME_MASCOT_VIDEO_CROP_RIGHT);
+        const sourceHeight = Math.max(1, videoEl.videoHeight - HOME_MASCOT_VIDEO_CROP_BOTTOM);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(videoEl, 0, 0, sourceWidth, sourceHeight, 0, 0, canvas.width, canvas.height);
+
+        const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const pixels = frame.data;
+        for (let index = 0; index < pixels.length; index += 4) {
+            const r = pixels[index];
+            const g = pixels[index + 1];
+            const b = pixels[index + 2];
+            const alpha = pixels[index + 3];
+            const level = Math.max(r, g, b);
+            if (level <= HOME_MASCOT_BLACK_KEY_MIN) {
+                pixels[index + 3] = 0;
+                continue;
+            }
+            if (level >= HOME_MASCOT_BLACK_KEY_SOFT || alpha === 0) {
+                continue;
+            }
+            const mix = (level - HOME_MASCOT_BLACK_KEY_MIN) / (HOME_MASCOT_BLACK_KEY_SOFT - HOME_MASCOT_BLACK_KEY_MIN);
+            pixels[index + 3] = Math.max(0, Math.min(255, Math.round(alpha * mix)));
+        }
+        ctx.putImageData(frame, 0, 0);
+        this.homeDanceMascotRenderRaf = window.requestAnimationFrame(() => this.drawHomeDanceMascotVideoFrame());
+    }
+
+    startHomeDanceMascotRenderLoop() {
+        if (this.homeDanceMascotRenderRaf) {
+            return;
+        }
+        this.homeDanceMascotRenderRaf = window.requestAnimationFrame(() => this.drawHomeDanceMascotVideoFrame());
+    }
+
+    stopHomeDanceMascotRenderLoop() {
+        if (this.homeDanceMascotRenderRaf) {
+            cancelAnimationFrame(this.homeDanceMascotRenderRaf);
+            this.homeDanceMascotRenderRaf = 0;
+        }
+    }
+
+    shouldPlayHomeDanceMascotVideo() {
+        if (this.settingsEntry === SETTINGS_ENTRY.GAME) {
+            return false;
+        }
+        const state = `${this.game?.state || ''}`.trim();
+        return [
+            'MENU',
+            'LEVEL_SELECT',
+            'SETTINGS',
+            'LEADERBOARD',
+            'SKINS',
+            'CHECKIN',
+            'EXIT_CONFIRM',
+            'RESET_PROGRESS_CONFIRM'
+        ].includes(state);
+    }
+
+    updateHomeDanceMascotPlayback() {
+        if (!(this.homeDanceMascotVideoEl instanceof HTMLVideoElement)) {
+            return;
+        }
+        this.syncHomeDanceMascotMediaAudio();
+        if (!this.homeDanceMascotUseVideo || !this.homeDanceMascotVideoReady) {
+            this.stopHomeDanceMascotRenderLoop();
+            return;
+        }
+        if (this.shouldPlayHomeDanceMascotVideo()) {
+            const playPromise = this.homeDanceMascotVideoEl.play();
+            if (playPromise && typeof playPromise.then === 'function') {
+                void playPromise.catch(() => {});
+            }
+            this.startHomeDanceMascotRenderLoop();
+            return;
+        }
+        this.homeDanceMascotVideoEl.pause();
+        this.stopHomeDanceMascotRenderLoop();
     }
 
     bindRewardStageGuideEvents() {
@@ -670,6 +909,7 @@ export class UI {
         requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
         this.syncGameplayBgm(true);
+        this.updateHomeDanceMascotPlayback();
     }
 
     startSpecificLevel(level) {
@@ -686,6 +926,7 @@ export class UI {
         requestAnimationFrame(() => this.forceGameCanvasResize());
         this.updateHUD();
         this.syncGameplayBgm(true);
+        this.updateHomeDanceMascotPlayback();
     }
 
     forceGameCanvasResize() {
@@ -712,6 +953,7 @@ export class UI {
             requestAnimationFrame(() => this.forceGameCanvasResize());
             this.updateHUD();
             this.syncGameplayBgm(true);
+            this.updateHomeDanceMascotPlayback();
             this.maybeShowRewardStageGuide();
             this.rewardUnlockToastPending = false;
             return;
@@ -730,6 +972,7 @@ export class UI {
             requestAnimationFrame(() => this.forceGameCanvasResize());
             this.updateHUD();
             this.syncGameplayBgm(true);
+            this.updateHomeDanceMascotPlayback();
             return;
         }
         this.startSpecificLevel(this.game.currentLevel);
@@ -771,7 +1014,7 @@ export class UI {
             this.settingsConfirmMode = SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
             this.updateCoinDisplays();
             if (this.audioEnabled) {
-                playBgmForScene(BGM_SCENE_KEYS.HOME);
+                stopBgm();
             }
         }
 
@@ -826,6 +1069,7 @@ export class UI {
         this.renderFeatureCards();
         this.refreshCheckinPanel();
         this.refreshOnlineRewardDock();
+        this.updateHomeDanceMascotPlayback();
     }
 
     async renderLeaderboard() {
@@ -1065,6 +1309,7 @@ export class UI {
         this.pendingCheckinRewardPayload = null;
         this.pendingOnlineRewardPayload = null;
         this.onlineRewardSettleCoinIconEl = null;
+        this.updateHomeDanceMascotPlayback();
         if (this.rewardUnlockToastTimer) {
             clearTimeout(this.rewardUnlockToastTimer);
             this.rewardUnlockToastTimer = 0;
@@ -1141,6 +1386,7 @@ export class UI {
     }
 
     markUiEditorElements() {
+        this.homeDanceMascotEl?.setAttribute('data-ui-editor-id', 'mascot');
         this.checkinBackButtonEl?.setAttribute('data-ui-editor-id', 'backButton');
         this.checkinCardEl?.setAttribute('data-ui-editor-id', 'notebook');
         this.checkinRibbonEl?.setAttribute('data-ui-editor-id', 'ribbon');
@@ -1148,14 +1394,129 @@ export class UI {
         this.checkinMascotEl?.setAttribute('data-ui-editor-id', 'mascot');
         this.checkinRewardTooltipEl?.setAttribute('data-ui-editor-id', 'rewardTooltip');
         this.checkinStatusEl?.setAttribute('data-ui-editor-id', 'status');
+        this.markGameplayUiEditorElements();
+    }
+
+    markGameplayUiEditorElements() {
         this.hudTopEl?.setAttribute('data-ui-editor-id', 'hudTop');
         this.hudSettingsButtonEl?.setAttribute('data-ui-editor-id', 'settingsButton');
+        this.hudSettingsIconEl?.setAttribute('data-ui-editor-id', 'settingsIcon');
         this.hudCoinDisplayEl?.setAttribute('data-ui-editor-id', 'coinChip');
+        this.hudCoinIconEl?.setAttribute('data-ui-editor-id', 'coinIcon');
+        this.hudCoinValue?.setAttribute('data-ui-editor-id', 'coinValue');
         this.hudCenterEl?.setAttribute('data-ui-editor-id', 'center');
+        this.livesEl?.setAttribute('data-ui-editor-id', 'lives');
         this.levelInfoEl?.setAttribute('data-ui-editor-id', 'level');
         this.timerEl?.setAttribute('data-ui-editor-id', 'timer');
+        this.timerTrackEl?.setAttribute('data-ui-editor-id', 'timerTrack');
+        this.timerLabelEl?.setAttribute('data-ui-editor-id', 'timerLabel');
         this.comboDisplayEl?.setAttribute('data-ui-editor-id', 'combo');
+        this.comboDisplayEl?.querySelector('.hud-combo-count')?.setAttribute('data-ui-editor-id', 'comboCount');
+        this.comboDisplayEl?.querySelector('.hud-combo-label')?.setAttribute('data-ui-editor-id', 'comboLabel');
         this.hudScorePulseEl?.setAttribute('data-ui-editor-id', 'scorePulse');
+        this.hudScoreValueEl?.setAttribute('data-ui-editor-id', 'scoreValue');
+        this.hudScoreGainEl?.setAttribute('data-ui-editor-id', 'scoreGain');
+    }
+
+    applyGameplayChildLayout(layout) {
+        if (!layout) {
+            return;
+        }
+
+        if (this.hudSettingsIconEl) {
+            this.hudSettingsIconEl.style.position = 'relative';
+            this.hudSettingsIconEl.style.left = `${layout.settingsIcon.x}px`;
+            this.hudSettingsIconEl.style.top = `${layout.settingsIcon.y}px`;
+            this.hudSettingsIconEl.style.width = `${layout.settingsIcon.width}px`;
+            this.hudSettingsIconEl.style.height = `${layout.settingsIcon.height}px`;
+            this.hudSettingsIconEl.style.display = layout.settingsIcon.visible === false ? 'none' : 'block';
+        }
+        if (this.hudCoinIconEl) {
+            this.hudCoinIconEl.style.position = 'relative';
+            this.hudCoinIconEl.style.left = `${layout.coinIcon.x}px`;
+            this.hudCoinIconEl.style.top = `${layout.coinIcon.y}px`;
+            this.hudCoinIconEl.style.width = `${layout.coinIcon.width}px`;
+            this.hudCoinIconEl.style.height = `${layout.coinIcon.height}px`;
+            this.hudCoinIconEl.style.display = layout.coinIcon.visible === false ? 'none' : 'block';
+        }
+        if (this.hudCoinValue) {
+            this.hudCoinValue.style.position = 'relative';
+            this.hudCoinValue.style.left = `${layout.coinValue.x}px`;
+            this.hudCoinValue.style.top = `${layout.coinValue.y}px`;
+            this.hudCoinValue.style.width = `${layout.coinValue.width}px`;
+            this.hudCoinValue.style.display = layout.coinValue.visible === false ? 'none' : 'inline-block';
+            this.hudCoinValue.style.fontSize = `${layout.coinValue.fontSize}px`;
+        }
+        if (this.livesEl) {
+            this.livesEl.style.position = 'relative';
+            this.livesEl.style.left = `${layout.lives.x}px`;
+            this.livesEl.style.top = `${layout.lives.y}px`;
+            this.livesEl.style.width = `${layout.lives.width}px`;
+            this.livesEl.style.height = `${layout.lives.height}px`;
+            if (layout.lives.visible === false) {
+                this.livesEl.style.display = 'none';
+            } else {
+                this.livesEl.style.display = '';
+            }
+        }
+        if (this.timerTrackEl) {
+            this.timerTrackEl.style.position = 'relative';
+            this.timerTrackEl.style.left = `${layout.timerTrack.x}px`;
+            this.timerTrackEl.style.top = `${layout.timerTrack.y}px`;
+            this.timerTrackEl.style.width = `${layout.timerTrack.width}px`;
+            this.timerTrackEl.style.height = `${layout.timerTrack.height}px`;
+            this.timerTrackEl.style.display = layout.timerTrack.visible === false ? 'none' : 'block';
+        }
+        if (this.timerLabelEl) {
+            this.timerLabelEl.style.position = 'relative';
+            this.timerLabelEl.style.left = `${layout.timerLabel.x}px`;
+            this.timerLabelEl.style.top = `${layout.timerLabel.y}px`;
+            this.timerLabelEl.style.width = `${layout.timerLabel.width}px`;
+            this.timerLabelEl.style.fontSize = `${layout.timerLabel.fontSize}px`;
+            this.timerLabelEl.style.display = layout.timerLabel.visible === false ? 'none' : 'block';
+            this.timerLabelEl.style.textAlign = 'center';
+        }
+        const comboCountEl = this.comboDisplayEl?.querySelector('.hud-combo-count');
+        if (comboCountEl) {
+            comboCountEl.style.position = 'relative';
+            comboCountEl.style.left = `${layout.comboCount.x}px`;
+            comboCountEl.style.top = `${layout.comboCount.y}px`;
+            comboCountEl.style.width = `${layout.comboCount.width}px`;
+            comboCountEl.style.fontSize = `${layout.comboCount.fontSize}px`;
+            comboCountEl.style.display = layout.comboCount.visible === false ? 'none' : 'inline-block';
+            comboCountEl.style.textAlign = 'right';
+        }
+        const comboLabelEl = this.comboDisplayEl?.querySelector('.hud-combo-label');
+        if (comboLabelEl) {
+            comboLabelEl.style.position = 'relative';
+            comboLabelEl.style.left = `${layout.comboLabel.x}px`;
+            comboLabelEl.style.top = `${layout.comboLabel.y}px`;
+            comboLabelEl.style.width = `${layout.comboLabel.width}px`;
+            comboLabelEl.style.fontSize = `${layout.comboLabel.fontSize}px`;
+            comboLabelEl.style.display = layout.comboLabel.visible === false ? 'none' : 'inline-block';
+        }
+        if (this.hudScoreValueEl) {
+            this.hudScoreValueEl.style.position = 'relative';
+            this.hudScoreValueEl.style.left = `${layout.scoreValue.x}px`;
+            this.hudScoreValueEl.style.top = `${layout.scoreValue.y}px`;
+            this.hudScoreValueEl.style.width = `${layout.scoreValue.width}px`;
+            this.hudScoreValueEl.style.display = layout.scoreValue.visible === false ? 'none' : 'block';
+            this.hudScoreValueEl.style.fontSize = `${layout.scoreValue.fontSize}px`;
+        }
+        if (this.hudScoreGainEl) {
+            this.hudScoreGainEl.style.position = 'absolute';
+            this.hudScoreGainEl.style.left = `${layout.scoreGain.x}px`;
+            this.hudScoreGainEl.style.top = `${layout.scoreGain.y}px`;
+            this.hudScoreGainEl.style.width = `${layout.scoreGain.width}px`;
+            if (layout.scoreGain.visible === false) {
+                this.hudScoreGainEl.style.display = 'none';
+            } else if (!this.hudScoreGainEl.classList.contains('hidden')) {
+                this.hudScoreGainEl.style.display = 'block';
+            } else {
+                this.hudScoreGainEl.style.display = '';
+            }
+            this.hudScoreGainEl.style.fontSize = `${layout.scoreGain.fontSize}px`;
+        }
     }
 
     getCheckinLayoutConfig() {
@@ -1164,6 +1525,23 @@ export class UI {
 
     getGameplayLayoutConfig() {
         return this.uiLayoutConfig?.gameplay || readUiLayoutConfig().gameplay;
+    }
+
+    getHomeLayoutConfig() {
+        return this.uiLayoutConfig?.home || readUiLayoutConfig().home;
+    }
+
+    applyHomeLayoutConfig() {
+        const layout = this.getHomeLayoutConfig();
+        if (!this.homeDanceMascotEl || !layout?.mascot) {
+            return;
+        }
+        this.homeDanceMascotEl.style.left = `${layout.mascot.x}px`;
+        this.homeDanceMascotEl.style.top = `${layout.mascot.y}px`;
+        this.homeDanceMascotEl.style.width = `${layout.mascot.width}px`;
+        this.homeDanceMascotEl.style.height = `${layout.mascot.height}px`;
+        this.homeDanceMascotEl.style.display = layout.mascot.visible === false ? 'none' : 'block';
+        this.syncHomeDanceMascotCanvasSize();
     }
 
     applyCheckinLayoutConfig() {
@@ -1216,6 +1594,8 @@ export class UI {
             return;
         }
 
+        this.markGameplayUiEditorElements();
+
         if (this.hudTopEl) {
             this.hudTopEl.style.left = `${layout.hudTop.x}px`;
             this.hudTopEl.style.top = `${layout.hudTop.y}px`;
@@ -1265,6 +1645,7 @@ export class UI {
             this.timerEl.style.left = `${layout.timer.x}px`;
             this.timerEl.style.top = `${layout.timer.y}px`;
             this.timerEl.style.width = `${layout.timer.width}px`;
+            this.timerEl.style.height = `${layout.timer.height}px`;
             this.timerEl.style.minHeight = `${layout.timer.height}px`;
             this.timerEl.style.display = layout.timer.visible === false ? 'none' : '';
         }
@@ -1286,6 +1667,7 @@ export class UI {
             this.hudScorePulseEl.style.left = `${layout.scorePulse.x}px`;
             this.hudScorePulseEl.style.top = `${layout.scorePulse.y}px`;
             this.hudScorePulseEl.style.width = `${layout.scorePulse.width}px`;
+            this.hudScorePulseEl.style.height = `${layout.scorePulse.height}px`;
             this.hudScorePulseEl.style.minHeight = `${layout.scorePulse.height}px`;
             this.hudScorePulseEl.style.transform = 'none';
             this.hudScorePulseEl.style.display = layout.scorePulse.visible === false ? 'none' : 'flex';
@@ -1296,6 +1678,7 @@ export class UI {
         if (this.hudScoreGainEl) {
             this.hudScoreGainEl.style.fontSize = `${layout.scorePulse.gainFontSize}px`;
         }
+        this.applyGameplayChildLayout(layout);
     }
 
     getDefaultStartLevel() {
@@ -1457,6 +1840,7 @@ export class UI {
         this.forceGameCanvasResize();
         this.updateHUD();
         this.syncGameplayBgm(false);
+        this.updateHomeDanceMascotPlayback();
     }
 
     renderFeatureCards() {
@@ -1515,7 +1899,8 @@ export class UI {
 
         if (this.livesEl) {
             const showLives = !!this.game.lifeSystemEnabled;
-            this.livesEl.classList.toggle('hidden', !showLives);
+            this.livesEl.classList.toggle('hud-lives-placeholder', !showLives);
+            this.livesEl.setAttribute('aria-hidden', showLives ? 'false' : 'true');
             this.livesEl.innerHTML = '';
             if (showLives) {
                 for (let i = 0; i < this.game.maxLives; i++) {
@@ -1906,6 +2291,11 @@ export class UI {
             this.activateGameplayUiEditorPreview();
             return;
         }
+        if (panel === 'home') {
+            this.appContainerEl?.classList.add('menu-mode');
+            this.openMenuPanel(MENU_PANEL.HOME);
+            return;
+        }
         this.appContainerEl?.classList.add('menu-mode');
         this.uiEditorPreviewOverride = {
             previewMode: 'claimable',
@@ -1916,23 +2306,33 @@ export class UI {
     }
 
     activateGameplayUiEditorPreview() {
-        this.startSpecificLevel(12);
-        if (typeof this.game?.setExternalPaused === 'function') {
-            this.game.setExternalPaused(true);
+        if (!this.uiEditorGameplayPreviewInitialized) {
+            this.startSpecificLevel(12);
+            if (typeof this.game?.setExternalPaused === 'function') {
+                this.game.setExternalPaused(true);
+            }
+            this.game.currentLevel = 12;
+            this.game.score = 192000;
+            this.game.combo = 11;
+            this.game.bestComboThisLevel = 11;
+            this.game.lifeSystemEnabled = true;
+            this.game.maxLives = Math.max(3, Math.floor(Number(this.game.maxLives) || 3));
+            this.game.lives = Math.max(1, Math.min(this.game.maxLives, Math.floor(Number(this.game.lives) || 2)));
+            this.game.hasTimer = true;
+            this.game.maxTimeRemaining = 120;
+            this.game.timeRemaining = 92;
+            this.setCoinDisplayOverride(1703);
+            this.clearTimerEnergyOrbs();
+            this.uiEditorGameplayPreviewInitialized = true;
         }
         this.setMenuChromeVisible(false);
-        this.game.currentLevel = 12;
-        this.game.score = 192000;
-        this.game.combo = 11;
-        this.game.bestComboThisLevel = 11;
-        this.game.hasTimer = true;
-        this.game.maxTimeRemaining = 120;
-        this.game.timeRemaining = 92;
-        this.setCoinDisplayOverride(1703);
-        this.clearTimerEnergyOrbs();
         this.hud.classList.remove('hidden');
         this.updateHUD();
         this.applyGameplayLayoutConfig();
+        if (this.hudScoreGainEl) {
+            this.hudScoreGainEl.classList.remove('hidden');
+            this.hudScoreGainEl.textContent = '+288';
+        }
     }
 
     setUiEditorPreviewState(override = {}) {
@@ -1942,6 +2342,11 @@ export class UI {
         const panel = `${this.uiEditorPreviewOptions.panel || 'checkin'}`.trim().toLowerCase();
         if (panel === 'gameplay') {
             this.activateGameplayUiEditorPreview();
+            return;
+        }
+        if (panel === 'home') {
+            this.appContainerEl?.classList.add('menu-mode');
+            this.openMenuPanel(MENU_PANEL.HOME);
             return;
         }
         this.uiEditorPreviewOverride = {
@@ -1954,6 +2359,15 @@ export class UI {
             this.refreshCheckinPanel(false);
             this.updateCheckinSceneScale();
         }
+    }
+
+    applyUiEditorLayoutConfig(config) {
+        this.uiLayoutConfig = cloneUiLayoutConfig(config);
+        this.applyHomeLayoutConfig();
+        this.applyCheckinLayoutConfig();
+        this.applyGameplayLayoutConfig();
+        this.refreshCheckinPanel(false);
+        this.updateCheckinSceneScale();
     }
 
     getUiEditorPreviewMeta() {
@@ -2556,28 +2970,9 @@ export class UI {
         this.hudScoreValueEl.style.color = style.color;
         this.hudScoreValueEl.style.textShadow = style.shadow;
         this.hudScoreValueEl.style.setProperty('--score-base-scale', style.scale.toFixed(3));
-
-        if (animate && typeof this.hudScoreValueEl.animate === 'function') {
-            if (this.scorePulseAnimation && typeof this.scorePulseAnimation.cancel === 'function') {
-                this.scorePulseAnimation.cancel();
-            }
-            const pulseBoost = Math.min(0.34, 0.1 + (Math.min(1800, gained) / 1800) * 0.12 + Math.min(0.12, combo * 0.01));
-            const baseScale = style.scale;
-            this.scorePulseAnimation = this.hudScoreValueEl.animate([
-                { transform: `scale(${(baseScale * 0.82).toFixed(3)})` },
-                { offset: 0.45, transform: `scale(${(baseScale * (1 + pulseBoost)).toFixed(3)})` },
-                { transform: `scale(${baseScale.toFixed(3)})` }
-            ], {
-                duration: Math.round(320 + Math.min(260, combo * 14)),
-                easing: 'cubic-bezier(0.2, 0.9, 0.22, 1)',
-                fill: 'forwards'
-            });
-            this.scorePulseAnimation.onfinish = () => {
-                this.scorePulseAnimation = null;
-            };
-            this.scorePulseAnimation.oncancel = () => {
-                this.scorePulseAnimation = null;
-            };
+        if (this.scorePulseAnimation && typeof this.scorePulseAnimation.cancel === 'function') {
+            this.scorePulseAnimation.cancel();
+            this.scorePulseAnimation = null;
         }
 
         if (!this.hudScoreGainEl) {
@@ -2600,12 +2995,13 @@ export class UI {
             return;
         }
         this.scoreGainAnimation = this.hudScoreGainEl.animate([
-            { opacity: 0, transform: 'translateY(6px) scale(0.84)' },
-            { offset: 0.25, opacity: 1, transform: 'translateY(0px) scale(1.06)' },
-            { opacity: 0, transform: 'translateY(-16px) scale(1.1)' }
+            { opacity: 0, transform: 'translateY(10px) scale(0.9)' },
+            { offset: 0.18, opacity: 1, transform: 'translateY(0px) scale(1)' },
+            { offset: 0.72, opacity: 1, transform: 'translateY(-12px) scale(1.03)' },
+            { opacity: 0, transform: 'translateY(-26px) scale(1.06)' }
         ], {
-            duration: 520,
-            easing: 'cubic-bezier(0.18, 0.84, 0.2, 1)',
+            duration: 980,
+            easing: 'cubic-bezier(0.2, 0.75, 0.22, 1)',
             fill: 'forwards'
         });
         this.scoreGainAnimation.onfinish = () => {
@@ -2667,10 +3063,20 @@ export class UI {
             this.timerFillEl.style.transform = `scaleX(${ratio.toFixed(4)})`;
         }
         const isLastTenSeconds = displaySeconds <= 10 && displaySeconds > 0;
+        const gameplayLayout = this.getGameplayLayoutConfig();
+        const baseTimerLabelFontSize = Math.max(
+            8,
+            Number(gameplayLayout?.timerLabel?.fontSize)
+                || Number(gameplayLayout?.timer?.labelFontSize)
+                || 12
+        );
         if (this.timerLabelEl) {
             this.timerLabelEl.textContent = isLastTenSeconds
                 ? `${displaySeconds}`
                 : `${mins}m${secs.toString().padStart(2, '0')}s`;
+            this.timerLabelEl.style.fontSize = isLastTenSeconds
+                ? `${Math.round(baseTimerLabelFontSize * 3.5)}px`
+                : `${baseTimerLabelFontSize}px`;
         } else {
             this.timerEl.textContent = isLastTenSeconds
                 ? `${displaySeconds}`
@@ -2711,12 +3117,15 @@ export class UI {
         const countEl = document.createElement('span');
         countEl.className = 'hud-combo-count';
         countEl.textContent = `${combo}`;
+        countEl.setAttribute('data-ui-editor-id', 'comboCount');
 
         const labelEl = document.createElement('span');
         labelEl.className = 'hud-combo-label';
         labelEl.textContent = 'combo';
+        labelEl.setAttribute('data-ui-editor-id', 'comboLabel');
 
         this.comboDisplayEl.replaceChildren(countEl, labelEl);
+        this.applyGameplayChildLayout(this.getGameplayLayoutConfig());
     }
 
     showRewardUnlockToast(payload = {}) {
@@ -3106,7 +3515,7 @@ export class UI {
         if (this.audioEnabled && isCampaignComplete) {
             playBgmForScene(BGM_SCENE_KEYS.CAMPAIGN_COMPLETE, { restart: true });
         } else if (this.audioEnabled) {
-            this.syncGameplayBgm(false);
+            playBgmForScene(BGM_SCENE_KEYS.LEVEL_PASS, { restart: true });
         }
         if (this.levelCompleteNextButton) {
             this.levelCompleteNextButton.textContent = willEnterRewardStage ? '奖励关' : '下一关';

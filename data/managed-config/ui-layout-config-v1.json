@@ -305,5 +305,147 @@
         }
       }
     }
+  },
+  "gameplay": {
+    "hudTop": {
+      "x": 0,
+      "y": 24,
+      "width": 430,
+      "height": 76,
+      "visible": true
+    },
+    "settingsButton": {
+      "x": 376,
+      "y": -4,
+      "width": 46,
+      "height": 46,
+      "visible": true
+    },
+    "settingsIcon": {
+      "x": 0,
+      "y": 0,
+      "width": 43,
+      "height": 43,
+      "visible": true
+    },
+    "coinChip": {
+      "x": 295,
+      "y": 3,
+      "width": 79,
+      "height": 34,
+      "visible": true,
+      "fontSize": 18
+    },
+    "coinIcon": {
+      "x": -2,
+      "y": 0,
+      "width": 16,
+      "height": 16,
+      "visible": true
+    },
+    "coinValue": {
+      "x": -7,
+      "y": 0,
+      "width": 42,
+      "fontSize": 18,
+      "visible": true
+    },
+    "center": {
+      "x": 96,
+      "y": -1,
+      "width": 244,
+      "height": 76,
+      "visible": true
+    },
+    "lives": {
+      "x": 11,
+      "y": 11,
+      "width": 96,
+      "height": 26,
+      "visible": true
+    },
+    "level": {
+      "x": -177,
+      "y": 13,
+      "width": 244,
+      "fontSize": 17,
+      "visible": true
+    },
+    "timer": {
+      "x": 50,
+      "y": -5,
+      "width": 168,
+      "height": 32,
+      "visible": true,
+      "labelFontSize": 12
+    },
+    "timerTrack": {
+      "x": -140,
+      "y": 13,
+      "width": 168,
+      "height": 14,
+      "visible": true
+    },
+    "timerLabel": {
+      "x": -196,
+      "y": 13,
+      "width": 168,
+      "fontSize": 12,
+      "visible": true
+    },
+    "combo": {
+      "x": 218,
+      "y": 63,
+      "width": 108,
+      "height": 42,
+      "visible": true,
+      "fontSize": 22
+    },
+    "comboCount": {
+      "x": -12,
+      "y": -47,
+      "width": 52,
+      "fontSize": 22,
+      "visible": true
+    },
+    "comboLabel": {
+      "x": -9,
+      "y": -47,
+      "width": 44,
+      "fontSize": 18,
+      "visible": true
+    },
+    "scorePulse": {
+      "x": 166,
+      "y": 106,
+      "width": 188,
+      "height": 48,
+      "visible": true,
+      "valueFontSize": 16,
+      "gainFontSize": 15
+    },
+    "scoreValue": {
+      "x": -29,
+      "y": -37,
+      "width": 188,
+      "fontSize": 16,
+      "visible": true
+    },
+    "scoreGain": {
+      "x": 67,
+      "y": -81,
+      "width": 188,
+      "fontSize": 15,
+      "visible": true
+    }
+  },
+  "home": {
+    "mascot": {
+      "x": 155,
+      "y": -21,
+      "width": 295,
+      "height": 167,
+      "visible": true
+    }
   }
 }

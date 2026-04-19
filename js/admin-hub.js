@@ -1,10 +1,11 @@
-﻿import {
+import {
     clearSkinPriceOverrides,
     getDefaultCoinCostBySkinId,
     getSkinCatalog,
+    isBuiltInSkinId,
     readSkinPriceOverrides,
     writeSkinPriceOverrides
-} from './skins.js?v=27';
+} from './skins.js?v=32';
 import {
     clearGameplayParams,
     DEFAULT_GAMEPLAY_PARAMS,
@@ -14,6 +15,7 @@ import {
 } from './game-params.js?v=6';
 
 const ACTIVE_TAB_STORAGE_KEY = 'arrowClear_adminActiveTab';
+const LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY = 'arrowClear_localSkinPriceOverrides_v1';
 
 const el = {
     tabButtons: Array.from(document.querySelectorAll('[data-tab-target]')),
@@ -54,9 +56,37 @@ const el = {
 const state = {
     skinCatalog: [],
     skinPriceOverrides: {},
+    localSkinPriceOverrides: {},
     selectedSkinId: '',
     gameplayParams: { ...DEFAULT_GAMEPLAY_PARAMS }
 };
+
+function readLocalSkinPriceOverrides() {
+    try {
+        const raw = localStorage.getItem(LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY);
+        if (!raw) {
+            return {};
+        }
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+        return {};
+    }
+}
+
+function writeLocalSkinPriceOverrides(overrides) {
+    const source = overrides && typeof overrides === 'object' ? overrides : {};
+    const normalized = {};
+    for (const [rawId, rawCost] of Object.entries(source)) {
+        const skinId = `${rawId || ''}`.trim();
+        if (!skinId) {
+            continue;
+        }
+        normalized[skinId] = Math.max(0, Math.floor(Number(rawCost) || 0));
+    }
+    localStorage.setItem(LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY, JSON.stringify(normalized, null, 2));
+    return normalized;
+}
 
 function clampInt(value, min, max, fallback) {
     const parsed = Number(value);
@@ -138,8 +168,13 @@ function findSkinById(skinId) {
 
 function updateSelectedSkinPriceView() {
     const selectedSkin = findSkinById(state.selectedSkinId);
-    const defaultCost = getDefaultCoinCostBySkinId(state.selectedSkinId);
-    const currentCost = selectedSkin ? Math.max(0, Math.floor(Number(selectedSkin.coinCost) || 0)) : defaultCost;
+    const builtIn = isBuiltInSkinId(state.selectedSkinId);
+    const defaultCost = builtIn ? getDefaultCoinCostBySkinId(state.selectedSkinId) : 0;
+    const currentCost = selectedSkin
+        ? Math.max(0, Math.floor(Number(selectedSkin.coinCost) || 0))
+        : (builtIn
+            ? defaultCost
+            : Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[state.selectedSkinId]) || 0)));
 
     if (el.skinPriceDefault) {
         el.skinPriceDefault.textContent = `${defaultCost}`;
@@ -156,6 +191,7 @@ function refreshSkinCatalogAndSelection(keepSelection = true) {
     const previousSelected = state.selectedSkinId;
     state.skinCatalog = Array.isArray(getSkinCatalog()) ? getSkinCatalog() : [];
     state.skinPriceOverrides = readSkinPriceOverrides();
+    state.localSkinPriceOverrides = readLocalSkinPriceOverrides();
 
     if (el.skinPriceSelect) {
         el.skinPriceSelect.innerHTML = '';
@@ -188,18 +224,29 @@ function saveCurrentSkinPrice() {
         return;
     }
 
-    const defaultCost = getDefaultCoinCostBySkinId(state.selectedSkinId);
+    const builtIn = isBuiltInSkinId(state.selectedSkinId);
+    const defaultCost = builtIn ? getDefaultCoinCostBySkinId(state.selectedSkinId) : 0;
     const nextCost = clampInt(el.skinPriceInput?.value, 0, 99999, defaultCost);
-    const nextOverrides = {
-        ...state.skinPriceOverrides
-    };
-    if (nextCost === defaultCost) {
-        delete nextOverrides[state.selectedSkinId];
+    if (builtIn) {
+        const nextOverrides = {
+            ...state.skinPriceOverrides
+        };
+        if (nextCost === defaultCost) {
+            delete nextOverrides[state.selectedSkinId];
+        } else {
+            nextOverrides[state.selectedSkinId] = nextCost;
+        }
+        state.skinPriceOverrides = writeSkinPriceOverrides(nextOverrides);
+        if (Object.prototype.hasOwnProperty.call(state.localSkinPriceOverrides, state.selectedSkinId)) {
+            delete state.localSkinPriceOverrides[state.selectedSkinId];
+            state.localSkinPriceOverrides = writeLocalSkinPriceOverrides(state.localSkinPriceOverrides);
+        }
     } else {
-        nextOverrides[state.selectedSkinId] = nextCost;
+        state.localSkinPriceOverrides = writeLocalSkinPriceOverrides({
+            ...state.localSkinPriceOverrides,
+            [state.selectedSkinId]: nextCost
+        });
     }
-
-    state.skinPriceOverrides = writeSkinPriceOverrides(nextOverrides);
     refreshSkinCatalogAndSelection(true);
     setSkinStatus(`已保存 ${state.selectedSkinId} 价格：${nextCost} 金币。`);
 }
@@ -209,11 +256,20 @@ function resetCurrentSkinPrice() {
         setSkinStatus('请先选择皮肤。', true);
         return;
     }
-    const nextOverrides = {
-        ...state.skinPriceOverrides
-    };
-    delete nextOverrides[state.selectedSkinId];
-    state.skinPriceOverrides = writeSkinPriceOverrides(nextOverrides);
+    if (isBuiltInSkinId(state.selectedSkinId)) {
+        const nextOverrides = {
+            ...state.skinPriceOverrides
+        };
+        delete nextOverrides[state.selectedSkinId];
+        state.skinPriceOverrides = writeSkinPriceOverrides(nextOverrides);
+        if (Object.prototype.hasOwnProperty.call(state.localSkinPriceOverrides, state.selectedSkinId)) {
+            delete state.localSkinPriceOverrides[state.selectedSkinId];
+            state.localSkinPriceOverrides = writeLocalSkinPriceOverrides(state.localSkinPriceOverrides);
+        }
+    } else {
+        delete state.localSkinPriceOverrides[state.selectedSkinId];
+        state.localSkinPriceOverrides = writeLocalSkinPriceOverrides(state.localSkinPriceOverrides);
+    }
     refreshSkinCatalogAndSelection(true);
     setSkinStatus(`已恢复 ${state.selectedSkinId} 默认价格。`);
 }
@@ -221,6 +277,7 @@ function resetCurrentSkinPrice() {
 function resetAllSkinPrices() {
     clearSkinPriceOverrides();
     state.skinPriceOverrides = {};
+    state.localSkinPriceOverrides = writeLocalSkinPriceOverrides({});
     refreshSkinCatalogAndSelection(true);
     setSkinStatus('已清空全部皮肤价格覆盖。');
 }
@@ -269,9 +326,17 @@ function initSkinPricePanel() {
     });
 
     window.addEventListener('storage', (event) => {
-        if (event.key !== null && event.key !== 'arrowClear_skinPriceOverrides_v1') {
+        if (
+            event.key !== null
+            && event.key !== 'arrowClear_skinPriceOverrides_v1'
+            && event.key !== LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY
+            && event.key !== 'arrowClear_localSkinCatalog_v1'
+        ) {
             return;
         }
+        refreshSkinCatalogAndSelection(true);
+    });
+    window.addEventListener('admin-skin-catalog-updated', () => {
         refreshSkinCatalogAndSelection(true);
     });
 }

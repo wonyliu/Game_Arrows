@@ -2,6 +2,7 @@ const STORAGE_API_BASE = '/api/storage';
 const UI_LAYOUT_STORAGE_FILE = 'ui-layout-config-v1';
 const UI_LAYOUT_STATIC_CONFIG_PATH = 'data/managed-config/ui-layout-config-v1.json';
 const BROADCAST_CHANNEL_NAME = 'arrowClear_uiLayout_sync';
+const UI_LAYOUT_LOCAL_STORAGE_KEY = 'arrowClear_uiLayoutConfig_v1';
 
 function clone(value) {
     return JSON.parse(JSON.stringify(value));
@@ -121,6 +122,13 @@ function createDefaultGameplayLayout() {
             height: 46,
             visible: true
         },
+        settingsIcon: {
+            x: 0,
+            y: 0,
+            width: 43,
+            height: 43,
+            visible: true
+        },
         coinChip: {
             x: 280,
             y: 4,
@@ -129,11 +137,32 @@ function createDefaultGameplayLayout() {
             fontSize: 18,
             visible: true
         },
+        coinIcon: {
+            x: 0,
+            y: 0,
+            width: 16,
+            height: 16,
+            visible: true
+        },
+        coinValue: {
+            x: 0,
+            y: 0,
+            width: 42,
+            fontSize: 18,
+            visible: true
+        },
         center: {
             x: 93,
             y: 0,
             width: 244,
             height: 76,
+            visible: true
+        },
+        lives: {
+            x: 0,
+            y: 0,
+            width: 96,
+            height: 26,
             visible: true
         },
         level: {
@@ -151,12 +180,40 @@ function createDefaultGameplayLayout() {
             labelFontSize: 12,
             visible: true
         },
+        timerTrack: {
+            x: 0,
+            y: 0,
+            width: 168,
+            height: 14,
+            visible: true
+        },
+        timerLabel: {
+            x: 0,
+            y: 0,
+            width: 168,
+            fontSize: 12,
+            visible: true
+        },
         combo: {
             x: 176,
             y: 24,
             width: 108,
             height: 42,
             fontSize: 22,
+            visible: true
+        },
+        comboCount: {
+            x: 0,
+            y: 0,
+            width: 52,
+            fontSize: 22,
+            visible: true
+        },
+        comboLabel: {
+            x: 0,
+            y: 0,
+            width: 44,
+            fontSize: 18,
             visible: true
         },
         scorePulse: {
@@ -167,6 +224,32 @@ function createDefaultGameplayLayout() {
             valueFontSize: 16,
             gainFontSize: 15,
             visible: true
+        },
+        scoreValue: {
+            x: 0,
+            y: 0,
+            width: 188,
+            fontSize: 16,
+            visible: true
+        },
+        scoreGain: {
+            x: 0,
+            y: 0,
+            width: 188,
+            fontSize: 15,
+            visible: true
+        }
+    };
+}
+
+function createDefaultHomeLayout() {
+    return {
+        mascot: {
+            x: 0,
+            y: 120,
+            width: 854,
+            height: 480,
+            visible: true
         }
     };
 }
@@ -174,7 +257,8 @@ function createDefaultGameplayLayout() {
 export function getDefaultUiLayoutConfig() {
     return {
         checkin: createDefaultCheckinLayout(),
-        gameplay: createDefaultGameplayLayout()
+        gameplay: createDefaultGameplayLayout(),
+        home: createDefaultHomeLayout()
     };
 }
 
@@ -281,11 +365,21 @@ function normalizeGameplayLayout(layout) {
     return {
         hudTop: mergeRect(defaults.hudTop, layout?.hudTop),
         settingsButton: mergeRect(defaults.settingsButton, layout?.settingsButton),
+        settingsIcon: mergeRect(defaults.settingsIcon, layout?.settingsIcon),
         coinChip: {
             ...mergeRect(defaults.coinChip, layout?.coinChip),
             fontSize: readNumber(layout?.coinChip?.fontSize, defaults.coinChip.fontSize)
         },
+        coinIcon: mergeRect(defaults.coinIcon, layout?.coinIcon),
+        coinValue: {
+            x: readNumber(layout?.coinValue?.x, defaults.coinValue.x),
+            y: readNumber(layout?.coinValue?.y, defaults.coinValue.y),
+            width: readNumber(layout?.coinValue?.width, defaults.coinValue.width),
+            fontSize: readNumber(layout?.coinValue?.fontSize, defaults.coinValue.fontSize),
+            visible: readBool(layout?.coinValue?.visible, defaults.coinValue.visible)
+        },
         center: mergeRect(defaults.center, layout?.center),
+        lives: mergeRect(defaults.lives, layout?.lives),
         level: {
             x: readNumber(layout?.level?.x, defaults.level.x),
             y: readNumber(layout?.level?.y, defaults.level.y),
@@ -297,26 +391,70 @@ function normalizeGameplayLayout(layout) {
             ...mergeRect(defaults.timer, layout?.timer),
             labelFontSize: readNumber(layout?.timer?.labelFontSize, defaults.timer.labelFontSize)
         },
+        timerTrack: mergeRect(defaults.timerTrack, layout?.timerTrack),
+        timerLabel: {
+            x: readNumber(layout?.timerLabel?.x, defaults.timerLabel.x),
+            y: readNumber(layout?.timerLabel?.y, defaults.timerLabel.y),
+            width: readNumber(layout?.timerLabel?.width, defaults.timerLabel.width),
+            fontSize: readNumber(layout?.timerLabel?.fontSize, defaults.timerLabel.fontSize),
+            visible: readBool(layout?.timerLabel?.visible, defaults.timerLabel.visible)
+        },
         combo: {
             ...mergeRect(defaults.combo, layout?.combo),
             fontSize: readNumber(layout?.combo?.fontSize, defaults.combo.fontSize)
+        },
+        comboCount: {
+            x: readNumber(layout?.comboCount?.x, defaults.comboCount.x),
+            y: readNumber(layout?.comboCount?.y, defaults.comboCount.y),
+            width: readNumber(layout?.comboCount?.width, defaults.comboCount.width),
+            fontSize: readNumber(layout?.comboCount?.fontSize, defaults.comboCount.fontSize),
+            visible: readBool(layout?.comboCount?.visible, defaults.comboCount.visible)
+        },
+        comboLabel: {
+            x: readNumber(layout?.comboLabel?.x, defaults.comboLabel.x),
+            y: readNumber(layout?.comboLabel?.y, defaults.comboLabel.y),
+            width: readNumber(layout?.comboLabel?.width, defaults.comboLabel.width),
+            fontSize: readNumber(layout?.comboLabel?.fontSize, defaults.comboLabel.fontSize),
+            visible: readBool(layout?.comboLabel?.visible, defaults.comboLabel.visible)
         },
         scorePulse: {
             ...mergeRect(defaults.scorePulse, layout?.scorePulse),
             valueFontSize: readNumber(layout?.scorePulse?.valueFontSize, defaults.scorePulse.valueFontSize),
             gainFontSize: readNumber(layout?.scorePulse?.gainFontSize, defaults.scorePulse.gainFontSize)
+        },
+        scoreValue: {
+            x: readNumber(layout?.scoreValue?.x, defaults.scoreValue.x),
+            y: readNumber(layout?.scoreValue?.y, defaults.scoreValue.y),
+            width: readNumber(layout?.scoreValue?.width, defaults.scoreValue.width),
+            fontSize: readNumber(layout?.scoreValue?.fontSize, defaults.scoreValue.fontSize),
+            visible: readBool(layout?.scoreValue?.visible, defaults.scoreValue.visible)
+        },
+        scoreGain: {
+            x: readNumber(layout?.scoreGain?.x, defaults.scoreGain.x),
+            y: readNumber(layout?.scoreGain?.y, defaults.scoreGain.y),
+            width: readNumber(layout?.scoreGain?.width, defaults.scoreGain.width),
+            fontSize: readNumber(layout?.scoreGain?.fontSize, defaults.scoreGain.fontSize),
+            visible: readBool(layout?.scoreGain?.visible, defaults.scoreGain.visible)
         }
+    };
+}
+
+function normalizeHomeLayout(layout) {
+    const defaults = createDefaultHomeLayout();
+    return {
+        mascot: mergeRect(defaults.mascot, layout?.mascot)
     };
 }
 
 export function normalizeUiLayoutConfig(config) {
     return {
         checkin: normalizeCheckinLayout(config?.checkin),
-        gameplay: normalizeGameplayLayout(config?.gameplay)
+        gameplay: normalizeGameplayLayout(config?.gameplay),
+        home: normalizeHomeLayout(config?.home)
     };
 }
 
-let uiLayoutState = normalizeUiLayoutConfig(getDefaultUiLayoutConfig());
+let uiLayoutState = normalizeUiLayoutConfig(readUiLayoutFromLocalStorage() || getDefaultUiLayoutConfig());
 let uiLayoutInitPromise = null;
 const listeners = new Set();
 let syncChannel = null;
@@ -345,6 +483,7 @@ export function readUiLayoutConfig() {
 export function writeUiLayoutConfig(config, options = {}) {
     const normalized = normalizeUiLayoutConfig(config);
     uiLayoutState = normalized;
+    persistUiLayoutToLocalStorage(normalized);
     emitUiLayoutChange(normalized);
     broadcastUiLayoutState(normalized);
     if (options.syncServer !== false) {
@@ -356,6 +495,7 @@ export function writeUiLayoutConfig(config, options = {}) {
 export function resetUiLayoutConfig(options = {}) {
     const defaults = normalizeUiLayoutConfig(getDefaultUiLayoutConfig());
     uiLayoutState = defaults;
+    persistUiLayoutToLocalStorage(defaults);
     emitUiLayoutChange(defaults);
     broadcastUiLayoutState(defaults);
     if (options.syncServer !== false) {
@@ -381,6 +521,10 @@ export function cloneUiLayoutConfig(config) {
 }
 
 async function fetchUiLayoutFromServer() {
+    const local = readUiLayoutFromLocalStorage();
+    if (local) {
+        return local;
+    }
     if (typeof fetch !== 'function') {
         return null;
     }
@@ -423,6 +567,34 @@ async function persistUiLayoutToServer(config) {
             body: JSON.stringify(config)
         });
         return response.ok;
+    } catch {
+        return false;
+    }
+}
+
+function readUiLayoutFromLocalStorage() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return null;
+    }
+    try {
+        const raw = window.localStorage.getItem(UI_LAYOUT_LOCAL_STORAGE_KEY);
+        if (!raw) {
+            return null;
+        }
+        const parsed = JSON.parse(raw);
+        return isPlainObject(parsed) ? parsed : null;
+    } catch {
+        return null;
+    }
+}
+
+function persistUiLayoutToLocalStorage(config) {
+    if (typeof window === 'undefined' || !window.localStorage) {
+        return false;
+    }
+    try {
+        window.localStorage.setItem(UI_LAYOUT_LOCAL_STORAGE_KEY, JSON.stringify(config));
+        return true;
     } catch {
         return false;
     }
