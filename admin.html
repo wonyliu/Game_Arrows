@@ -569,6 +569,7 @@
             <div class="music-sfx-shell">
                 <div class="music-sfx-subtabs" role="tablist" aria-label="音乐音效子页签">
                     <button id="musicSfxTabBtnLab" class="tab-btn is-active" type="button" data-music-sfx-tab-target="sfx-lab" role="tab" aria-selected="true">音效工坊</button>
+                    <button id="musicSfxTabBtnLibrary" class="tab-btn" type="button" data-music-sfx-tab-target="audio-library" role="tab" aria-selected="false">音乐音效库</button>
                     <button id="musicSfxTabBtnSkin" class="tab-btn" type="button" data-music-sfx-tab-target="skin-sfx" role="tab" aria-selected="false">皮肤音效管理</button>
                     <button id="musicSfxTabBtnGameSfx" class="tab-btn" type="button" data-music-sfx-tab-target="game-sfx" role="tab" aria-selected="false">游戏音效管理</button>
                     <button id="musicSfxTabBtnGameMusic" class="tab-btn" type="button" data-music-sfx-tab-target="game-music" role="tab" aria-selected="false">游戏音乐管理</button>
@@ -578,12 +579,7 @@
                     <div class="sfx-admin-shell">
                         <section class="controls sfx-controls-panel">
                     <h2>音效工坊</h2>
-                    <p class="sub">流程：1) 选来源并导入音效 2) 保存到自定义模板 3) 到“皮肤音效管理”给皮肤绑定模板</p>
-
-                    <label class="field">
-                        <span>音效模板</span>
-                        <select id="sfxPresetSelect"></select>
-                    </label>
+                    <p class="sub">流程：1) 从来源载入音频到工坊 2) 裁剪并调整参数 3) 导入音乐音效库 4) 在“皮肤音效管理 / 游戏音效管理”中绑定库内音效</p>
 
                     <section class="sfx-source-workbench">
                         <h3>音效来源（免费/开源）</h3>
@@ -592,7 +588,7 @@
                             <select id="sfxSourceMode">
                                 <option value="synth">合成器（当前内置）</option>
                                 <option value="upload">本地采样上传</option>
-                                <option value="freesound">Freesound 检索（免费）</option>
+                                <option value="freesound" selected>Freesound 检索（免费）</option>
                                 <option value="stable-audio">Stable Audio（fal.ai 推荐）</option>
                             </select>
                         </label>
@@ -629,6 +625,29 @@
                                 <button id="btnSfxFsSearch" type="button">搜索 Freesound</button>
                             </div>
                             <div id="sfxFsStatus" class="status">就绪。</div>
+                            <div id="sfxFsPreviewPanel" class="sfx-audio-preview-panel" hidden>
+                                <div class="sfx-audio-preview-head">
+                                    <strong id="sfxFsPreviewTitle">未选择试听音频</strong>
+                                    <span id="sfxFsPreviewState" class="sfx-audio-preview-state">未开始</span>
+                                </div>
+                                <audio id="sfxFsPreviewAudio" preload="none"></audio>
+                                <div class="sfx-audio-progress-meta">
+                                    <span id="sfxFsCurrentTime">0:00</span>
+                                    <span id="sfxFsDuration">0:00</span>
+                                </div>
+                                <input id="sfxFsSeek" class="sfx-audio-seek" type="range" min="0" max="1000" step="1" value="0" disabled>
+                                <div class="sfx-audio-load">
+                                    <div class="sfx-audio-load-track">
+                                        <span id="sfxFsLoadFill" class="sfx-audio-load-fill"></span>
+                                    </div>
+                                    <span id="sfxFsLoadText" class="sfx-audio-load-text">未加载</span>
+                                </div>
+                                <div class="actions sfx-actions">
+                                    <button id="btnSfxFsTogglePlay" type="button" disabled>播放</button>
+                                    <button id="btnSfxFsStop" type="button" disabled>停止</button>
+                                </div>
+                                <p id="sfxFsPreviewError" class="status"> </p>
+                            </div>
                             <div id="sfxFsResults" class="sfx-source-result-list"></div>
                         </div>
 
@@ -667,8 +686,8 @@
                             <div class="actions sfx-actions">
                                 <button id="btnSfxApplyTrim" type="button">应用裁切</button>
                                 <button id="btnSfxResetTrim" type="button">重置裁切</button>
-                                <button id="btnSfxUseExternalAsPreview" type="button">使用该采样进行试听/导出</button>
-                                <button id="btnSfxBindExternalToPreset" class="primary" type="button">保存到当前自定义模板</button>
+                                <button id="btnSfxUseExternalAsPreview" type="button">使用该采样进行试听</button>
+                                <button id="btnImportExternalToLibrary" class="primary" type="button">导入当前工坊音频到音频库</button>
                                 <button id="btnSfxClearExternal" type="button">清除采样并回到合成器</button>
                             </div>
                             <p id="sfxTrimStatus" class="status">未裁切。</p>
@@ -710,44 +729,81 @@
 
                     <div class="actions sfx-actions">
                         <button id="btnSfxPlay" class="primary" type="button">试听</button>
-                        <button id="btnSfxPlayBurst" type="button">连播 3 个变体</button>
-                        <button id="btnSfxDownloadWav" type="button">下载 WAV</button>
-                        <button id="btnSfxDownloadPack" type="button">下载 5 个变体</button>
-                        <button id="btnSfxReset" type="button">恢复模板默认</button>
+                        <button id="btnSfxReset" type="button">恢复默认参数</button>
                     </div>
-
-                    <section class="sfx-custom-editor">
-                        <h3>新增/编辑音效模板</h3>
-                        <p class="hint">提示：只有“自定义模板”可以保存外部采样（Freesound/上传/AI生成）。</p>
-                        <label class="field">
-                            <span>模板名称</span>
-                                                        <input id="sfxCustomName" type="text" maxlength="36" placeholder="例如：玻璃清脆">
-                        </label>
-                        <label class="field">
-                            <span>说明（可选）</span>
-                                                        <textarea id="sfxCustomDesc" rows="3" maxlength="180" placeholder="例如：清脆高频，尾音短，适合轻快风格皮肤。"></textarea>
-                        </label>
-                        <div class="actions sfx-actions">
-                            <button id="btnSfxSaveAsNewPreset" class="primary" type="button">保存为新音效模板</button>
-                            <button id="btnSfxUpdatePreset" type="button">更新当前自定义模板</button>
-                            <button id="btnSfxDeletePreset" type="button">删除当前自定义模板</button>
-                        </div>
-                    </section>
 
                         <p id="sfxStatus" class="status">就绪。</p>
                         </section>
 
                         <section class="preview sfx-library-panel">
                             <div class="preview-header">
-                                <h2>音效模板库</h2>
+                                <h2>工坊说明</h2>
                             </div>
-                            <p class="sub">内置模板 + 你保存的自定义模板。点击模板后可直接在左侧调参试听。</p>
-                            <div id="sfxPresetLibraryList" class="sfx-preset-library-list"></div>
+                            <p class="sub">音效工坊只负责获取新音频和做轻量编辑，不再承担模板管理。</p>
                             <div class="meta sfx-meta">
-                                <div id="sfxPresetHint">-</div>
-                                <div>预估时长：<strong id="sfxEstimatedDuration">-</strong></div>
-                                <div>导出规格：48kHz / 16-bit PCM WAV</div>
+                                <div>导入音频库后，这条音频会成为项目可复用素材。</div>
+                                <div>皮肤音效和游戏音效页面都直接从音频库选择并保存。</div>
+                                <div>音乐素材统一在“音乐音效库 / 游戏音乐管理”中维护。</div>
+                                <div>工坊内部处理：48kHz</div>
                             </div>
+                        </section>
+                    </div>
+                </div>
+
+                <div class="music-sfx-subpanel" data-music-sfx-tab-panel="audio-library" role="tabpanel" aria-labelledby="musicSfxTabBtnLibrary">
+                    <div class="sfx-admin-shell">
+                        <section class="controls sfx-controls-panel">
+                            <h2>音乐音效库</h2>
+                            <p class="sub">这里是项目音乐音效总库。音效由工坊导入后统一存放，音乐从项目 BGM 目录自动同步进来；支持搜索、裁剪、音量调节，并可把音效重新导回工坊继续编辑。</p>
+
+                            <label class="field">
+                                <span>库内搜索</span>
+                                <input id="audioLibrarySearch" type="text" maxlength="120" placeholder="按名称、关键词、来源搜索">
+                            </label>
+
+                            <div class="actions sfx-actions">
+                                <button id="btnAudioLibraryRefresh" class="primary" type="button">同步总库</button>
+                            </div>
+
+                            <label class="field">
+                                <span>素材名称</span>
+                                <input id="audioLibraryName" type="text" maxlength="60" placeholder="例如：Crowd Cheer Short">
+                            </label>
+                            <label class="field">
+                                <span>关键词</span>
+                                <input id="audioLibraryKeywords" type="text" maxlength="240" placeholder="例如：cheer,crowd,cc-by">
+                            </label>
+                            <label class="field">
+                                <span>音量倍率（0-2）</span>
+                                <input id="audioLibraryVolume" type="number" min="0" max="2" step="0.01" value="1">
+                            </label>
+                            <div class="sfx-source-inline">
+                                <label class="field">
+                                    <span>裁切开始（秒）</span>
+                                    <input id="audioLibraryTrimStart" type="number" min="0" step="0.01" value="0">
+                                </label>
+                                <label class="field">
+                                    <span>裁切结束（秒）</span>
+                                    <input id="audioLibraryTrimEnd" type="number" min="0" step="0.01" value="0">
+                                </label>
+                            </div>
+                            <div id="audioLibraryMeta" class="sfx-audio-library-meta">未选择素材。</div>
+                            <audio id="audioLibraryPreviewAudio" controls preload="metadata"></audio>
+                            <div class="actions sfx-actions">
+                                <button id="btnAudioLibraryPreview" type="button">试听素材</button>
+                                <button id="btnAudioLibraryImport" type="button">导入到音效工坊</button>
+                                <button id="btnAudioLibrarySave" class="primary" type="button">保存修改</button>
+                                <button id="btnAudioLibraryDelete" type="button">删除素材</button>
+                            </div>
+                            <p id="audioLibraryStatus" class="status">就绪。</p>
+                        </section>
+
+                        <section class="preview sfx-library-panel">
+                            <div class="preview-header">
+                                <h2>素材列表</h2>
+                            </div>
+                            <p class="sub">音频库统一保存项目正在调用和备用的音乐/音效。音效可以在皮肤和游戏音效配置中直接绑定，音乐可以在游戏音乐管理中直接选用。</p>
+                            <div id="audioLibraryList" class="audio-library-list"></div>
                         </section>
                     </div>
                 </div>
