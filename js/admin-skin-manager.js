@@ -16,6 +16,8 @@ const NAME_EN_OVERRIDE_KEY = 'arrowClear_skinNameEnOverrides_v1';
 const DESC_ZH_OVERRIDE_KEY = 'arrowClear_skinDescZhOverrides_v1';
 const DESC_EN_OVERRIDE_KEY = 'arrowClear_skinDescEnOverrides_v1';
 const LOCAL_SKIN_PRICE_KEY = 'arrowClear_localSkinPriceOverrides_v1';
+const SKIN_PRICE_SERVER_FILE = 'skin-price-overrides-v1';
+const STORAGE_API_BASE = '/api/storage';
 const DEFAULT_SKIN_ID = 'classic-burrow';
 const ATLAS_SOURCE_SIZE = Object.freeze({ width: 1984, height: 2174 });
 const ATLAS_PART_LAYOUT = Object.freeze({
@@ -136,6 +138,79 @@ function writeJsonStorage(key, value) {
     localStorage.setItem(key, JSON.stringify(value || {}, null, 2));
 }
 
+function normalizePriceMap(rawMap) {
+    const source = rawMap && typeof rawMap === 'object' ? rawMap : {};
+    const normalized = {};
+    for (const [rawSkinId, rawPrice] of Object.entries(source)) {
+        const skinId = sanitizeId(rawSkinId);
+        if (!skinId) {
+            continue;
+        }
+        const parsed = Number(rawPrice);
+        normalized[skinId] = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+    }
+    return normalized;
+}
+
+function buildServerSkinPriceMap() {
+    const merged = {
+        ...normalizePriceMap(readSkinPriceOverrides()),
+        ...normalizePriceMap(state.localSkinPriceOverrides)
+    };
+    return normalizePriceMap(merged);
+}
+
+async function fetchSkinPriceOverridesFromServer() {
+    try {
+        const response = await fetch(`${STORAGE_API_BASE}/${SKIN_PRICE_SERVER_FILE}`, {
+            method: 'GET',
+            cache: 'no-store'
+        });
+        if (!response.ok) {
+            return {};
+        }
+        const payload = await response.json().catch(() => ({}));
+        return normalizePriceMap(payload);
+    } catch {
+        return {};
+    }
+}
+
+async function persistSkinPriceOverridesToServer(priceMap) {
+    const payload = normalizePriceMap(priceMap);
+    const response = await fetch(`${STORAGE_API_BASE}/${SKIN_PRICE_SERVER_FILE}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        throw new Error(`价格同步到服务器失败 (${response.status})`);
+    }
+}
+
+async function hydrateSkinPriceOverridesFromServer() {
+    const serverMap = await fetchSkinPriceOverridesFromServer();
+    const builtInMap = {};
+    const localMap = {};
+    for (const [skinId, price] of Object.entries(serverMap)) {
+        if (isBuiltInSkinId(skinId)) {
+            builtInMap[skinId] = price;
+        } else {
+            localMap[skinId] = price;
+        }
+    }
+
+    const normalizedBuiltIn = writeSkinPriceOverrides(builtInMap);
+    if (!normalizedBuiltIn || Object.keys(normalizedBuiltIn).length <= 0) {
+        clearSkinPriceOverrides();
+    }
+
+    state.localSkinPriceOverrides = normalizePriceMap(localMap);
+    writeJsonStorage(LOCAL_SKIN_PRICE_KEY, state.localSkinPriceOverrides);
+}
+
 function writeLocalSkinCatalog(savedRows, catalogSkins = []) {
     const builtInIds = new Set([DEFAULT_SKIN_ID]);
     const savedIds = (Array.isArray(savedRows) ? savedRows : []).map((row) => sanitizeId(row?.id)).filter(Boolean);
@@ -172,7 +247,9 @@ function writeLocalSkinCatalog(savedRows, catalogSkins = []) {
             descriptionZh,
             descriptionEn,
             preview: `${row?.preview || `/assets/skins/${id}/snake_head.png`}`.split('?')[0],
-            coinCost: Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[id]) || 0)),
+            coinCost: Object.prototype.hasOwnProperty.call(state.localSkinPriceOverrides, id)
+                ? Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[id]) || 0))
+                : Math.max(0, Math.floor(Number(row?.coinCost) || 0)),
             ...(row?.assets && typeof row.assets === 'object' ? { assets: row.assets } : {}),
             ...(typeof row?.allowHueVariants === 'boolean' ? { allowHueVariants: row.allowHueVariants } : {})
         });
@@ -512,6 +589,7 @@ async function fetchSavedSkins() {
                 nameZh: normalizeLabel(row?.nameZh),
                 descriptionZh: normalizeDescription(row?.descriptionZh),
                 descriptionEn: normalizeDescription(row?.descriptionEn),
+                coinCost: Math.max(0, Math.floor(Number(row?.coinCost) || 0)),
                 complete: !!row?.complete,
                 preview: typeof row?.preview === 'string' ? row.preview : '',
                 protected: !!row?.protected,
@@ -592,8 +670,10 @@ function buildMergedSkins(catalog, savedRows) {
             protected: row.id === DEFAULT_SKIN_ID,
             preview: row.preview || `/assets/skins/${row.id}/snake_head.png`,
             assets: row.assets && typeof row.assets === 'object' ? row.assets : buildLocalAssets(row.id),
-            defaultPrice: 0,
-            currentPrice: Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[row.id]) || 0)),
+            defaultPrice: Math.max(0, Math.floor(Number(row.coinCost) || 0)),
+            currentPrice: Object.prototype.hasOwnProperty.call(state.localSkinPriceOverrides, row.id)
+                ? Math.max(0, Math.floor(Number(state.localSkinPriceOverrides[row.id]) || 0))
+                : Math.max(0, Math.floor(Number(row.coinCost) || 0)),
             defaultZh: row.nameZh || row.id,
             defaultEn: row.id,
             defaultDescZh: normalizeDescription(row.descriptionZh, 'AI 生成皮肤。'),
@@ -791,6 +871,7 @@ async function saveNames(skin) {
 async function saveMeta() {
     const skin = getSkinByStateId(state.selectedSkinId);
     if (!skin) return;
+    try {
 
     await saveNames(skin);
 
@@ -818,9 +899,13 @@ async function saveMeta() {
         writeJsonStorage(LOCAL_SKIN_PRICE_KEY, state.localSkinPriceOverrides);
     }
 
+    await persistSkinPriceOverridesToServer(buildServerSkinPriceMap());
     await refreshCatalog(false);
     selectSkin(skin.id, false);
     setMetaStatus(`已保存：${skin.id}`);
+    } catch (error) {
+        setMetaStatus(error?.message || 'Save failed.', true);
+    }
 }
 
 async function deleteSkin() {
@@ -962,6 +1047,7 @@ function bindEvents() {
 
 async function init() {
     bindEvents();
+    await hydrateSkinPriceOverridesFromServer();
     setWorkspaceView('detail');
     await refreshCatalog(true);
 }

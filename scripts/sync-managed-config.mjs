@@ -10,7 +10,8 @@ const KEYS = Object.freeze([
     'bgm-config-v1',
     'liveops-config-v1',
     'ui-layout-config-v1',
-    'skin-part-fit-overrides-v1'
+    'skin-part-fit-overrides-v1',
+    'skin-price-overrides-v1'
 ]);
 
 const args = new Map(

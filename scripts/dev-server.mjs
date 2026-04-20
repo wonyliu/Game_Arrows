@@ -136,6 +136,7 @@ const MANAGED_STORAGE_KEYS = new Set([
     'sfx-preset-overrides-v1',
     'skin-sfx-bindings-v1',
     'game-sfx-bindings-v1',
+    'skin-price-overrides-v1',
     'ui-layout-config-v1',
     'skin-part-fit-overrides-v1'
 ]);
@@ -688,6 +689,8 @@ async function handleSkinSavedSkinListRequest(req, res) {
     const skinsRoot = path.join(ROOT_DIR, 'assets', 'skins');
     const entries = await fs.readdir(skinsRoot, { withFileTypes: true }).catch(() => []);
     const nameMap = await readJsonFile(SKIN_GEN_NAME_MAP_PATH, {});
+    const rawSkinPriceOverrides = await readJsonFile(resolveStorageFilePath('skin-price-overrides-v1'), {});
+    const skinPriceOverrides = normalizeSkinPriceOverridesMap(rawSkinPriceOverrides);
     const skins = [];
 
     for (const entry of entries) {
@@ -723,6 +726,7 @@ async function handleSkinSavedSkinListRequest(req, res) {
         skins.push({
             id: skinId,
             nameZh: typeof nameMap?.[skinId] === 'string' ? sanitizeSkinDisplayName(nameMap[skinId]) : '',
+            coinCost: Number(skinPriceOverrides?.[skinId] || 0),
             partCount: partFiles.length,
             complete,
             protected: PROTECTED_SKIN_IDS.has(skinId),
@@ -735,6 +739,20 @@ async function handleSkinSavedSkinListRequest(req, res) {
 
     skins.sort((a, b) => a.id.localeCompare(b.id));
     sendJson(res, 200, { ok: true, skins });
+}
+
+function normalizeSkinPriceOverridesMap(rawMap) {
+    const source = isPlainObject(rawMap) ? rawMap : {};
+    const normalized = {};
+    for (const [rawSkinId, rawPrice] of Object.entries(source)) {
+        const skinId = sanitizeSlug(rawSkinId || '', '');
+        if (!skinId) {
+            continue;
+        }
+        const parsed = Number(rawPrice);
+        normalized[skinId] = Number.isFinite(parsed) ? Math.max(0, Math.floor(parsed)) : 0;
+    }
+    return normalized;
 }
 
 async function handleSkinTranslateRequest(req, res) {
