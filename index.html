@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=111">
+    <link rel="stylesheet" href="css/style.css?v=112">
 </head>
 <body>
     <div class="app-container">
@@ -382,7 +382,17 @@
         <div id="levelCompleteOverlay" class="overlay hidden">
             <div class="popup-box">
                 <h2 class="popup-title" data-i18n="panel.complete.title">All Cleared</h2>
-                <div id="levelScore" class="popup-score">Score: 0</div>
+                <div id="levelPerfectStamp" class="popup-perfect-stamp hidden">完美</div>
+                <div id="levelScore" class="popup-score">
+                    <span id="levelScoreLabel" class="popup-score-label">分数</span>
+                    <span id="levelScoreValue" class="popup-score-value">0</span>
+                    <span id="levelScoreMultiplier" class="popup-score-multiplier hidden">x1.00</span>
+                </div>
+                <div id="levelBestCombo" class="popup-combo">
+                    <span id="levelBestComboLabel" class="popup-combo-label">最高连击</span>
+                    <span id="levelBestComboValue" class="popup-combo-value">0</span>
+                </div>
+                <div id="levelScoreBonus" class="popup-bonus hidden"></div>
                 <div id="levelCoinReward" class="popup-coins">Coins +0 (Total 0)</div>
                 <div class="popup-buttons">
                     <button id="btnNext" class="btn-popup-primary" type="button" data-i18n="common.next">Next</button>
@@ -426,6 +436,6 @@
     </div>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/main.js?v=250"></script>
+    <script type="module" src="js/main.js?v=251"></script>
 </body>
 </html>

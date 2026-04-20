@@ -27,7 +27,7 @@ import {
     saveSavedLevelRecord,
     saveLevelCatalog
 } from './level-storage.js?v=59';
-import { GAMEPLAY_PARAMS_UPDATED_EVENT, readGameplayParams } from './game-params.js?v=6';
+import { GAMEPLAY_PARAMS_UPDATED_EVENT, readGameplayParams } from './game-params.js?v=7';
 const MIN_GRID_DIMENSION = 4;
 const UNBOUNDED_GRID_DIMENSION_MAX = Number.POSITIVE_INFINITY;
 

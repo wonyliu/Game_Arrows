@@ -460,6 +460,46 @@ button:disabled {
     font-weight: 700;
 }
 
+.combo-score-multiplier-panel {
+    margin-top: 4px;
+    border: 1px solid rgba(35, 44, 88, 0.12);
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: linear-gradient(180deg, rgba(239, 245, 255, 0.95), rgba(231, 241, 255, 0.92));
+    display: grid;
+    gap: 8px;
+}
+
+.combo-score-multiplier-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.combo-score-multiplier-head strong {
+    font-size: 13px;
+    color: #2f3c74;
+}
+
+.combo-score-multiplier-head span {
+    font-size: 12px;
+    color: #4f5d98;
+    font-weight: 700;
+}
+
+.combo-score-multiplier-table-wrap {
+    max-height: 240px;
+}
+
+.combo-score-multiplier-table {
+    min-width: 0;
+}
+
+.combo-score-multiplier-actions {
+    margin-top: 0;
+}
+
 .icon-btn {
     background: transparent;
     border: none;

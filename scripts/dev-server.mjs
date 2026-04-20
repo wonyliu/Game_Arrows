@@ -3528,11 +3528,21 @@ async function writeJsonAtomic(filePath, payload) {
     const nextWrite = previousWrite
         .catch(() => {})
         .then(async () => {
+            await fs.mkdir(path.dirname(filePath), { recursive: true });
             const tempPath = `${filePath}.${process.pid}.${Date.now()}.${crypto.randomUUID()}.tmp`;
             const raw = `${JSON.stringify(payload, null, 2)}\n`;
             try {
                 await fs.writeFile(tempPath, raw, 'utf8');
-                await fs.rename(tempPath, filePath);
+                try {
+                    await fs.rename(tempPath, filePath);
+                } catch (error) {
+                    // On Windows, replacing an existing file via rename can intermittently fail with EPERM.
+                    // Fallback to direct write to keep storage API stable.
+                    if (!isRecoverableWindowsRenameError(error)) {
+                        throw error;
+                    }
+                    await fs.writeFile(filePath, raw, 'utf8');
+                }
             } finally {
                 await fs.rm(tempPath, { force: true }).catch(() => {});
             }
@@ -3545,6 +3555,11 @@ async function writeJsonAtomic(filePath, payload) {
             pendingJsonWriteByPath.delete(filePath);
         }
     }
+}
+
+function isRecoverableWindowsRenameError(error) {
+    const code = `${error?.code || ''}`.trim().toUpperCase();
+    return code === 'EPERM' || code === 'EEXIST' || code === 'ENOTEMPTY' || code === 'EBUSY';
 }
 
 async function readRequestJson(req, maxBytes = MAX_JSON_BODY_BYTES) {

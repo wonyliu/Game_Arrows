@@ -2141,6 +2141,12 @@ textarea {
     box-shadow: inset 0 -4px 0 rgba(143, 94, 58, 0.22), 0 16px 34px rgba(55, 33, 19, 0.28);
     text-align: center;
     z-index: 45;
+    overflow: visible;
+}
+
+.popup-box.is-perfect {
+    border-color: rgba(255, 204, 132, 0.92);
+    box-shadow: inset 0 -4px 0 rgba(160, 106, 38, 0.28), 0 20px 42px rgba(92, 45, 18, 0.32);
 }
 
 .popup-title {
@@ -2151,10 +2157,94 @@ textarea {
     letter-spacing: 1px;
 }
 
+.popup-perfect-stamp {
+    position: absolute;
+    top: 16px;
+    right: 14px;
+    min-width: 84px;
+    padding: 6px 10px;
+    border: 4px solid rgba(191, 26, 26, 0.92);
+    border-radius: 999px;
+    color: rgba(167, 18, 18, 0.92);
+    font-size: 24px;
+    line-height: 1;
+    font-weight: 900;
+    letter-spacing: 2px;
+    transform: rotate(16deg) scale(1.06);
+    background: rgba(255, 243, 243, 0.86);
+    box-shadow: 0 8px 18px rgba(107, 18, 18, 0.24);
+    pointer-events: none;
+}
+
 .popup-score {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
     color: #855736;
     font-size: 26px;
     font-weight: 800;
+}
+
+.popup-score-label {
+    font-size: 24px;
+}
+
+.popup-score-value {
+    min-width: 2ch;
+    font-size: 48px;
+    line-height: 1;
+    letter-spacing: 0.5px;
+}
+
+.popup-score-multiplier {
+    display: inline-flex;
+    align-items: center;
+    font-size: 26px;
+    color: #7b4f27;
+    transform: translateY(-1px);
+    opacity: 0;
+}
+
+.popup-score-multiplier.is-visible {
+    opacity: 1;
+    animation: settle-multiplier-pop 220ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.popup-combo {
+    margin-top: 6px;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 6px;
+    color: #7b4f27;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.popup-combo-label {
+    font-size: 18px;
+}
+
+.popup-combo-value {
+    display: inline-block;
+    min-width: 1.5ch;
+    font-size: 30px;
+    line-height: 1;
+}
+
+.popup-combo-value.is-emphasis {
+    animation: settle-combo-emphasis 360ms cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.popup-bonus {
+    margin-top: 4px;
+    color: #8a6432;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.45;
+    display: none;
 }
 
 .popup-coins {
@@ -2169,6 +2259,27 @@ textarea {
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+@keyframes settle-combo-emphasis {
+    0% {
+        transform: scale(1);
+    }
+    35% {
+        transform: scale(1.28);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes settle-multiplier-pop {
+    0% {
+        transform: translateY(-1px) scale(0.72);
+    }
+    100% {
+        transform: translateY(-1px) scale(1);
+    }
 }
 
 .reward-guide-overlay {

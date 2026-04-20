@@ -12,7 +12,7 @@ import {
     normalizeGameplayParams,
     readGameplayParams,
     writeGameplayParams
-} from './game-params.js?v=6';
+} from './game-params.js?v=7';
 
 const ACTIVE_TAB_STORAGE_KEY = 'arrowClear_adminActiveTab';
 const LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY = 'arrowClear_localSkinPriceOverrides_v1';
@@ -42,6 +42,12 @@ const el = {
     paramRewardComboThreshold: document.getElementById('paramRewardComboThreshold'),
     paramMisclickPenaltyTextDurationSeconds: document.getElementById('paramMisclickPenaltyTextDurationSeconds'),
     paramReleasableHitAreaScale: document.getElementById('paramReleasableHitAreaScale'),
+    btnEditComboScoreMultipliers: document.getElementById('btnEditComboScoreMultipliers'),
+    comboScoreMultiplierPanel: document.getElementById('comboScoreMultiplierPanel'),
+    comboScoreMultiplierSummary: document.getElementById('comboScoreMultiplierSummary'),
+    comboScoreMultiplierRows: document.getElementById('comboScoreMultiplierRows'),
+    btnAddComboScoreMultiplierRow: document.getElementById('btnAddComboScoreMultiplierRow'),
+    btnResetComboScoreMultiplierRows: document.getElementById('btnResetComboScoreMultiplierRows'),
     hitAreaPreviewScaleText: document.getElementById('hitAreaPreviewScaleText'),
     hitAreaPreviewHit: document.getElementById('hitAreaPreviewHit'),
     hitAreaPreviewMeta: document.getElementById('hitAreaPreviewMeta'),
@@ -58,7 +64,8 @@ const state = {
     skinPriceOverrides: {},
     localSkinPriceOverrides: {},
     selectedSkinId: '',
-    gameplayParams: { ...DEFAULT_GAMEPLAY_PARAMS }
+    gameplayParams: { ...DEFAULT_GAMEPLAY_PARAMS },
+    comboScoreMultiplierRows: []
 };
 
 function readLocalSkinPriceOverrides() {
@@ -94,6 +101,38 @@ function clampInt(value, min, max, fallback) {
         return fallback;
     }
     return Math.max(min, Math.min(max, Math.round(parsed)));
+}
+
+function clampFloat(value, min, max, fallback) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+    return Math.max(min, Math.min(max, parsed));
+}
+
+function cloneComboScoreMultiplierRows(rows) {
+    const fallback = Array.isArray(DEFAULT_GAMEPLAY_PARAMS.comboScoreMultipliers)
+        ? DEFAULT_GAMEPLAY_PARAMS.comboScoreMultipliers
+        : [];
+    const source = Array.isArray(rows) && rows.length > 0 ? rows : fallback;
+    const mapped = source
+        .map((row) => {
+            const threshold = Math.max(1, Math.floor(Number(row?.threshold) || 0));
+            const multiplier = Math.max(1, Number(row?.multiplier) || 0);
+            if (!Number.isFinite(threshold) || !Number.isFinite(multiplier)) {
+                return null;
+            }
+            return {
+                threshold,
+                multiplier: Number(multiplier.toFixed(2))
+            };
+        })
+        .filter(Boolean);
+    if (mapped.length > 0) {
+        return mapped;
+    }
+    return [{ threshold: 10, multiplier: 1.1 }];
 }
 
 function setSkinStatus(text, isError = false) {
@@ -351,6 +390,8 @@ function fillGameParamInputs(params) {
     if (el.paramRewardComboThreshold) el.paramRewardComboThreshold.value = `${params.rewardComboThreshold}`;
     if (el.paramMisclickPenaltyTextDurationSeconds) el.paramMisclickPenaltyTextDurationSeconds.value = `${params.misclickPenaltyTextDurationSeconds}`;
     if (el.paramReleasableHitAreaScale) el.paramReleasableHitAreaScale.value = `${params.releasableHitAreaScale}`;
+    state.comboScoreMultiplierRows = cloneComboScoreMultiplierRows(params.comboScoreMultipliers);
+    renderComboScoreMultiplierRows();
     renderHitAreaPreview(params.releasableHitAreaScale);
 }
 
@@ -372,6 +413,81 @@ function renderHitAreaPreview(scaleValue) {
     }
 }
 
+function updateComboScoreMultiplierSummary() {
+    if (!el.comboScoreMultiplierSummary) {
+        return;
+    }
+    const sorted = [...state.comboScoreMultiplierRows]
+        .sort((left, right) => left.threshold - right.threshold);
+    if (sorted.length <= 0) {
+        el.comboScoreMultiplierSummary.textContent = '\u672a\u914d\u7f6e';
+        return;
+    }
+    const preview = sorted
+        .slice(0, 4)
+        .map((row) => `${row.threshold}->x${row.multiplier.toFixed(2)}`)
+        .join(', ');
+    const suffix = sorted.length > 4 ? ` ... \u5171 ${sorted.length} \u6863` : '';
+    el.comboScoreMultiplierSummary.textContent = `${preview}${suffix}`;
+}
+
+function renderComboScoreMultiplierRows() {
+    if (!el.comboScoreMultiplierRows) {
+        return;
+    }
+    state.comboScoreMultiplierRows = cloneComboScoreMultiplierRows(state.comboScoreMultiplierRows);
+    el.comboScoreMultiplierRows.innerHTML = '';
+    state.comboScoreMultiplierRows.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td><input type="number" min="1" max="1000" step="1" value="${row.threshold}"></td>
+            <td><input type="number" min="1" max="5" step="0.01" value="${row.multiplier.toFixed(2)}"></td>
+            <td><button type="button">Delete</button></td>
+        `;
+        const thresholdInput = tr.children[0].querySelector('input');
+        const multiplierInput = tr.children[1].querySelector('input');
+        const removeButton = tr.children[2].querySelector('button');
+
+        thresholdInput?.addEventListener('change', () => {
+            row.threshold = clampInt(thresholdInput.value, 1, 1000, row.threshold);
+            thresholdInput.value = `${row.threshold}`;
+            updateComboScoreMultiplierSummary();
+        });
+        multiplierInput?.addEventListener('change', () => {
+            row.multiplier = Number(clampFloat(multiplierInput.value, 1, 5, row.multiplier).toFixed(2));
+            multiplierInput.value = row.multiplier.toFixed(2);
+            updateComboScoreMultiplierSummary();
+        });
+        removeButton?.addEventListener('click', () => {
+            state.comboScoreMultiplierRows.splice(index, 1);
+            if (state.comboScoreMultiplierRows.length <= 0) {
+                state.comboScoreMultiplierRows = cloneComboScoreMultiplierRows();
+            }
+            renderComboScoreMultiplierRows();
+        });
+        el.comboScoreMultiplierRows.appendChild(tr);
+    });
+    updateComboScoreMultiplierSummary();
+}
+
+function toggleComboScoreMultiplierPanel(forceVisible = null) {
+    if (!el.comboScoreMultiplierPanel) {
+        return;
+    }
+    const shouldShow = typeof forceVisible === 'boolean'
+        ? forceVisible
+        : el.comboScoreMultiplierPanel.classList.contains('hidden');
+    el.comboScoreMultiplierPanel.classList.toggle('hidden', !shouldShow);
+    if (el.btnEditComboScoreMultipliers) {
+        el.btnEditComboScoreMultipliers.textContent = shouldShow
+            ? '\u6536\u8d77\u8fde\u51fb\u79ef\u5206\u7cfb\u6570'
+            : '\u914d\u7f6e\u8fde\u51fb\u79ef\u5206\u7cfb\u6570';
+    }
+    if (shouldShow) {
+        renderComboScoreMultiplierRows();
+    }
+}
+
 function collectGameParamInputs() {
     return {
         scorePerCoin: Number(el.paramScorePerCoin?.value),
@@ -382,7 +498,8 @@ function collectGameParamInputs() {
         comboWindowMs: Number(el.paramComboWindowMs?.value),
         rewardComboThreshold: Number(el.paramRewardComboThreshold?.value),
         misclickPenaltyTextDurationSeconds: Number(el.paramMisclickPenaltyTextDurationSeconds?.value),
-        releasableHitAreaScale: Number(el.paramReleasableHitAreaScale?.value)
+        releasableHitAreaScale: Number(el.paramReleasableHitAreaScale?.value),
+        comboScoreMultipliers: cloneComboScoreMultiplierRows(state.comboScoreMultiplierRows)
     };
 }
 
@@ -428,10 +545,26 @@ function initGameParamPanel() {
     state.gameplayParams = readGameplayParams();
     fillGameParamInputs(state.gameplayParams);
     refreshGameParamJson();
+    toggleComboScoreMultiplierPanel(false);
 
     el.btnSaveGameParams?.addEventListener('click', saveGameParamsFromInputs);
     el.btnResetGameParams?.addEventListener('click', resetGameParams);
     el.btnImportGameParamJson?.addEventListener('click', importGameParamJson);
+    el.btnEditComboScoreMultipliers?.addEventListener('click', () => {
+        toggleComboScoreMultiplierPanel();
+    });
+    el.btnAddComboScoreMultiplierRow?.addEventListener('click', () => {
+        const last = state.comboScoreMultiplierRows[state.comboScoreMultiplierRows.length - 1] || { threshold: 0, multiplier: 1 };
+        state.comboScoreMultiplierRows.push({
+            threshold: clampInt((Number(last.threshold) || 0) + 10, 1, 1000, 10),
+            multiplier: Number(clampFloat((Number(last.multiplier) || 1) + 0.1, 1, 5, 1).toFixed(2))
+        });
+        renderComboScoreMultiplierRows();
+    });
+    el.btnResetComboScoreMultiplierRows?.addEventListener('click', () => {
+        state.comboScoreMultiplierRows = cloneComboScoreMultiplierRows(DEFAULT_GAMEPLAY_PARAMS.comboScoreMultipliers);
+        renderComboScoreMultiplierRows();
+    });
     el.paramReleasableHitAreaScale?.addEventListener('input', () => {
         renderHitAreaPreview(el.paramReleasableHitAreaScale?.value);
     });
@@ -461,13 +594,6 @@ function init() {
 }
 
 init();
-
-
-
-
-
-
-
 
 
 

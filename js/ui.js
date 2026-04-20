@@ -61,6 +61,8 @@ const SETTINGS_CONFIRM_MODE = Object.freeze({
 const LEVEL_SETTLE_MIN_MS = 700;
 const LEVEL_SETTLE_MAX_MS = 1800;
 const LEVEL_SETTLE_PER_POINT_MS = 0.4;
+const LEVEL_SETTLE_COMBO_EMPHASIS_MS = 420;
+const LEVEL_SETTLE_MULTIPLIER_HOLD_MS = 180;
 const CHECKIN_COIN_FLY_COUNT = 6;
 const CHECKIN_COIN_FLY_DURATION_MS = 920;
 const CHECKIN_COIN_COUNTER_DURATION_MS = 1040;
@@ -139,8 +141,17 @@ export class UI {
         this.levelCompleteTitleEl = document.querySelector('#levelCompleteOverlay .popup-title');
         this.levelCompleteNextButton = document.getElementById('btnNext');
         this.levelCompleteButtonsEl = document.querySelector('#levelCompleteOverlay .popup-buttons');
+        this.levelCompletePopupBox = this.levelCompleteOverlay?.querySelector('.popup-box') || null;
 
         this.levelScore = document.getElementById('levelScore');
+        this.levelScoreLabel = document.getElementById('levelScoreLabel');
+        this.levelScoreValue = document.getElementById('levelScoreValue');
+        this.levelScoreMultiplier = document.getElementById('levelScoreMultiplier');
+        this.levelBestCombo = document.getElementById('levelBestCombo');
+        this.levelBestComboLabel = document.getElementById('levelBestComboLabel');
+        this.levelBestComboValue = document.getElementById('levelBestComboValue');
+        this.levelScoreBonus = document.getElementById('levelScoreBonus');
+        this.levelPerfectStamp = document.getElementById('levelPerfectStamp');
         this.levelGrid = document.getElementById('levelGrid');
         this.gameOverReason = document.getElementById('gameOverReason');
         this.levelTag = document.getElementById('btnLevels');
@@ -165,6 +176,7 @@ export class UI {
         this.skinsCoinValue = document.getElementById('skinsCoinValue');
         this.levelCoinReward = document.getElementById('levelCoinReward');
         this.levelSettleAnimFrame = 0;
+        this.levelSettleRunId = 0;
         this.isLevelSettleAnimating = false;
         this.checkinWeekGridEl = document.getElementById('checkinWeekGrid');
         this.checkinStatusEl = document.getElementById('checkinStatus');
@@ -1270,7 +1282,11 @@ export class UI {
             cancelAnimationFrame(this.levelSettleAnimFrame);
         }
         this.levelSettleAnimFrame = 0;
+        this.levelSettleRunId += 1;
         this.isLevelSettleAnimating = false;
+        this.levelBestComboValue?.classList.remove('is-emphasis');
+        this.levelScoreMultiplier?.classList.add('hidden');
+        this.levelScoreMultiplier?.classList.remove('is-visible');
     }
 
     hideAll() {
@@ -3500,9 +3516,250 @@ export class UI {
             this.skinList.appendChild(card);
         }
     }
+
+    resolveLevelSettleDuration(deltaScore) {
+        const delta = Math.max(0, Math.floor(Number(deltaScore) || 0));
+        const duration = LEVEL_SETTLE_MIN_MS + delta * LEVEL_SETTLE_PER_POINT_MS;
+        return Math.min(LEVEL_SETTLE_MAX_MS, Math.max(320, Math.round(duration)));
+    }
+
+    getLevelSettleCoinByScore(score, scorePerCoin, maxEarnedCoins) {
+        const cappedScore = Math.max(0, Math.floor(Number(score) || 0));
+        const cappedReward = Math.max(0, Math.floor(Number(maxEarnedCoins) || 0));
+        if (cappedScore <= 0 || cappedReward <= 0) {
+            return 0;
+        }
+        const perCoin = Math.max(1, Math.floor(Number(scorePerCoin) || 1));
+        const computed = Math.max(1, Math.ceil(cappedScore / perCoin));
+        return Math.min(cappedReward, computed);
+    }
+
+    setLevelSettleScoreText(score, multiplierText = '', showMultiplier = false) {
+        const safeScore = Math.max(0, Math.floor(Number(score) || 0));
+        if (this.levelScoreLabel) {
+            this.levelScoreLabel.textContent = this.getLocaleText('\u5206\u6570', 'Score');
+        }
+        if (this.levelScoreValue) {
+            this.levelScoreValue.textContent = `${safeScore}`;
+        } else if (this.levelScore) {
+            this.levelScore.textContent = this.getLocaleText(
+                `\u5206\u6570 ${safeScore}`,
+                `Score ${safeScore}`
+            );
+        }
+        if (this.levelScoreMultiplier) {
+            this.levelScoreMultiplier.textContent = `${multiplierText}`.trim() || 'x1.00';
+            this.levelScoreMultiplier.classList.toggle('hidden', !showMultiplier);
+            this.levelScoreMultiplier.classList.toggle('is-visible', showMultiplier);
+        } else if (this.levelScore && showMultiplier && `${multiplierText}`.trim()) {
+            this.levelScore.textContent = `${this.levelScore.textContent || ''} ${multiplierText}`.trim();
+        }
+    }
+
+    setLevelSettleComboText(bestCombo) {
+        const combo = Math.max(0, Math.floor(Number(bestCombo) || 0));
+        if (this.levelBestComboLabel) {
+            this.levelBestComboLabel.textContent = this.getLocaleText('\u6700\u9ad8\u8fde\u51fb', 'Best Combo');
+        }
+        if (this.levelBestComboValue) {
+            this.levelBestComboValue.textContent = `${combo}`;
+        } else if (this.levelBestCombo) {
+            this.levelBestCombo.textContent = this.getLocaleText(
+                `\u6700\u9ad8\u8fde\u51fb ${combo}`,
+                `Best combo ${combo}`
+            );
+        }
+    }
+
+    setLevelSettleCoinText(earnedCoins, totalCoins) {
+        if (!this.levelCoinReward) {
+            return;
+        }
+        const earned = Math.max(0, Math.floor(Number(earnedCoins) || 0));
+        const total = Math.max(0, Math.floor(Number(totalCoins) || 0));
+        this.levelCoinReward.textContent = this.getLocaleText(
+            `\u91d1\u5e01 +${earned}\uff08\u603b\u8ba1 ${total}\uff09`,
+            `Coins +${earned} (Total ${total})`
+        );
+    }
+
+    waitForLevelSettleDelay(durationMs, runId) {
+        const delay = Math.max(0, Math.floor(Number(durationMs) || 0));
+        if (delay <= 0) {
+            return Promise.resolve(this.levelSettleRunId === runId);
+        }
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve(this.levelSettleRunId === runId);
+            }, delay);
+        });
+    }
+
+    animateLevelSettleScore({
+        runId,
+        fromScore,
+        toScore,
+        durationMs,
+        multiplierText,
+        showMultiplier,
+        scorePerCoin,
+        maxEarnedCoins,
+        totalCoinsBeforeReward
+    }) {
+        const startScore = Math.max(0, Math.floor(Number(fromScore) || 0));
+        const endScore = Math.max(0, Math.floor(Number(toScore) || 0));
+        const distance = endScore - startScore;
+        const safeDuration = Math.max(0, Math.floor(Number(durationMs) || 0));
+        const apply = (scoreValue) => {
+            this.setLevelSettleScoreText(scoreValue, multiplierText, showMultiplier);
+            const earnedCoins = this.getLevelSettleCoinByScore(scoreValue, scorePerCoin, maxEarnedCoins);
+            this.setLevelSettleCoinText(earnedCoins, totalCoinsBeforeReward + earnedCoins);
+        };
+
+        if (this.levelSettleRunId !== runId) {
+            return Promise.resolve(false);
+        }
+        if (safeDuration <= 0 || distance === 0) {
+            apply(endScore);
+            return Promise.resolve(this.levelSettleRunId === runId);
+        }
+
+        return new Promise((resolve) => {
+            const startAt = typeof performance !== 'undefined' && typeof performance.now === 'function'
+                ? performance.now()
+                : Date.now();
+
+            const step = (now) => {
+                if (this.levelSettleRunId !== runId) {
+                    this.levelSettleAnimFrame = 0;
+                    resolve(false);
+                    return;
+                }
+                const elapsed = Math.max(0, now - startAt);
+                const progress = Math.min(1, elapsed / safeDuration);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                const nextScore = Math.round(startScore + distance * eased);
+                apply(nextScore);
+                if (progress >= 1) {
+                    this.levelSettleAnimFrame = 0;
+                    apply(endScore);
+                    resolve(true);
+                    return;
+                }
+                this.levelSettleAnimFrame = requestAnimationFrame(step);
+            };
+
+            this.levelSettleAnimFrame = requestAnimationFrame(step);
+        });
+    }
+
+    async playLevelSettleSequence({
+        runId,
+        baseScore,
+        finalScore,
+        bestCombo,
+        scoreMultiplierText,
+        scorePerCoin,
+        earnedCoins,
+        totalCoinsBeforeReward
+    }) {
+        if (this.levelSettleRunId !== runId) {
+            return;
+        }
+        this.isLevelSettleAnimating = true;
+        this.toggleLevelCompleteButtons(false);
+        this.levelBestComboValue?.classList.remove('is-emphasis');
+        this.setLevelSettleComboText(bestCombo);
+        this.setLevelSettleScoreText(0, scoreMultiplierText, false);
+        this.setLevelSettleCoinText(0, totalCoinsBeforeReward);
+
+        const stageOneScore = Math.max(0, Math.floor(Number(baseScore) || 0));
+        const stageTwoScore = Math.max(stageOneScore, Math.floor(Number(finalScore) || 0));
+        const phase1Done = await this.animateLevelSettleScore({
+            runId,
+            fromScore: 0,
+            toScore: stageOneScore,
+            durationMs: this.resolveLevelSettleDuration(stageOneScore),
+            multiplierText: scoreMultiplierText,
+            showMultiplier: false,
+            scorePerCoin,
+            maxEarnedCoins: earnedCoins,
+            totalCoinsBeforeReward
+        });
+        if (!phase1Done || this.levelSettleRunId !== runId) {
+            return;
+        }
+
+        if (this.levelBestComboValue) {
+            this.levelBestComboValue.classList.remove('is-emphasis');
+            void this.levelBestComboValue.offsetWidth;
+            this.levelBestComboValue.classList.add('is-emphasis');
+        }
+        const emphasized = await this.waitForLevelSettleDelay(LEVEL_SETTLE_COMBO_EMPHASIS_MS, runId);
+        if (!emphasized || this.levelSettleRunId !== runId) {
+            return;
+        }
+        this.levelBestComboValue?.classList.remove('is-emphasis');
+
+        this.setLevelSettleScoreText(stageOneScore, scoreMultiplierText, true);
+        const held = await this.waitForLevelSettleDelay(LEVEL_SETTLE_MULTIPLIER_HOLD_MS, runId);
+        if (!held || this.levelSettleRunId !== runId) {
+            return;
+        }
+
+        const phase2Done = await this.animateLevelSettleScore({
+            runId,
+            fromScore: stageOneScore,
+            toScore: stageTwoScore,
+            durationMs: this.resolveLevelSettleDuration(stageTwoScore - stageOneScore),
+            multiplierText: scoreMultiplierText,
+            showMultiplier: true,
+            scorePerCoin,
+            maxEarnedCoins: earnedCoins,
+            totalCoinsBeforeReward
+        });
+        if (!phase2Done || this.levelSettleRunId !== runId) {
+            return;
+        }
+
+        this.isLevelSettleAnimating = false;
+        this.toggleLevelCompleteButtons(true);
+    }
+
     showLevelCompletePopup() {
+        this.stopLevelSettleAnimation();
+        const runId = this.levelSettleRunId;
         this.levelCompleteOverlay.classList.remove('hidden');
         this.updateCoinDisplays();
+        const settleSummary = typeof this.game.getLastLevelSettleSummary === 'function'
+            ? this.game.getLastLevelSettleSummary()
+            : null;
+        const finalScore = Math.max(
+            0,
+            Math.floor(Number(settleSummary?.finalScore ?? this.game?.score) || 0)
+        );
+        const baseScore = Math.max(
+            0,
+            Math.floor(Number(settleSummary?.baseScore ?? finalScore) || 0)
+        );
+        const bestCombo = Math.max(
+            0,
+            Math.floor(Number(settleSummary?.bestCombo ?? this.game?.bestComboThisLevel) || 0)
+        );
+        const comboScoreMultiplier = Math.max(
+            1,
+            Number(settleSummary?.comboScoreMultiplier) || 1
+        );
+        const perfectScoreMultiplier = Math.max(
+            1,
+            Number(settleSummary?.perfectScoreMultiplier) || 1
+        );
+        const totalScoreMultiplier = Math.max(
+            1,
+            Number((comboScoreMultiplier * perfectScoreMultiplier).toFixed(2))
+        );
+        const scoreMultiplierText = `x${totalScoreMultiplier.toFixed(2)}`;
+        const perfectComboClear = settleSummary?.perfectComboClear === true;
         const isCampaignComplete = typeof this.game.isCampaignCompleted === 'function'
             && this.game.isCampaignCompleted();
         const willEnterRewardStage = !this.game.isRewardStage
@@ -3523,21 +3780,39 @@ export class UI {
         if (this.levelCompleteTitleEl) {
             this.levelCompleteTitleEl.textContent = isCampaignComplete ? '恭喜通关' : '恭喜过关';
         }
-        if (this.levelScore) {
-            this.levelScore.textContent = t(this.locale, 'common.score', { score: this.game.score });
+        if (this.levelScoreBonus) {
+            this.levelScoreBonus.classList.add('hidden');
+            this.levelScoreBonus.textContent = '';
         }
-        if (this.levelCoinReward) {
-            const earnedCoins = typeof this.game.getLastCoinReward === 'function'
-                ? this.game.getLastCoinReward()
-                : 0;
-            const totalCoins = typeof this.game.getCoins === 'function'
-                ? this.game.getCoins()
-                : 0;
-            this.levelCoinReward.textContent = this.getLocaleText(
-                `\u91d1\u5e01 +${earnedCoins}\uff08\u603b\u8ba1 ${totalCoins}\uff09`,
-                `Coins +${earnedCoins} (Total ${totalCoins})`
-            );
+        if (this.levelPerfectStamp) {
+            this.levelPerfectStamp.classList.toggle('hidden', !perfectComboClear);
+            this.levelPerfectStamp.textContent = this.getLocaleText('\u5b8c\u7f8e', 'PERFECT');
         }
+        if (this.levelCompletePopupBox) {
+            this.levelCompletePopupBox.classList.toggle('is-perfect', perfectComboClear);
+        }
+
+        const earnedCoins = typeof this.game.getLastCoinReward === 'function'
+            ? this.game.getLastCoinReward()
+            : 0;
+        const totalCoins = typeof this.game.getCoins === 'function'
+            ? this.game.getCoins()
+            : 0;
+        const totalCoinsBeforeReward = Math.max(0, totalCoins - earnedCoins);
+        const scorePerCoin = typeof this.game.getScorePerCoin === 'function'
+            ? this.game.getScorePerCoin()
+            : 1;
+
+        void this.playLevelSettleSequence({
+            runId,
+            baseScore,
+            finalScore,
+            bestCombo,
+            scoreMultiplierText,
+            scorePerCoin,
+            earnedCoins,
+            totalCoinsBeforeReward
+        });
     }
 
     showGameOverPopup(reason) {

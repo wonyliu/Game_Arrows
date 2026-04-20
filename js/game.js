@@ -33,7 +33,7 @@ import {
     getSkinCatalog as getSkinCatalogList,
     normalizeUnlockedSkins
 } from './skins.js?v=31';
-import { readGameplayParams } from './game-params.js?v=6';
+import { readGameplayParams } from './game-params.js?v=7';
 import {
     readProgressSnapshot,
     saveProgressSnapshot
@@ -62,6 +62,28 @@ const RELEASE_SFX_EVERY_N_SCORE_EVENTS = Math.max(
 const SCORE_BURST_STAR_COUNT = GAMEPLAY_PARAMS.scoreBurstStarCount;
 const SCORE_BURST_STAR_COLORS = Object.freeze(['#fff8c9', '#ffe899', '#ffd86e', '#ffffff']);
 const REWARD_COMBO_THRESHOLD = GAMEPLAY_PARAMS.rewardComboThreshold;
+const COMBO_SCORE_MULTIPLIERS = (() => {
+    const source = Array.isArray(GAMEPLAY_PARAMS.comboScoreMultipliers)
+        ? GAMEPLAY_PARAMS.comboScoreMultipliers
+        : [];
+    const deduped = new Map();
+    for (const row of source) {
+        const threshold = Math.max(1, Math.floor(Number(row?.threshold) || 0));
+        const multiplier = Math.max(1, Number(row?.multiplier) || 0);
+        if (!Number.isFinite(threshold) || !Number.isFinite(multiplier)) {
+            continue;
+        }
+        deduped.set(threshold, Number(multiplier.toFixed(2)));
+    }
+    if (deduped.size <= 0) {
+        deduped.set(10, 1.1);
+    }
+    return Object.freeze(
+        Array.from(deduped.entries())
+            .sort((left, right) => left[0] - right[0])
+            .map(([threshold, multiplier]) => Object.freeze({ threshold, multiplier }))
+    );
+})();
 const MISCLICK_PENALTY_TEXT_DURATION_SECONDS = Math.max(
     0.2,
     Number(GAMEPLAY_PARAMS.misclickPenaltyTextDurationSeconds) || 1.9
@@ -135,6 +157,8 @@ export class Game {
         this.campaignCompleted = false;
         this.rewardGuideShown = false;
         this.bestComboThisLevel = 0;
+        this.levelLineCount = 0;
+        this.lastLevelSettleSummary = null;
         this.rewardStageUnlockedThisLevel = false;
         this.dragReleaseActive = false;
         this.dragReleaseLineIds = new Set();
@@ -527,6 +551,36 @@ export class Game {
         return Math.max(0, Math.floor(Number(this.lastCoinReward) || 0));
     }
 
+    getLastLevelSettleSummary() {
+        if (!this.lastLevelSettleSummary || typeof this.lastLevelSettleSummary !== 'object') {
+            return null;
+        }
+        return { ...this.lastLevelSettleSummary };
+    }
+
+    resolveComboScoreMultiplier(bestCombo) {
+        const combo = Math.max(0, Math.floor(Number(bestCombo) || 0));
+        let matchedThreshold = 0;
+        let matchedMultiplier = 1;
+        for (const row of COMBO_SCORE_MULTIPLIERS) {
+            const threshold = Math.max(1, Math.floor(Number(row?.threshold) || 0));
+            const multiplier = Math.max(1, Number(row?.multiplier) || 1);
+            if (!Number.isFinite(threshold) || !Number.isFinite(multiplier)) {
+                continue;
+            }
+            if (combo >= threshold) {
+                matchedThreshold = threshold;
+                matchedMultiplier = Number(multiplier.toFixed(2));
+            } else {
+                break;
+            }
+        }
+        return {
+            threshold: matchedThreshold,
+            multiplier: matchedMultiplier
+        };
+    }
+
     getItemBalance(itemId) {
         const id = `${itemId || ''}`.trim().toLowerCase();
         if (id === 'coin') {
@@ -821,6 +875,8 @@ export class Game {
         this.lastCoinReward = 0;
         this.combo = 0;
         this.bestComboThisLevel = 0;
+        this.levelLineCount = Array.isArray(this.lines) ? this.lines.length : 0;
+        this.lastLevelSettleSummary = null;
         this.rewardStageUnlockedThisLevel = false;
         this.lastComboReleaseAt = 0;
         this.releaseSfxScoreEventCount = 0;
@@ -1237,6 +1293,7 @@ export class Game {
         this.undoStack.push({
             lineId: line.id,
             combo: this.combo,
+            bestComboThisLevel: this.bestComboThisLevel,
             lastComboReleaseAt: this.lastComboReleaseAt,
             releaseSfxScoreEventCount: this.releaseSfxScoreEventCount,
             score: this.score,
@@ -1463,8 +1520,31 @@ export class Game {
         this.resetEnergyBatches();
         playLevelCompleteSound();
         const normalizedScore = Math.max(0, Number(this.score) || 0);
-        const coinsEarned = normalizedScore > 0
-            ? Math.max(1, Math.ceil(normalizedScore / SCORE_PER_COIN))
+        const bestCombo = Math.max(0, Math.floor(Number(this.bestComboThisLevel) || 0));
+        const lineCount = Math.max(
+            0,
+            Math.floor(Number(this.levelLineCount) || (Array.isArray(this.lines) ? this.lines.length : 0))
+        );
+        const comboMultiplierMeta = this.resolveComboScoreMultiplier(bestCombo);
+        const comboScoreMultiplier = Math.max(1, Number(comboMultiplierMeta.multiplier) || 1);
+        const perfectComboClear = lineCount > 0 && bestCombo >= lineCount;
+        const perfectScoreMultiplier = perfectComboClear ? 1.5 : 1;
+        const finalScore = Math.max(0, Math.round(normalizedScore * comboScoreMultiplier * perfectScoreMultiplier));
+        const bonusScore = Math.max(0, finalScore - normalizedScore);
+        this.score = finalScore;
+        this.lastLevelSettleSummary = {
+            baseScore: normalizedScore,
+            finalScore,
+            bonusScore,
+            bestCombo,
+            lineCount,
+            comboTierThreshold: comboMultiplierMeta.threshold,
+            comboScoreMultiplier,
+            perfectComboClear,
+            perfectScoreMultiplier
+        };
+        const coinsEarned = finalScore > 0
+            ? Math.max(1, Math.ceil(finalScore / SCORE_PER_COIN))
             : 0;
         this.lastCoinReward = coinsEarned;
         if (coinsEarned > 0) {
@@ -1550,6 +1630,7 @@ export class Game {
         this.grid.registerLine(line);
         this.markSortedLinesDirty();
         this.combo = undo.combo;
+        this.bestComboThisLevel = Math.max(0, Math.floor(Number(undo.bestComboThisLevel) || 0));
         this.lastComboReleaseAt = Number(undo.lastComboReleaseAt) || 0;
         this.releaseSfxScoreEventCount = Math.max(0, Math.floor(Number(undo.releaseSfxScoreEventCount) || 0));
         this.score = undo.score;

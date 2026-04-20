@@ -1,6 +1,14 @@
 export const GAMEPLAY_PARAM_STORAGE_KEY = 'arrowClear_gameplayParams_v1';
 export const GAMEPLAY_PARAMS_UPDATED_EVENT = 'arrow:gameplay-params-updated';
 
+const DEFAULT_COMBO_SCORE_MULTIPLIERS = Object.freeze([
+    Object.freeze({ threshold: 10, multiplier: 1.1 }),
+    Object.freeze({ threshold: 20, multiplier: 1.2 }),
+    Object.freeze({ threshold: 30, multiplier: 1.3 }),
+    Object.freeze({ threshold: 40, multiplier: 1.4 }),
+    Object.freeze({ threshold: 50, multiplier: 1.5 })
+]);
+
 export const DEFAULT_GAMEPLAY_PARAMS = Object.freeze({
     scorePerCoin: 1000,
     releaseSfxEveryNScoreEvents: 1,
@@ -10,7 +18,8 @@ export const DEFAULT_GAMEPLAY_PARAMS = Object.freeze({
     comboWindowMs: 3000,
     rewardComboThreshold: 100,
     misclickPenaltyTextDurationSeconds: 1.9,
-    releasableHitAreaScale: 1.3
+    releasableHitAreaScale: 1.3,
+    comboScoreMultipliers: DEFAULT_COMBO_SCORE_MULTIPLIERS
 });
 
 const PARAM_RANGE = Object.freeze({
@@ -25,6 +34,11 @@ const PARAM_RANGE = Object.freeze({
     releasableHitAreaScale: Object.freeze({ min: 1, max: 2.2 })
 });
 
+const COMBO_MULTIPLIER_RANGE = Object.freeze({
+    threshold: Object.freeze({ min: 1, max: 1000 }),
+    multiplier: Object.freeze({ min: 1, max: 5 })
+});
+
 function clampNumber(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
@@ -36,6 +50,46 @@ function normalizeNumber(value, fallback, min, max, integer = true) {
     }
     const clamped = clampNumber(parsed, min, max);
     return integer ? Math.round(clamped) : clamped;
+}
+
+function normalizeComboScoreMultipliers(value) {
+    const source = Array.isArray(value) ? value : DEFAULT_COMBO_SCORE_MULTIPLIERS;
+    const deduped = new Map();
+    for (const row of source) {
+        if (!row || typeof row !== 'object') {
+            continue;
+        }
+        const threshold = normalizeNumber(
+            row.threshold,
+            Number.NaN,
+            COMBO_MULTIPLIER_RANGE.threshold.min,
+            COMBO_MULTIPLIER_RANGE.threshold.max,
+            true
+        );
+        const multiplier = normalizeNumber(
+            row.multiplier,
+            Number.NaN,
+            COMBO_MULTIPLIER_RANGE.multiplier.min,
+            COMBO_MULTIPLIER_RANGE.multiplier.max,
+            false
+        );
+        if (!Number.isFinite(threshold) || !Number.isFinite(multiplier)) {
+            continue;
+        }
+        deduped.set(threshold, Number(multiplier.toFixed(2)));
+    }
+    if (deduped.size <= 0) {
+        return DEFAULT_COMBO_SCORE_MULTIPLIERS.map((row) => ({
+            threshold: row.threshold,
+            multiplier: row.multiplier
+        }));
+    }
+    return Array.from(deduped.entries())
+        .sort((left, right) => left[0] - right[0])
+        .map(([threshold, multiplier]) => ({
+            threshold,
+            multiplier
+        }));
 }
 
 function getStorage() {
@@ -110,29 +164,41 @@ export function normalizeGameplayParams(rawParams = {}) {
             PARAM_RANGE.releasableHitAreaScale.min,
             PARAM_RANGE.releasableHitAreaScale.max,
             false
-        )
+        ),
+        comboScoreMultipliers: normalizeComboScoreMultipliers(raw.comboScoreMultipliers)
+    };
+}
+
+function normalizeGameplayParamsForDispatch(rawParams = {}) {
+    const normalized = normalizeGameplayParams(rawParams);
+    return {
+        ...normalized,
+        comboScoreMultipliers: normalized.comboScoreMultipliers.map((row) => ({
+            threshold: row.threshold,
+            multiplier: row.multiplier
+        }))
     };
 }
 
 export function readGameplayParams() {
     const storage = getStorage();
     if (!storage) {
-        return { ...DEFAULT_GAMEPLAY_PARAMS };
+        return normalizeGameplayParamsForDispatch(DEFAULT_GAMEPLAY_PARAMS);
     }
     try {
         const raw = storage.getItem(GAMEPLAY_PARAM_STORAGE_KEY);
         if (!raw) {
-            return { ...DEFAULT_GAMEPLAY_PARAMS };
+            return normalizeGameplayParamsForDispatch(DEFAULT_GAMEPLAY_PARAMS);
         }
         const parsed = JSON.parse(raw);
-        return normalizeGameplayParams(parsed);
+        return normalizeGameplayParamsForDispatch(parsed);
     } catch {
-        return { ...DEFAULT_GAMEPLAY_PARAMS };
+        return normalizeGameplayParamsForDispatch(DEFAULT_GAMEPLAY_PARAMS);
     }
 }
 
 export function writeGameplayParams(rawParams) {
-    const normalized = normalizeGameplayParams(rawParams);
+    const normalized = normalizeGameplayParamsForDispatch(rawParams);
     const storage = getStorage();
     if (storage) {
         storage.setItem(GAMEPLAY_PARAM_STORAGE_KEY, JSON.stringify(normalized));
@@ -146,7 +212,7 @@ export function clearGameplayParams() {
     if (storage) {
         storage.removeItem(GAMEPLAY_PARAM_STORAGE_KEY);
     }
-    const cleared = { ...DEFAULT_GAMEPLAY_PARAMS };
+    const cleared = normalizeGameplayParamsForDispatch(DEFAULT_GAMEPLAY_PARAMS);
     notifyGameplayParamsUpdated(cleared);
     return cleared;
 }
@@ -156,6 +222,6 @@ function notifyGameplayParamsUpdated(params) {
         return;
     }
     window.dispatchEvent(new CustomEvent(GAMEPLAY_PARAMS_UPDATED_EVENT, {
-        detail: { params: normalizeGameplayParams(params) }
+        detail: { params: normalizeGameplayParamsForDispatch(params) }
     }));
 }

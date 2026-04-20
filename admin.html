@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>箭头消消乐管理后台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=78">
+    <link rel="stylesheet" href="css/admin.css?v=79">
 </head>
 <body>
     <main class="admin-hub">
@@ -1235,6 +1235,32 @@
                         <span>奖励关卡连击阈值 (rewardComboThreshold)</span>
                         <input id="paramRewardComboThreshold" type="number" min="1" max="1000" step="1">
                     </label>
+                    <div class="field">
+                        <span>连击积分系数 (comboScoreMultipliers)</span>
+                        <button id="btnEditComboScoreMultipliers" type="button">配置连击积分系数</button>
+                    </div>
+                    <div id="comboScoreMultiplierPanel" class="combo-score-multiplier-panel hidden">
+                        <div class="combo-score-multiplier-head">
+                            <strong>连击积分系数档位</strong>
+                            <span id="comboScoreMultiplierSummary">未配置</span>
+                        </div>
+                        <div class="liveops-table-wrap combo-score-multiplier-table-wrap">
+                            <table class="liveops-table combo-score-multiplier-table">
+                                <thead>
+                                    <tr>
+                                        <th>连击档位</th>
+                                        <th>积分系数</th>
+                                        <th>操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="comboScoreMultiplierRows"></tbody>
+                            </table>
+                        </div>
+                        <div class="actions combo-score-multiplier-actions">
+                            <button id="btnAddComboScoreMultiplierRow" type="button">新增档位</button>
+                            <button id="btnResetComboScoreMultiplierRows" type="button">恢复默认档位</button>
+                        </div>
+                    </div>
                     <label class="field">
                         <span>惩罚提示显示时长（秒）(misclickPenaltyTextDurationSeconds)</span>
                         <input id="paramMisclickPenaltyTextDurationSeconds" type="number" min="0.2" max="6" step="0.1">
@@ -1584,10 +1610,10 @@
 
     <script src="js/runtime-api-base.js?v=5"></script>
     <script type="module" src="js/admin.js?v=75"></script>
-<script type="module" src="js/admin-hub.js?v=16"></script>
-<script type="module" src="js/admin-skin-manager.js?v=11"></script>
-<script type="module" src="js/admin-skin-fit.js?v=15"></script>
-<script type="module" src="js/admin-skin-gen.js?v=45"></script>
+    <script type="module" src="js/admin-hub.js?v=17"></script>
+    <script type="module" src="js/admin-skin-manager.js?v=11"></script>
+    <script type="module" src="js/admin-skin-fit.js?v=15"></script>
+    <script type="module" src="js/admin-skin-gen.js?v=45"></script>
     <script type="module" src="js/admin-sfx-lab.js?v=36"></script>
     <script type="module" src="js/admin-liveops.js?v=5"></script>
     <script type="module" src="js/admin-system.js?v=5"></script>
