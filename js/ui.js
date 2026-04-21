@@ -2086,9 +2086,84 @@ export class UI {
             left = Math.max(16, Math.min(parentWidth - bubbleWidth - 16, localX + Number(tooltipLayout.x || 0)));
             top = Math.max(18, Math.min(parentHeight - bubbleHeight - 16, localY + Number(tooltipLayout.y || 0)));
         }
+        const viewportSafePosition = this.clampCheckinTooltipToViewport(left, top, bubbleWidth, bubbleHeight);
+        left = viewportSafePosition.left;
+        top = viewportSafePosition.top;
         this.checkinRewardTooltipEl.style.left = `${Math.round(left)}px`;
         this.checkinRewardTooltipEl.style.top = `${Math.round(top)}px`;
         this.activeCheckinTooltipDay = day;
+    }
+
+    clampCheckinTooltipToViewport(left, top, bubbleWidth, bubbleHeight) {
+        const safePadPx = 8;
+        let nextLeft = Number(left);
+        let nextTop = Number(top);
+        if (!Number.isFinite(nextLeft)) {
+            nextLeft = 16;
+        }
+        if (!Number.isFinite(nextTop)) {
+            nextTop = 18;
+        }
+
+        const fallbackMinLeft = 16;
+        const fallbackMaxLeft = Math.max(fallbackMinLeft, 980 - bubbleWidth - 16);
+        const fallbackMinTop = 18;
+        const fallbackMaxTop = Math.max(fallbackMinTop, 760 - bubbleHeight - 16);
+
+        if (!(this.checkinSceneEl instanceof HTMLElement)) {
+            return {
+                left: Math.max(fallbackMinLeft, Math.min(fallbackMaxLeft, nextLeft)),
+                top: Math.max(fallbackMinTop, Math.min(fallbackMaxTop, nextTop))
+            };
+        }
+
+        const sceneRect = this.checkinSceneEl.getBoundingClientRect();
+        const hostEl = this.checkinOverlay instanceof HTMLElement
+            ? this.checkinOverlay
+            : (this.checkinSceneEl.parentElement instanceof HTMLElement ? this.checkinSceneEl.parentElement : document.documentElement);
+        const hostRect = hostEl.getBoundingClientRect();
+        const sceneDesignWidth = Math.max(1, this.checkinSceneEl.offsetWidth || 980);
+        const sceneDesignHeight = Math.max(1, this.checkinSceneEl.offsetHeight || 760);
+        const scaleX = sceneRect.width / sceneDesignWidth;
+        const scaleY = sceneRect.height / sceneDesignHeight;
+
+        if (!Number.isFinite(scaleX) || !Number.isFinite(scaleY) || scaleX <= 0 || scaleY <= 0) {
+            return {
+                left: Math.max(fallbackMinLeft, Math.min(fallbackMaxLeft, nextLeft)),
+                top: Math.max(fallbackMinTop, Math.min(fallbackMaxTop, nextTop))
+            };
+        }
+
+        const viewportLeft = Math.max(0, hostRect.left) + safePadPx;
+        const viewportRight = Math.min(window.innerWidth || hostRect.right, hostRect.right) - safePadPx;
+        const viewportTop = Math.max(0, hostRect.top) + safePadPx;
+        const viewportBottom = Math.min(window.innerHeight || hostRect.bottom, hostRect.bottom) - safePadPx;
+
+        const minLeftByViewport = (viewportLeft - sceneRect.left) / scaleX;
+        const maxLeftByViewport = (viewportRight - sceneRect.left - bubbleWidth * scaleX) / scaleX;
+        const minTopByViewport = (viewportTop - sceneRect.top) / scaleY;
+        const maxTopByViewport = (viewportBottom - sceneRect.top - bubbleHeight * scaleY) / scaleY;
+
+        const minLeft = Number.isFinite(minLeftByViewport) ? minLeftByViewport : fallbackMinLeft;
+        const maxLeft = Number.isFinite(maxLeftByViewport) ? maxLeftByViewport : fallbackMaxLeft;
+        const minTop = Number.isFinite(minTopByViewport) ? minTopByViewport : fallbackMinTop;
+        const maxTop = Number.isFinite(maxTopByViewport) ? maxTopByViewport : fallbackMaxTop;
+
+        if (maxLeft >= minLeft) {
+            nextLeft = Math.max(minLeft, Math.min(maxLeft, nextLeft));
+        } else {
+            nextLeft = minLeft;
+        }
+        if (maxTop >= minTop) {
+            nextTop = Math.max(minTop, Math.min(maxTop, nextTop));
+        } else {
+            nextTop = minTop;
+        }
+
+        return {
+            left: nextLeft,
+            top: nextTop
+        };
     }
 
     hideCheckinRewardTooltip() {
@@ -3048,11 +3123,11 @@ export class UI {
             }
 
             let disabled = this.game.state !== 'PLAYING' || remaining <= 0;
-            if (item.id === 'undo' && (!Array.isArray(this.game.undoStack) || this.game.undoStack.length === 0)) {
-                disabled = true;
-            }
             button.disabled = disabled;
             button.classList.toggle('item-btn-disabled', disabled);
+            const armed = item.id === 'undo' && this.game.undoReleaseArmed === true && !disabled;
+            button.classList.toggle('item-btn-armed', armed);
+            button.setAttribute('aria-pressed', armed ? 'true' : 'false');
         }
     }
 

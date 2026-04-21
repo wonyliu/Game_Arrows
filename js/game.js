@@ -162,6 +162,7 @@ export class Game {
         this.rewardStageUnlockedThisLevel = false;
         this.dragReleaseActive = false;
         this.dragReleaseLineIds = new Set();
+        this.undoReleaseArmed = false;
         this.suppressClickUntil = 0;
         this.suppressSyntheticClickUntil = 0;
         this.externalPauseActive = false;
@@ -308,6 +309,7 @@ export class Game {
         this.suppressClickUntil = Math.max(this.suppressClickUntil, nowMs() + extra);
         this.dragReleaseActive = false;
         this.dragReleaseLineIds.clear();
+        this.setUndoReleaseArmed(false);
     }
 
     setExternalPaused(paused) {
@@ -319,6 +321,7 @@ export class Game {
         if (next) {
             this.dragReleaseActive = false;
             this.dragReleaseLineIds.clear();
+            this.setUndoReleaseArmed(false);
             return;
         }
         this.lastSnakeInteractionTime = nowMs();
@@ -888,6 +891,7 @@ export class Game {
         this.currentScorePerBodySegment = this.resolveScorePerBodySegment(config);
         this.hintLine = null;
         this.undoStack = [];
+        this.undoReleaseArmed = false;
         this.resetToolUses();
         this.state = 'PLAYING';
         this.campaignCompleted = false;
@@ -989,6 +993,10 @@ export class Game {
         if (!point) {
             return;
         }
+        if (this.undoReleaseArmed) {
+            this.tryUndoReleaseAtPoint(point.x, point.y);
+            return;
+        }
         this.tryReleaseAtPoint(point.x, point.y, {
             allowPenalty: true,
             trackDragTarget: false
@@ -1044,6 +1052,10 @@ export class Game {
         if (!point) {
             return;
         }
+        if (this.undoReleaseArmed) {
+            this.tryUndoReleaseAtPoint(point.x, point.y);
+            return;
+        }
 
         if (this.canUseDragRelease(event)) {
             if (typeof event?.preventDefault === 'function') {
@@ -1071,6 +1083,9 @@ export class Game {
         if (this.externalPauseActive) {
             this.dragReleaseActive = false;
             this.dragReleaseLineIds.clear();
+            return;
+        }
+        if (this.undoReleaseArmed) {
             return;
         }
         if (this.dragReleaseActive && event?.buttons !== undefined && (event.buttons & 1) !== 1) {
@@ -1194,7 +1209,7 @@ export class Game {
         return topLine;
     }
 
-    findTopLineAtPoint(x, y) {
+    findTopLineAtPoint(x, y, options = {}) {
         const sortedLines = this.getSortedLines('desc');
 
         const baseThreshold = this.grid.cellSize
@@ -1270,7 +1285,10 @@ export class Game {
             return null;
         }
 
-        const releasableCandidates = candidates.filter((item) => item.releasable === true);
+        const preferReleasable = options.preferReleasable !== false;
+        const releasableCandidates = preferReleasable
+            ? candidates.filter((item) => item.releasable === true)
+            : [];
         const pool = releasableCandidates.length > 0 ? releasableCandidates : candidates;
 
         pool.sort((a, b) => {
@@ -1583,6 +1601,7 @@ export class Game {
         this.resetEnergyBatches();
         this.dragReleaseActive = false;
         this.dragReleaseLineIds.clear();
+        this.setUndoReleaseArmed(false);
         playGameOverSound();
         this.animations.addConfetti(this.canvas.width / 2, this.canvas.height / 2, 60, ['#ff8ca8', '#ffd5a8', '#fff1d5'], 'star');
         this.showGameOver(reason);
@@ -1597,6 +1616,7 @@ export class Game {
 
     useHint() {
         if (this.state !== 'PLAYING') return;
+        this.setUndoReleaseArmed(false);
         const source = this.consumeToolUse('hint');
         if (!source) return;
 
@@ -1609,64 +1629,66 @@ export class Game {
     }
 
     useUndo() {
-        if (this.state !== 'PLAYING' || this.undoStack.length === 0) return;
-        const source = this.consumeToolUse('undo');
-        if (!source) return;
-
-        const undo = this.undoStack[this.undoStack.length - 1];
-        const line = this.lineById.get(undo.lineId);
-        if (!line || line.state === 'active') {
-            this.restoreToolUse('undo', source);
+        if (this.state !== 'PLAYING') return;
+        const remaining = this.getToolUses('undo');
+        if (remaining <= 0) {
             return;
         }
+        this.setUndoReleaseArmed(!this.undoReleaseArmed);
+    }
 
-        this.undoStack.pop();
-
-        line.state = 'active';
-        line.opacity = 1;
-        line.trails = [];
-        line._removeAnim = null;
-        line.removeTint = null;
-        this.grid.registerLine(line);
-        this.markSortedLinesDirty();
-        this.combo = undo.combo;
-        this.bestComboThisLevel = Math.max(0, Math.floor(Number(undo.bestComboThisLevel) || 0));
-        this.lastComboReleaseAt = Number(undo.lastComboReleaseAt) || 0;
-        this.releaseSfxScoreEventCount = Math.max(0, Math.floor(Number(undo.releaseSfxScoreEventCount) || 0));
-        this.score = undo.score;
-        this.lives = undo.lives;
-        if (typeof undo.energyBatchId === 'number') {
-            this.cancelEnergyBatch(undo.energyBatchId);
+    setUndoReleaseArmed(active) {
+        const next = active === true;
+        if (this.undoReleaseArmed === next) {
+            return;
         }
-        if (typeof undo.timeRemaining === 'number') {
-            this.timeRemaining = this.clampTime(undo.timeRemaining);
-            this.updateTimerUI();
-        }
+        this.undoReleaseArmed = next;
         this.updateHUD();
+    }
+
+    tryUndoReleaseAtPoint(x, y) {
+        if (!this.undoReleaseArmed || this.state !== 'PLAYING' || !this.grid || this.externalPauseActive) {
+            return false;
+        }
+        const line = this.findTopLineAtPoint(x, y, { preferReleasable: false });
+        if (!line) {
+            return false;
+        }
+        const source = this.consumeToolUse('undo');
+        if (!source) {
+            this.setUndoReleaseArmed(false);
+            return false;
+        }
+        this.lastSnakeInteractionTime = performance.now();
+        if (typeof line.pokeSoft === 'function') {
+            line.pokeSoft(0.95);
+        }
+        if (typeof line.onClicked === 'function') {
+            line.onClicked();
+        }
+        this.removeLine(line);
+        this.setUndoReleaseArmed(false);
+        this.suppressClickUntil = nowMs() + DRAG_RELEASE_CLICK_SUPPRESS_MS;
+        return true;
     }
 
     useShuffle() {
         if (this.state !== 'PLAYING') return;
+        this.setUndoReleaseArmed(false);
         const source = this.consumeToolUse('shuffle');
         if (!source) return;
 
-        const activeLines = this.lines.filter((line) => line.state === 'active');
-        if (activeLines.length < 2) {
+        if (!this.hasTimer || this.maxTimeRemaining <= 0) {
             this.restoreToolUse('shuffle', source);
             return;
         }
-
-        const zIndices = activeLines.map((line) => line.zIndex);
-        for (let i = zIndices.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [zIndices[i], zIndices[j]] = [zIndices[j], zIndices[i]];
+        const nextTimeRemaining = this.clampTime(this.maxTimeRemaining);
+        if (nextTimeRemaining <= this.timeRemaining + 1e-6) {
+            this.restoreToolUse('shuffle', source);
+            return;
         }
-
-        activeLines.forEach((line, index) => {
-            line.zIndex = zIndices[index];
-        });
-        this.markSortedLinesDirty();
-        this.hintLine = null;
+        this.timeRemaining = nextTimeRemaining;
+        this.updateTimerUI();
         this.updateHUD();
     }
 
