@@ -1058,6 +1058,23 @@ textarea {
     font-weight: 900;
 }
 
+.entry-red-dot {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 2px solid #fff3de;
+    background: linear-gradient(180deg, #ff7078 0%, #da4057 100%);
+    box-shadow: 0 3px 8px rgba(131, 30, 46, 0.35);
+    pointer-events: none;
+    z-index: 3;
+}
+
+#btnCheckin .entry-red-dot {
+    top: 10px;
+    right: 10px;
+}
+
 /* Home V2 (concept B) layout override */
 .menu-content-v2 {
     padding: 24px 14px 20px;
@@ -1851,6 +1868,25 @@ textarea {
     transform: translate(-50%, -50%);
 }
 
+.checkin-day-claim-dot {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 14px;
+    height: 14px;
+    border-radius: 999px;
+    border: 2px solid #fff3de;
+    background: linear-gradient(180deg, #ff7078 0%, #da4057 100%);
+    box-shadow: 0 3px 8px rgba(131, 30, 46, 0.35);
+    pointer-events: none;
+    z-index: 5;
+}
+
+.checkin-day.day-7 .checkin-day-claim-dot {
+    top: 10px;
+    right: 10px;
+}
+
 .checkin-reward-tooltip {
     position: absolute;
     min-width: 180px;
@@ -1978,6 +2014,7 @@ textarea {
 }
 
 .online-reward-chest {
+    position: relative;
     width: 88px;
     height: 88px;
     border-radius: 0;
@@ -1987,6 +2024,11 @@ textarea {
     display: grid;
     place-items: center;
     padding: 0;
+}
+
+.online-reward-entry-dot {
+    top: 3px;
+    right: 5px;
 }
 
 .online-reward-chest img {
@@ -3037,6 +3079,12 @@ textarea {
     border-bottom: 1px solid rgba(177, 218, 255, 0.25);
     font-size: 13px;
     font-weight: 800;
+}
+
+.perf-debug-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .perf-debug-head button {

@@ -1,0 +1,6 @@
+{
+  "framePrefix": "dance_snake_custom_frame_",
+  "frameCount": 9,
+  "framePadding": 2,
+  "frameDurationMs": 110
+}

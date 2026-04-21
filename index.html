@@ -105,7 +105,7 @@
                         <video
                             id="homeDanceMascotVideo"
                             class="home-dance-mascot-video"
-                            src="assets/audio/bgm/小蛇出不去1.mp4"
+                            src="assets/audio/bgm/home_dance_h264_v20260421.mp4?v=20260421c"
                             muted
                             loop
                             playsinline
@@ -113,12 +113,6 @@
                             preload="auto"
                             aria-hidden="true"
                         ></video>
-                        <img
-                            id="homeDanceMascotSprite"
-                            class="home-dance-mascot-sprite"
-                            src="assets/ui/home/mascots/dance_snake_custom_frame_00.png"
-                            alt=""
-                        >
                     </div>
                     <div class="play-area play-area-v2">
                         <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">开始冒险</button>
@@ -150,6 +144,7 @@
                         </button>
                         <button id="btnCheckin" class="feature-card" type="button" data-feature-id="checkin">
                             <span class="feature-badge hidden" data-badge-for="checkin"></span>
+                            <span id="checkinEntryRedDot" class="entry-red-dot hidden" aria-hidden="true"></span>
                             <img class="feature-icon" data-icon-slot="icon.checkin" src="assets/ui/shared/icons/icon_gift.png" alt="checkin">
                             <span class="feature-label" data-i18n="feature.checkin">Check-In</span>
                         </button>
@@ -305,6 +300,7 @@
 
         <div id="onlineRewardDock" class="online-reward-dock hidden">
             <button id="btnOnlineRewardChest" class="online-reward-chest" type="button" aria-label="在线奖励">
+                <span id="onlineRewardEntryRedDot" class="entry-red-dot online-reward-entry-dot hidden" aria-hidden="true"></span>
                 <img src="assets/ui/shared/icons/icon_gift_plain.png" alt="reward chest">
             </button>
             <div id="onlineDockText" class="online-reward-text">--</div>
@@ -427,8 +423,11 @@
         <div id="perfDebugPanel" class="perf-debug-panel hidden" aria-hidden="true">
             <div class="perf-debug-card">
                 <div class="perf-debug-head">
-                    <strong>性能监控</strong>
-                    <button id="btnPerfDebugClose" type="button">关闭</button>
+                    <strong>调试面板</strong>
+                    <div class="perf-debug-actions">
+                        <button id="btnPerfDebugCopy" type="button">复制</button>
+                        <button id="btnPerfDebugClose" type="button">关闭</button>
+                    </div>
                 </div>
                 <pre id="perfDebugText" class="perf-debug-text">-</pre>
             </div>
@@ -436,6 +435,6 @@
     </div>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/main.js?v=251"></script>
+    <script type="module" src="js/main.js?v=255"></script>
 </body>
 </html>

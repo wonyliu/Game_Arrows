@@ -3463,7 +3463,7 @@ async function migrateAudioLibraryAssetUrlsToAudioDir() {
     }
 }
 
-async function serveStaticFile(_req, res, pathname) {
+async function serveStaticFile(req, res, pathname) {
     let requestedPath = pathname === '/' ? '/index.html' : pathname;
     requestedPath = decodeURIComponent(requestedPath);
 
@@ -3493,16 +3493,81 @@ async function serveStaticFile(_req, res, pathname) {
         }
     }
 
+    let fileStat;
+    try {
+        fileStat = await fs.stat(filePath);
+    } catch {
+        sendText(res, 404, 'Not Found');
+        return;
+    }
+    const totalSize = Math.max(0, Number(fileStat.size) || 0);
     const ext = path.extname(filePath).toLowerCase();
     const contentType = MIME_TYPES[ext] || 'application/octet-stream';
+    const rangeHeader = typeof req?.headers?.range === 'string' ? req.headers.range.trim() : '';
 
-    res.writeHead(200, {
+    const writeCommonHeaders = (extra = {}) => ({
         ...buildSecurityHeaders(),
         'Content-Type': contentType,
-        'Cache-Control': 'no-store'
+        'Cache-Control': 'no-store',
+        'Accept-Ranges': 'bytes',
+        ...extra
     });
 
-    const stream = createReadStream(filePath);
+    let stream;
+    if (rangeHeader) {
+        const match = /^bytes=(\d*)-(\d*)$/i.exec(rangeHeader);
+        if (!match) {
+            res.writeHead(416, writeCommonHeaders({ 'Content-Range': `bytes */${totalSize}` }));
+            res.end();
+            return;
+        }
+        const startRaw = match[1];
+        const endRaw = match[2];
+        let start = 0;
+        let end = Math.max(0, totalSize - 1);
+        if (!startRaw && !endRaw) {
+            res.writeHead(416, writeCommonHeaders({ 'Content-Range': `bytes */${totalSize}` }));
+            res.end();
+            return;
+        }
+        if (!startRaw) {
+            const suffixLength = Number.parseInt(endRaw, 10);
+            if (!Number.isFinite(suffixLength) || suffixLength <= 0) {
+                res.writeHead(416, writeCommonHeaders({ 'Content-Range': `bytes */${totalSize}` }));
+                res.end();
+                return;
+            }
+            start = Math.max(0, totalSize - suffixLength);
+            end = Math.max(0, totalSize - 1);
+        } else {
+            start = Number.parseInt(startRaw, 10);
+            end = endRaw ? Number.parseInt(endRaw, 10) : Math.max(0, totalSize - 1);
+        }
+        if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start || start >= totalSize) {
+            res.writeHead(416, writeCommonHeaders({ 'Content-Range': `bytes */${totalSize}` }));
+            res.end();
+            return;
+        }
+        end = Math.min(end, Math.max(0, totalSize - 1));
+        const chunkSize = end - start + 1;
+        res.writeHead(206, writeCommonHeaders({
+            'Content-Length': String(chunkSize),
+            'Content-Range': `bytes ${start}-${end}/${totalSize}`
+        }));
+        if (req?.method === 'HEAD') {
+            res.end();
+            return;
+        }
+        stream = createReadStream(filePath, { start, end });
+    } else {
+        res.writeHead(200, writeCommonHeaders({ 'Content-Length': String(totalSize) }));
+        if (req?.method === 'HEAD') {
+            res.end();
+            return;
+        }
+        stream = createReadStream(filePath);
+    }
+
     stream.on('error', () => {
         if (!res.headersSent) {
             sendText(res, 500, 'Read file failed');

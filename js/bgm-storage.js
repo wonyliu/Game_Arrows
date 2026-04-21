@@ -17,7 +17,7 @@ export const DEFAULT_BGM_CONFIG = Object.freeze({
     updatedAt: '',
     scenes: Object.freeze({
         [BGM_SCENE_KEYS.HOME]: Object.freeze({
-            playlist: Object.freeze([{ url: 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp4', volume: 1 }]),
+            playlist: Object.freeze([{ url: 'assets/audio/bgm/home_dance_h264_v20260421.mp4', volume: 1 }]),
             volume: 0.65
         }),
         [BGM_SCENE_KEYS.NORMAL]: Object.freeze({

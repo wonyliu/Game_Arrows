@@ -19,7 +19,7 @@ const DEFAULT_AUDIO_MIX = Object.freeze({
     music: 0.65,
     sfx: 0.55
 });
-const DEFAULT_HOME_BGM_SRC = 'assets/audio/bgm/\u5c0f\u86c7\u51fa\u4e0d\u53bb1.mp4';
+const DEFAULT_HOME_BGM_SRC = 'assets/audio/bgm/home_dance_h264_v20260421.mp4?v=20260421c';
 
 let audioCtx = null;
 let initPromise = null;
@@ -41,7 +41,7 @@ let bgmHtmlMediaSourceNode = null;
 let bgmHtmlMediaGainNode = null;
 let htmlMediaVolumeWritable = null;
 let bgmStorageReady = false;
-let pendingSceneReplayAfterStorage = '';
+let pendingSceneReplayAfterStorage = null;
 let bgmSceneVolume = 1;
 let bgmSceneTrackVolumes = new Map();
 let pendingBgmPlay = false;
@@ -556,6 +556,7 @@ function applyCurrentSceneConfig(sceneKey, options = {}) {
     const scene = getBgmSceneConfig(requestedSceneKey);
     const signature = playlistSignature(scene.playlist);
     const shouldReloadPlaylist = restart || signature !== bgmPlaylistSignature;
+    const startTrackIndex = resolveBgmTrackIndex(options?.startTrackIndex, scene.playlist.length);
 
     bgmSceneKey = requestedSceneKey;
     bgmSceneVolume = scene.volume;
@@ -565,7 +566,8 @@ function applyCurrentSceneConfig(sceneKey, options = {}) {
         scene: requestedSceneKey,
         restart,
         playlist: scene.playlist,
-        volume: scene.volume
+        volume: scene.volume,
+        startTrackIndex
     });
 
     if (!scene.playlist.length) {
@@ -582,7 +584,7 @@ function applyCurrentSceneConfig(sceneKey, options = {}) {
     }
 
     bgmPlaylist = [...scene.playlist];
-    bgmTrackIndex = 0;
+    bgmTrackIndex = startTrackIndex;
     bgmPlaylistSignature = signature;
     playCurrentBgmTrack({ forceReload: restart });
 }
@@ -772,16 +774,36 @@ function attemptBgmPlayback() {
     }
 }
 
-function ensureBgmStorageReadyForReplay(sceneKey) {
-    pendingSceneReplayAfterStorage = `${sceneKey || ''}`.trim() || BGM_SCENE_KEYS.HOME;
-    logBgm('storage not ready; queue replay', { scene: pendingSceneReplayAfterStorage });
+function ensureBgmStorageReadyForReplay(sceneKey, options = {}) {
+    const queuedSceneKey = `${sceneKey || ''}`.trim() || BGM_SCENE_KEYS.HOME;
+    const queuedStartTrackIndex = Number.isFinite(Number(options?.startTrackIndex))
+        ? Math.floor(Number(options.startTrackIndex))
+        : null;
+    pendingSceneReplayAfterStorage = {
+        sceneKey: queuedSceneKey,
+        startTrackIndex: queuedStartTrackIndex
+    };
+    logBgm('storage not ready; queue replay', {
+        scene: queuedSceneKey,
+        startTrackIndex: queuedStartTrackIndex
+    });
     void initBgmStorage().then(() => {
         bgmStorageReady = true;
-        const replayScene = pendingSceneReplayAfterStorage || BGM_SCENE_KEYS.HOME;
-        pendingSceneReplayAfterStorage = '';
+        const queued = pendingSceneReplayAfterStorage;
+        const replayScene = `${queued?.sceneKey || ''}`.trim() || BGM_SCENE_KEYS.HOME;
+        const replayStartTrackIndex = Number.isFinite(Number(queued?.startTrackIndex))
+            ? Math.floor(Number(queued.startTrackIndex))
+            : null;
+        pendingSceneReplayAfterStorage = null;
         if (replayScene) {
-            logBgm('storage ready; replay scene', { scene: replayScene });
-            playBgmForScene(replayScene, { restart: true });
+            logBgm('storage ready; replay scene', {
+                scene: replayScene,
+                startTrackIndex: replayStartTrackIndex
+            });
+            playBgmForScene(replayScene, {
+                restart: true,
+                startTrackIndex: replayStartTrackIndex
+            });
         }
     }).catch(() => {
         logBgm('storage init failed; keep local fallback');
@@ -919,6 +941,19 @@ function normalizePlaylistForPlayback(rawPlaylist) {
 
 function playlistSignature(playlist) {
     return Array.isArray(playlist) ? playlist.join('\n') : '';
+}
+
+function resolveBgmTrackIndex(rawIndex, totalTracks) {
+    const total = Math.max(0, Math.floor(Number(totalTracks) || 0));
+    if (total <= 0) {
+        return 0;
+    }
+    const numeric = Number(rawIndex);
+    if (!Number.isFinite(numeric)) {
+        return 0;
+    }
+    const value = Math.floor(numeric);
+    return ((value % total) + total) % total;
 }
 
 function playCurrentBgmTrack(options = {}) {
@@ -1562,14 +1597,17 @@ export function playBgmForScene(sceneKey, options = {}) {
     const requestedSceneKey = `${sceneKey || ''}`.trim() || BGM_SCENE_KEYS.HOME;
     const sceneChanged = !!bgmSceneKey && bgmSceneKey !== requestedSceneKey;
     const restart = options?.restart === true || sceneChanged;
+    const startTrackIndex = Number.isFinite(Number(options?.startTrackIndex))
+        ? Math.floor(Number(options.startTrackIndex))
+        : null;
     if (restart) {
         stopAllActiveSfx();
     }
     if (!bgmStorageReady) {
-        ensureBgmStorageReadyForReplay(requestedSceneKey);
+        ensureBgmStorageReadyForReplay(requestedSceneKey, { startTrackIndex });
         return;
     }
-    applyCurrentSceneConfig(requestedSceneKey, { restart });
+    applyCurrentSceneConfig(requestedSceneKey, { restart, startTrackIndex });
     void requestBgmConfigRefresh('play-scene');
 }
 
@@ -1853,5 +1891,6 @@ export function earlyBgmBootstrap() {
 }
 
 void initAudioProfileStorage();
+
 
 
