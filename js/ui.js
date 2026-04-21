@@ -63,15 +63,19 @@ const LEVEL_SETTLE_MAX_MS = 1800;
 const LEVEL_SETTLE_PER_POINT_MS = 0.4;
 const LEVEL_SETTLE_COMBO_EMPHASIS_MS = 420;
 const LEVEL_SETTLE_MULTIPLIER_HOLD_MS = 180;
+const BGM_LEVEL_GROUP_SIZE = 5;
 const CHECKIN_COIN_FLY_COUNT = 6;
 const CHECKIN_COIN_FLY_DURATION_MS = 920;
 const CHECKIN_COIN_COUNTER_DURATION_MS = 1040;
-const REWARD_GUIDE_TEXT = '在奖励关中试试按住划动手指吧！';
-const HOME_MASCOT_VIDEO_SRC = 'assets/audio/bgm/小蛇出不去1.mp4';
+const REWARD_GUIDE_TEXT = 'Try holding and swiping your finger in reward stages!';
+const HOME_MASCOT_VIDEO_SRC = 'assets/audio/bgm/home_dance_h264_v20260421.mp4?v=20260421c';
 const HOME_MASCOT_BLACK_KEY_MIN = 18;
 const HOME_MASCOT_BLACK_KEY_SOFT = 54;
 const HOME_MASCOT_VIDEO_CROP_RIGHT = 70;
 const HOME_MASCOT_VIDEO_CROP_BOTTOM = 26;
+const PERF_GESTURE_PREP_TAPS = 4;
+const HOME_VIDEO_DEBUG_LOG_LIMIT = 80;
+const HOME_VIDEO_DEBUG_DECISION_MIN_INTERVAL_MS = 900;
 export class UI {
     constructor(game, options = {}) {
         this.game = game;
@@ -181,9 +185,11 @@ export class UI {
         this.checkinWeekGridEl = document.getElementById('checkinWeekGrid');
         this.checkinStatusEl = document.getElementById('checkinStatus');
         this.checkinRewardTooltipEl = document.getElementById('checkinRewardTooltip');
+        this.checkinEntryRedDotEl = document.getElementById('checkinEntryRedDot');
         this.activeCheckinTooltipDay = 0;
         this.onlineRewardDockEl = document.getElementById('onlineRewardDock');
         this.btnOnlineRewardChest = document.getElementById('btnOnlineRewardChest');
+        this.onlineRewardEntryRedDotEl = document.getElementById('onlineRewardEntryRedDot');
         this.onlineDockTextEl = document.getElementById('onlineDockText');
         this.onlineRewardPreviewBubbleEl = document.getElementById('onlineRewardPreviewBubble');
         this.onlineRewardSettleOverlay = document.getElementById('onlineRewardSettleOverlay');
@@ -204,10 +210,6 @@ export class UI {
         this.homeDanceMascotEl = document.getElementById('homeDanceMascot');
         this.homeDanceMascotCanvasEl = document.getElementById('homeDanceMascotCanvas');
         this.homeDanceMascotVideoEl = document.getElementById('homeDanceMascotVideo');
-        this.homeDanceMascotSpriteEl = document.getElementById('homeDanceMascotSprite');
-        this.homeDanceMascotFrameUrls = ['assets/ui/home/mascots/dance_snake_custom_frame_00.png'];
-        this.homeDanceMascotFrameIndex = 0;
-        this.homeDanceMascotTimer = 0;
         this.homeDanceMascotCanvasCtx = null;
         this.homeDanceMascotRenderRaf = 0;
         this.homeDanceMascotVideoReady = false;
@@ -216,6 +218,7 @@ export class UI {
         this.homeDanceMascotCanvasHeight = 0;
         this.perfDebugPanelEl = document.getElementById('perfDebugPanel');
         this.perfDebugTextEl = document.getElementById('perfDebugText');
+        this.btnPerfDebugCopyEl = document.getElementById('btnPerfDebugCopy');
         this.btnPerfDebugCloseEl = document.getElementById('btnPerfDebugClose');
         this.coinDisplayOverride = null;
         this.checkinCoinCounterFrame = 0;
@@ -230,8 +233,25 @@ export class UI {
         this.perfGestureStartY = 0;
         this.perfGestureStartAt = 0;
         this.perfGestureSwipeTriggered = false;
+        this.liveOpsRedDots = {
+            checkin: false,
+            online: false
+        };
+        this.homeVideoDebugEvents = [];
+        this.homeVideoDebugListenersBound = false;
+        this.homeVideoDebugStartAt = (typeof performance !== 'undefined' && performance.now)
+            ? performance.now()
+            : Date.now();
+        this.homeVideoLastDecisionTag = '';
+        this.homeVideoLastDecisionAt = 0;
+        this.homeVideoHttpProbeTarget = '';
+        this.homeVideoHttpProbeBasic = 'pending';
+        this.homeVideoHttpProbeRange = 'pending';
+        this.homeVideoHttpProbeAt = 0;
+        this.homeVideoHttpProbeInFlight = false;
         this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
         this.audioEnabled = this.uiEditorPreviewOptions.enabled !== true;
+        this.homeDanceMascotAudioUnlocked = !this.audioEnabled;
         this.uiEditorPreviewOverride = null;
         this.uiEditorGameplayPreviewInitialized = false;
         this.uiLayoutConfig = readUiLayoutConfig();
@@ -258,6 +278,7 @@ export class UI {
         this.applyGameplayLayoutConfig();
         this.markUiEditorElements();
         this.setMenuBadges(this.menuBadges);
+        this.refreshLiveOpsRedDotsOnPageLoad();
         this.applyLocalizedText();
         this.refreshCheckinPanel();
         this.updateCheckinSceneScale();
@@ -304,6 +325,8 @@ export class UI {
             } catch (error) {
                 console.warn('Audio resume failed during auto unlock:', error);
             }
+            this.homeDanceMascotAudioUnlocked = true;
+            this.appendHomeVideoDebugEvent('audio.unlock', 'user gesture captured');
             this.syncHomeDanceMascotMediaAudio();
             this.updateHomeDanceMascotPlayback();
             unlocked = true;
@@ -365,7 +388,9 @@ export class UI {
         const config = readAudioMixConfig();
         const musicVolume = Math.max(0, Math.min(1, Number(config.music) || 0));
         this.homeDanceMascotVideoEl.volume = musicVolume;
-        this.homeDanceMascotVideoEl.muted = !this.audioEnabled || musicVolume <= 0.0001;
+        this.homeDanceMascotVideoEl.muted = !this.audioEnabled
+            || musicVolume <= 0.0001
+            || !this.homeDanceMascotAudioUnlocked;
     }
 
     updateAudioSliderValueText(targetEl, ratio) {
@@ -444,80 +469,41 @@ export class UI {
     }
 
     initHomeDanceMascot() {
-        this.initHomeDanceMascotFrameFallback();
         this.initHomeDanceMascotVideo();
-    }
-
-    initHomeDanceMascotFrameFallback() {
-        if (!(this.homeDanceMascotSpriteEl instanceof HTMLImageElement) || this.homeDanceMascotFrameUrls.length === 0) {
-            return;
-        }
-        const startLoop = (durationMs = 120) => {
-            if (this.homeDanceMascotTimer) {
-                clearInterval(this.homeDanceMascotTimer);
-            }
-            this.homeDanceMascotFrameIndex = 0;
-            this.homeDanceMascotSpriteEl.src = this.homeDanceMascotFrameUrls[0];
-            this.homeDanceMascotTimer = window.setInterval(() => {
-                if (this.menuOverlay?.classList.contains('hidden') || this.homeDanceMascotUseVideo) {
-                    return;
-                }
-                this.homeDanceMascotFrameIndex = (this.homeDanceMascotFrameIndex + 1) % this.homeDanceMascotFrameUrls.length;
-                this.homeDanceMascotSpriteEl.src = this.homeDanceMascotFrameUrls[this.homeDanceMascotFrameIndex];
-            }, durationMs);
-        };
-        startLoop();
-        if (typeof fetch !== 'function') {
-            return;
-        }
-        fetch('assets/ui/home/mascots/manifest.json', { cache: 'no-store' })
-            .then((response) => response.ok ? response.json() : null)
-            .then((manifest) => {
-                const frameCount = Math.max(1, Math.floor(Number(manifest?.frameCount) || 0));
-                const framePrefix = `${manifest?.framePrefix || 'dance_snake_custom_frame_'}`.trim() || 'dance_snake_custom_frame_';
-                const framePadding = Math.max(1, Math.floor(Number(manifest?.framePadding) || 2));
-                const frameDurationMs = Math.max(40, Math.floor(Number(manifest?.frameDurationMs) || 120));
-                if (!frameCount) {
-                    return;
-                }
-                this.homeDanceMascotFrameUrls = Array.from({ length: frameCount }, (_, index) =>
-                    `assets/ui/home/mascots/${framePrefix}${`${index}`.padStart(framePadding, '0')}.png`
-                );
-                startLoop(frameDurationMs);
-            })
-            .catch(() => {
-                // Keep the built-in fallback frame list when manifest is unavailable.
-            });
     }
 
     initHomeDanceMascotVideo() {
         if (!(this.homeDanceMascotCanvasEl instanceof HTMLCanvasElement)
-            || !(this.homeDanceMascotVideoEl instanceof HTMLVideoElement)
-            || !(this.homeDanceMascotSpriteEl instanceof HTMLImageElement)) {
+            || !(this.homeDanceMascotVideoEl instanceof HTMLVideoElement)) {
             return;
         }
 
         const context = this.homeDanceMascotCanvasEl.getContext('2d', { willReadFrequently: true });
         if (!context) {
+            this.appendHomeVideoDebugEvent('video.canvas.init.failed', '2d context unavailable');
             return;
         }
         this.homeDanceMascotCanvasCtx = context;
 
         const videoEl = this.homeDanceMascotVideoEl;
+        this.bindHomeVideoDebugEvents(videoEl);
         videoEl.loop = true;
         videoEl.playsInline = true;
         videoEl.preload = 'auto';
+        videoEl.setAttribute('playsinline', 'true');
+        videoEl.setAttribute('webkit-playsinline', 'true');
         this.syncHomeDanceMascotMediaAudio();
         if (`${videoEl.getAttribute('src') || ''}`.trim() !== HOME_MASCOT_VIDEO_SRC) {
             videoEl.src = HOME_MASCOT_VIDEO_SRC;
+            this.appendHomeVideoDebugEvent('video.src.override', HOME_MASCOT_VIDEO_SRC);
         }
 
         videoEl.addEventListener('loadeddata', () => {
             this.homeDanceMascotVideoReady = true;
             this.homeDanceMascotUseVideo = true;
-            this.homeDanceMascotSpriteEl.classList.add('hidden');
             this.homeDanceMascotCanvasEl?.classList.remove('hidden');
             this.syncHomeDanceMascotCanvasSize();
+            this.appendHomeVideoDebugEvent('video.loadeddata.ready', `ready=${this.homeDanceMascotVideoReady} useVideo=${this.homeDanceMascotUseVideo}`);
             this.updateHomeDanceMascotPlayback();
         });
         videoEl.addEventListener('error', () => {
@@ -525,8 +511,10 @@ export class UI {
             this.homeDanceMascotUseVideo = false;
             this.stopHomeDanceMascotRenderLoop();
             this.homeDanceMascotCanvasEl?.classList.add('hidden');
-            this.homeDanceMascotSpriteEl.classList.remove('hidden');
+            videoEl.pause();
+            this.appendHomeVideoDebugEvent('video.error.fallback-disabled', `error=${this.describeVideoError(videoEl.error)}`);
         });
+        this.appendHomeVideoDebugEvent('video.load.call', `src=${videoEl.getAttribute('src') || '-'}`);
         videoEl.load();
     }
 
@@ -628,17 +616,26 @@ export class UI {
         }
         this.syncHomeDanceMascotMediaAudio();
         if (!this.homeDanceMascotUseVideo || !this.homeDanceMascotVideoReady) {
+            this.maybeLogHomeVideoDecision('hold-not-ready', this.homeDanceMascotVideoEl);
             this.stopHomeDanceMascotRenderLoop();
             return;
         }
         if (this.shouldPlayHomeDanceMascotVideo()) {
+            this.maybeLogHomeVideoDecision('play-attempt', this.homeDanceMascotVideoEl, `audioUnlocked=${this.homeDanceMascotAudioUnlocked}`);
             const playPromise = this.homeDanceMascotVideoEl.play();
             if (playPromise && typeof playPromise.then === 'function') {
-                void playPromise.catch(() => {});
+                void playPromise.then(() => {
+                    this.appendHomeVideoDebugEvent('video.play.resolved');
+                }).catch((error) => {
+                    const name = `${error?.name || 'Error'}`.trim();
+                    const message = `${error?.message || ''}`.trim();
+                    this.appendHomeVideoDebugEvent('video.play.rejected', message ? `${name}: ${message}` : name);
+                });
             }
             this.startHomeDanceMascotRenderLoop();
             return;
         }
+        this.maybeLogHomeVideoDecision('pause', this.homeDanceMascotVideoEl);
         this.homeDanceMascotVideoEl.pause();
         this.stopHomeDanceMascotRenderLoop();
     }
@@ -653,71 +650,176 @@ export class UI {
         this.rewardStageGuideOverlayEl.addEventListener('touchend', dismiss, { passive: true });
     }
 
+    appendHomeVideoDebugEvent(eventName, details = '') {
+        const now = (typeof performance !== 'undefined' && performance.now)
+            ? performance.now()
+            : Date.now();
+        const elapsedMs = Math.max(0, Math.round(now - this.homeVideoDebugStartAt));
+        const elapsed = `${(elapsedMs / 1000).toFixed(2)}s`;
+        const line = details ? `[${elapsed}] ${eventName} | ${details}` : `[${elapsed}] ${eventName}`;
+        this.homeVideoDebugEvents.push(line);
+        if (this.homeVideoDebugEvents.length > HOME_VIDEO_DEBUG_LOG_LIMIT) {
+            this.homeVideoDebugEvents.splice(0, this.homeVideoDebugEvents.length - HOME_VIDEO_DEBUG_LOG_LIMIT);
+        }
+    }
+
+    getVideoReadyStateText(value) {
+        switch (Number(value) || 0) {
+        case 0: return 'HAVE_NOTHING';
+        case 1: return 'HAVE_METADATA';
+        case 2: return 'HAVE_CURRENT_DATA';
+        case 3: return 'HAVE_FUTURE_DATA';
+        case 4: return 'HAVE_ENOUGH_DATA';
+        default: return 'UNKNOWN';
+        }
+    }
+
+    getVideoNetworkStateText(value) {
+        switch (Number(value) || 0) {
+        case 0: return 'NETWORK_EMPTY';
+        case 1: return 'NETWORK_IDLE';
+        case 2: return 'NETWORK_LOADING';
+        case 3: return 'NETWORK_NO_SOURCE';
+        default: return 'UNKNOWN';
+        }
+    }
+
+    describeVideoError(error) {
+        if (!error) {
+            return 'none';
+        }
+        const code = Number(error.code) || 0;
+        const codeMap = {
+            1: 'MEDIA_ERR_ABORTED',
+            2: 'MEDIA_ERR_NETWORK',
+            3: 'MEDIA_ERR_DECODE',
+            4: 'MEDIA_ERR_SRC_NOT_SUPPORTED'
+        };
+        const text = codeMap[code] || 'MEDIA_ERR_UNKNOWN';
+        const message = `${error.message || ''}`.trim();
+        return message ? `${text}(${code}) ${message}` : `${text}(${code})`;
+    }
+
+    formatVideoRanges(ranges) {
+        if (!ranges || typeof ranges.length !== 'number' || ranges.length <= 0) {
+            return 'none';
+        }
+        const parts = [];
+        for (let i = 0; i < ranges.length; i += 1) {
+            try {
+                parts.push(`${ranges.start(i).toFixed(2)}-${ranges.end(i).toFixed(2)}`);
+            } catch {
+                // ignore invalid range index
+            }
+        }
+        return parts.length ? parts.join(', ') : 'none';
+    }
+
+    bindHomeVideoDebugEvents(videoEl) {
+        if (!(videoEl instanceof HTMLVideoElement) || this.homeVideoDebugListenersBound) {
+            return;
+        }
+        this.homeVideoDebugListenersBound = true;
+        const trackedEvents = [
+            'loadstart',
+            'loadedmetadata',
+            'loadeddata',
+            'canplay',
+            'canplaythrough',
+            'play',
+            'playing',
+            'pause',
+            'waiting',
+            'stalled',
+            'suspend',
+            'seeking',
+            'seeked',
+            'abort',
+            'emptied',
+            'ended',
+            'error'
+        ];
+        for (const eventName of trackedEvents) {
+            videoEl.addEventListener(eventName, () => {
+                const details = [
+                    `rs=${videoEl.readyState}:${this.getVideoReadyStateText(videoEl.readyState)}`,
+                    `ns=${videoEl.networkState}:${this.getVideoNetworkStateText(videoEl.networkState)}`,
+                    `muted=${videoEl.muted}`,
+                    `paused=${videoEl.paused}`,
+                    `t=${Number(videoEl.currentTime || 0).toFixed(2)}/${Number(videoEl.duration || 0).toFixed(2)}`
+                ];
+                if (eventName === 'loadedmetadata' || eventName === 'loadeddata') {
+                    details.push(`size=${videoEl.videoWidth || 0}x${videoEl.videoHeight || 0}`);
+                }
+                if (eventName === 'error') {
+                    details.push(`error=${this.describeVideoError(videoEl.error)}`);
+                    details.push(`currentSrc=${videoEl.currentSrc || '-'}`);
+                }
+                this.appendHomeVideoDebugEvent(`video.${eventName}`, details.join(' '));
+            });
+        }
+        this.appendHomeVideoDebugEvent('video.debug.bound', `src=${videoEl.getAttribute('src') || '-'}`);
+    }
+
+    maybeLogHomeVideoDecision(tag, videoEl, detail = '') {
+        const now = (typeof performance !== 'undefined' && performance.now)
+            ? performance.now()
+            : Date.now();
+        const shouldLog = tag !== this.homeVideoLastDecisionTag
+            || (now - this.homeVideoLastDecisionAt) >= HOME_VIDEO_DEBUG_DECISION_MIN_INTERVAL_MS;
+        if (!shouldLog) {
+            return;
+        }
+        this.homeVideoLastDecisionTag = tag;
+        this.homeVideoLastDecisionAt = now;
+        const base = [
+            `muted=${videoEl?.muted ?? '-'}`,
+            `paused=${videoEl?.paused ?? '-'}`,
+            `ready=${videoEl?.readyState ?? '-'}:${this.getVideoReadyStateText(videoEl?.readyState)}`
+        ].join(' ');
+        this.appendHomeVideoDebugEvent(`video.decision.${tag}`, detail ? `${base} ${detail}` : base);
+    }
+
     initPerfDebugGesture() {
         if (!this.buildVersionTagEl) {
             return;
         }
 
-        this.buildVersionTagEl.addEventListener('click', () => {
+        let lastToggleAt = Number.NEGATIVE_INFINITY;
+        const togglePanel = (event = null) => {
+            if (event && typeof event.preventDefault === 'function') {
+                event.preventDefault();
+            }
+            if (event && typeof event.stopPropagation === 'function') {
+                event.stopPropagation();
+            }
             const now = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-            if (now - this.perfGestureLastTapAt > 1500) {
-                this.perfGestureTapCount = 0;
-                this.perfGestureArmed = false;
-            }
-            this.perfGestureLastTapAt = now;
-            if (!this.perfGestureArmed) {
-                this.perfGestureTapCount += 1;
-                if (this.perfGestureTapCount >= 4) {
-                    this.perfGestureArmed = true;
-                }
-            }
-        });
-
-        this.buildVersionTagEl.addEventListener('pointerdown', (event) => {
-            if (!this.perfGestureArmed) {
+            if (now - lastToggleAt < 220) {
                 return;
             }
-            this.perfGestureActivePointerId = event.pointerId;
-            this.perfGestureStartY = event.clientY;
-            this.perfGestureStartAt = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
-            this.perfGestureSwipeTriggered = false;
-            if (typeof this.buildVersionTagEl.setPointerCapture === 'function') {
-                try {
-                    this.buildVersionTagEl.setPointerCapture(event.pointerId);
-                } catch {
-                    // ignore capture failures on older webviews
-                }
-            }
-        });
-
-        this.buildVersionTagEl.addEventListener('pointermove', (event) => {
-            if (!this.perfGestureArmed) {
+            lastToggleAt = now;
+            const isOpen = !!this.perfDebugPanelEl && !this.perfDebugPanelEl.classList.contains('hidden');
+            if (isOpen) {
+                this.closePerfDebugPanel();
+                this.appendHomeVideoDebugEvent('panel.toggle', 'closed by version tap');
                 return;
             }
-            if (this.perfGestureActivePointerId === null || event.pointerId !== this.perfGestureActivePointerId) {
-                return;
-            }
-            if (this.perfGestureSwipeTriggered) {
-                return;
-            }
-            const dy = event.clientY - this.perfGestureStartY;
-            const elapsed = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - this.perfGestureStartAt;
-            if (dy <= -36 && elapsed >= 120) {
-                this.perfGestureSwipeTriggered = true;
-                this.openPerfDebugPanel();
-                this.resetPerfGestureState();
-            }
-        });
-
-        const finalizeGesture = (event) => {
-            if (this.perfGestureActivePointerId === null || event.pointerId !== this.perfGestureActivePointerId) {
-                return;
-            }
-            this.resetPerfGestureState();
+            this.openPerfDebugPanel();
+            this.appendHomeVideoDebugEvent('panel.toggle', 'opened by version tap');
         };
-        this.buildVersionTagEl.addEventListener('pointerup', finalizeGesture);
-        this.buildVersionTagEl.addEventListener('pointercancel', finalizeGesture);
+        this.buildVersionTagEl.addEventListener('click', togglePanel);
+        this.buildVersionTagEl.addEventListener('pointerup', (event) => {
+            if (event.pointerType === 'touch') {
+                togglePanel(event);
+            }
+        });
+        this.buildVersionTagEl.addEventListener('touchend', togglePanel, { passive: false });
 
+        if (this.btnPerfDebugCopyEl) {
+            this.btnPerfDebugCopyEl.addEventListener('click', () => {
+                void this.copyPerfDebugText();
+            });
+        }
         if (this.btnPerfDebugCloseEl) {
             this.btnPerfDebugCloseEl.addEventListener('click', () => this.closePerfDebugPanel());
         }
@@ -736,6 +838,7 @@ export class UI {
         if (!this.perfDebugPanelEl) {
             return;
         }
+        this.appendHomeVideoDebugEvent('panel.open', 'perf debug panel opened');
         this.perfDebugPanelEl.classList.remove('hidden');
         this.perfDebugPanelEl.setAttribute('aria-hidden', 'false');
         this.refreshPerfDebugPanel();
@@ -759,31 +862,217 @@ export class UI {
         }
     }
 
-    refreshPerfDebugPanel() {
-        if (!this.perfDebugTextEl || !this.game || typeof this.game.getPerformanceSnapshot !== 'function') {
+    async copyPerfDebugText() {
+        const content = `${this.perfDebugTextEl?.textContent || ''}`.trim();
+        if (!content) {
             return;
         }
-        const snapshot = this.game.getPerformanceSnapshot();
-        const mem = (typeof performance !== 'undefined' && performance && performance.memory)
-            ? performance.memory
-            : null;
-        const memoryText = mem
-            ? `${Math.round((Number(mem.usedJSHeapSize) || 0) / 1048576)} / ${Math.round((Number(mem.jsHeapSizeLimit) || 0) / 1048576)} MB`
+        let ok = false;
+        if (typeof navigator !== 'undefined' && navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+            try {
+                await navigator.clipboard.writeText(content);
+                ok = true;
+            } catch {
+                ok = false;
+            }
+        }
+        if (!ok && typeof document !== 'undefined') {
+            const probe = document.createElement('textarea');
+            probe.value = content;
+            probe.setAttribute('readonly', 'true');
+            probe.style.position = 'fixed';
+            probe.style.left = '-9999px';
+            probe.style.top = '0';
+            document.body.appendChild(probe);
+            probe.select();
+            try {
+                ok = document.execCommand('copy');
+            } catch {
+                ok = false;
+            } finally {
+                document.body.removeChild(probe);
+            }
+        }
+        if (this.btnPerfDebugCopyEl) {
+            const prev = this.btnPerfDebugCopyEl.textContent || '\u590D\u5236';
+            this.btnPerfDebugCopyEl.textContent = ok ? '\u5DF2\u590D\u5236' : '\u590D\u5236\u5931\u8D25';
+            window.setTimeout(() => {
+                if (this.btnPerfDebugCopyEl) {
+                    this.btnPerfDebugCopyEl.textContent = prev;
+                }
+            }, 1200);
+        }
+        this.appendHomeVideoDebugEvent('panel.copy', ok ? 'ok' : 'failed');
+    }
+
+    kickHomeVideoHttpProbe(videoEl) {
+        if (!(videoEl instanceof HTMLVideoElement) || typeof fetch !== 'function' || this.homeVideoHttpProbeInFlight) {
+            return;
+        }
+        const attrSrc = `${videoEl.getAttribute('src') || ''}`.trim();
+        if (!attrSrc) {
+            return;
+        }
+        let target = '';
+        try {
+            target = new URL(attrSrc, window.location.href).href;
+        } catch {
+            target = attrSrc;
+        }
+        const now = Date.now();
+        const sameTarget = target === this.homeVideoHttpProbeTarget;
+        if (sameTarget && now - this.homeVideoHttpProbeAt < 15000) {
+            return;
+        }
+        this.homeVideoHttpProbeTarget = target;
+        this.homeVideoHttpProbeAt = now;
+        this.homeVideoHttpProbeInFlight = true;
+        this.homeVideoHttpProbeBasic = 'probing...';
+        this.homeVideoHttpProbeRange = 'probing...';
+
+        const normalizeHeader = (headers, key, fallback = '-') => {
+            if (!headers || typeof headers.get !== 'function') {
+                return fallback;
+            }
+            const raw = `${headers.get(key) || ''}`.trim();
+            return raw || fallback;
+        };
+
+        const readBasic = async () => {
+            try {
+                const response = await fetch(target, { method: 'HEAD', cache: 'no-store' });
+                const contentType = normalizeHeader(response.headers, 'content-type');
+                const contentLength = normalizeHeader(response.headers, 'content-length');
+                const acceptRanges = normalizeHeader(response.headers, 'accept-ranges');
+                return `HEAD ${response.status} type=${contentType} len=${contentLength} accept-ranges=${acceptRanges}`;
+            } catch (error) {
+                return `HEAD failed: ${error?.name || 'Error'} ${error?.message || ''}`.trim();
+            }
+        };
+
+        const readRange = async () => {
+            try {
+                const response = await fetch(target, {
+                    method: 'GET',
+                    cache: 'no-store',
+                    headers: { Range: 'bytes=0-1' }
+                });
+                const contentRange = normalizeHeader(response.headers, 'content-range');
+                const acceptRanges = normalizeHeader(response.headers, 'accept-ranges');
+                const contentType = normalizeHeader(response.headers, 'content-type');
+                const body = await response.arrayBuffer().catch(() => new ArrayBuffer(0));
+                const bodyLen = Number(body?.byteLength || 0);
+                return `RANGE ${response.status} bytes=${bodyLen} type=${contentType} content-range=${contentRange} accept-ranges=${acceptRanges}`;
+            } catch (error) {
+                return `RANGE failed: ${error?.name || 'Error'} ${error?.message || ''}`.trim();
+            }
+        };
+
+        void Promise.all([readBasic(), readRange()])
+            .then(([basic, range]) => {
+                this.homeVideoHttpProbeBasic = basic;
+                this.homeVideoHttpProbeRange = range;
+                this.appendHomeVideoDebugEvent('video.http.probe', `${basic} || ${range}`);
+            })
+            .finally(() => {
+                this.homeVideoHttpProbeInFlight = false;
+                if (this.perfDebugPanelEl && !this.perfDebugPanelEl.classList.contains('hidden')) {
+                    this.refreshPerfDebugPanel();
+                }
+            });
+    }
+
+    refreshPerfDebugPanel() {
+        if (!this.perfDebugTextEl) {
+            return;
+        }
+        const lines = [];
+        if (this.game && typeof this.game.getPerformanceSnapshot === 'function') {
+            const snapshot = this.game.getPerformanceSnapshot();
+            const mem = (typeof performance !== 'undefined' && performance && performance.memory)
+                ? performance.memory
+                : null;
+            const memoryText = mem
+                ? `${Math.round((Number(mem.usedJSHeapSize) || 0) / 1048576)} / ${Math.round((Number(mem.jsHeapSizeLimit) || 0) / 1048576)} MB`
+                : 'n/a';
+            const dpr = typeof window !== 'undefined' ? (Number(window.devicePixelRatio) || 1) : 1;
+            lines.push(
+                '[Perf]',
+                `state: ${this.game.state || '-'}`,
+                `level: ${this.game.getCurrentStageLabel?.() || this.game.currentLevel || '-'}`,
+                `quality: ${snapshot.renderQuality || '-'}`,
+                `fps(ema): ${Number(snapshot.fps || 0).toFixed(1)}  frame: ${Number(snapshot.frameMs || 0).toFixed(2)} ms`,
+                `render(ema): ${Number(snapshot.renderCostMs || 0).toFixed(2)} ms`,
+                `jank>=34ms: ${(Number(snapshot.jankRate || 0) * 100).toFixed(1)}% (${snapshot.sampleFrames || 0}f/${Number(snapshot.sampleSeconds || 0).toFixed(1)}s)`,
+                `snakes: ${snapshot.activeLines || 0}/${snapshot.totalLines || 0}`,
+                `particles: ${snapshot.particles || 0}  floatingText: ${snapshot.floatingTexts || 0}`,
+                `grid: ${snapshot.gridCols || 0}x${snapshot.gridRows || 0}`,
+                `canvas: ${snapshot.canvasWidth || 0}x${snapshot.canvasHeight || 0} @dpr ${dpr.toFixed(2)}`,
+                `jsHeap: ${memoryText}`,
+                ''
+            );
+        }
+
+        const nav = typeof navigator !== 'undefined' ? navigator : null;
+        const ua = `${nav?.userAgent || '-'}`;
+        const platform = `${nav?.platform || '-'}`;
+        const maxTouchPoints = Number(nav?.maxTouchPoints || 0);
+        const activation = nav?.userActivation
+            ? `active=${nav.userActivation.isActive} ever=${nav.userActivation.hasBeenActive}`
             : 'n/a';
-        const dpr = typeof window !== 'undefined' ? (Number(window.devicePixelRatio) || 1) : 1;
-        const lines = [
-            `state: ${this.game.state || '-'}`,
-            `level: ${this.game.getCurrentStageLabel?.() || this.game.currentLevel || '-'}`,
-            `quality: ${snapshot.renderQuality || '-'}`,
-            `fps(ema): ${Number(snapshot.fps || 0).toFixed(1)}  frame: ${Number(snapshot.frameMs || 0).toFixed(2)} ms`,
-            `render(ema): ${Number(snapshot.renderCostMs || 0).toFixed(2)} ms`,
-            `jank>=34ms: ${(Number(snapshot.jankRate || 0) * 100).toFixed(1)}% (${snapshot.sampleFrames || 0}f/${Number(snapshot.sampleSeconds || 0).toFixed(1)}s)`,
-            `snakes: ${snapshot.activeLines || 0}/${snapshot.totalLines || 0}`,
-            `particles: ${snapshot.particles || 0}  floatingText: ${snapshot.floatingTexts || 0}`,
-            `grid: ${snapshot.gridCols || 0}x${snapshot.gridRows || 0}`,
-            `canvas: ${snapshot.canvasWidth || 0}x${snapshot.canvasHeight || 0} @dpr ${dpr.toFixed(2)}`,
-            `jsHeap: ${memoryText}`
-        ];
+        const canPlayProbe = typeof document !== 'undefined' ? document.createElement('video') : null;
+        const canPlayAvc = canPlayProbe?.canPlayType?.('video/mp4; codecs="avc1.42E01E, mp4a.40.2"') || 'n/a';
+        const canPlayHevc = canPlayProbe?.canPlayType?.('video/mp4; codecs="hvc1"') || 'n/a';
+        const visibility = (typeof document !== 'undefined' && document.visibilityState) ? document.visibilityState : '-';
+        const online = typeof navigator !== 'undefined' ? `${navigator.onLine}` : '-';
+        const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection || null;
+        const connText = conn
+            ? `${conn.effectiveType || '-'} downlink=${Number(conn.downlink || 0).toFixed(2)} rtt=${Number(conn.rtt || 0)}`
+            : 'n/a';
+
+        lines.push('[Home MP4 Debug]');
+        lines.push(`ua: ${ua}`);
+        lines.push(`platform: ${platform}  touchPoints: ${maxTouchPoints}`);
+        lines.push(`visibility: ${visibility}  online: ${online}  userActivation: ${activation}`);
+        lines.push(`connection: ${connText}`);
+        lines.push(`canPlay avc1+mp4a: ${canPlayAvc}  canPlay hvc1: ${canPlayHevc}`);
+
+        const videoEl = this.homeDanceMascotVideoEl instanceof HTMLVideoElement ? this.homeDanceMascotVideoEl : null;
+        if (!videoEl) {
+            lines.push('video element: missing');
+        } else {
+            this.kickHomeVideoHttpProbe(videoEl);
+            const duration = Number(videoEl.duration);
+            const durationText = Number.isFinite(duration) && duration > 0 ? duration.toFixed(2) : '-';
+            lines.push(`src(attr): ${videoEl.getAttribute('src') || '-'}`);
+            lines.push(`src(current): ${videoEl.currentSrc || '-'}`);
+            lines.push(`readyState: ${videoEl.readyState} (${this.getVideoReadyStateText(videoEl.readyState)})`);
+            lines.push(`networkState: ${videoEl.networkState} (${this.getVideoNetworkStateText(videoEl.networkState)})`);
+            lines.push(`time: ${Number(videoEl.currentTime || 0).toFixed(2)} / ${durationText}`);
+            lines.push(`size: ${videoEl.videoWidth || 0}x${videoEl.videoHeight || 0}`);
+            lines.push(`paused=${videoEl.paused} ended=${videoEl.ended} loop=${videoEl.loop}`);
+            lines.push(`muted=${videoEl.muted} volume=${Number(videoEl.volume || 0).toFixed(2)} autoplay=${videoEl.autoplay}`);
+            lines.push(`error: ${this.describeVideoError(videoEl.error)}`);
+            lines.push(`buffered: ${this.formatVideoRanges(videoEl.buffered)}`);
+            lines.push(`played: ${this.formatVideoRanges(videoEl.played)}`);
+            lines.push(`seekable: ${this.formatVideoRanges(videoEl.seekable)}`);
+            lines.push(`ui flags: ready=${this.homeDanceMascotVideoReady} useVideo=${this.homeDanceMascotUseVideo} audioEnabled=${this.audioEnabled} audioUnlocked=${this.homeDanceMascotAudioUnlocked}`);
+            lines.push(`http probe basic: ${this.homeVideoHttpProbeBasic}`);
+            lines.push(`http probe range: ${this.homeVideoHttpProbeRange}`);
+            const code = Number(videoEl?.error?.code || 0);
+            if (code === 4 && videoEl.readyState === 0 && videoEl.networkState === 3) {
+                lines.push('hint: iPhone Safari often requires valid byte-range(206) support for MP4.');
+            }
+        }
+
+        lines.push('', '[Home MP4 Events]');
+        const recentEvents = this.homeVideoDebugEvents.slice(-16);
+        if (!recentEvents.length) {
+            lines.push('-');
+        } else {
+            lines.push(...recentEvents);
+        }
+
         this.perfDebugTextEl.textContent = lines.join('\n');
     }
 
@@ -889,7 +1178,12 @@ export class UI {
         this.game.onLevelComplete = () => this.showLevelCompletePopup();
         this.game.onGameOver = (reason) => this.showGameOverPopup(reason);
         this.game.onCollision = () => this.triggerErrorVignette();
-        this.game.onLiveOpsUpdate = () => this.refreshCheckinPanel();
+        this.game.onLiveOpsUpdate = () => {
+            if (this.menuState === MENU_PANEL.CHECKIN) {
+                this.refreshCheckinPanel(false);
+            }
+            this.refreshOnlineRewardDock();
+        };
     }
 
     syncGameplayBgm(restart = false) {
@@ -900,10 +1194,25 @@ export class UI {
             return;
         }
         const isRewardStage = this.game.isRewardStage === true;
+        const options = { restart };
+        if (!isRewardStage) {
+            const startTrackIndex = this.resolveGameplayBgmStartTrackIndex();
+            if (Number.isFinite(startTrackIndex)) {
+                options.startTrackIndex = startTrackIndex;
+            }
+        }
         playBgmForScene(
             isRewardStage ? BGM_SCENE_KEYS.REWARD : BGM_SCENE_KEYS.NORMAL,
-            { restart }
+            options
         );
+    }
+
+    resolveGameplayBgmStartTrackIndex() {
+        if (!this.game || this.game.isRewardStage === true) {
+            return null;
+        }
+        const level = Math.max(1, Math.floor(Number(this.game.currentLevel) || 1));
+        return Math.floor((level - 1) / BGM_LEVEL_GROUP_SIZE);
     }
 
     startGame() {
@@ -1098,7 +1407,7 @@ export class UI {
                 this.leaderboardListEl.appendChild(li);
             }
             if (this.leaderboardEmptyStateEl) {
-                this.leaderboardEmptyStateEl.textContent = message || this.getLocaleText('排行榜暂不可用。', 'Leaderboard unavailable.');
+                this.leaderboardEmptyStateEl.textContent = message || this.getLocaleText('\u6392\u884c\u699c\u6682\u4e0d\u53ef\u7528\u3002', 'Leaderboard unavailable.');
             }
         };
 
@@ -1117,7 +1426,7 @@ export class UI {
             const payload = await response.json().catch(() => ({}));
             const rows = Array.isArray(payload?.rows) ? payload.rows : [];
             if (!response.ok || rows.length === 0) {
-                renderFallback(this.getLocaleText('暂无排行榜数据。', 'No leaderboard data yet.'));
+                renderFallback(this.getLocaleText('\u6682\u65e0\u6392\u884c\u699c\u6570\u636e\u3002', 'No leaderboard data yet.'));
                 return;
             }
             const meRow = payload?.me && typeof payload.me === 'object' ? payload.me : null;
@@ -1134,12 +1443,12 @@ export class UI {
             this.renderLeaderboardSelfRow(selfRenderedInTop ? null : meRow, selfUserId);
             if (this.leaderboardEmptyStateEl) {
                 this.leaderboardEmptyStateEl.textContent = this.getLocaleText(
-                    '按最高通关关卡排行，仅显示前 100 名。',
+                    '\u6309\u6700\u9ad8\u901a\u5173\u5173\u5361\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
                     'Sorted by highest cleared level. Top 100 only.'
                 );
             }
         } catch {
-            renderFallback(this.getLocaleText('排行榜加载失败，请稍后重试。', 'Failed to load leaderboard.'));
+            renderFallback(this.getLocaleText('\u6392\u884c\u699c\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002', 'Failed to load leaderboard.'));
         }
     }
 
@@ -1178,7 +1487,7 @@ export class UI {
         if (isSelf) {
             const selfTagEl = document.createElement('span');
             selfTagEl.className = 'rank-self-tag';
-            selfTagEl.textContent = this.getLocaleText('（我）', '(Me)');
+            selfTagEl.textContent = this.getLocaleText('(\u6211)', '(Me)');
             nameWrapEl.appendChild(selfTagEl);
         }
 
@@ -1188,8 +1497,8 @@ export class UI {
         const levelEl = document.createElement('span');
         levelEl.className = 'rank-level';
         levelEl.textContent = level > 0
-            ? this.getLocaleText(`通关 ${level}`, `Clear ${level}`)
-            : this.getLocaleText('未通关', 'Not Cleared');
+            ? this.getLocaleText('\u901a\u5173 ' + level, 'Clear ' + level)
+            : this.getLocaleText('\u672a\u901a\u5173', 'Not Cleared');
 
         li.appendChild(rankEl);
         li.appendChild(playerEl);
@@ -1207,7 +1516,7 @@ export class UI {
             return;
         }
         if (this.leaderboardSelfLabelEl) {
-            this.leaderboardSelfLabelEl.textContent = this.getLocaleText('我的排名', 'My Rank');
+            this.leaderboardSelfLabelEl.textContent = this.getLocaleText('\u6211\u7684\u6392\u540d', 'My Rank');
         }
         this.leaderboardSelfListEl.appendChild(this.buildLeaderboardRow(row, selfUserId));
         this.leaderboardSelfSectionEl.classList.remove('hidden');
@@ -1256,6 +1565,32 @@ export class UI {
             badgeEl.textContent = hasValue ? `${value}` : '';
             badgeEl.classList.toggle('hidden', !hasValue);
         }
+    }
+
+    readLiveOpsRedDotsFromGame() {
+        const checkin = (this.game && typeof this.game.getCheckinSnapshot === 'function')
+            ? this.game.getCheckinSnapshot()
+            : null;
+        const online = (this.game && typeof this.game.getOnlineRewardSnapshot === 'function')
+            ? this.game.getOnlineRewardSnapshot()
+            : null;
+        return {
+            checkin: !!checkin?.canClaimToday,
+            online: !!online?.canClaim
+        };
+    }
+
+    applyLiveOpsRedDots() {
+        this.checkinEntryRedDotEl?.classList.toggle('hidden', !this.liveOpsRedDots.checkin);
+        this.onlineRewardEntryRedDotEl?.classList.toggle('hidden', !this.liveOpsRedDots.online);
+    }
+
+    refreshLiveOpsRedDotsOnPageLoad() {
+        this.liveOpsRedDots = this.readLiveOpsRedDotsFromGame();
+        this.applyLiveOpsRedDots();
+        this.setMenuBadges({
+            checkin: ''
+        });
     }
 
     setLocale(locale) {
@@ -1736,7 +2071,7 @@ export class UI {
             }
         }
         if (this.locale === 'zh-CN') {
-            return `关卡${level}`;
+            return `第${level}关`;
         }
         return `Level ${level}`;
     }
@@ -2017,7 +2352,7 @@ export class UI {
             return;
         }
         const tooltipLayout = this.getCheckinLayoutConfig()?.rewardTooltip || null;
-        const title = this.locale === 'zh-CN' ? `第${day}天奖励` : `Day ${day} Reward`;
+        const title = this.locale === 'zh-CN' ? '\u7b2c' + day + '\u5929\u5956\u52b1' : 'Day ' + day + ' Reward';
         this.checkinRewardTooltipEl.innerHTML = '';
         const titleEl = document.createElement('div');
         titleEl.className = 'checkin-reward-tooltip-title';
@@ -2208,12 +2543,12 @@ export class UI {
         node.dataset.uiEditorId = `day${day}-card`;
         node.dataset.day = `${day}`;
         node.setAttribute('aria-label', this.locale === 'zh-CN'
-            ? `第${day}天签到奖励：${this.formatRewardList(rewards)}`
+            ? '\u7b2c' + day + '\u5929\u7b7e\u5230\u5956\u52b1\uff1a' + this.formatRewardList(rewards)
             : `Day ${day} check-in reward: ${this.formatRewardList(rewards)}`);
 
         const title = document.createElement('div');
         title.className = 'checkin-day-title';
-        title.textContent = this.locale === 'zh-CN' ? `第${day}天` : `Day ${day}`;
+        title.textContent = this.locale === 'zh-CN' ? '\u7b2c' + day + '\u5929' : 'Day ' + day;
         title.style.left = partLayout.title.align === 'left'
             ? `${partLayout.title.x}px`
             : `${partLayout.title.x - (partLayout.title.width / 2)}px`;
@@ -2266,6 +2601,12 @@ export class UI {
             badge.dataset.uiEditorId = `day${day}-badge`;
             node.appendChild(badge);
         }
+        if (isClaimableDay && this.liveOpsRedDots.checkin) {
+            const claimDot = document.createElement('div');
+            claimDot.className = 'checkin-day-claim-dot';
+            claimDot.setAttribute('aria-hidden', 'true');
+            node.appendChild(claimDot);
+        }
 
         const showPreview = (event) => this.showCheckinRewardTooltip(node, day, rewards, event);
         const movePreview = (event) => {
@@ -2317,14 +2658,11 @@ export class UI {
         };
     }
 
-    refreshCheckinPanel(updateBadge = true) {
+    refreshCheckinPanel() {
         const checkin = this.getCheckinSnapshotForRender();
         if (!checkin) {
             return;
         }
-        const online = typeof this.game.getOnlineRewardSnapshot === 'function'
-            ? this.game.getOnlineRewardSnapshot()
-            : null;
         this.hideCheckinRewardTooltip();
 
         if (this.checkinWeekGridEl) {
@@ -2353,7 +2691,7 @@ export class UI {
         }
         if (this.checkinStatusEl) {
             this.checkinStatusEl.textContent = checkin.canClaimToday
-                ? (this.locale === 'zh-CN' ? `点击第${checkin.nextDayIndex}天奖励卡即可领取` : `Tap day ${checkin.nextDayIndex} card to claim`)
+                ? (this.locale === 'zh-CN' ? '\u70b9\u51fb\u7b2c' + checkin.nextDayIndex + '\u5929\u5956\u52b1\u5361\u5373\u53ef\u9886\u53d6' : 'Tap day ' + checkin.nextDayIndex + ' card to claim')
                 : (this.locale === 'zh-CN' ? '\u4eca\u65e5\u5df2\u7b7e\u5230\uff0c\u660e\u65e5\u518d\u6765\u3002' : 'Already claimed today.');
         }
         if (this.uiEditorPreviewOptions.enabled) {
@@ -2368,12 +2706,6 @@ export class UI {
             }
         }
 
-        if (updateBadge) {
-            const hasBadge = checkin.canClaimToday || !!online?.canClaim;
-            this.setMenuBadges({
-                checkin: hasBadge ? '!' : ''
-            });
-        }
     }
 
     activateUiEditorPreview() {
@@ -2498,6 +2830,10 @@ export class UI {
                 ? (this.locale === 'zh-CN' ? `\u7b7e\u5230\u6210\u529f\uff1a${this.formatRewardList(result.rewards)}` : `Claimed: ${this.formatRewardList(result.rewards)}`)
                 : (this.locale === 'zh-CN' ? '\u4eca\u65e5\u5df2\u7b7e\u5230\u3002' : 'Already claimed today.');
         }
+        if (result?.ok) {
+            this.liveOpsRedDots.checkin = false;
+            this.applyLiveOpsRedDots();
+        }
         this.refreshCheckinPanel();
         if (!result?.ok) {
             this.updateCoinDisplays();
@@ -2526,6 +2862,8 @@ export class UI {
             : Math.max(0, Math.floor(Number(this.game?.coins) || 0));
         const result = this.game.claimOnlineReward();
         if (result?.ok) {
+            this.liveOpsRedDots.online = false;
+            this.applyLiveOpsRedDots();
             const afterCoins = typeof this.game.getCoins === 'function'
                 ? Math.max(0, Math.floor(Number(this.game.getCoins()) || 0))
                 : beforeCoins;
@@ -2563,15 +2901,15 @@ export class UI {
             return;
         }
         if (!online.enabled) {
-            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '未开启' : 'Off';
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '\u672a\u5f00\u542f' : 'Off';
             return;
         }
         if (online.done) {
-            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '已领完' : 'Done';
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '\u5df2\u9886\u5b8c' : 'Done';
             return;
         }
         if (online.canClaim) {
-            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '可领取' : 'Claim';
+            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '\u53ef\u9886\u53d6' : 'Claim';
             return;
         }
         const remain = Math.max(0, Math.ceil(Number(online.remainingSeconds) || 0));
@@ -2647,7 +2985,7 @@ export class UI {
 
         if (this.checkinRewardSettleDescEl) {
             this.checkinRewardSettleDescEl.textContent = this.locale === 'zh-CN'
-                ? '签到成功，奖励如下：'
+                ? '\u7b7e\u5230\u6210\u529f\uff0c\u5956\u52b1\u5982\u4e0b\uff1a'
                 : 'Check-in successful. Rewards:';
         }
         if (this.checkinRewardCoinHeroEl) {
@@ -2674,7 +3012,7 @@ export class UI {
         }
         if (this.btnCheckinRewardConfirm) {
             this.btnCheckinRewardConfirm.disabled = false;
-            this.btnCheckinRewardConfirm.textContent = this.locale === 'zh-CN' ? '确定' : 'Confirm';
+            this.btnCheckinRewardConfirm.textContent = this.locale === 'zh-CN' ? '\u786e\u5b9a' : 'Confirm';
         }
         this.checkinRewardSettleOverlay?.classList.remove('hidden');
         this.refreshOnlineRewardDock();
@@ -2926,7 +3264,7 @@ export class UI {
         };
         this.onlineRewardSettleCoinIconEl = null;
         if (this.onlineRewardSettleDescEl) {
-            this.onlineRewardSettleDescEl.textContent = this.locale === 'zh-CN' ? '本次在线奖励：' : 'Online reward:';
+            this.onlineRewardSettleDescEl.textContent = this.locale === 'zh-CN' ? '\u672c\u6b21\u5728\u7ebf\u5956\u52b1\uff1a' : 'Online reward:';
         }
         if (this.onlineRewardSettleListEl) {
             this.onlineRewardSettleListEl.innerHTML = '';
@@ -2950,7 +3288,7 @@ export class UI {
         }
         if (this.btnOnlineRewardSettleClose) {
             this.btnOnlineRewardSettleClose.disabled = false;
-            this.btnOnlineRewardSettleClose.textContent = this.locale === 'zh-CN' ? '确定' : 'Confirm';
+            this.btnOnlineRewardSettleClose.textContent = this.locale === 'zh-CN' ? '\u786e\u5b9a' : 'Confirm';
         }
         this.onlineRewardSettleOverlay?.classList.remove('hidden');
     }
@@ -3230,8 +3568,8 @@ export class UI {
         const hasBannerImage = !!(`${imageEl?.getAttribute?.('src') || ''}`.trim());
         if (textEl) {
             textEl.textContent = threshold > 0
-                ? `${threshold} 连击触发奖励关`
-                : '百连斩奖励关';
+                ? '\u5b8c\u6210 ' + threshold + ' \u8fde\u51fb\u53ef\u89e6\u53d1\u5956\u52b1\u5173\uff01'
+                : '\u5956\u52b1\u5173\u5df2\u89e3\u9501\uff0c\u4e0b\u5173\u53ef\u80fd\u8fdb\u5165\u5956\u52b1\u5173\u3002';
             textEl.classList.toggle('hidden', hasBannerImage);
         }
         if (imageEl) {
@@ -3844,16 +4182,11 @@ export class UI {
         } else if (typeof this.game.playLevelCompleteCelebration === 'function') {
             this.game.playLevelCompleteCelebration();
         }
-        if (this.audioEnabled && isCampaignComplete) {
-            playBgmForScene(BGM_SCENE_KEYS.CAMPAIGN_COMPLETE, { restart: true });
-        } else if (this.audioEnabled) {
-            playBgmForScene(BGM_SCENE_KEYS.LEVEL_PASS, { restart: true });
-        }
         if (this.levelCompleteNextButton) {
-            this.levelCompleteNextButton.textContent = willEnterRewardStage ? '奖励关' : '下一关';
+            this.levelCompleteNextButton.textContent = willEnterRewardStage ? '\u5956\u52b1\u5173' : '\u4e0b\u4e00\u5173';
         }
         if (this.levelCompleteTitleEl) {
-            this.levelCompleteTitleEl.textContent = isCampaignComplete ? '恭喜通关' : '恭喜过关';
+            this.levelCompleteTitleEl.textContent = isCampaignComplete ? '\u606d\u559c\u901a\u5173' : '\u606d\u559c\u8fc7\u5173';
         }
         if (this.levelScoreBonus) {
             this.levelScoreBonus.classList.add('hidden');

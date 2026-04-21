@@ -1,4 +1,4 @@
-﻿import {
+import {
     DEFAULT_LIVEOPS_CONFIG,
     DEFAULT_LIVEOPS_PLAYER_STATE,
     initLiveOpsStorage,
@@ -243,7 +243,7 @@ function onSaveItem() {
     fillItemEditor(nextItem);
     renderCheckinRewardRows();
     renderOnlineRewardRows();
-    setItemStatus(`宸蹭繚瀛橀亾鍏凤細${id}`);
+    setItemStatus(`已保存道具：${id}`);
 }
 
 function onDeleteItem() {
@@ -255,7 +255,7 @@ function onDeleteItem() {
     const items = [...getItems()];
     const target = items.find((item) => item.id === id);
     if (!target) {
-        setItemStatus(`閬撳叿涓嶅瓨鍦細${id}`, true);
+        setItemStatus(`道具不存在：${id}`, true);
         return;
     }
     if (target.builtin) {
@@ -282,7 +282,7 @@ function onDeleteItem() {
     renderItemList();
     renderCheckinRewardRows();
     renderOnlineRewardRows();
-    setItemStatus(`宸插垹闄ら亾鍏凤細${id}`);
+    setItemStatus(`已删除道具：${id}`);
 }
 
 function fillActivitiesFromConfig() {
@@ -349,7 +349,7 @@ function renderCheckinRewardRows() {
             <td><input type="number" min="1" max="${cycleDays}" step="1" value="${row.day}"></td>
             <td><select>${createItemOptionsHtml(row.itemId)}</select></td>
             <td><input type="number" min="1" max="9999999" step="1" value="${row.amount}"></td>
-            <td><button type="button">鍒犻櫎</button></td>
+            <td><button type="button">删除</button></td>
         `;
         const [dayInput, itemSelect, amountInput, delButton] = [
             tr.children[0].querySelector('input'),
@@ -389,7 +389,7 @@ function renderOnlineRewardRows() {
             <td><input type="number" min="1" max="86400" step="1" value="${row.seconds}"></td>
             <td><select>${createItemOptionsHtml(row.itemId)}</select></td>
             <td><input type="number" min="1" max="9999999" step="1" value="${row.amount}"></td>
-            <td><button type="button">鍒犻櫎</button></td>
+            <td><button type="button">删除</button></td>
         `;
         const [tierInput, secondsInput, itemSelect, amountInput, delButton] = [
             tr.children[0].querySelector('input'),

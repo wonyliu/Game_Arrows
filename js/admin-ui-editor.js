@@ -1,4 +1,4 @@
-﻿import {
+import {
     initUiLayoutStorage,
     getDefaultUiLayoutConfig,
     readUiLayoutConfig,
@@ -225,15 +225,15 @@ function legacyGetElementFields(elementId) {
             { name: 'y', label: 'Y', step: 1 },
             { name: 'width', label: '宽', step: 1 },
             { name: 'height', label: '高', step: 1 },
-            { name: 'fontSize', label: '瀛楀彿', step: 1 }
+            { name: 'fontSize', label: '字号', step: 1 }
         ];
     }
     if (elementId === 'notebook') {
         return [
             { name: 'width', label: '宽', step: 1 },
             { name: 'height', label: '高', step: 1 },
-            { name: 'paddingTop', label: '椤堕儴鐣欑櫧', step: 1, wide: true },
-            { name: 'scaleMultiplier', label: '娓告垙缂╂斁鍊嶇巼', step: 0.05, source: 'scene', wide: true }
+            { name: 'paddingTop', label: '顶部留白', step: 1, wide: true },
+            { name: 'scaleMultiplier', label: '游戏缩放倍率', step: 0.05, source: 'scene', wide: true }
         ];
     }
     if (elementId === 'ribbon') {
@@ -246,9 +246,9 @@ function legacyGetElementFields(elementId) {
     }
     if (elementId === 'ribbonTitle') {
         return [
-            { name: 'x', label: '鍋忕ЩX', step: 1 },
-            { name: 'y', label: '鍋忕ЩY', step: 1 },
-            { name: 'fontSize', label: '瀛楀彿', step: 1 }
+            { name: 'x', label: '偏移X', step: 1 },
+            { name: 'y', label: '偏移Y', step: 1 },
+            { name: 'fontSize', label: '字号', step: 1 }
         ];
     }
     if (elementId === 'mascot') {
@@ -277,22 +277,22 @@ function legacyGetElementFields(elementId) {
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
             { name: 'width', label: '宽', step: 1 },
-            { name: 'fontSize', label: '瀛楀彿', step: 1 },
-            { name: 'align', label: '瀵归綈', type: 'select', options: ['center', 'left'], wide: true }
+            { name: 'fontSize', label: '字号', step: 1 },
+            { name: 'align', label: '对齐', type: 'select', options: ['center', 'left'], wide: true }
         ];
     }
     if (parsed.part === 'amount') {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
-            { name: 'fontSize', label: '瀛楀彿', step: 1 }
+            { name: 'fontSize', label: '字号', step: 1 }
         ];
     }
     if (parsed.part === 'badge') {
         return [
             { name: 'x', label: 'X', step: 1 },
             { name: 'y', label: 'Y', step: 1 },
-            { name: 'size', label: '灏哄', step: 1 }
+            { name: 'size', label: '尺寸', step: 1 }
         ];
     }
     return [];
@@ -967,7 +967,7 @@ function getHomeElementFields(elementId, visibilityField) {
 }
 
 function getElementFields(elementId) {
-    const visibilityField = { name: 'visible', label: '鏄剧ず', type: 'checkbox', wide: true };
+    const visibilityField = { name: 'visible', label: '显示', type: 'checkbox', wide: true };
     if (state.sceneId === 'home') {
         return getHomeElementFields(elementId, visibilityField);
     }
