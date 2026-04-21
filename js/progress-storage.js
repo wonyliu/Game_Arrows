@@ -1,4 +1,4 @@
-import { getActiveUserId } from './user-auth.js?v=4';
+import { getActiveUserId } from './user-auth.js?v=5';
 
 const GAME_PROGRESS_FILE = 'game-progress-v1';
 const STORAGE_API_BASE = '/api/storage';
@@ -8,6 +8,7 @@ const PROGRESS_STATIC_CONFIG_PATHS = Object.freeze([
     'data/game-progress-v1.json'
 ]);
 const PROGRESS_SCHEMA_VERSION = 1;
+const SUPPORT_ADS_MAX_DAILY_LIMIT = 200;
 
 let progressInitPromise = null;
 let serverSyncWarned = false;
@@ -176,6 +177,7 @@ function normalizeProgress(value, options = {}) {
     const fallbackUnlockedSkins = sanitizeSkinIdList(fallback.unlockedSkinIds);
     const fallbackNextRewardLevelIndex = clampPositiveInt(fallback.nextRewardLevelIndex, 1);
     const fallbackRewardGuideShown = fallback.rewardGuideShown === true;
+    const fallbackSupportAds = normalizeSupportAdsState(fallback.supportAds, null);
     const fallbackVersion = clampProgressLevel(fallback.version, PROGRESS_SCHEMA_VERSION);
 
     const maxUnlockedLevel = clampProgressLevel(raw.maxUnlockedLevel, fallbackMaxUnlocked);
@@ -191,6 +193,7 @@ function normalizeProgress(value, options = {}) {
         fallbackNextRewardLevelIndex
     );
     const rewardGuideShown = raw.rewardGuideShown === true || (raw.rewardGuideShown !== false && fallbackRewardGuideShown);
+    const supportAds = normalizeSupportAdsState(raw.supportAds, fallbackSupportAds);
     const version = clampProgressLevel(raw.version, fallbackVersion || PROGRESS_SCHEMA_VERSION);
     const updatedAt = resolveUpdatedAt(raw.updatedAt, fallback.updatedAt, !!options.forceTouchUpdatedAt);
 
@@ -204,7 +207,37 @@ function normalizeProgress(value, options = {}) {
         unlockedSkinIds,
         selectedSkinId,
         nextRewardLevelIndex,
-        rewardGuideShown
+        rewardGuideShown,
+        supportAds
+    };
+}
+
+function normalizeSupportAdsState(value, fallback = null) {
+    const source = isPlainObject(value) ? value : {};
+    const base = isPlainObject(fallback) ? fallback : {
+        dayKey: '',
+        watchedToday: 0,
+        totalWatched: 0,
+        dailyLimitOverride: -1,
+        lastPlacement: '',
+        lastWatchedAt: ''
+    };
+    return {
+        dayKey: sanitizeDayKey(source.dayKey ?? base.dayKey),
+        watchedToday: clampNonNegativeInt(source.watchedToday ?? base.watchedToday),
+        totalWatched: clampNonNegativeInt(source.totalWatched ?? base.totalWatched),
+        dailyLimitOverride: clampInt(
+            source.dailyLimitOverride ?? base.dailyLimitOverride,
+            -1,
+            SUPPORT_ADS_MAX_DAILY_LIMIT,
+            -1
+        ),
+        lastPlacement: `${source.lastPlacement ?? base.lastPlacement ?? ''}`
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '')
+            .slice(0, 40),
+        lastWatchedAt: normalizeIsoTimestamp(source.lastWatchedAt ?? base.lastWatchedAt)
     };
 }
 
@@ -290,6 +323,30 @@ function clampPositiveInt(value, fallback = 1) {
     return Math.max(1, Math.floor(parsed));
 }
 
+function clampNonNegativeInt(value, fallback = 0) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return Math.max(0, Math.floor(Number(fallback) || 0));
+    }
+    return Math.max(0, Math.floor(parsed));
+}
+
+function clampInt(value, min, max, fallback) {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+        return fallback;
+    }
+    return Math.max(min, Math.min(max, Math.floor(parsed)));
+}
+
+function sanitizeDayKey(value) {
+    const text = `${value || ''}`.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        return '';
+    }
+    return text;
+}
+
 function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
@@ -297,4 +354,3 @@ function isPlainObject(value) {
 function cloneJson(value) {
     return JSON.parse(JSON.stringify(value));
 }
-

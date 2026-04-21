@@ -1,4 +1,4 @@
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=6';
+import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=7';
 import {
     BGM_SCENE_KEYS,
     playBgmForScene,
@@ -14,7 +14,14 @@ import {
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=31';
 import { cloneUiLayoutConfig, readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=7';
 import { getUiAsset } from './ui-theme.js?v=2';
-import { bootstrapUserSessionFromStorage, getActiveUserId } from './user-auth.js?v=4';
+import {
+    applySessionFromUser,
+    bootstrapUserSessionFromStorage,
+    getActiveUserId,
+    getActiveUserSession,
+    openUserLoginDialog
+} from './user-auth.js?v=5';
+import { playRewardedAd, REWARDED_AD_PLACEMENTS } from './rewarded-ad-service.js?v=1';
 
 const MENU_PANEL = Object.freeze({
     HOME: 'HOME',
@@ -23,6 +30,8 @@ const MENU_PANEL = Object.freeze({
     LEADERBOARD: 'LEADERBOARD',
     SKINS: 'SKINS',
     CHECKIN: 'CHECKIN',
+    SUPPORT_AUTHOR: 'SUPPORT_AUTHOR',
+    PROFILE: 'PROFILE',
     EXIT_CONFIRM: 'EXIT_CONFIRM',
     RESET_PROGRESS_CONFIRM: 'RESET_PROGRESS_CONFIRM'
 });
@@ -32,7 +41,8 @@ const FEATURE_CONFIG = Object.freeze([
     { id: 'leaderboard', buttonId: 'btnLeaderboard', panelId: MENU_PANEL.LEADERBOARD, labelKey: 'feature.leaderboard', iconSlot: 'icon.leaderboard', badge: null, enabled: true },
     { id: 'skins', buttonId: 'btnSkins', panelId: MENU_PANEL.SKINS, labelKey: 'feature.skins', iconSlot: 'icon.skins', badge: null, enabled: true },
     { id: 'checkin', buttonId: 'btnCheckin', panelId: MENU_PANEL.CHECKIN, labelKey: 'feature.checkin', iconSlot: 'icon.checkin', badge: null, enabled: true },
-    { id: 'exit', buttonId: 'btnExit', panelId: MENU_PANEL.EXIT_CONFIRM, labelKey: 'feature.exit', iconSlot: 'icon.exit', badge: null, enabled: true }
+    { id: 'exit', buttonId: 'btnExit', panelId: MENU_PANEL.EXIT_CONFIRM, labelKey: 'feature.exit', iconSlot: 'icon.exit', badge: null, enabled: true },
+    { id: 'support-author', buttonId: 'btnSupportAuthor', panelId: MENU_PANEL.SUPPORT_AUTHOR, labelKey: 'feature.supportAuthor', iconSlot: 'icon.home', badge: null, enabled: true }
 ]);
 
 const TOOL_BUTTON_CONFIG = Object.freeze([
@@ -130,6 +140,8 @@ export class UI {
         this.leaderboardEmptyStateEl = this.leaderboardOverlay?.querySelector('.empty-state') || null;
         this.skinsOverlay = document.getElementById('skinsOverlay');
         this.checkinOverlay = document.getElementById('checkinOverlay');
+        this.supportAuthorOverlay = document.getElementById('supportAuthorOverlay');
+        this.profileOverlay = document.getElementById('profileOverlay');
         this.checkinSceneEl = this.checkinOverlay?.querySelector('.checkin-scene') || null;
         this.checkinBackButtonEl = document.getElementById('btnBackFromCheckin');
         this.checkinCardEl = this.checkinOverlay?.querySelector('.checkin-card-notebook') || null;
@@ -144,8 +156,10 @@ export class UI {
         this.levelSelectOverlay = document.getElementById('levelSelectOverlay');
         this.levelCompleteTitleEl = document.querySelector('#levelCompleteOverlay .popup-title');
         this.levelCompleteNextButton = document.getElementById('btnNext');
+        this.levelCompleteDoubleCoinButton = document.getElementById('btnDoubleCoinAd');
         this.levelCompleteButtonsEl = document.querySelector('#levelCompleteOverlay .popup-buttons');
         this.levelCompletePopupBox = this.levelCompleteOverlay?.querySelector('.popup-box') || null;
+        this.gameOverContinueByAdButton = document.getElementById('btnContinueByAd');
 
         this.levelScore = document.getElementById('levelScore');
         this.levelScoreLabel = document.getElementById('levelScoreLabel');
@@ -175,6 +189,19 @@ export class UI {
         this.menuCoinValue = document.getElementById('menuCoinValue');
         this.hudCoinValue = document.getElementById('hudCoinValue');
         this.menuCoinDisplay = document.getElementById('menuCoinDisplay');
+        this.menuProfileEntryButton = document.getElementById('btnProfileAvatar');
+        this.menuProfileAvatarImage = document.getElementById('menuProfileAvatarImage');
+        this.menuLoginEntryButton = document.getElementById('btnLoginEntry');
+        this.supportAuthorCountEl = document.getElementById('supportAuthorCount');
+        this.supportAuthorStatusEl = document.getElementById('supportAuthorStatus');
+        this.supportAuthorThankYouEl = document.getElementById('supportAuthorThankYou');
+        this.supportAuthorWatchButton = document.getElementById('btnSupportAuthorWatchAd');
+        this.profileUserMetaEl = document.getElementById('profileUserMeta');
+        this.profileNicknameInput = document.getElementById('profileNicknameInput');
+        this.profilePasswordInput = document.getElementById('profilePasswordInput');
+        this.profilePasswordConfirmInput = document.getElementById('profilePasswordConfirmInput');
+        this.profileStatusEl = document.getElementById('profileStatus');
+        this.profileSaveButton = document.getElementById('btnProfileSave');
         this.menuCoinFlyRestore = null;
         this.skinList = document.getElementById('skinList');
         this.skinsCoinValue = document.getElementById('skinsCoinValue');
@@ -249,6 +276,8 @@ export class UI {
         this.homeVideoHttpProbeRange = 'pending';
         this.homeVideoHttpProbeAt = 0;
         this.homeVideoHttpProbeInFlight = false;
+        this.rewardedAdPending = false;
+        this.profileSavePending = false;
         this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
         this.audioEnabled = this.uiEditorPreviewOptions.enabled !== true;
         this.homeDanceMascotAudioUnlocked = !this.audioEnabled;
@@ -276,6 +305,7 @@ export class UI {
         this.applyHomeLayoutConfig();
         this.applyCheckinLayoutConfig();
         this.applyGameplayLayoutConfig();
+        this.refreshProfileEntry();
         this.markUiEditorElements();
         this.setMenuBadges(this.menuBadges);
         this.refreshLiveOpsRedDotsOnPageLoad();
@@ -418,13 +448,26 @@ export class UI {
         this.bindButton('btnBackFromLeaderboard', () => this.closeMenuPanel());
         this.bindButton('btnBackFromSkins', () => this.closeMenuPanel());
         this.bindButton('btnBackFromCheckin', () => this.closeMenuPanel());
+        this.bindButton('btnBackFromSupportAuthor', () => this.closeMenuPanel());
+        this.bindButton('btnBackFromProfile', () => this.closeMenuPanel());
 
         this.bindButton('btnSettings', () => this.openSettingsPanel(SETTINGS_ENTRY.MENU));
         this.bindButton('btnHudSettings', () => this.openSettingsFromGame());
         this.bindButton('btnLeaderboard', () => this.openMenuPanel(MENU_PANEL.LEADERBOARD));
         this.bindButton('btnSkins', () => this.openMenuPanel(MENU_PANEL.SKINS));
         this.bindButton('btnCheckin', () => this.openMenuPanel(MENU_PANEL.CHECKIN));
+        this.bindButton('btnSupportAuthor', () => this.openMenuPanel(MENU_PANEL.SUPPORT_AUTHOR));
         this.bindButton('btnExit', () => this.openMenuPanel(MENU_PANEL.EXIT_CONFIRM));
+        this.bindButton('btnSupportAuthorWatchAd', () => {
+            void this.handleSupportAuthorWatchAd();
+        });
+        this.bindButton('btnProfileAvatar', () => this.openMenuPanel(MENU_PANEL.PROFILE));
+        this.bindButton('btnProfileSave', () => {
+            void this.handleProfileSave();
+        });
+        this.bindButton('btnLoginEntry', () => {
+            void this.handleLoginEntry();
+        });
         this.bindButton('btnOnlineRewardSettleCloseTop', () => this.closeOnlineRewardSettle(true));
         this.bindButton('btnOnlineRewardSettleClose', () => {
             void this.confirmOnlineRewardSettle();
@@ -460,6 +503,12 @@ export class UI {
         this.bindButton('btnResetProgressCancelTop', () => this.openMenuPanel(MENU_PANEL.SETTINGS));
         this.bindButton('btnResetProgressCancel', () => this.openMenuPanel(MENU_PANEL.SETTINGS));
         this.bindButton('btnResetProgressConfirm', () => this.handleSettingsConfirmAction());
+        this.bindButton('btnContinueByAd', () => {
+            void this.handleGameOverContinueByAd();
+        });
+        this.bindButton('btnDoubleCoinAd', () => {
+            void this.handleDoubleCoinAd();
+        });
 
         this.bindButton('btnLocaleZh', () => this.setLocale('zh-CN'));
         this.bindButton('btnLocaleEn', () => this.setLocale('en-US'));
@@ -1372,6 +1421,18 @@ export class UI {
             this.updateCheckinSceneScale();
         }
 
+        if (target === MENU_PANEL.SUPPORT_AUTHOR) {
+            this.supportAuthorOverlay?.classList.remove('hidden');
+            this.game.state = 'SUPPORT_AUTHOR';
+            this.refreshSupportAuthorPanel();
+        }
+
+        if (target === MENU_PANEL.PROFILE) {
+            this.profileOverlay?.classList.remove('hidden');
+            this.game.state = 'PROFILE';
+            this.refreshProfilePanel();
+        }
+
         if (target === MENU_PANEL.EXIT_CONFIRM) {
             this.exitOverlay.classList.remove('hidden');
             this.game.state = 'EXIT_CONFIRM';
@@ -1388,6 +1449,7 @@ export class UI {
         this.applyLocalizedText();
         this.refreshMenuLevelTag();
         this.renderFeatureCards();
+        this.refreshProfileEntry();
         this.refreshCheckinPanel();
         this.refreshOnlineRewardDock();
         this.updateHomeDanceMascotPlayback();
@@ -1550,6 +1612,269 @@ export class UI {
         this.openMenuPanel(MENU_PANEL.HOME);
     }
 
+    getCurrentUserSession() {
+        return getActiveUserSession() || bootstrapUserSessionFromStorage() || null;
+    }
+
+    resolveAvatarUrl(rawUrl) {
+        const text = `${rawUrl || ''}`.trim();
+        return text || 'assets/ui/shared/icons/icon_theme.png';
+    }
+
+    refreshProfileEntry() {
+        const session = this.getCurrentUserSession();
+        if (this.menuProfileAvatarImage) {
+            this.menuProfileAvatarImage.src = this.resolveAvatarUrl(session?.avatarUrl);
+            this.menuProfileAvatarImage.alt = `${session?.username || 'player'}`;
+            this.menuProfileAvatarImage.onerror = () => {
+                this.menuProfileAvatarImage.src = 'assets/ui/shared/icons/icon_theme.png';
+            };
+        }
+        if (this.menuLoginEntryButton) {
+            const showLoginLink = session?.isTempUser !== false;
+            this.menuLoginEntryButton.classList.toggle('hidden', !showLoginLink);
+        }
+    }
+
+    refreshProfilePanel() {
+        const session = this.getCurrentUserSession();
+        if (this.profileUserMetaEl) {
+            const idText = `${session?.userId || '-'}`;
+            const roleText = session?.isTempUser === true
+                ? this.getLocaleText('临时账号', 'Guest')
+                : this.getLocaleText('正式账号', 'Account');
+            this.profileUserMetaEl.textContent = `${roleText} · ID: ${idText}`;
+        }
+        if (this.profileNicknameInput) {
+            this.profileNicknameInput.value = `${session?.username || ''}`.trim();
+        }
+        if (this.profilePasswordInput) {
+            this.profilePasswordInput.value = '';
+        }
+        if (this.profilePasswordConfirmInput) {
+            this.profilePasswordConfirmInput.value = '';
+        }
+        this.setProfileStatus('');
+    }
+
+    setProfileStatus(text, isError = false) {
+        if (!this.profileStatusEl) {
+            return;
+        }
+        this.profileStatusEl.textContent = text || '';
+        this.profileStatusEl.style.color = isError ? '#9d2b22' : '#456d26';
+    }
+
+    async handleLoginEntry() {
+        const prevUserId = `${getActiveUserId() || ''}`.trim();
+        const session = await openUserLoginDialog({
+            allowTemp: false,
+            allowClose: true,
+            title: this.getLocaleText('账号登录', 'Login')
+        });
+        if (!session?.userId) {
+            return;
+        }
+        if (`${session.userId}`.trim() !== prevUserId) {
+            window.location.reload();
+            return;
+        }
+        this.refreshProfileEntry();
+        this.refreshProfilePanel();
+    }
+
+    async handleProfileSave() {
+        if (this.profileSavePending) {
+            return;
+        }
+        const session = this.getCurrentUserSession();
+        const userId = `${session?.userId || ''}`.trim();
+        if (!userId) {
+            this.setProfileStatus(this.getLocaleText('未检测到账号，请先登录。', 'No active user session.'), true);
+            return;
+        }
+        const nickname = `${this.profileNicknameInput?.value || ''}`.trim();
+        const password = `${this.profilePasswordInput?.value || ''}`;
+        const passwordConfirm = `${this.profilePasswordConfirmInput?.value || ''}`;
+        if (!nickname || nickname.length < 2) {
+            this.setProfileStatus(this.getLocaleText('昵称至少需要 2 个字符。', 'Nickname must be at least 2 characters.'), true);
+            return;
+        }
+        if (password && password.length < 4) {
+            this.setProfileStatus(this.getLocaleText('新密码至少需要 4 位。', 'Password must be at least 4 characters.'), true);
+            return;
+        }
+        if (password && password !== passwordConfirm) {
+            this.setProfileStatus(this.getLocaleText('两次输入的密码不一致。', 'Password confirmation does not match.'), true);
+            return;
+        }
+
+        const payload = {
+            userId,
+            username: nickname
+        };
+        if (password) {
+            payload.password = password;
+        }
+        this.profileSavePending = true;
+        if (this.profileSaveButton) {
+            this.profileSaveButton.disabled = true;
+        }
+        this.setProfileStatus(this.getLocaleText('保存中...', 'Saving...'));
+        try {
+            const response = await fetch('/api/users/profile', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok || result?.ok !== true || !result?.user) {
+                throw new Error(result?.error || `HTTP ${response.status}`);
+            }
+            applySessionFromUser(result.user);
+            this.refreshProfileEntry();
+            this.refreshProfilePanel();
+            this.setProfileStatus(this.getLocaleText('资料已更新。', 'Profile updated.'));
+        } catch (error) {
+            this.setProfileStatus(
+                this.getLocaleText('保存失败，请稍后重试。', 'Save failed, please try again.')
+                + ` ${error?.message || ''}`,
+                true
+            );
+        } finally {
+            this.profileSavePending = false;
+            if (this.profileSaveButton) {
+                this.profileSaveButton.disabled = false;
+            }
+        }
+    }
+
+    setSupportAuthorStatus(text, isError = false) {
+        if (!this.supportAuthorStatusEl) {
+            return;
+        }
+        this.supportAuthorStatusEl.textContent = text || '';
+        this.supportAuthorStatusEl.style.color = isError ? '#9d2b22' : '#456d26';
+    }
+
+    refreshSupportAuthorPanel() {
+        if (!this.game || typeof this.game.getRewardedAdSnapshot !== 'function') {
+            return;
+        }
+        const snapshot = this.game.getRewardedAdSnapshot();
+        const watchedToday = Math.max(0, Math.floor(Number(snapshot?.watchedToday) || 0));
+        const dailyLimit = Math.max(0, Math.floor(Number(snapshot?.dailyLimit) || 0));
+        if (this.supportAuthorCountEl) {
+            this.supportAuthorCountEl.textContent = `${watchedToday}/${dailyLimit}`;
+        }
+        if (this.supportAuthorThankYouEl) {
+            this.supportAuthorThankYouEl.textContent = `${snapshot?.thankYouMessage || ''}`.trim()
+                || this.getLocaleText('感谢你的支持，这会帮助我们持续更新游戏内容。', 'Thanks for your support. It helps us keep shipping updates.');
+        }
+        const supportGate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
+        if (this.supportAuthorWatchButton) {
+            this.supportAuthorWatchButton.disabled = !supportGate?.ok || this.rewardedAdPending;
+        }
+        this.refreshGameOverContinueByAdButton();
+        this.refreshDoubleCoinAdButton();
+    }
+
+    refreshGameOverContinueByAdButton() {
+        if (!this.gameOverContinueByAdButton || !this.game || typeof this.game.canWatchRewardedAd !== 'function') {
+            return;
+        }
+        const gate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.FAIL_CONTINUE);
+        this.gameOverContinueByAdButton.disabled = !gate?.ok || this.rewardedAdPending;
+    }
+
+    refreshDoubleCoinAdButton() {
+        if (!this.levelCompleteDoubleCoinButton || !this.game || typeof this.game.canWatchRewardedAd !== 'function') {
+            return;
+        }
+        const canClaim = typeof this.game.canClaimDoubleCoinReward === 'function'
+            ? this.game.canClaimDoubleCoinReward()
+            : false;
+        const gate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
+        this.levelCompleteDoubleCoinButton.disabled = !(canClaim && gate?.ok) || this.rewardedAdPending;
+        this.levelCompleteDoubleCoinButton.classList.toggle('hidden', !canClaim);
+    }
+
+    async runRewardedAdFlow(placement) {
+        if (!this.game || this.rewardedAdPending || typeof this.game.canWatchRewardedAd !== 'function') {
+            return { ok: false, reason: 'busy' };
+        }
+        const gate = this.game.canWatchRewardedAd(placement);
+        if (!gate?.ok) {
+            this.refreshSupportAuthorPanel();
+            return {
+                ok: false,
+                reason: gate?.reason || 'not-available',
+                gate
+            };
+        }
+
+        this.rewardedAdPending = true;
+        this.refreshSupportAuthorPanel();
+        try {
+            const result = await playRewardedAd(placement);
+            if (!result?.rewarded) {
+                return { ok: false, reason: result?.error || 'ad-interrupted' };
+            }
+            const snapshot = this.game.recordRewardedAdWatch(placement);
+            this.refreshSupportAuthorPanel();
+            return { ok: true, snapshot };
+        } finally {
+            this.rewardedAdPending = false;
+            this.refreshSupportAuthorPanel();
+        }
+    }
+
+    async handleSupportAuthorWatchAd() {
+        this.setSupportAuthorStatus('');
+        const result = await this.runRewardedAdFlow(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
+        if (!result?.ok) {
+            if (result?.reason === 'daily-limit-reached') {
+                this.setSupportAuthorStatus(this.getLocaleText('今日支持次数已达上限。', 'Daily ad limit reached.'), true);
+                return;
+            }
+            this.setSupportAuthorStatus(this.getLocaleText('广告未完成，本次未计入支持次数。', 'Ad not completed. Support count unchanged.'), true);
+            return;
+        }
+        this.setSupportAuthorStatus(this.getLocaleText('感谢你的支持！', 'Thanks for your support!'));
+    }
+
+    async handleGameOverContinueByAd() {
+        const result = await this.runRewardedAdFlow(REWARDED_AD_PLACEMENTS.FAIL_CONTINUE);
+        if (!result?.ok) {
+            if (this.gameOverReason && result?.reason === 'daily-limit-reached') {
+                this.gameOverReason.textContent = this.getLocaleText('今日广告次数已用完，请直接重试。', 'Daily ad limit reached. Please retry directly.');
+            }
+            return;
+        }
+        this.retryLevel();
+    }
+
+    async handleDoubleCoinAd() {
+        const result = await this.runRewardedAdFlow(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
+        if (!result?.ok) {
+            if (this.levelScoreBonus && result?.reason === 'daily-limit-reached') {
+                this.levelScoreBonus.classList.remove('hidden');
+                this.levelScoreBonus.textContent = this.getLocaleText('今日广告次数已达上限', 'Daily ad limit reached');
+            }
+            return;
+        }
+        const bonus = typeof this.game?.claimDoubleCoinReward === 'function'
+            ? this.game.claimDoubleCoinReward()
+            : 0;
+        if (bonus > 0) {
+            const earned = Math.max(0, this.game.getLastCoinReward() + bonus);
+            const totalCoins = Math.max(0, this.game.getCoins());
+            this.setLevelSettleCoinText(earned, totalCoins);
+            this.updateCoinDisplays();
+        }
+        this.refreshDoubleCoinAdButton();
+    }
+
     setMenuBadges(badges = {}) {
         this.menuBadges = {
             ...this.menuBadges,
@@ -1644,6 +1969,8 @@ export class UI {
         this.leaderboardOverlay.classList.add('hidden');
         this.skinsOverlay.classList.add('hidden');
         this.checkinOverlay.classList.add('hidden');
+        this.supportAuthorOverlay?.classList.add('hidden');
+        this.profileOverlay?.classList.add('hidden');
         this.exitOverlay.classList.add('hidden');
         this.resetProgressOverlay?.classList.add('hidden');
         this.levelCompleteOverlay.classList.add('hidden');
@@ -1660,6 +1987,8 @@ export class UI {
         this.pendingCheckinRewardPayload = null;
         this.pendingOnlineRewardPayload = null;
         this.onlineRewardSettleCoinIconEl = null;
+        this.setSupportAuthorStatus('');
+        this.setProfileStatus('');
         this.updateHomeDanceMascotPlayback();
         if (this.rewardUnlockToastTimer) {
             clearTimeout(this.rewardUnlockToastTimer);
@@ -2143,6 +2472,8 @@ export class UI {
         this.updateSettingsConfirmDialogText();
         this.renderSkinCenter();
         this.updateCoinDisplays();
+        this.refreshProfileEntry();
+        this.refreshSupportAuthorPanel();
         this.refreshCheckinPanel(false);
     }
 
@@ -4221,6 +4552,7 @@ export class UI {
             earnedCoins,
             totalCoinsBeforeReward
         });
+        this.refreshDoubleCoinAdButton();
     }
 
     showGameOverPopup(reason) {
@@ -4228,6 +4560,7 @@ export class UI {
         if (this.gameOverReason) {
             this.gameOverReason.textContent = reason || t(this.locale, 'panel.over.title');
         }
+        this.refreshGameOverContinueByAdButton();
     }
 
     buildLevelGrid() {

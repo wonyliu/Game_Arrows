@@ -43,7 +43,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "server:restart": "bash scripts/restart-dev-server.sh",
     "managed:pull": "node scripts/sync-managed-config.mjs --mode=pull",
-    "managed:push": "node scripts/sync-managed-config.mjs --mode=push"
+    "managed:push": "node scripts/sync-managed-config.mjs --mode=push",
+    "test:smoke:support-ads": "node scripts/smoke-support-ads.mjs"
   },
   "repository": {
     "type": "git",

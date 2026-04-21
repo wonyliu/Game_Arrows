@@ -37,14 +37,18 @@ import { readGameplayParams } from './game-params.js?v=7';
 import {
     readProgressSnapshot,
     saveProgressSnapshot
-} from './progress-storage.js?v=7';
+} from './progress-storage.js?v=8';
 import {
     getBusinessDayKeyByHour,
     getLocalDayKey,
     readLiveOpsConfig,
     readLiveOpsPlayerState,
     writeLiveOpsPlayerState
-} from './liveops-storage.js?v=6';
+} from './liveops-storage.js?v=7';
+import {
+    readSupportAdsConfig,
+    resolveEffectiveDailyAdLimit
+} from './support-ads-config.js?v=1';
 
 const DEFAULT_TOOL_USES = Object.freeze({
     hint: 2,
@@ -99,6 +103,11 @@ const SYNTHETIC_TOUCH_CLICK_SUPPRESS_MS = 700;
 const ENABLE_GAME_DEBUG_LOGS = typeof window !== 'undefined'
     && new URLSearchParams(window.location.search).get('debug') === '1';
 const MOBILE_UA_RE = /android|iphone|ipad|ipod|mobile/i;
+const SUPPORT_AD_PLACEMENTS = Object.freeze([
+    'support_author',
+    'fail_continue',
+    'double_coin'
+]);
 
 export class Game {
     constructor(canvas) {
@@ -177,8 +186,11 @@ export class Game {
         this.pixelAtlasCache = null;
         this.liveOpsConfig = readLiveOpsConfig();
         this.liveOpsPlayer = readLiveOpsPlayerState();
+        this.supportAdsConfig = readSupportAdsConfig();
+        this.supportAdsState = createDefaultSupportAdsState();
         this.onlineRewardSaveAccumulator = 0;
         this.nextRewardLevelIndex = 1;
+        this.levelDoubleCoinClaimed = false;
         this.perfFrameMsEma = 0;
         this.perfRenderCostMsEma = 0;
         this.perfFrameCount = 0;
@@ -241,7 +253,10 @@ export class Game {
             this.selectedSkinId = ensureSelectedSkin(data.selectedSkinId, this.unlockedSkinIds);
             this.nextRewardLevelIndex = Math.max(1, Math.floor(Number(data.nextRewardLevelIndex) || 1));
             this.rewardGuideShown = data?.rewardGuideShown === true;
+            this.supportAdsState = normalizeSupportAdsState(data?.supportAds, this.supportAdsState);
+            this.resetSupportAdsDayIfNeeded(false);
             this.lastCoinReward = 0;
+            this.levelDoubleCoinClaimed = false;
         } catch {
             this.maxUnlockedLevel = 1;
             this.currentLevel = 1;
@@ -252,6 +267,8 @@ export class Game {
             this.selectedSkinId = getDefaultSkinId();
             this.nextRewardLevelIndex = 1;
             this.rewardGuideShown = false;
+            this.supportAdsState = createDefaultSupportAdsState();
+            this.levelDoubleCoinClaimed = false;
         }
         setAudioSkinId(this.selectedSkinId);
         this.loadLiveOpsState();
@@ -281,8 +298,149 @@ export class Game {
             unlockedSkinIds: normalizedUnlockedSkins,
             selectedSkinId,
             nextRewardLevelIndex: Math.max(1, Math.floor(Number(this.nextRewardLevelIndex) || 1)),
-            rewardGuideShown: this.rewardGuideShown === true
+            rewardGuideShown: this.rewardGuideShown === true,
+            supportAds: this.buildSupportAdsStateForSave()
         }, { keepalive: options.keepalive === true });
+    }
+
+    buildSupportAdsStateForSave() {
+        return {
+            ...normalizeSupportAdsState(this.supportAdsState),
+            lastPlacement: sanitizeSupportAdPlacement(this.supportAdsState?.lastPlacement),
+            lastWatchedAt: normalizeIsoTimestamp(this.supportAdsState?.lastWatchedAt)
+        };
+    }
+
+    getSupportAdsConfig() {
+        this.supportAdsConfig = readSupportAdsConfig();
+        return this.supportAdsConfig;
+    }
+
+    resetSupportAdsDayIfNeeded(forceWrite = false) {
+        const todayKey = getLocalDayKey(new Date());
+        const current = normalizeSupportAdsState(this.supportAdsState);
+        if (!todayKey) {
+            this.supportAdsState = current;
+            return;
+        }
+        if (forceWrite || current.dayKey !== todayKey) {
+            this.supportAdsState = {
+                ...current,
+                dayKey: todayKey,
+                watchedToday: 0
+            };
+            if (forceWrite) {
+                this.saveProgress();
+            }
+            return;
+        }
+        this.supportAdsState = current;
+    }
+
+    getRewardedAdSnapshot() {
+        this.resetSupportAdsDayIfNeeded(false);
+        const config = this.getSupportAdsConfig();
+        const adsState = normalizeSupportAdsState(this.supportAdsState);
+        this.supportAdsState = adsState;
+        const defaultDailyLimit = Math.max(
+            0,
+            resolveEffectiveDailyAdLimit(
+                -1,
+                config?.defaultDailyLimit
+            )
+        );
+        const dailyLimit = Math.max(
+            0,
+            resolveEffectiveDailyAdLimit(
+                adsState.dailyLimitOverride,
+                config?.defaultDailyLimit
+            )
+        );
+        const watchedToday = Math.max(0, Math.floor(Number(adsState.watchedToday) || 0));
+        const remaining = Math.max(0, dailyLimit - watchedToday);
+        return {
+            dayKey: adsState.dayKey,
+            watchedToday,
+            totalWatched: Math.max(0, Math.floor(Number(adsState.totalWatched) || 0)),
+            dailyLimit,
+            defaultDailyLimit,
+            dailyLimitOverride: Math.max(-1, Math.floor(Number(adsState.dailyLimitOverride) || -1)),
+            remaining,
+            lastPlacement: sanitizeSupportAdPlacement(adsState.lastPlacement),
+            lastWatchedAt: normalizeIsoTimestamp(adsState.lastWatchedAt),
+            thankYouMessage: `${config?.thankYouMessage || ''}`.trim(),
+            enabledPlacements: {
+                support_author: config?.enabledPlacements?.support_author !== false,
+                fail_continue: config?.enabledPlacements?.fail_continue !== false,
+                double_coin: config?.enabledPlacements?.double_coin !== false
+            }
+        };
+    }
+
+    canWatchRewardedAd(placement) {
+        const normalizedPlacement = sanitizeSupportAdPlacement(placement);
+        const snapshot = this.getRewardedAdSnapshot();
+        if (!snapshot.enabledPlacements[normalizedPlacement]) {
+            return {
+                ok: false,
+                reason: 'placement-disabled',
+                snapshot
+            };
+        }
+        if (snapshot.dailyLimit <= 0) {
+            return {
+                ok: false,
+                reason: 'daily-limit-zero',
+                snapshot
+            };
+        }
+        if (snapshot.remaining <= 0) {
+            return {
+                ok: false,
+                reason: 'daily-limit-reached',
+                snapshot
+            };
+        }
+        return {
+            ok: true,
+            reason: '',
+            snapshot
+        };
+    }
+
+    recordRewardedAdWatch(placement) {
+        this.resetSupportAdsDayIfNeeded(false);
+        const current = normalizeSupportAdsState(this.supportAdsState);
+        this.supportAdsState = {
+            ...current,
+            dayKey: current.dayKey || getLocalDayKey(new Date()),
+            watchedToday: Math.max(0, Math.floor(Number(current.watchedToday) || 0)) + 1,
+            totalWatched: Math.max(0, Math.floor(Number(current.totalWatched) || 0)) + 1,
+            lastPlacement: sanitizeSupportAdPlacement(placement),
+            lastWatchedAt: new Date().toISOString()
+        };
+        this.saveProgress();
+        return this.getRewardedAdSnapshot();
+    }
+
+    canClaimDoubleCoinReward() {
+        return this.state === 'LEVEL_COMPLETE'
+            && this.levelDoubleCoinClaimed !== true
+            && this.getLastCoinReward() > 0;
+    }
+
+    claimDoubleCoinReward() {
+        if (!this.canClaimDoubleCoinReward()) {
+            return 0;
+        }
+        const bonus = this.getLastCoinReward();
+        if (bonus <= 0) {
+            return 0;
+        }
+        this.levelDoubleCoinClaimed = true;
+        this.coins += bonus;
+        this.saveProgress();
+        return bonus;
     }
 
     hasSeenRewardStageGuide() {
@@ -876,6 +1034,7 @@ export class Game {
         this.maxLives = this.lifeSystemEnabled ? config.lives : 0;
         this.score = 0;
         this.lastCoinReward = 0;
+        this.levelDoubleCoinClaimed = false;
         this.combo = 0;
         this.bestComboThisLevel = 0;
         this.levelLineCount = Array.isArray(this.lines) ? this.lines.length : 0;
@@ -967,7 +1126,7 @@ export class Game {
             return '';
         }
         const customName = `${config?.displayName || ''}`.trim();
-        return customName || '奖励关';
+        return customName || 'Reward Stage';
     }
 
     resolveScorePerBodySegment(config) {
@@ -2735,6 +2894,63 @@ function directionVector(direction) {
     }
 }
 
+function createDefaultSupportAdsState() {
+    return {
+        dayKey: '',
+        watchedToday: 0,
+        totalWatched: 0,
+        dailyLimitOverride: -1,
+        lastPlacement: '',
+        lastWatchedAt: ''
+    };
+}
+
+function normalizeSupportAdsState(value, fallback = null) {
+    const source = value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    const base = fallback && typeof fallback === 'object' && !Array.isArray(fallback)
+        ? fallback
+        : createDefaultSupportAdsState();
+    return {
+        dayKey: sanitizeDayKey(source.dayKey ?? base.dayKey),
+        watchedToday: Math.max(0, Math.floor(Number(source.watchedToday ?? base.watchedToday) || 0)),
+        totalWatched: Math.max(0, Math.floor(Number(source.totalWatched ?? base.totalWatched) || 0)),
+        dailyLimitOverride: Math.max(
+            -1,
+            Math.min(200, Math.floor(Number(source.dailyLimitOverride ?? base.dailyLimitOverride) || -1))
+        ),
+        lastPlacement: sanitizeSupportAdPlacement(source.lastPlacement ?? base.lastPlacement),
+        lastWatchedAt: normalizeIsoTimestamp(source.lastWatchedAt ?? base.lastWatchedAt)
+    };
+}
+
+function sanitizeSupportAdPlacement(value) {
+    const text = `${value || ''}`.trim().toLowerCase();
+    if (SUPPORT_AD_PLACEMENTS.includes(text)) {
+        return text;
+    }
+    return 'support_author';
+}
+
+function sanitizeDayKey(value) {
+    const text = `${value || ''}`.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+        return '';
+    }
+    return text;
+}
+
+function normalizeIsoTimestamp(value) {
+    const text = `${value || ''}`.trim();
+    if (!text) {
+        return '';
+    }
+    const parsed = new Date(text);
+    if (Number.isNaN(parsed.getTime())) {
+        return '';
+    }
+    return parsed.toISOString();
+}
+
 function distance(x1, y1, x2, y2) {
     return Math.hypot(x2 - x1, y2 - y1);
 }
@@ -2763,3 +2979,4 @@ function distanceToRect(px, py, left, top, width, height) {
     }
     return Math.hypot(dx, dy);
 }
+

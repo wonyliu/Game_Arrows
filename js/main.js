@@ -1,8 +1,8 @@
 /**
  * Main - game entry
  */
-import { Game } from './game.js?v=166';
-import { UI } from './ui.js?v=134';
+import { Game } from './game.js?v=167';
+import { UI } from './ui.js?v=136';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -11,13 +11,14 @@ import {
 } from './level-preload.js?v=12';
 import { initLevelStorage } from './level-storage.js?v=59';
 import { initUiTheme } from './ui-theme.js?v=2';
-import { initProgressStorage } from './progress-storage.js?v=7';
+import { initProgressStorage } from './progress-storage.js?v=8';
 import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=11';
-import { initLiveOpsStorage } from './liveops-storage.js?v=6';
+import { initLiveOpsStorage } from './liveops-storage.js?v=7';
 import { initUiLayoutStorage } from './ui-layout-config.js?v=7';
+import { initSupportAdsConfig } from './support-ads-config.js?v=1';
 import { isLegacyColorVariantSkinId } from './skins.js?v=31';
-import { ensureUserSession } from './user-auth.js?v=4';
+import { ensureUserSession } from './user-auth.js?v=5';
 
 const DESIGN_WIDTH = 430;
 const DESIGN_HEIGHT = 932;
@@ -460,6 +461,9 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
                 }),
                 initUiLayoutStorage().catch((error) => {
                     console.warn('[main] ui layout storage init failed', error);
+                }),
+                initSupportAdsConfig().catch((error) => {
+                    console.warn('[main] support ads config init failed', error);
                 })
             ]);
             logBoot('storages initialized', { durationMs: Math.round(nowMs() - storageStartedAt) });
@@ -552,3 +556,4 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
+

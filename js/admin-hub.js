@@ -13,6 +13,12 @@ import {
     readGameplayParams,
     writeGameplayParams
 } from './game-params.js?v=7';
+import {
+    DEFAULT_SUPPORT_ADS_CONFIG,
+    initSupportAdsConfig,
+    readSupportAdsConfig,
+    writeSupportAdsConfig
+} from './support-ads-config.js?v=1';
 
 const ACTIVE_TAB_STORAGE_KEY = 'arrowClear_adminActiveTab';
 const LOCAL_SKIN_PRICE_OVERRIDE_STORAGE_KEY = 'arrowClear_localSkinPriceOverrides_v1';
@@ -42,6 +48,14 @@ const el = {
     paramRewardComboThreshold: document.getElementById('paramRewardComboThreshold'),
     paramMisclickPenaltyTextDurationSeconds: document.getElementById('paramMisclickPenaltyTextDurationSeconds'),
     paramReleasableHitAreaScale: document.getElementById('paramReleasableHitAreaScale'),
+    paramSupportAdsDefaultDailyLimit: document.getElementById('paramSupportAdsDefaultDailyLimit'),
+    paramSupportAdsThankYouMessage: document.getElementById('paramSupportAdsThankYouMessage'),
+    paramSupportAdsEnableSupportAuthor: document.getElementById('paramSupportAdsEnableSupportAuthor'),
+    paramSupportAdsEnableFailContinue: document.getElementById('paramSupportAdsEnableFailContinue'),
+    paramSupportAdsEnableDoubleCoin: document.getElementById('paramSupportAdsEnableDoubleCoin'),
+    paramSupportAdsUnitSupportAuthor: document.getElementById('paramSupportAdsUnitSupportAuthor'),
+    paramSupportAdsUnitFailContinue: document.getElementById('paramSupportAdsUnitFailContinue'),
+    paramSupportAdsUnitDoubleCoin: document.getElementById('paramSupportAdsUnitDoubleCoin'),
     btnEditComboScoreMultipliers: document.getElementById('btnEditComboScoreMultipliers'),
     comboScoreMultiplierPanel: document.getElementById('comboScoreMultiplierPanel'),
     comboScoreMultiplierSummary: document.getElementById('comboScoreMultiplierSummary'),
@@ -65,6 +79,7 @@ const state = {
     localSkinPriceOverrides: {},
     selectedSkinId: '',
     gameplayParams: { ...DEFAULT_GAMEPLAY_PARAMS },
+    supportAdsConfig: { ...DEFAULT_SUPPORT_ADS_CONFIG },
     comboScoreMultiplierRows: []
 };
 
@@ -395,6 +410,36 @@ function fillGameParamInputs(params) {
     renderHitAreaPreview(params.releasableHitAreaScale);
 }
 
+function fillSupportAdsInputs(config) {
+    const next = config && typeof config === 'object'
+        ? config
+        : DEFAULT_SUPPORT_ADS_CONFIG;
+    if (el.paramSupportAdsDefaultDailyLimit) {
+        el.paramSupportAdsDefaultDailyLimit.value = `${Math.max(0, Math.floor(Number(next.defaultDailyLimit) || 0))}`;
+    }
+    if (el.paramSupportAdsThankYouMessage) {
+        el.paramSupportAdsThankYouMessage.value = `${next.thankYouMessage || ''}`.trim();
+    }
+    if (el.paramSupportAdsEnableSupportAuthor) {
+        el.paramSupportAdsEnableSupportAuthor.checked = next?.enabledPlacements?.support_author !== false;
+    }
+    if (el.paramSupportAdsEnableFailContinue) {
+        el.paramSupportAdsEnableFailContinue.checked = next?.enabledPlacements?.fail_continue !== false;
+    }
+    if (el.paramSupportAdsEnableDoubleCoin) {
+        el.paramSupportAdsEnableDoubleCoin.checked = next?.enabledPlacements?.double_coin !== false;
+    }
+    if (el.paramSupportAdsUnitSupportAuthor) {
+        el.paramSupportAdsUnitSupportAuthor.value = `${next?.adUnitIds?.support_author || ''}`.trim();
+    }
+    if (el.paramSupportAdsUnitFailContinue) {
+        el.paramSupportAdsUnitFailContinue.value = `${next?.adUnitIds?.fail_continue || ''}`.trim();
+    }
+    if (el.paramSupportAdsUnitDoubleCoin) {
+        el.paramSupportAdsUnitDoubleCoin.value = `${next?.adUnitIds?.double_coin || ''}`.trim();
+    }
+}
+
 function renderHitAreaPreview(scaleValue) {
     const scale = Math.max(1, Math.min(2.2, Number(scaleValue) || 1));
     const baseSize = 52;
@@ -503,6 +548,33 @@ function collectGameParamInputs() {
     };
 }
 
+function collectSupportAdsInputs() {
+    const fallback = state.supportAdsConfig && typeof state.supportAdsConfig === 'object'
+        ? state.supportAdsConfig
+        : DEFAULT_SUPPORT_ADS_CONFIG;
+    const parsedLimit = Number(el.paramSupportAdsDefaultDailyLimit?.value ?? fallback.defaultDailyLimit);
+    const defaultDailyLimit = Number.isFinite(parsedLimit)
+        ? Math.max(0, Math.min(200, Math.floor(parsedLimit)))
+        : Math.max(0, Math.min(200, Math.floor(Number(fallback.defaultDailyLimit) || 0)));
+    return {
+        ...fallback,
+        defaultDailyLimit,
+        thankYouMessage: `${el.paramSupportAdsThankYouMessage?.value || fallback.thankYouMessage || ''}`.trim(),
+        enabledPlacements: {
+            ...(fallback.enabledPlacements || {}),
+            support_author: el.paramSupportAdsEnableSupportAuthor?.checked !== false,
+            fail_continue: el.paramSupportAdsEnableFailContinue?.checked !== false,
+            double_coin: el.paramSupportAdsEnableDoubleCoin?.checked !== false
+        },
+        adUnitIds: {
+            ...(fallback.adUnitIds || {}),
+            support_author: `${el.paramSupportAdsUnitSupportAuthor?.value || fallback?.adUnitIds?.support_author || ''}`.trim(),
+            fail_continue: `${el.paramSupportAdsUnitFailContinue?.value || fallback?.adUnitIds?.fail_continue || ''}`.trim(),
+            double_coin: `${el.paramSupportAdsUnitDoubleCoin?.value || fallback?.adUnitIds?.double_coin || ''}`.trim()
+        }
+    };
+}
+
 function refreshGameParamJson() {
     if (!el.gameParamJson) {
         return;
@@ -514,14 +586,18 @@ function saveGameParamsFromInputs() {
     const raw = collectGameParamInputs();
     const normalized = normalizeGameplayParams(raw);
     state.gameplayParams = writeGameplayParams(normalized);
+    state.supportAdsConfig = writeSupportAdsConfig(collectSupportAdsInputs(), { syncServer: true });
     fillGameParamInputs(state.gameplayParams);
+    fillSupportAdsInputs(state.supportAdsConfig);
     refreshGameParamJson();
     setParamStatus('参数已保存，刷新游戏页后生效。');
 }
 
 function resetGameParams() {
     state.gameplayParams = clearGameplayParams();
+    state.supportAdsConfig = writeSupportAdsConfig(DEFAULT_SUPPORT_ADS_CONFIG, { syncServer: true });
     fillGameParamInputs(state.gameplayParams);
+    fillSupportAdsInputs(state.supportAdsConfig);
     refreshGameParamJson();
     setParamStatus('已恢复默认参数。');
 }
@@ -543,9 +619,17 @@ function initGameParamPanel() {
         return;
     }
     state.gameplayParams = readGameplayParams();
+    state.supportAdsConfig = readSupportAdsConfig();
     fillGameParamInputs(state.gameplayParams);
+    fillSupportAdsInputs(state.supportAdsConfig);
     refreshGameParamJson();
     toggleComboScoreMultiplierPanel(false);
+    void initSupportAdsConfig().then(() => {
+        state.supportAdsConfig = readSupportAdsConfig();
+        fillSupportAdsInputs(state.supportAdsConfig);
+    }).catch(() => {
+        // ignore init failure and keep local/default values
+    });
 
     el.btnSaveGameParams?.addEventListener('click', saveGameParamsFromInputs);
     el.btnResetGameParams?.addEventListener('click', resetGameParams);
@@ -577,11 +661,17 @@ function initGameParamPanel() {
     });
 
     window.addEventListener('storage', (event) => {
-        if (event.key !== null && event.key !== 'arrowClear_gameplayParams_v1') {
+        if (
+            event.key !== null
+            && event.key !== 'arrowClear_gameplayParams_v1'
+            && event.key !== 'arrowClear_supportAdsConfig_v1'
+        ) {
             return;
         }
         state.gameplayParams = readGameplayParams();
+        state.supportAdsConfig = readSupportAdsConfig();
         fillGameParamInputs(state.gameplayParams);
+        fillSupportAdsInputs(state.supportAdsConfig);
         refreshGameParamJson();
         setParamStatus('检测到参数变更，已刷新。');
     });
@@ -594,6 +684,3 @@ function init() {
 }
 
 init();
-
-
-

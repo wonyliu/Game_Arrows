@@ -1,4 +1,4 @@
-﻿import { getActiveUserId } from './user-auth.js?v=4';
+﻿import { getActiveUserId } from './user-auth.js?v=5';
 
 const STORAGE_API_BASE = '/api/storage';
 const USER_API_BASE = '/api/users';
@@ -495,6 +495,7 @@ function clampFloat(value, min, max, fallback) {
 function isPlainObject(value) {
     return !!value && typeof value === 'object' && !Array.isArray(value);
 }
+
 
 
 

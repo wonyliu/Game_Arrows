@@ -131,6 +131,7 @@ const MANAGED_STORAGE_KEYS = new Set([
     'preview-levels-v1',
     'bgm-config-v1',
     'liveops-config-v1',
+    'support-ads-config-v1',
     'sfx-custom-presets-v1',
     'sfx-lab-state-v1',
     'sfx-preset-overrides-v1',
@@ -215,6 +216,10 @@ const server = http.createServer(async (req, res) => {
         }
         if (requestUrl.pathname === '/api/users/me') {
             await handleUserMeRequest(req, res, requestUrl);
+            return;
+        }
+        if (requestUrl.pathname === '/api/users/profile') {
+            await handleUserProfileRequest(req, res);
             return;
         }
         if (requestUrl.pathname.startsWith('/api/users/') && requestUrl.pathname.endsWith('/progress')) {
@@ -1547,7 +1552,15 @@ function buildDefaultProgress() {
         unlockedSkinIds: ['classic-burrow'],
         selectedSkinId: 'classic-burrow',
         nextRewardLevelIndex: 1,
-        rewardGuideShown: false
+        rewardGuideShown: false,
+        supportAds: {
+            dayKey: '',
+            watchedToday: 0,
+            totalWatched: 0,
+            dailyLimitOverride: -1,
+            lastPlacement: '',
+            lastWatchedAt: ''
+        }
     };
 }
 
@@ -1623,6 +1636,28 @@ function normalizeProgressFromPayload(payload, fallback = null) {
     const selectedSkinId = `${source.selectedSkinId || base.selectedSkinId || 'classic-burrow'}`.trim() || 'classic-burrow';
     const nextRewardLevelIndex = Math.max(1, Math.floor(Number(source.nextRewardLevelIndex ?? base.nextRewardLevelIndex) || 1));
     const rewardGuideShown = source.rewardGuideShown === true || (source.rewardGuideShown !== false && base.rewardGuideShown === true);
+    const supportAdsSource = isPlainObject(source.supportAds) ? source.supportAds : {};
+    const supportAdsBase = isPlainObject(base.supportAds) ? base.supportAds : {};
+    const supportAds = {
+        dayKey: /^\d{4}-\d{2}-\d{2}$/.test(`${supportAdsSource.dayKey ?? supportAdsBase.dayKey ?? ''}`.trim())
+            ? `${supportAdsSource.dayKey ?? supportAdsBase.dayKey}`.trim()
+            : '',
+        watchedToday: Math.max(0, Math.floor(Number(supportAdsSource.watchedToday ?? supportAdsBase.watchedToday) || 0)),
+        totalWatched: Math.max(0, Math.floor(Number(supportAdsSource.totalWatched ?? supportAdsBase.totalWatched) || 0)),
+        dailyLimitOverride: Math.max(
+            -1,
+            Math.min(200, Math.floor(Number(supportAdsSource.dailyLimitOverride ?? supportAdsBase.dailyLimitOverride) || -1))
+        ),
+        lastPlacement: `${supportAdsSource.lastPlacement ?? supportAdsBase.lastPlacement ?? ''}`
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9_-]+/g, '')
+            .slice(0, 40),
+        lastWatchedAt: sanitizeIsoDateTime(
+            supportAdsSource.lastWatchedAt ?? supportAdsBase.lastWatchedAt,
+            ''
+        )
+    };
     return {
         version: 1,
         updatedAt: nowIso(),
@@ -1633,7 +1668,8 @@ function normalizeProgressFromPayload(payload, fallback = null) {
         unlockedSkinIds,
         selectedSkinId,
         nextRewardLevelIndex,
-        rewardGuideShown
+        rewardGuideShown,
+        supportAds
     };
 }
 
@@ -1993,6 +2029,69 @@ async function handleUserMeRequest(req, res, requestUrl) {
             devices: Array.isArray(user?.devices) ? user.devices : []
         }
     });
+}
+
+async function handleUserProfileRequest(req, res) {
+    if (req.method !== 'PUT') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_JSON_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    if (!isPlainObject(body)) {
+        sendJson(res, 400, { ok: false, error: 'body must be an object' });
+        return;
+    }
+    const userId = sanitizeUserId(body.userId);
+    if (!userId) {
+        sendJson(res, 400, { ok: false, error: 'userId is required' });
+        return;
+    }
+    const user = await userCenterStore.findUserById(userId);
+    if (!user) {
+        sendJson(res, 404, { ok: false, error: 'user not found' });
+        return;
+    }
+
+    const rawUsername = `${body.username ?? ''}`.trim();
+    const hasUsernameUpdate = rawUsername.length > 0;
+    if (hasUsernameUpdate) {
+        const username = sanitizeUsername(rawUsername);
+        if (!username || username.length < 2) {
+            sendJson(res, 400, { ok: false, error: 'username must be at least 2 chars' });
+            return;
+        }
+        const duplicated = await userCenterStore.findUserByUsernameLower(username.toLowerCase());
+        if (duplicated && sanitizeUserId(duplicated.userId) !== userId) {
+            sendJson(res, 409, { ok: false, error: 'username already exists' });
+            return;
+        }
+        user.username = username;
+    }
+
+    const password = `${body.password || ''}`;
+    if (password) {
+        if (password.length < 4) {
+            sendJson(res, 400, { ok: false, error: 'password must be at least 4 chars' });
+            return;
+        }
+        const salt = crypto.randomBytes(12).toString('hex');
+        user.passwordAlgorithm = 'scrypt-v1';
+        user.passwordSalt = salt;
+        user.passwordHash = hashPassword(password, salt, 'scrypt-v1');
+        user.isTempUser = false;
+    }
+
+    const avatarUrlInput = `${body.avatarUrl ?? ''}`.trim();
+    user.avatarUrl = avatarUrlInput || defaultAvatarByName(user.username || user.userId);
+    user.lastActiveAt = nowIso();
+    await userCenterStore.updateUser(user);
+    sendJson(res, 200, { ok: true, user: normalizeUserForResponse(user) });
 }
 
 function parseUserIdFromProgressPath(pathname) {

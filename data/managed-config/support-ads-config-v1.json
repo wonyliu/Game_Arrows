@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "updatedAt": "",
+  "defaultDailyLimit": 5,
+  "thankYouMessage": "感谢你的支持，这会帮助我们持续更新游戏内容。",
+  "enabledPlacements": {
+    "support_author": true,
+    "fail_continue": false,
+    "double_coin": false
+  },
+  "adUnitIds": {
+    "support_author": "",
+    "fail_continue": "",
+    "double_coin": ""
+  }
+}

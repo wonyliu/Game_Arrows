@@ -1325,6 +1325,38 @@
                         <span>可释放蛇点击区域倍率 (releasableHitAreaScale)</span>
                         <input id="paramReleasableHitAreaScale" type="number" min="1" max="2.2" step="0.05">
                     </label>
+                    <label class="field">
+                        <span>默认每日可观看支持广告次数 (supportAds.defaultDailyLimit)</span>
+                        <input id="paramSupportAdsDefaultDailyLimit" type="number" min="0" max="200" step="1">
+                    </label>
+                    <label class="field">
+                        <span>支持感谢语 (supportAds.thankYouMessage)</span>
+                        <textarea id="paramSupportAdsThankYouMessage" rows="3" maxlength="180" placeholder="例如：感谢你的支持，这会帮助我们持续更新游戏。"></textarea>
+                    </label>
+                    <label class="field">
+                        <span>支持作者广告位启用 (supportAds.enabledPlacements.support_author)</span>
+                        <input id="paramSupportAdsEnableSupportAuthor" type="checkbox" checked>
+                    </label>
+                    <label class="field">
+                        <span>失败继续广告位启用 (supportAds.enabledPlacements.fail_continue)</span>
+                        <input id="paramSupportAdsEnableFailContinue" type="checkbox" checked>
+                    </label>
+                    <label class="field">
+                        <span>双倍金币广告位启用 (supportAds.enabledPlacements.double_coin)</span>
+                        <input id="paramSupportAdsEnableDoubleCoin" type="checkbox" checked>
+                    </label>
+                    <label class="field">
+                        <span>支持作者广告位 ID (supportAds.adUnitIds.support_author)</span>
+                        <input id="paramSupportAdsUnitSupportAuthor" type="text" maxlength="120" placeholder="adunit-xxxxxxxxxxxx">
+                    </label>
+                    <label class="field">
+                        <span>失败继续广告位 ID (supportAds.adUnitIds.fail_continue)</span>
+                        <input id="paramSupportAdsUnitFailContinue" type="text" maxlength="120" placeholder="adunit-xxxxxxxxxxxx">
+                    </label>
+                    <label class="field">
+                        <span>双倍金币广告位 ID (supportAds.adUnitIds.double_coin)</span>
+                        <input id="paramSupportAdsUnitDoubleCoin" type="text" maxlength="120" placeholder="adunit-xxxxxxxxxxxx">
+                    </label>
                     <div class="hit-area-preview" id="hitAreaPreview">
                         <div class="hit-area-preview-head">
                             <strong>点击区域实时预览</strong>
@@ -1506,6 +1538,10 @@
                                     <span>奖励引导已展示</span>
                                     <input id="dbAdminProgressRewardGuideShown" type="checkbox">
                                 </label>
+                                <label class="field">
+                                    <span>个性化每日广告上限（-1 代表使用全局默认）</span>
+                                    <input id="dbAdminSupportAdsDailyLimitOverride" type="number" min="-1" max="200" step="1">
+                                </label>
                             </div>
 
                             <div class="db-admin-card-grid">
@@ -1666,14 +1702,14 @@
 
     <script src="js/runtime-api-base.js?v=5"></script>
     <script type="module" src="js/admin.js?v=75"></script>
-    <script type="module" src="js/admin-hub.js?v=17"></script>
+    <script type="module" src="js/admin-hub.js?v=19"></script>
     <script type="module" src="js/admin-skin-manager.js?v=11"></script>
     <script type="module" src="js/admin-skin-fit.js?v=15"></script>
     <script type="module" src="js/admin-skin-gen.js?v=45"></script>
     <script type="module" src="js/admin-sfx-lab.js?v=36"></script>
-    <script type="module" src="js/admin-liveops.js?v=5"></script>
+    <script type="module" src="js/admin-liveops.js?v=6"></script>
     <script type="module" src="js/admin-system.js?v=5"></script>
     <script type="module" src="js/admin-ui-editor.js?v=21"></script>
-    <script type="module" src="js/admin-db.js?v=2"></script>
+    <script type="module" src="js/admin-db.js?v=3"></script>
   </body>
   </html>

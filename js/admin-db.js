@@ -55,6 +55,7 @@ const el = {
     progressSelectedSkinId: document.getElementById('dbAdminProgressSelectedSkinId'),
     progressNextRewardLevelIndex: document.getElementById('dbAdminProgressNextRewardLevelIndex'),
     progressRewardGuideShown: document.getElementById('dbAdminProgressRewardGuideShown'),
+    supportAdsDailyLimitOverride: document.getElementById('dbAdminSupportAdsDailyLimitOverride'),
     inventorySkinFragment: document.getElementById('dbAdminInventorySkinFragment'),
     inventoryHint: document.getElementById('dbAdminInventoryHint'),
     inventoryUndo: document.getElementById('dbAdminInventoryUndo'),
@@ -169,7 +170,15 @@ function createEmptyDetail() {
             currentLevel: 1,
             selectedSkinId: 'classic-burrow',
             nextRewardLevelIndex: 1,
-            rewardGuideShown: false
+            rewardGuideShown: false,
+            supportAds: {
+                dayKey: '',
+                watchedToday: 0,
+                totalWatched: 0,
+                dailyLimitOverride: -1,
+                lastPlacement: '',
+                lastWatchedAt: ''
+            }
         },
         liveopsPlayer: {
             inventory: { skin_fragment: 0, hint: 0, undo: 0, shuffle: 0 },
@@ -204,7 +213,11 @@ function normalizeDetail(user) {
         unlockedSkinIds: Array.isArray(source.unlockedSkinIds) ? source.unlockedSkinIds.map((v) => `${v || ''}`) : ['classic-burrow'],
         progress: {
             ...base.progress,
-            ...(source.progress || {})
+            ...(source.progress || {}),
+            supportAds: {
+                ...(base.progress?.supportAds || {}),
+                ...(source.progress?.supportAds || {})
+            }
         },
         liveopsPlayer: {
             ...base.liveopsPlayer,
@@ -398,6 +411,9 @@ function populateDetail(user) {
     if (el.progressSelectedSkinId) el.progressSelectedSkinId.value = state.detail.progress?.selectedSkinId || '';
     if (el.progressNextRewardLevelIndex) el.progressNextRewardLevelIndex.value = String(Number(state.detail.progress?.nextRewardLevelIndex || 1));
     if (el.progressRewardGuideShown) el.progressRewardGuideShown.checked = state.detail.progress?.rewardGuideShown === true;
+    if (el.supportAdsDailyLimitOverride) {
+        el.supportAdsDailyLimitOverride.value = String(Number(state.detail.progress?.supportAds?.dailyLimitOverride ?? -1));
+    }
     if (el.inventorySkinFragment) el.inventorySkinFragment.value = String(Number(state.detail.liveopsPlayer?.inventory?.skin_fragment || 0));
     if (el.inventoryHint) el.inventoryHint.value = String(Number(state.detail.liveopsPlayer?.inventory?.hint || 0));
     if (el.inventoryUndo) el.inventoryUndo.value = String(Number(state.detail.liveopsPlayer?.inventory?.undo || 0));
@@ -469,7 +485,17 @@ function collectDetailFromForm() {
             currentLevel: numberValue(el.progressCurrentLevel, base.progress?.currentLevel || 1, 1),
             selectedSkinId: `${el.progressSelectedSkinId?.value || ''}`.trim(),
             nextRewardLevelIndex: numberValue(el.progressNextRewardLevelIndex, base.progress?.nextRewardLevelIndex || 1, 1),
-            rewardGuideShown: el.progressRewardGuideShown?.checked === true
+            rewardGuideShown: el.progressRewardGuideShown?.checked === true,
+            supportAds: {
+                ...(base.progress?.supportAds || {}),
+                dailyLimitOverride: (() => {
+                    const parsed = Number(el.supportAdsDailyLimitOverride?.value ?? (base.progress?.supportAds?.dailyLimitOverride ?? -1));
+                    if (!Number.isFinite(parsed)) {
+                        return -1;
+                    }
+                    return Math.max(-1, Math.min(200, Math.floor(parsed)));
+                })()
+            }
         },
         liveopsPlayer: {
             ...base.liveopsPlayer,
@@ -649,7 +675,7 @@ function bindFormSync() {
         el.username, el.avatarUrl, el.createdAt, el.lastActiveAt, el.isTempUser,
         el.passwordAlgorithm, el.passwordSalt, el.passwordHash, el.primaryDeviceId,
         el.coins, el.maxUnlockedLevel, el.maxClearedLevel, el.progressCurrentLevel,
-        el.progressSelectedSkinId, el.progressNextRewardLevelIndex, el.progressRewardGuideShown,
+        el.progressSelectedSkinId, el.progressNextRewardLevelIndex, el.progressRewardGuideShown, el.supportAdsDailyLimitOverride,
         el.inventorySkinFragment, el.inventoryHint, el.inventoryUndo, el.inventoryShuffle,
         el.checkinClaimedCount, el.checkinLastClaimDayKey, el.onlineRewardDayKey,
         el.onlineRewardTierIndex, el.onlineRewardRemainingSeconds

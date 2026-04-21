@@ -9,6 +9,7 @@ const KEYS = Object.freeze([
     'preview-levels-v1',
     'bgm-config-v1',
     'liveops-config-v1',
+    'support-ads-config-v1',
     'ui-layout-config-v1',
     'skin-part-fit-overrides-v1',
     'skin-price-overrides-v1'

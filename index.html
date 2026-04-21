@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=112">
+    <link rel="stylesheet" href="css/style.css?v=114">
 </head>
 <body>
     <div class="app-container">
@@ -115,7 +115,7 @@
                         ></video>
                     </div>
                     <div class="play-area play-area-v2">
-                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">开始冒险</button>
+                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">进入游戏</button>
                         <button id="btnLevels" class="current-level-tag" type="button" aria-label="洞穴入口">
                             <span class="level-tag-icon" aria-hidden="true"></span>
                             <span class="level-tag-label" data-i18n="home.burrowEntry">洞穴入口</span>
@@ -153,16 +153,65 @@
                             <img class="feature-icon" data-icon-slot="icon.exit" src="assets/ui/shared/icons/icon_lock.png" alt="exit">
                             <span class="feature-label" data-i18n="feature.exit">Exit</span>
                         </button>
-                        <button id="btnMore" class="feature-card feature-card-placeholder" type="button" disabled>
-                            <img class="feature-icon" data-icon-slot="icon.home" src="assets/ui/shared/icons/icon_home.png" alt="more">
-                            <span class="feature-label" data-i18n="feature.more">更多</span>
+                        <button id="btnSupportAuthor" class="feature-card" type="button" data-feature-id="support-author">
+                            <span class="feature-badge hidden" data-badge-for="support-author"></span>
+                            <img class="feature-icon" data-icon-slot="icon.home" src="assets/ui/shared/icons/icon_home.png" alt="support-author">
+                            <span class="feature-label" data-i18n="feature.supportAuthor">支持作者</span>
                         </button>
                     </div>
                 </section>
             </div>
+            <button id="btnProfileAvatar" class="menu-profile-entry" type="button" aria-label="profile">
+                <img id="menuProfileAvatarImage" class="menu-profile-avatar" src="assets/ui/shared/icons/icon_theme.png" alt="profile">
+            </button>
+            <button id="btnLoginEntry" class="menu-avatar-login-link hidden" type="button" data-i18n="home.loginLink">登录</button>
             <div class="coin-chip menu-coin-chip" id="menuCoinDisplay" aria-label="coins">
                 <img class="coin-chip-icon" src="assets/ui/themes/design-v5/icon_coin.png" alt="coin">
                 <strong id="menuCoinValue" class="coin-chip-value">0</strong>
+            </div>
+        </div>
+
+        <div id="supportAuthorOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell panel-shell-sm">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.support.title">支持作者</h2>
+                    <button id="btnBackFromSupportAuthor" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                </div>
+                <div class="panel-body support-author-body">
+                    <p id="supportAuthorThankYou" class="support-author-thankyou">感谢你的支持，这会帮助我们持续更新游戏内容。</p>
+                    <div class="support-author-counter-wrap">
+                        <span data-i18n="panel.support.counterLabel">今日支持进度</span>
+                        <strong id="supportAuthorCount" class="support-author-count">0/5</strong>
+                    </div>
+                    <button id="btnSupportAuthorWatchAd" class="btn-popup-primary support-author-watch-btn" type="button" data-i18n="panel.support.watchAd">播放支持广告</button>
+                    <p id="supportAuthorStatus" class="empty-state"></p>
+                </div>
+            </div>
+        </div>
+
+        <div id="profileOverlay" class="overlay menu-panel-overlay hidden">
+            <div class="panel-shell panel-shell-sm">
+                <div class="panel-head">
+                    <h2 class="panel-title" data-i18n="panel.profile.title">个人资料</h2>
+                    <button id="btnBackFromProfile" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
+                </div>
+                <div class="panel-body profile-body">
+                    <p id="profileUserMeta" class="empty-state">ID: -</p>
+                    <label class="field">
+                        <span data-i18n="panel.profile.nickname">昵称</span>
+                        <input id="profileNicknameInput" class="user-auth-input" type="text" maxlength="24" placeholder="请输入昵称">
+                    </label>
+                    <label class="field">
+                        <span data-i18n="panel.profile.password">新密码（可选）</span>
+                        <input id="profilePasswordInput" class="user-auth-input" type="password" maxlength="64" placeholder="至少 4 位">
+                    </label>
+                    <label class="field">
+                        <span data-i18n="panel.profile.passwordConfirm">确认新密码</span>
+                        <input id="profilePasswordConfirmInput" class="user-auth-input" type="password" maxlength="64" placeholder="再次输入密码">
+                    </label>
+                    <button id="btnProfileSave" class="btn-popup-primary profile-save-btn" type="button" data-i18n="panel.profile.save">保存资料</button>
+                    <p id="profileStatus" class="empty-state"></p>
+                </div>
             </div>
         </div>
 
@@ -197,15 +246,6 @@
                                 <input id="settingsSfxVolume" type="range" min="0" max="100" value="55" step="1">
                                 <strong id="settingsSfxVolumeValue">55%</strong>
                             </label>
-                        </div>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-title" data-i18n="panel.settings.graphics">Graphics</div>
-                        <div class="setting-desc" data-i18n="panel.settings.graphicsDesc">Performance presets will be available in a future update.</div>
-                        <div class="setting-control graphics-switch" role="group" aria-label="graphics-quality">
-                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsLow">低</button>
-                            <button class="graphics-option active" type="button" disabled data-i18n="panel.settings.graphicsMid">中</button>
-                            <button class="graphics-option" type="button" disabled data-i18n="panel.settings.graphicsHigh">高</button>
                         </div>
                     </div>
                     <div class="setting-row setting-row-reset">
@@ -391,6 +431,7 @@
                 <div id="levelScoreBonus" class="popup-bonus hidden"></div>
                 <div id="levelCoinReward" class="popup-coins">Coins +0 (Total 0)</div>
                 <div class="popup-buttons">
+                    <button id="btnDoubleCoinAd" class="btn-popup-secondary" type="button" data-i18n="panel.complete.doubleCoin">看广告双倍金币</button>
                     <button id="btnNext" class="btn-popup-primary" type="button" data-i18n="common.next">Next</button>
                 </div>
             </div>
@@ -401,6 +442,7 @@
                 <h2 class="popup-title" data-i18n="panel.over.title">Snake Is Tired</h2>
                 <div id="gameOverReason" class="popup-score">Out of lives</div>
                 <div class="popup-buttons">
+                    <button id="btnContinueByAd" class="btn-popup-primary" type="button" data-i18n="panel.over.continueByAd">看广告继续</button>
                     <button id="btnRetry" class="btn-popup-primary" type="button" data-i18n="common.retry">Retry</button>
                     <button id="btnMenuFromOver" class="btn-popup-secondary" type="button" data-i18n="common.menu">Back to Menu</button>
                 </div>
@@ -435,6 +477,6 @@
     </div>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/main.js?v=255"></script>
+    <script type="module" src="js/main.js?v=257"></script>
 </body>
 </html>
