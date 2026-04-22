@@ -154,14 +154,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun resolveRewardedAdUnitId(rawAdUnitId: String): String {
-        val trimmed = rawAdUnitId.trim()
-        if (trimmed.isNotEmpty()) {
-            return trimmed
-        }
-        if (BuildConfig.DEBUG) {
-            return DEBUG_REWARDED_TEST_AD_UNIT_ID
-        }
-        return BuildConfig.DEFAULT_REWARDED_AD_UNIT_ID.trim()
+        return rawAdUnitId.trim()
     }
 
     private fun buildGameLaunchUrl(): String {

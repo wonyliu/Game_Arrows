@@ -1948,27 +1948,6 @@ export class UI {
         this.refreshDoubleCoinAdButton();
     }
 
-    resolveRewardedAdGateWithFallback(placement) {
-        if (!this.game || typeof this.game.canWatchRewardedAd !== 'function') {
-            return {
-                gate: { ok: false, reason: 'not-available' },
-                playPlacement: placement
-            };
-        }
-        let gate = this.game.canWatchRewardedAd(placement);
-        let playPlacement = placement;
-        if (!gate?.ok
-            && gate?.reason === 'placement-disabled'
-            && placement !== REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR) {
-            const fallbackGate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
-            if (fallbackGate?.ok) {
-                gate = fallbackGate;
-                playPlacement = REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR;
-            }
-        }
-        return { gate, playPlacement };
-    }
-
     refreshGameOverContinueByAdButton() {
         if (!this.gameOverContinueByAdButton || !this.game || typeof this.game.canWatchRewardedAd !== 'function') {
             return;
@@ -1976,7 +1955,7 @@ export class UI {
         const canContinue = typeof this.game.canContinueCurrentStageByAd === 'function'
             ? this.game.canContinueCurrentStageByAd()
             : false;
-        const { gate } = this.resolveRewardedAdGateWithFallback(REWARDED_AD_PLACEMENTS.FAIL_CONTINUE);
+        const gate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.FAIL_CONTINUE);
         this.gameOverContinueByAdButton.disabled = !canContinue || !gate?.ok || this.rewardedAdPending;
     }
 
@@ -1987,7 +1966,7 @@ export class UI {
         const canClaim = typeof this.game.canClaimDoubleCoinReward === 'function'
             ? this.game.canClaimDoubleCoinReward()
             : false;
-        const { gate } = this.resolveRewardedAdGateWithFallback(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
+        const gate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
         const canWatch = gate?.ok;
         this.levelCompleteDoubleCoinButton.disabled = !(canClaim && canWatch) || this.rewardedAdPending;
         this.levelCompleteDoubleCoinButton.classList.toggle('hidden', !canClaim);
@@ -1997,7 +1976,7 @@ export class UI {
         if (!this.game || this.rewardedAdPending || typeof this.game.canWatchRewardedAd !== 'function') {
             return { ok: false, reason: 'busy' };
         }
-        const { gate, playPlacement } = this.resolveRewardedAdGateWithFallback(placement);
+        const gate = this.game.canWatchRewardedAd(placement);
         if (!gate?.ok) {
             this.refreshSupportAuthorPanel();
             return {
@@ -2010,7 +1989,7 @@ export class UI {
         this.rewardedAdPending = true;
         this.refreshSupportAuthorPanel();
         try {
-            const result = await playRewardedAd(playPlacement);
+            const result = await playRewardedAd(placement);
             if (!result?.rewarded) {
                 return { ok: false, reason: result?.error || 'ad-interrupted' };
             }
