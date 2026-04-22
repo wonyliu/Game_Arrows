@@ -189,6 +189,7 @@ export class Game {
         this.supportAdsConfig = readSupportAdsConfig();
         this.supportAdsState = createDefaultSupportAdsState();
         this.supportAuthorBadgeCount = 0;
+        this.lastGameOverReason = '';
         this.onlineRewardSaveAccumulator = 0;
         this.nextRewardLevelIndex = 1;
         this.levelDoubleCoinClaimed = false;
@@ -439,6 +440,33 @@ export class Game {
         return this.state === 'LEVEL_COMPLETE'
             && this.levelDoubleCoinClaimed !== true
             && this.getLastCoinReward() > 0;
+    }
+
+    canContinueCurrentStageByAd() {
+        return this.state === 'GAME_OVER'
+            && this.hasTimer
+            && this.maxTimeRemaining > 0
+            && `${this.lastGameOverReason || ''}`.trim() === 'Time is up';
+    }
+
+    resumeFromGameOverByAd() {
+        if (!this.canContinueCurrentStageByAd()) {
+            return false;
+        }
+        this.state = 'PLAYING';
+        this.timeRemaining = this.clampTime(this.maxTimeRemaining);
+        if (this.lifeSystemEnabled && this.lives <= 0) {
+            this.lives = Math.max(1, Math.floor(Number(this.maxLives) || 1));
+        }
+        this.lastSnakeInteractionTime = performance.now();
+        this.dragReleaseActive = false;
+        this.dragReleaseLineIds.clear();
+        this.setUndoReleaseArmed(false);
+        this.suppressSyntheticClickUntil = nowMs() + SYNTHETIC_TOUCH_CLICK_SUPPRESS_MS;
+        this.suppressClickUntil = nowMs() + DRAG_RELEASE_CLICK_SUPPRESS_MS;
+        this.updateTimerUI();
+        this.updateHUD();
+        return true;
     }
 
     claimDoubleCoinReward() {
@@ -1052,6 +1080,7 @@ export class Game {
         this.levelLineCount = Array.isArray(this.lines) ? this.lines.length : 0;
         this.lastLevelSettleSummary = null;
         this.rewardStageUnlockedThisLevel = false;
+        this.lastGameOverReason = '';
         this.lastComboReleaseAt = 0;
         this.releaseSfxScoreEventCount = 0;
         this.hasTimer = !!config.hasTimer && Number(config.timerSeconds) > 0;
@@ -1773,6 +1802,7 @@ export class Game {
 
     gameOver(reason) {
         this.state = 'GAME_OVER';
+        this.lastGameOverReason = `${reason || ''}`.trim();
         this.lastComboReleaseAt = 0;
         this.resetEnergyBatches();
         this.dragReleaseActive = false;

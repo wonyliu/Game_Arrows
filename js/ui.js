@@ -1948,12 +1948,36 @@ export class UI {
         this.refreshDoubleCoinAdButton();
     }
 
+    resolveRewardedAdGateWithFallback(placement) {
+        if (!this.game || typeof this.game.canWatchRewardedAd !== 'function') {
+            return {
+                gate: { ok: false, reason: 'not-available' },
+                playPlacement: placement
+            };
+        }
+        let gate = this.game.canWatchRewardedAd(placement);
+        let playPlacement = placement;
+        if (!gate?.ok
+            && gate?.reason === 'placement-disabled'
+            && placement !== REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR) {
+            const fallbackGate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
+            if (fallbackGate?.ok) {
+                gate = fallbackGate;
+                playPlacement = REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR;
+            }
+        }
+        return { gate, playPlacement };
+    }
+
     refreshGameOverContinueByAdButton() {
         if (!this.gameOverContinueByAdButton || !this.game || typeof this.game.canWatchRewardedAd !== 'function') {
             return;
         }
-        const gate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.FAIL_CONTINUE);
-        this.gameOverContinueByAdButton.disabled = !gate?.ok || this.rewardedAdPending;
+        const canContinue = typeof this.game.canContinueCurrentStageByAd === 'function'
+            ? this.game.canContinueCurrentStageByAd()
+            : false;
+        const { gate } = this.resolveRewardedAdGateWithFallback(REWARDED_AD_PLACEMENTS.FAIL_CONTINUE);
+        this.gameOverContinueByAdButton.disabled = !canContinue || !gate?.ok || this.rewardedAdPending;
     }
 
     refreshDoubleCoinAdButton() {
@@ -1963,11 +1987,8 @@ export class UI {
         const canClaim = typeof this.game.canClaimDoubleCoinReward === 'function'
             ? this.game.canClaimDoubleCoinReward()
             : false;
-        const gate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
-        const fallbackGate = (!gate?.ok && gate?.reason === 'placement-disabled')
-            ? this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR)
-            : null;
-        const canWatch = gate?.ok || fallbackGate?.ok;
+        const { gate } = this.resolveRewardedAdGateWithFallback(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
+        const canWatch = gate?.ok;
         this.levelCompleteDoubleCoinButton.disabled = !(canClaim && canWatch) || this.rewardedAdPending;
         this.levelCompleteDoubleCoinButton.classList.toggle('hidden', !canClaim);
     }
@@ -1976,17 +1997,7 @@ export class UI {
         if (!this.game || this.rewardedAdPending || typeof this.game.canWatchRewardedAd !== 'function') {
             return { ok: false, reason: 'busy' };
         }
-        let gate = this.game.canWatchRewardedAd(placement);
-        let playPlacement = placement;
-        if (!gate?.ok
-            && placement === REWARDED_AD_PLACEMENTS.DOUBLE_COIN
-            && gate?.reason === 'placement-disabled') {
-            const fallbackGate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
-            if (fallbackGate?.ok) {
-                gate = fallbackGate;
-                playPlacement = REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR;
-            }
-        }
+        const { gate, playPlacement } = this.resolveRewardedAdGateWithFallback(placement);
         if (!gate?.ok) {
             this.refreshSupportAuthorPanel();
             return {
@@ -2040,10 +2051,28 @@ export class UI {
                     '\u4eca\u65e5\u5e7f\u544a\u89c2\u770b\u6b21\u6570\u5df2\u8fbe\u4e0a\u9650\uff0c\u8bf7\u76f4\u63a5\u91cd\u8bd5\u3002',
                     'Daily ad limit reached. Please retry directly.'
                 );
+            } else if (this.gameOverReason && result?.reason) {
+                this.gameOverReason.textContent = this.getLocaleText(
+                    '\u5e7f\u544a\u672a\u5b8c\u6210\uff0c\u672a\u80fd\u7ee7\u7eed\u3002',
+                    'Ad not completed, unable to continue.'
+                );
             }
             return;
         }
-        this.retryLevel();
+        const resumed = typeof this.game?.resumeFromGameOverByAd === 'function'
+            ? this.game.resumeFromGameOverByAd()
+            : false;
+        if (!resumed) {
+            this.retryLevel();
+            return;
+        }
+        this.gameOverOverlay?.classList.add('hidden');
+        this.hud?.classList.remove('hidden');
+        this.setMenuChromeVisible(false);
+        this.forceGameCanvasResize();
+        this.updateHUD();
+        this.syncGameplayBgm(true);
+        this.updateHomeDanceMascotPlayback();
     }
 
     async handleDoubleCoinAd() {
