@@ -72,6 +72,8 @@ const LEADERBOARD_MODE = Object.freeze({
     CLEAR: 'clear',
     BADGE: 'badge'
 });
+const LEADERBOARD_PAGE_SIZE = 20;
+const LEADERBOARD_SCROLL_LOAD_THRESHOLD = 120;
 
 const LEVEL_SETTLE_MIN_MS = 700;
 const LEVEL_SETTLE_MAX_MS = 1800;
@@ -140,6 +142,9 @@ export class UI {
         this.settingsOverlay = document.getElementById('settingsOverlay');
         this.leaderboardOverlay = document.getElementById('leaderboardOverlay');
         this.leaderboardListEl = this.leaderboardOverlay?.querySelector('.rank-list') || null;
+        this.leaderboardScrollHostEl = this.leaderboardOverlay?.querySelector('.leaderboard-panel-body')
+            || this.leaderboardOverlay?.querySelector('.panel-body')
+            || null;
         this.leaderboardSelfSectionEl = document.getElementById('leaderboardSelfSection');
         this.leaderboardSelfLabelEl = document.getElementById('leaderboardSelfLabel');
         this.leaderboardSelfListEl = document.getElementById('leaderboardSelfList');
@@ -287,6 +292,13 @@ export class UI {
         this.homeVideoHttpProbeInFlight = false;
         this.rewardedAdPending = false;
         this.profileSavePending = false;
+        this.leaderboardOffset = 0;
+        this.leaderboardHasMore = true;
+        this.leaderboardLoading = false;
+        this.leaderboardRequestSeq = 0;
+        this.leaderboardSelfRow = null;
+        this.leaderboardSelfUserId = '';
+        this.leaderboardLoadedUserIdSet = new Set();
         this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
         this.audioEnabled = this.uiEditorPreviewOptions.enabled !== true;
         this.homeDanceMascotAudioUnlocked = !this.audioEnabled;
@@ -476,6 +488,11 @@ export class UI {
         this.bindButton('btnLeaderboardModeBadge', () => {
             this.setLeaderboardMode(LEADERBOARD_MODE.BADGE);
         });
+        if (this.leaderboardScrollHostEl) {
+            this.leaderboardScrollHostEl.addEventListener('scroll', () => {
+                void this.handleLeaderboardScroll();
+            }, { passive: true });
+        }
         this.bindButton('btnProfileAvatar', () => this.openMenuPanel(MENU_PANEL.PROFILE));
         this.bindButton('btnProfileSave', () => {
             void this.handleProfileSave();
@@ -1475,78 +1492,160 @@ export class UI {
         if (!this.leaderboardListEl) {
             return;
         }
+        this.leaderboardRequestSeq += 1;
+        const requestSeq = this.leaderboardRequestSeq;
+        const bootSession = bootstrapUserSessionFromStorage();
+        this.leaderboardSelfUserId = `${getActiveUserId() || bootSession?.userId || ''}`.trim();
+        this.leaderboardSelfRow = null;
+        this.leaderboardLoadedUserIdSet.clear();
+        this.leaderboardOffset = 0;
+        this.leaderboardHasMore = true;
+        this.leaderboardLoading = false;
         this.leaderboardListEl.innerHTML = '';
         this.renderLeaderboardSelfRow(null);
-        const isBadgeMode = this.leaderboardMode === LEADERBOARD_MODE.BADGE;
-        const fallbackRowCount = 5;
-        const renderFallback = (message) => {
-            for (let i = 1; i <= fallbackRowCount; i += 1) {
-                const li = document.createElement('li');
-                li.innerHTML = `<span>#${i}</span><span class="rank-player">---</span><span class="rank-level">---</span>`;
-                this.leaderboardListEl.appendChild(li);
-            }
-            if (this.leaderboardEmptyStateEl) {
-                this.leaderboardEmptyStateEl.textContent = isBadgeMode
-                    ? this.getLocaleText(
-                        '\u6309\u5956\u7ae0\u6570\u91cf\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
-                        'Sorted by support badges. Top 100 only.'
-                    )
-                    : this.getLocaleText(
-                        '\u6309\u6700\u9ad8\u901a\u5173\u5173\u5361\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
-                        'Sorted by highest cleared level. Top 100 only.'
-                    );
-            }
-        };
+        if (this.leaderboardScrollHostEl) {
+            this.leaderboardScrollHostEl.scrollTop = 0;
+        }
+        if (this.leaderboardEmptyStateEl) {
+            this.leaderboardEmptyStateEl.textContent = this.getLocaleText('\u6392\u884c\u699c\u52a0\u8f7d\u4e2d...', 'Loading leaderboard...');
+        }
+        await this.loadLeaderboardPage(requestSeq);
+    }
 
+    async handleLeaderboardScroll() {
+        if (!this.leaderboardScrollHostEl || this.menuState !== MENU_PANEL.LEADERBOARD) {
+            return;
+        }
+        if (!this.leaderboardHasMore || this.leaderboardLoading) {
+            return;
+        }
+        const remain = this.leaderboardScrollHostEl.scrollHeight
+            - (this.leaderboardScrollHostEl.scrollTop + this.leaderboardScrollHostEl.clientHeight);
+        if (remain > LEADERBOARD_SCROLL_LOAD_THRESHOLD) {
+            return;
+        }
+        await this.loadLeaderboardPage(this.leaderboardRequestSeq);
+    }
+
+    async loadLeaderboardPage(requestSeq) {
+        if (!this.leaderboardListEl) {
+            return;
+        }
+        if (requestSeq !== this.leaderboardRequestSeq || this.leaderboardLoading || !this.leaderboardHasMore) {
+            return;
+        }
+        this.leaderboardLoading = true;
+        const isInitialPage = this.leaderboardOffset === 0;
+        const isBadgeMode = this.leaderboardMode === LEADERBOARD_MODE.BADGE;
+        if (!isInitialPage && this.leaderboardEmptyStateEl) {
+            this.leaderboardEmptyStateEl.textContent = this.getLocaleText('\u52a0\u8f7d\u66f4\u591a\u4e2d...', 'Loading more...');
+        }
         try {
-            const bootSession = bootstrapUserSessionFromStorage();
-            const requestUserId = `${getActiveUserId() || bootSession?.userId || ''}`.trim();
             const leaderboardUrl = new URL('/api/leaderboard', window.location.href);
-            leaderboardUrl.searchParams.set('limit', '100');
+            leaderboardUrl.searchParams.set('limit', `${LEADERBOARD_PAGE_SIZE}`);
+            leaderboardUrl.searchParams.set('offset', `${this.leaderboardOffset}`);
             leaderboardUrl.searchParams.set('mode', this.leaderboardMode);
-            if (requestUserId) {
-                leaderboardUrl.searchParams.set('userId', requestUserId);
+            if (this.leaderboardSelfUserId) {
+                leaderboardUrl.searchParams.set('userId', this.leaderboardSelfUserId);
             }
             const response = await fetch(leaderboardUrl.toString(), {
                 method: 'GET',
                 cache: 'no-store'
             });
             const payload = await response.json().catch(() => ({}));
-            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
-            if (!response.ok || rows.length === 0) {
-                renderFallback(
-                    isBadgeMode
-                        ? this.getLocaleText('\u6682\u65e0\u5956\u7ae0\u699c\u6570\u636e\u3002', 'No badge leaderboard data yet.')
-                        : this.getLocaleText('\u6682\u65e0\u901a\u5173\u699c\u6570\u636e\u3002', 'No leaderboard data yet.')
-                );
+            if (requestSeq !== this.leaderboardRequestSeq) {
                 return;
             }
+            if (!response.ok || payload?.ok !== true) {
+                throw new Error(payload?.error || `HTTP ${response.status}`);
+            }
+
+            const rows = Array.isArray(payload?.rows) ? payload.rows : [];
             const meRow = payload?.me && typeof payload.me === 'object' ? payload.me : null;
-            const selfUserId = `${meRow?.userId || requestUserId || ''}`.trim();
-            let selfRenderedInTop = false;
+            if (meRow) {
+                this.leaderboardSelfRow = meRow;
+                const meUserId = `${meRow?.userId || ''}`.trim();
+                if (meUserId) {
+                    this.leaderboardSelfUserId = meUserId;
+                }
+            }
+
+            if (isInitialPage && rows.length === 0) {
+                this.renderLeaderboardFallbackRows();
+                if (this.leaderboardEmptyStateEl) {
+                    this.leaderboardEmptyStateEl.textContent = isBadgeMode
+                        ? this.getLocaleText('\u6682\u65e0\u5956\u7ae0\u699c\u6570\u636e\u3002', 'No badge leaderboard data yet.')
+                        : this.getLocaleText('\u6682\u65e0\u901a\u5173\u699c\u6570\u636e\u3002', 'No leaderboard data yet.');
+                }
+                this.leaderboardHasMore = false;
+                this.refreshLeaderboardSelfRowFromState();
+                return;
+            }
+
             for (const row of rows) {
                 const rowUserId = `${row?.userId || ''}`.trim();
-                if (selfUserId && rowUserId === selfUserId) {
-                    selfRenderedInTop = true;
+                if (rowUserId) {
+                    this.leaderboardLoadedUserIdSet.add(rowUserId);
                 }
-                const li = this.buildLeaderboardRow(row, selfUserId);
+                const li = this.buildLeaderboardRow(row, this.leaderboardSelfUserId);
                 this.leaderboardListEl.appendChild(li);
             }
-            this.renderLeaderboardSelfRow(selfRenderedInTop ? null : meRow, selfUserId);
+
+            const hasMoreFromPayload = typeof payload?.hasMore === 'boolean'
+                ? payload.hasMore
+                : rows.length >= LEADERBOARD_PAGE_SIZE;
+            this.leaderboardHasMore = hasMoreFromPayload;
+            this.leaderboardOffset += rows.length;
+            this.refreshLeaderboardSelfRowFromState();
             if (this.leaderboardEmptyStateEl) {
-                this.leaderboardEmptyStateEl.textContent = isBadgeMode
-                    ? this.getLocaleText(
-                        '\u6309\u5956\u7ae0\u6570\u91cf\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
-                        'Sorted by support badges. Top 100 only.'
-                    )
-                    : this.getLocaleText(
-                        '\u6309\u6700\u9ad8\u901a\u5173\u5173\u5361\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
-                        'Sorted by highest cleared level. Top 100 only.'
+                if (this.leaderboardHasMore) {
+                    this.leaderboardEmptyStateEl.textContent = this.getLocaleText(
+                        '\u4e0a\u6ed1\u7ee7\u7eed\u52a0\u8f7d 20 \u540d...',
+                        'Swipe up to load 20 more...'
                     );
+                } else {
+                    this.leaderboardEmptyStateEl.textContent = isBadgeMode
+                        ? this.getLocaleText(
+                            '\u6309\u5956\u7ae0\u6570\u91cf\u6392\u5e8f\uff0c\u5df2\u52a0\u8f7d\u5168\u90e8\u6392\u540d\u3002',
+                            'Sorted by support badges. All loaded.'
+                        )
+                        : this.getLocaleText(
+                            '\u6309\u6700\u9ad8\u901a\u5173\u5173\u5361\u6392\u5e8f\uff0c\u5df2\u52a0\u8f7d\u5168\u90e8\u6392\u540d\u3002',
+                            'Sorted by highest cleared level. All loaded.'
+                        );
+                }
             }
         } catch {
-            renderFallback(this.getLocaleText('\u6392\u884c\u699c\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002', 'Failed to load leaderboard.'));
+            if (isInitialPage) {
+                this.renderLeaderboardFallbackRows();
+                if (this.leaderboardEmptyStateEl) {
+                    this.leaderboardEmptyStateEl.textContent = this.getLocaleText('\u6392\u884c\u699c\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002', 'Failed to load leaderboard.');
+                }
+            } else if (this.leaderboardEmptyStateEl) {
+                this.leaderboardEmptyStateEl.textContent = this.getLocaleText('\u52a0\u8f7d\u66f4\u591a\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002', 'Failed to load more.');
+            }
+            this.leaderboardHasMore = false;
+        } finally {
+            this.leaderboardLoading = false;
         }
+    }
+
+    renderLeaderboardFallbackRows() {
+        if (!this.leaderboardListEl) {
+            return;
+        }
+        this.leaderboardListEl.innerHTML = '';
+        for (let i = 1; i <= 5; i += 1) {
+            const li = document.createElement('li');
+            li.innerHTML = `<span>#${i}</span><span class="rank-player">---</span><span class="rank-level">---</span>`;
+            this.leaderboardListEl.appendChild(li);
+        }
+    }
+
+    refreshLeaderboardSelfRowFromState() {
+        const selfUserId = `${this.leaderboardSelfUserId || ''}`.trim();
+        const selfRenderedInTop = !!selfUserId && this.leaderboardLoadedUserIdSet.has(selfUserId);
+        this.renderLeaderboardSelfRow(selfRenderedInTop ? null : this.leaderboardSelfRow, selfUserId);
     }
 
     buildLeaderboardRow(row, selfUserId = '') {

@@ -99,6 +99,10 @@ function normalizeLeaderboardMode(mode) {
     return `${mode || ''}`.trim().toLowerCase() === 'badge' ? 'badge' : 'clear';
 }
 
+function normalizeLeaderboardOffset(offset) {
+    return Math.max(0, Math.min(500000, Math.floor(Number(offset) || 0)));
+}
+
 function readSupportAuthorBadgeCount(source) {
     return Math.max(
         0,
@@ -242,8 +246,9 @@ class JsonUserCenterStore {
 
     async listLeaderboard(limit, options = {}) {
         const mode = normalizeLeaderboardMode(options?.mode);
+        const offset = normalizeLeaderboardOffset(options?.offset);
         const db = await this.readDb();
-        return buildJsonLeaderboardEntries(db.users, mode).slice(0, limit);
+        return buildJsonLeaderboardEntries(db.users, mode).slice(offset, offset + limit);
     }
 
     async getLeaderboardEntryForUser(userId, options = {}) {
@@ -502,6 +507,7 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
 
     async listLeaderboard(limit, options = {}) {
         const mode = normalizeLeaderboardMode(options?.mode);
+        const offset = normalizeLeaderboardOffset(options?.offset);
         const orderBy = mode === 'badge'
             ? 'support_author_badge_count DESC, max_cleared_level DESC, coins DESC, last_active_at DESC'
             : 'max_cleared_level DESC, coins DESC, support_author_badge_count DESC, last_active_at DESC';
@@ -514,8 +520,8 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
                     END AS support_author_badge_count
              FROM user_center_users
              ORDER BY ${orderBy}
-             LIMIT $1`,
-            [limit]
+             LIMIT $1 OFFSET $2`,
+            [limit, offset]
         );
         return result.rows.map((row) => ({
             userId: `${row.user_id || ''}`.trim(),

@@ -2204,14 +2204,18 @@ async function handleLeaderboardRequest(req, res, requestUrl) {
         sendJson(res, 405, { ok: false, error: 'method not allowed' });
         return;
     }
-    const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 100, 100);
+    const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 100, 20);
+    const offset = clampInt(requestUrl.searchParams.get('offset'), 0, 500000, 0);
     const currentUserId = sanitizeUserId(requestUrl.searchParams.get('userId'));
     const mode = `${requestUrl.searchParams.get('mode') || ''}`.trim().toLowerCase() === 'badge'
         ? 'badge'
         : 'clear';
-    const rows = (await userCenterStore.listLeaderboard(limit, { mode }))
+    const rawRows = await userCenterStore.listLeaderboard(limit + 1, { mode, offset });
+    const hasMore = rawRows.length > limit;
+    const pageRows = hasMore ? rawRows.slice(0, limit) : rawRows;
+    const rows = pageRows
         .map((row, index) => ({
-            rank: index + 1,
+            rank: offset + index + 1,
             ...row,
             avatarUrl: `${row?.avatarUrl || ''}`.trim() || defaultAvatarByName(`${row?.userId || 'u'}`)
         }));
@@ -2225,7 +2229,16 @@ async function handleLeaderboardRequest(req, res, requestUrl) {
             };
         }
     }
-    sendJson(res, 200, { ok: true, limit, mode, rows, me });
+    sendJson(res, 200, {
+        ok: true,
+        limit,
+        offset,
+        nextOffset: offset + rows.length,
+        hasMore,
+        mode,
+        rows,
+        me
+    });
 }
 
 async function handleAdminResetGameStateRequest(req, res) {

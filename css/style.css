@@ -1504,6 +1504,24 @@ textarea {
     border: 1px solid rgba(128, 87, 58, 0.2);
 }
 
+#leaderboardOverlay .panel-shell {
+    max-height: min(84vh, 760px);
+}
+
+.leaderboard-panel-body {
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.leaderboard-panel-body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
 .leaderboard-mode-switch {
     display: grid;
     grid-template-columns: 1fr 1fr;
