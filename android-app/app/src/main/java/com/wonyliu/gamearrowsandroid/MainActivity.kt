@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.Log
 import android.webkit.JavascriptInterface
+import android.webkit.WebResourceError
+import android.webkit.WebResourceRequest
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -41,13 +43,28 @@ class MainActivity : ComponentActivity() {
             settings.allowContentAccess = true
             settings.loadsImagesAutomatically = true
             settings.userAgentString = "${settings.userAgentString} GameArrowsAndroid/1.0"
-            webViewClient = WebViewClient()
+            webViewClient = object : WebViewClient() {
+                override fun onReceivedError(
+                    view: WebView?,
+                    request: WebResourceRequest?,
+                    error: WebResourceError?
+                ) {
+                    super.onReceivedError(view, request, error)
+                    val isMainFrame = request?.isForMainFrame == true
+                    Log.e(
+                        TAG,
+                        "WebView error mainFrame=$isMainFrame url=${request?.url} code=${error?.errorCode} desc=${error?.description}"
+                    )
+                }
+            }
             webChromeClient = WebChromeClient()
             addJavascriptInterface(AndroidAdsBridge(), JS_BRIDGE_NAME)
         }
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         setContentView(webView)
-        webView.loadUrl(buildGameLaunchUrl())
+        val launchUrl = buildGameLaunchUrl()
+        Log.i(TAG, "Loading game url=$launchUrl")
+        webView.loadUrl(launchUrl)
     }
 
     override fun onDestroy() {

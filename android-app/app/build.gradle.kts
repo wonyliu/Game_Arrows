@@ -17,16 +17,24 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "GAME_HOME_URL", "\"http://192.168.1.47:4173/index.html\"")
-        buildConfigField("String", "GAME_API_BASE_URL", "\"http://192.168.1.47:4173\"")
+        buildConfigField("String", "GAME_HOME_URL", "\"\"")
+        buildConfigField("String", "GAME_API_BASE_URL", "\"\"")
         buildConfigField("String", "DEFAULT_REWARDED_AD_UNIT_ID", "\"ca-app-pub-8908200288624350/9845834535\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            // Use adb reverse with localhost for stable USB debugging:
+            // adb reverse tcp:4173 tcp:4173
+            buildConfigField("String", "GAME_HOME_URL", "\"http://127.0.0.1:4173/index.html\"")
+            buildConfigField("String", "GAME_API_BASE_URL", "\"http://127.0.0.1:4173\"")
+        }
         release {
             isMinifyEnabled = false
+            buildConfigField("String", "GAME_HOME_URL", "\"https://wonyliu.github.io/Game_Arrows/index.html\"")
+            buildConfigField("String", "GAME_API_BASE_URL", "\"\"")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

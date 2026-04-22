@@ -45,7 +45,13 @@
   globalObj.fetch = function wrappedFetch(input, init) {
     if (typeof input === 'string' || input instanceof URL) {
       const next = rewriteUrl(input);
-      return originalFetch(next, init);
+      const originalInput = input;
+      return originalFetch(next, init).catch((error) => {
+        if (next === String(originalInput)) {
+          throw error;
+        }
+        return originalFetch(originalInput, init);
+      });
     }
 
     if (input instanceof Request) {
