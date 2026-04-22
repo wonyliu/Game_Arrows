@@ -9,6 +9,7 @@ const PROGRESS_STATIC_CONFIG_PATHS = Object.freeze([
 ]);
 const PROGRESS_SCHEMA_VERSION = 1;
 const SUPPORT_ADS_MAX_DAILY_LIMIT = 200;
+const SUPPORT_AUTHOR_BADGE_MAX = 999999;
 
 let progressInitPromise = null;
 let serverSyncWarned = false;
@@ -178,6 +179,12 @@ function normalizeProgress(value, options = {}) {
     const fallbackNextRewardLevelIndex = clampPositiveInt(fallback.nextRewardLevelIndex, 1);
     const fallbackRewardGuideShown = fallback.rewardGuideShown === true;
     const fallbackSupportAds = normalizeSupportAdsState(fallback.supportAds, null);
+    const fallbackSupportAuthorBadgeCount = clampInt(
+        fallback.supportAuthorBadgeCount,
+        0,
+        SUPPORT_AUTHOR_BADGE_MAX,
+        0
+    );
     const fallbackVersion = clampProgressLevel(fallback.version, PROGRESS_SCHEMA_VERSION);
 
     const maxUnlockedLevel = clampProgressLevel(raw.maxUnlockedLevel, fallbackMaxUnlocked);
@@ -194,6 +201,12 @@ function normalizeProgress(value, options = {}) {
     );
     const rewardGuideShown = raw.rewardGuideShown === true || (raw.rewardGuideShown !== false && fallbackRewardGuideShown);
     const supportAds = normalizeSupportAdsState(raw.supportAds, fallbackSupportAds);
+    const supportAuthorBadgeCount = clampInt(
+        raw.supportAuthorBadgeCount,
+        0,
+        SUPPORT_AUTHOR_BADGE_MAX,
+        fallbackSupportAuthorBadgeCount
+    );
     const version = clampProgressLevel(raw.version, fallbackVersion || PROGRESS_SCHEMA_VERSION);
     const updatedAt = resolveUpdatedAt(raw.updatedAt, fallback.updatedAt, !!options.forceTouchUpdatedAt);
 
@@ -208,7 +221,8 @@ function normalizeProgress(value, options = {}) {
         selectedSkinId,
         nextRewardLevelIndex,
         rewardGuideShown,
-        supportAds
+        supportAds,
+        supportAuthorBadgeCount
     };
 }
 

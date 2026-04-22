@@ -188,6 +188,7 @@ export class Game {
         this.liveOpsPlayer = readLiveOpsPlayerState();
         this.supportAdsConfig = readSupportAdsConfig();
         this.supportAdsState = createDefaultSupportAdsState();
+        this.supportAuthorBadgeCount = 0;
         this.onlineRewardSaveAccumulator = 0;
         this.nextRewardLevelIndex = 1;
         this.levelDoubleCoinClaimed = false;
@@ -254,6 +255,7 @@ export class Game {
             this.nextRewardLevelIndex = Math.max(1, Math.floor(Number(data.nextRewardLevelIndex) || 1));
             this.rewardGuideShown = data?.rewardGuideShown === true;
             this.supportAdsState = normalizeSupportAdsState(data?.supportAds, this.supportAdsState);
+            this.supportAuthorBadgeCount = Math.max(0, Math.floor(Number(data?.supportAuthorBadgeCount) || 0));
             this.resetSupportAdsDayIfNeeded(false);
             this.lastCoinReward = 0;
             this.levelDoubleCoinClaimed = false;
@@ -268,6 +270,7 @@ export class Game {
             this.nextRewardLevelIndex = 1;
             this.rewardGuideShown = false;
             this.supportAdsState = createDefaultSupportAdsState();
+            this.supportAuthorBadgeCount = 0;
             this.levelDoubleCoinClaimed = false;
         }
         setAudioSkinId(this.selectedSkinId);
@@ -299,7 +302,8 @@ export class Game {
             selectedSkinId,
             nextRewardLevelIndex: Math.max(1, Math.floor(Number(this.nextRewardLevelIndex) || 1)),
             rewardGuideShown: this.rewardGuideShown === true,
-            supportAds: this.buildSupportAdsStateForSave()
+            supportAds: this.buildSupportAdsStateForSave(),
+            supportAuthorBadgeCount: Math.max(0, Math.floor(Number(this.supportAuthorBadgeCount) || 0))
         }, { keepalive: options.keepalive === true });
     }
 
@@ -409,6 +413,7 @@ export class Game {
     }
 
     recordRewardedAdWatch(placement) {
+        const normalizedPlacement = sanitizeSupportAdPlacement(placement);
         this.resetSupportAdsDayIfNeeded(false);
         const current = normalizeSupportAdsState(this.supportAdsState);
         this.supportAdsState = {
@@ -416,11 +421,18 @@ export class Game {
             dayKey: current.dayKey || getLocalDayKey(new Date()),
             watchedToday: Math.max(0, Math.floor(Number(current.watchedToday) || 0)) + 1,
             totalWatched: Math.max(0, Math.floor(Number(current.totalWatched) || 0)) + 1,
-            lastPlacement: sanitizeSupportAdPlacement(placement),
+            lastPlacement: normalizedPlacement,
             lastWatchedAt: new Date().toISOString()
         };
+        if (normalizedPlacement === 'support_author') {
+            this.supportAuthorBadgeCount = Math.max(0, Math.floor(Number(this.supportAuthorBadgeCount) || 0)) + 1;
+        }
         this.saveProgress();
         return this.getRewardedAdSnapshot();
+    }
+
+    getSupportAuthorBadgeCount() {
+        return Math.max(0, Math.floor(Number(this.supportAuthorBadgeCount) || 0));
     }
 
     canClaimDoubleCoinReward() {

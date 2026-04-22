@@ -1320,6 +1320,26 @@ textarea {
     line-height: 1;
 }
 
+.support-author-badge-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 10px;
+    border: 1px dashed rgba(139, 95, 60, 0.32);
+    background: rgba(255, 247, 228, 0.84);
+    padding: 8px 12px;
+    color: #6f4527;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.support-author-badge-count {
+    color: #8a5a19;
+    font-size: 18px;
+    font-family: var(--font-display);
+    line-height: 1;
+}
+
 .support-author-watch-btn,
 .profile-save-btn {
     min-height: 42px;
@@ -1482,6 +1502,30 @@ textarea {
     border-radius: 14px;
     overflow: hidden;
     border: 1px solid rgba(128, 87, 58, 0.2);
+}
+
+.leaderboard-mode-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.leaderboard-mode-chip {
+    min-height: 34px;
+    border-radius: 10px;
+    border: 1px solid rgba(133, 90, 54, 0.32);
+    background: rgba(255, 247, 229, 0.75);
+    color: #7a4d2b;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.leaderboard-mode-chip.active {
+    border-color: rgba(177, 119, 42, 0.58);
+    background: linear-gradient(180deg, rgba(255, 238, 181, 0.96), rgba(250, 217, 134, 0.92));
+    color: #6a3f1f;
 }
 
 .rank-list li {

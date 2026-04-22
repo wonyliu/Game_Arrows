@@ -95,13 +95,39 @@ function toDbUserParams(user) {
     ];
 }
 
-function compareLeaderboardEntries(a, b) {
+function normalizeLeaderboardMode(mode) {
+    return `${mode || ''}`.trim().toLowerCase() === 'badge' ? 'badge' : 'clear';
+}
+
+function readSupportAuthorBadgeCount(source) {
+    return Math.max(
+        0,
+        Math.min(
+            999999,
+            Math.floor(Number(source?.supportAuthorBadgeCount ?? source?.progress?.supportAuthorBadgeCount) || 0)
+        )
+    );
+}
+
+function compareLeaderboardEntries(a, b, mode = 'clear') {
+    if (mode === 'badge') {
+        if (b.supportAuthorBadgeCount !== a.supportAuthorBadgeCount) {
+            return b.supportAuthorBadgeCount - a.supportAuthorBadgeCount;
+        }
+        if (b.maxClearedLevel !== a.maxClearedLevel) return b.maxClearedLevel - a.maxClearedLevel;
+        if (b.coins !== a.coins) return b.coins - a.coins;
+        return `${b.lastActiveAt}`.localeCompare(`${a.lastActiveAt}`);
+    }
     if (b.maxClearedLevel !== a.maxClearedLevel) return b.maxClearedLevel - a.maxClearedLevel;
     if (b.coins !== a.coins) return b.coins - a.coins;
+    if (b.supportAuthorBadgeCount !== a.supportAuthorBadgeCount) {
+        return b.supportAuthorBadgeCount - a.supportAuthorBadgeCount;
+    }
     return `${b.lastActiveAt}`.localeCompare(`${a.lastActiveAt}`);
 }
 
-function buildJsonLeaderboardEntries(users) {
+function buildJsonLeaderboardEntries(users, mode = 'clear') {
+    const rankingMode = normalizeLeaderboardMode(mode);
     return users
         .map((user) => ({
             userId: `${user?.userId || ''}`.trim(),
@@ -110,9 +136,10 @@ function buildJsonLeaderboardEntries(users) {
             maxUnlockedLevel: Math.max(1, Math.floor(Number(user?.maxUnlockedLevel) || Number(user?.progress?.maxUnlockedLevel) || 1)),
             maxClearedLevel: Math.max(0, Math.floor(Number(user?.maxClearedLevel) || Number(user?.progress?.maxClearedLevel) || 0)),
             coins: Math.max(0, Math.floor(Number(user?.coins) || Number(user?.progress?.coins) || 0)),
+            supportAuthorBadgeCount: readSupportAuthorBadgeCount(user),
             lastActiveAt: `${user?.lastActiveAt || ''}`.trim()
         }))
-        .sort(compareLeaderboardEntries);
+        .sort((left, right) => compareLeaderboardEntries(left, right, rankingMode));
 }
 
 class JsonUserCenterStore {
@@ -213,18 +240,20 @@ class JsonUserCenterStore {
         return true;
     }
 
-    async listLeaderboard(limit) {
+    async listLeaderboard(limit, options = {}) {
+        const mode = normalizeLeaderboardMode(options?.mode);
         const db = await this.readDb();
-        return buildJsonLeaderboardEntries(db.users).slice(0, limit);
+        return buildJsonLeaderboardEntries(db.users, mode).slice(0, limit);
     }
 
-    async getLeaderboardEntryForUser(userId) {
+    async getLeaderboardEntryForUser(userId, options = {}) {
         const safeUserId = `${userId || ''}`.trim();
         if (!safeUserId) {
             return null;
         }
+        const mode = normalizeLeaderboardMode(options?.mode);
         const db = await this.readDb();
-        const ranked = buildJsonLeaderboardEntries(db.users);
+        const ranked = buildJsonLeaderboardEntries(db.users, mode);
         const index = ranked.findIndex((row) => row.userId === safeUserId);
         if (index < 0) {
             return null;
@@ -471,11 +500,20 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
         return true;
     }
 
-    async listLeaderboard(limit) {
+    async listLeaderboard(limit, options = {}) {
+        const mode = normalizeLeaderboardMode(options?.mode);
+        const orderBy = mode === 'badge'
+            ? 'support_author_badge_count DESC, max_cleared_level DESC, coins DESC, last_active_at DESC'
+            : 'max_cleared_level DESC, coins DESC, support_author_badge_count DESC, last_active_at DESC';
         const result = await this.pgPool.query(
-            `SELECT user_id, username, avatar_url, max_unlocked_level, max_cleared_level, coins, last_active_at
+            `SELECT user_id, username, avatar_url, max_unlocked_level, max_cleared_level, coins, last_active_at,
+                    CASE
+                        WHEN (progress->>'supportAuthorBadgeCount') ~ '^-?[0-9]+$'
+                            THEN GREATEST((progress->>'supportAuthorBadgeCount')::int, 0)
+                        ELSE 0
+                    END AS support_author_badge_count
              FROM user_center_users
-             ORDER BY max_cleared_level DESC, coins DESC, last_active_at DESC
+             ORDER BY ${orderBy}
              LIMIT $1`,
             [limit]
         );
@@ -486,15 +524,25 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
             maxUnlockedLevel: Math.max(1, Math.floor(Number(row.max_unlocked_level) || 1)),
             maxClearedLevel: Math.max(0, Math.floor(Number(row.max_cleared_level) || 0)),
             coins: Math.max(0, Math.floor(Number(row.coins) || 0)),
+            supportAuthorBadgeCount: Math.max(0, Math.floor(Number(row.support_author_badge_count) || 0)),
             lastActiveAt: row.last_active_at ? new Date(row.last_active_at).toISOString() : ''
         }));
     }
 
-    async getLeaderboardEntryForUser(userId) {
+    async getLeaderboardEntryForUser(userId, options = {}) {
         const safeUserId = `${userId || ''}`.trim();
         if (!safeUserId) {
             return null;
         }
+        const mode = normalizeLeaderboardMode(options?.mode);
+        const badgeExpr = `CASE
+                        WHEN (progress->>'supportAuthorBadgeCount') ~ '^-?[0-9]+$'
+                            THEN GREATEST((progress->>'supportAuthorBadgeCount')::int, 0)
+                        ELSE 0
+                    END`;
+        const rankOrderBy = mode === 'badge'
+            ? `${badgeExpr} DESC, max_cleared_level DESC, coins DESC, last_active_at DESC`
+            : `max_cleared_level DESC, coins DESC, ${badgeExpr} DESC, last_active_at DESC`;
         const result = await this.pgPool.query(
             `WITH ranked AS (
                 SELECT
@@ -505,8 +553,9 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
                     max_cleared_level,
                     coins,
                     last_active_at,
+                    ${badgeExpr} AS support_author_badge_count,
                     ROW_NUMBER() OVER (
-                        ORDER BY max_cleared_level DESC, coins DESC, last_active_at DESC
+                        ORDER BY ${rankOrderBy}
                     ) AS rank
                 FROM user_center_users
             )
@@ -528,6 +577,7 @@ ON user_center_users (max_cleared_level DESC, coins DESC, last_active_at DESC);
             maxUnlockedLevel: Math.max(1, Math.floor(Number(row.max_unlocked_level) || 1)),
             maxClearedLevel: Math.max(0, Math.floor(Number(row.max_cleared_level) || 0)),
             coins: Math.max(0, Math.floor(Number(row.coins) || 0)),
+            supportAuthorBadgeCount: Math.max(0, Math.floor(Number(row.support_author_badge_count) || 0)),
             lastActiveAt: row.last_active_at ? new Date(row.last_active_at).toISOString() : ''
         };
     }

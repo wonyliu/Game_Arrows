@@ -1,4 +1,4 @@
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=7';
+import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=8';
 import {
     BGM_SCENE_KEYS,
     playBgmForScene,
@@ -68,6 +68,11 @@ const SETTINGS_CONFIRM_MODE = Object.freeze({
     END_RUN: 'end-run'
 });
 
+const LEADERBOARD_MODE = Object.freeze({
+    CLEAR: 'clear',
+    BADGE: 'badge'
+});
+
 const LEVEL_SETTLE_MIN_MS = 700;
 const LEVEL_SETTLE_MAX_MS = 1800;
 const LEVEL_SETTLE_PER_POINT_MS = 0.4;
@@ -94,6 +99,7 @@ export class UI {
         this.menuState = MENU_PANEL.HOME;
         this.settingsEntry = SETTINGS_ENTRY.MENU;
         this.settingsConfirmMode = SETTINGS_CONFIRM_MODE.RESET_PROGRESS;
+        this.leaderboardMode = LEADERBOARD_MODE.CLEAR;
         this.lastStartTriggerAt = Number.NEGATIVE_INFINITY;
         this.menuBadges = Object.fromEntries(
             FEATURE_CONFIG.map((feature) => [feature.id, feature.badge ?? null])
@@ -138,6 +144,8 @@ export class UI {
         this.leaderboardSelfLabelEl = document.getElementById('leaderboardSelfLabel');
         this.leaderboardSelfListEl = document.getElementById('leaderboardSelfList');
         this.leaderboardEmptyStateEl = this.leaderboardOverlay?.querySelector('.empty-state') || null;
+        this.leaderboardModeClearButton = document.getElementById('btnLeaderboardModeClear');
+        this.leaderboardModeBadgeButton = document.getElementById('btnLeaderboardModeBadge');
         this.skinsOverlay = document.getElementById('skinsOverlay');
         this.checkinOverlay = document.getElementById('checkinOverlay');
         this.supportAuthorOverlay = document.getElementById('supportAuthorOverlay');
@@ -196,6 +204,7 @@ export class UI {
         this.supportAuthorStatusEl = document.getElementById('supportAuthorStatus');
         this.supportAuthorThankYouEl = document.getElementById('supportAuthorThankYou');
         this.supportAuthorWatchButton = document.getElementById('btnSupportAuthorWatchAd');
+        this.supportAuthorBadgeCountEl = document.getElementById('supportAuthorBadgeCount');
         this.profileUserMetaEl = document.getElementById('profileUserMeta');
         this.profileNicknameInput = document.getElementById('profileNicknameInput');
         this.profilePasswordInput = document.getElementById('profilePasswordInput');
@@ -460,6 +469,12 @@ export class UI {
         this.bindButton('btnExit', () => this.openMenuPanel(MENU_PANEL.EXIT_CONFIRM));
         this.bindButton('btnSupportAuthorWatchAd', () => {
             void this.handleSupportAuthorWatchAd();
+        });
+        this.bindButton('btnLeaderboardModeClear', () => {
+            this.setLeaderboardMode(LEADERBOARD_MODE.CLEAR);
+        });
+        this.bindButton('btnLeaderboardModeBadge', () => {
+            this.setLeaderboardMode(LEADERBOARD_MODE.BADGE);
         });
         this.bindButton('btnProfileAvatar', () => this.openMenuPanel(MENU_PANEL.PROFILE));
         this.bindButton('btnProfileSave', () => {
@@ -1404,6 +1419,7 @@ export class UI {
         if (target === MENU_PANEL.LEADERBOARD) {
             this.leaderboardOverlay.classList.remove('hidden');
             this.game.state = 'LEADERBOARD';
+            this.refreshLeaderboardModeButtons();
             void this.renderLeaderboard();
         }
 
@@ -1461,6 +1477,7 @@ export class UI {
         }
         this.leaderboardListEl.innerHTML = '';
         this.renderLeaderboardSelfRow(null);
+        const isBadgeMode = this.leaderboardMode === LEADERBOARD_MODE.BADGE;
         const fallbackRowCount = 5;
         const renderFallback = (message) => {
             for (let i = 1; i <= fallbackRowCount; i += 1) {
@@ -1469,7 +1486,15 @@ export class UI {
                 this.leaderboardListEl.appendChild(li);
             }
             if (this.leaderboardEmptyStateEl) {
-                this.leaderboardEmptyStateEl.textContent = message || this.getLocaleText('\u6392\u884c\u699c\u6682\u4e0d\u53ef\u7528\u3002', 'Leaderboard unavailable.');
+                this.leaderboardEmptyStateEl.textContent = isBadgeMode
+                    ? this.getLocaleText(
+                        '\u6309\u5956\u7ae0\u6570\u91cf\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
+                        'Sorted by support badges. Top 100 only.'
+                    )
+                    : this.getLocaleText(
+                        '\u6309\u6700\u9ad8\u901a\u5173\u5173\u5361\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
+                        'Sorted by highest cleared level. Top 100 only.'
+                    );
             }
         };
 
@@ -1478,6 +1503,7 @@ export class UI {
             const requestUserId = `${getActiveUserId() || bootSession?.userId || ''}`.trim();
             const leaderboardUrl = new URL('/api/leaderboard', window.location.href);
             leaderboardUrl.searchParams.set('limit', '100');
+            leaderboardUrl.searchParams.set('mode', this.leaderboardMode);
             if (requestUserId) {
                 leaderboardUrl.searchParams.set('userId', requestUserId);
             }
@@ -1488,7 +1514,11 @@ export class UI {
             const payload = await response.json().catch(() => ({}));
             const rows = Array.isArray(payload?.rows) ? payload.rows : [];
             if (!response.ok || rows.length === 0) {
-                renderFallback(this.getLocaleText('\u6682\u65e0\u6392\u884c\u699c\u6570\u636e\u3002', 'No leaderboard data yet.'));
+                renderFallback(
+                    isBadgeMode
+                        ? this.getLocaleText('\u6682\u65e0\u5956\u7ae0\u699c\u6570\u636e\u3002', 'No badge leaderboard data yet.')
+                        : this.getLocaleText('\u6682\u65e0\u901a\u5173\u699c\u6570\u636e\u3002', 'No leaderboard data yet.')
+                );
                 return;
             }
             const meRow = payload?.me && typeof payload.me === 'object' ? payload.me : null;
@@ -1504,10 +1534,15 @@ export class UI {
             }
             this.renderLeaderboardSelfRow(selfRenderedInTop ? null : meRow, selfUserId);
             if (this.leaderboardEmptyStateEl) {
-                this.leaderboardEmptyStateEl.textContent = this.getLocaleText(
-                    '\u6309\u6700\u9ad8\u901a\u5173\u5173\u5361\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
-                    'Sorted by highest cleared level. Top 100 only.'
-                );
+                this.leaderboardEmptyStateEl.textContent = isBadgeMode
+                    ? this.getLocaleText(
+                        '\u6309\u5956\u7ae0\u6570\u91cf\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
+                        'Sorted by support badges. Top 100 only.'
+                    )
+                    : this.getLocaleText(
+                        '\u6309\u6700\u9ad8\u901a\u5173\u5173\u5361\u6392\u5e8f\uff0c\u4ec5\u663e\u793a\u524d 100 \u540d\u3002',
+                        'Sorted by highest cleared level. Top 100 only.'
+                    );
             }
         } catch {
             renderFallback(this.getLocaleText('\u6392\u884c\u699c\u52a0\u8f7d\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002', 'Failed to load leaderboard.'));
@@ -1520,7 +1555,9 @@ export class UI {
         const username = `${row?.username || 'Unknown'}`.trim() || 'Unknown';
         const avatarUrl = `${row?.avatarUrl || 'assets/ui/shared/icons/icon_theme.png'}`.trim();
         const level = Math.max(0, Math.floor(Number(row?.maxClearedLevel) || 0));
+        const supportAuthorBadgeCount = Math.max(0, Math.floor(Number(row?.supportAuthorBadgeCount) || 0));
         const isSelf = !!selfUserId && userId === selfUserId;
+        const isBadgeMode = this.leaderboardMode === LEADERBOARD_MODE.BADGE;
 
         const li = document.createElement('li');
         if (isSelf) {
@@ -1558,9 +1595,13 @@ export class UI {
 
         const levelEl = document.createElement('span');
         levelEl.className = 'rank-level';
-        levelEl.textContent = level > 0
-            ? this.getLocaleText('\u901a\u5173 ' + level, 'Clear ' + level)
-            : this.getLocaleText('\u672a\u901a\u5173', 'Not Cleared');
+        levelEl.textContent = isBadgeMode
+            ? this.getLocaleText(`\u5956\u7ae0 ${supportAuthorBadgeCount}`, `Badges ${supportAuthorBadgeCount}`)
+            : (
+                level > 0
+                    ? this.getLocaleText('\u901a\u5173 ' + level, 'Clear ' + level)
+                    : this.getLocaleText('\u672a\u901a\u5173', 'Not Cleared')
+            );
 
         li.appendChild(rankEl);
         li.appendChild(playerEl);
@@ -1578,10 +1619,35 @@ export class UI {
             return;
         }
         if (this.leaderboardSelfLabelEl) {
-            this.leaderboardSelfLabelEl.textContent = this.getLocaleText('\u6211\u7684\u6392\u540d', 'My Rank');
+            this.leaderboardSelfLabelEl.textContent = this.leaderboardMode === LEADERBOARD_MODE.BADGE
+                ? this.getLocaleText('\u6211\u7684\u5956\u7ae0\u6392\u540d', 'My Badge Rank')
+                : this.getLocaleText('\u6211\u7684\u6392\u540d', 'My Rank');
         }
         this.leaderboardSelfListEl.appendChild(this.buildLeaderboardRow(row, selfUserId));
         this.leaderboardSelfSectionEl.classList.remove('hidden');
+    }
+
+    setLeaderboardMode(mode) {
+        const nextMode = mode === LEADERBOARD_MODE.BADGE
+            ? LEADERBOARD_MODE.BADGE
+            : LEADERBOARD_MODE.CLEAR;
+        if (this.leaderboardMode === nextMode) {
+            return;
+        }
+        this.leaderboardMode = nextMode;
+        this.refreshLeaderboardModeButtons();
+        if (this.menuState === MENU_PANEL.LEADERBOARD) {
+            void this.renderLeaderboard();
+        }
+    }
+
+    refreshLeaderboardModeButtons() {
+        if (this.leaderboardModeClearButton) {
+            this.leaderboardModeClearButton.classList.toggle('active', this.leaderboardMode === LEADERBOARD_MODE.CLEAR);
+        }
+        if (this.leaderboardModeBadgeButton) {
+            this.leaderboardModeBadgeButton.classList.toggle('active', this.leaderboardMode === LEADERBOARD_MODE.BADGE);
+        }
     }
 
     async syncSkinCatalogForSkinCenter() {
@@ -1641,8 +1707,8 @@ export class UI {
         if (this.profileUserMetaEl) {
             const idText = `${session?.userId || '-'}`;
             const roleText = session?.isTempUser === true
-                ? this.getLocaleText('临时账号', 'Guest')
-                : this.getLocaleText('正式账号', 'Account');
+                ? this.getLocaleText('\u8bbf\u5ba2', 'Guest')
+                : this.getLocaleText('\u8d26\u53f7', 'Account');
             this.profileUserMetaEl.textContent = `${roleText} · ID: ${idText}`;
         }
         if (this.profileNicknameInput) {
@@ -1670,7 +1736,7 @@ export class UI {
         const session = await openUserLoginDialog({
             allowTemp: false,
             allowClose: true,
-            title: this.getLocaleText('账号登录', 'Login')
+            title: this.getLocaleText('\u8d26\u53f7\u767b\u5f55', 'Login')
         });
         if (!session?.userId) {
             return;
@@ -1690,22 +1756,22 @@ export class UI {
         const session = this.getCurrentUserSession();
         const userId = `${session?.userId || ''}`.trim();
         if (!userId) {
-            this.setProfileStatus(this.getLocaleText('未检测到账号，请先登录。', 'No active user session.'), true);
+            this.setProfileStatus(this.getLocaleText('\u5f53\u524d\u65e0\u53ef\u7528\u767b\u5f55\u6001\u3002', 'No active user session.'), true);
             return;
         }
         const nickname = `${this.profileNicknameInput?.value || ''}`.trim();
         const password = `${this.profilePasswordInput?.value || ''}`;
         const passwordConfirm = `${this.profilePasswordConfirmInput?.value || ''}`;
         if (!nickname || nickname.length < 2) {
-            this.setProfileStatus(this.getLocaleText('昵称至少需要 2 个字符。', 'Nickname must be at least 2 characters.'), true);
+            this.setProfileStatus(this.getLocaleText('\u6635\u79f0\u957f\u5ea6\u81f3\u5c11 2 \u4e2a\u5b57\u7b26\u3002', 'Nickname must be at least 2 characters.'), true);
             return;
         }
         if (password && password.length < 4) {
-            this.setProfileStatus(this.getLocaleText('新密码至少需要 4 位。', 'Password must be at least 4 characters.'), true);
+            this.setProfileStatus(this.getLocaleText('\u5bc6\u7801\u957f\u5ea6\u81f3\u5c11 4 \u4f4d\u3002', 'Password must be at least 4 characters.'), true);
             return;
         }
         if (password && password !== passwordConfirm) {
-            this.setProfileStatus(this.getLocaleText('两次输入的密码不一致。', 'Password confirmation does not match.'), true);
+            this.setProfileStatus(this.getLocaleText('\u4e24\u6b21\u8f93\u5165\u7684\u5bc6\u7801\u4e0d\u4e00\u81f4\u3002', 'Password confirmation does not match.'), true);
             return;
         }
 
@@ -1720,7 +1786,7 @@ export class UI {
         if (this.profileSaveButton) {
             this.profileSaveButton.disabled = true;
         }
-        this.setProfileStatus(this.getLocaleText('保存中...', 'Saving...'));
+        this.setProfileStatus(this.getLocaleText('\u4fdd\u5b58\u4e2d...', 'Saving...'));
         try {
             const response = await fetch('/api/users/profile', {
                 method: 'PUT',
@@ -1734,10 +1800,10 @@ export class UI {
             applySessionFromUser(result.user);
             this.refreshProfileEntry();
             this.refreshProfilePanel();
-            this.setProfileStatus(this.getLocaleText('资料已更新。', 'Profile updated.'));
+            this.setProfileStatus(this.getLocaleText('\u4e2a\u4eba\u8d44\u6599\u5df2\u66f4\u65b0\u3002', 'Profile updated.'));
         } catch (error) {
             this.setProfileStatus(
-                this.getLocaleText('保存失败，请稍后重试。', 'Save failed, please try again.')
+                this.getLocaleText('\u4fdd\u5b58\u5931\u8d25\uff0c\u8bf7\u7a0d\u540e\u518d\u8bd5\u3002', 'Save failed, please try again.')
                 + ` ${error?.message || ''}`,
                 true
             );
@@ -1767,9 +1833,13 @@ export class UI {
         if (this.supportAuthorCountEl) {
             this.supportAuthorCountEl.textContent = `${watchedToday}/${dailyLimit}`;
         }
+        if (this.supportAuthorBadgeCountEl) {
+            const badgeCount = Math.max(0, Math.floor(Number(this.game?.getSupportAuthorBadgeCount?.() || 0)));
+            this.supportAuthorBadgeCountEl.textContent = `${badgeCount}`;
+        }
         if (this.supportAuthorThankYouEl) {
             this.supportAuthorThankYouEl.textContent = `${snapshot?.thankYouMessage || ''}`.trim()
-                || this.getLocaleText('感谢你的支持，这会帮助我们持续更新游戏内容。', 'Thanks for your support. It helps us keep shipping updates.');
+                || this.getLocaleText('\u611f\u8c22\u4f60\u7684\u652f\u6301\uff0c\u8fd9\u4f1a\u5e2e\u52a9\u6211\u4eec\u6301\u7eed\u66f4\u65b0\u6e38\u620f\u5185\u5bb9\u3002', 'Thanks for your support. It helps us keep shipping updates.');
         }
         const supportGate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
         if (this.supportAuthorWatchButton) {
@@ -1834,20 +1904,29 @@ export class UI {
         const result = await this.runRewardedAdFlow(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
         if (!result?.ok) {
             if (result?.reason === 'daily-limit-reached') {
-                this.setSupportAuthorStatus(this.getLocaleText('今日支持次数已达上限。', 'Daily ad limit reached.'), true);
+                this.setSupportAuthorStatus(this.getLocaleText('\u4eca\u65e5\u652f\u6301\u6b21\u6570\u5df2\u8fbe\u4e0a\u9650\u3002', 'Daily ad limit reached.'), true);
                 return;
             }
-            this.setSupportAuthorStatus(this.getLocaleText('广告未完成，本次未计入支持次数。', 'Ad not completed. Support count unchanged.'), true);
+            this.setSupportAuthorStatus(this.getLocaleText('\u5e7f\u544a\u672a\u5b8c\u6210\uff0c\u672c\u6b21\u672a\u8ba1\u5165\u652f\u6301\u6b21\u6570\u3002', 'Ad not completed. Support count unchanged.'), true);
             return;
         }
-        this.setSupportAuthorStatus(this.getLocaleText('感谢你的支持！', 'Thanks for your support!'));
+        const badgeCount = Math.max(0, Math.floor(Number(this.game?.getSupportAuthorBadgeCount?.() || 0)));
+        this.setSupportAuthorStatus(
+            this.getLocaleText(
+                '\u611f\u8c22\u4f60\u7684\u652f\u6301\uff01\u5df2\u83b7\u5f97\u5956\u7ae0\uff0c\u5f53\u524d ' + badgeCount + ' \u679a\u3002',
+                'Thanks for your support! Badge awarded. Total ' + badgeCount + '.'
+            )
+        );
     }
 
     async handleGameOverContinueByAd() {
         const result = await this.runRewardedAdFlow(REWARDED_AD_PLACEMENTS.FAIL_CONTINUE);
         if (!result?.ok) {
             if (this.gameOverReason && result?.reason === 'daily-limit-reached') {
-                this.gameOverReason.textContent = this.getLocaleText('今日广告次数已用完，请直接重试。', 'Daily ad limit reached. Please retry directly.');
+                this.gameOverReason.textContent = this.getLocaleText(
+                    '\u4eca\u65e5\u5e7f\u544a\u89c2\u770b\u6b21\u6570\u5df2\u8fbe\u4e0a\u9650\uff0c\u8bf7\u76f4\u63a5\u91cd\u8bd5\u3002',
+                    'Daily ad limit reached. Please retry directly.'
+                );
             }
             return;
         }
@@ -1859,7 +1938,7 @@ export class UI {
         if (!result?.ok) {
             if (this.levelScoreBonus && result?.reason === 'daily-limit-reached') {
                 this.levelScoreBonus.classList.remove('hidden');
-                this.levelScoreBonus.textContent = this.getLocaleText('今日广告次数已达上限', 'Daily ad limit reached');
+                this.levelScoreBonus.textContent = this.getLocaleText('\u4eca\u65e5\u5e7f\u544a\u6b21\u6570\u5df2\u8fbe\u4e0a\u9650', 'Daily ad limit reached');
             }
             return;
         }
@@ -2400,7 +2479,7 @@ export class UI {
             }
         }
         if (this.locale === 'zh-CN') {
-            return `第${level}关`;
+            return `洞穴 ${level}`;
         }
         return `Level ${level}`;
     }
@@ -4646,3 +4725,4 @@ export class UI {
 }
 
 export { MENU_PANEL };
+

@@ -76,6 +76,7 @@ async function runApiSmoke() {
     const dayKey = now.toISOString().slice(0, 10);
     const patchProgress = {
         ...(progressGet1.payload.progress || {}),
+        supportAuthorBadgeCount: 7,
         supportAds: {
             dayKey,
             watchedToday: 3,
@@ -98,6 +99,7 @@ async function runApiSmoke() {
     const persistedSupportAds = progressGet2.payload?.progress?.supportAds || {};
     assert(Number(persistedSupportAds.watchedToday) === 3, 'progress watchedToday persistence failed');
     assert(Number(persistedSupportAds.totalWatched) === 9, 'progress totalWatched persistence failed');
+    assert(Number(progressGet2.payload?.progress?.supportAuthorBadgeCount) === 7, 'supportAuthorBadgeCount persistence failed');
 
     const adminPut = await jsonFetch(`/api/admin/db/users/${encodeURIComponent(userId)}`, {
         method: 'PUT',
@@ -117,6 +119,13 @@ async function runApiSmoke() {
     assert(progressGet3.ok && progressGet3.payload?.ok === true, `progress GET(3) failed (${progressGet3.status})`);
     const overriddenSupportAds = progressGet3.payload?.progress?.supportAds || {};
     assert(Number(overriddenSupportAds.dailyLimitOverride) === 15, 'dailyLimitOverride persistence failed');
+
+    const leaderboardBadgeGet = await jsonFetch(
+        `/api/leaderboard?mode=badge&limit=20&userId=${encodeURIComponent(userId)}`
+    );
+    assert(leaderboardBadgeGet.ok && leaderboardBadgeGet.payload?.ok === true, `badge leaderboard GET failed (${leaderboardBadgeGet.status})`);
+    const meBadgeRank = leaderboardBadgeGet.payload?.me || null;
+    assert(meBadgeRank && Number(meBadgeRank.supportAuthorBadgeCount) >= 7, 'badge leaderboard missing supportAuthorBadgeCount');
 
     const username = `smoke_${Math.floor(Math.random() * 900000 + 100000)}`;
     const password = 'pass1234';
@@ -158,7 +167,8 @@ async function runApiSmoke() {
         },
         initialSupportAds,
         persistedSupportAds,
-        overriddenSupportAds
+        overriddenSupportAds,
+        badgeRank: meBadgeRank
     };
 }
 
@@ -167,6 +177,12 @@ async function runUiSmoke(apiReport) {
     const browser = await chromium.launch({ headless: true });
     const context = await browser.newContext();
     const page = await context.newPage();
+    const tempDeviceId = `dev-smoke-ui-${Math.floor(Math.random() * 900000 + 100000)}`;
+    await page.addInitScript((deviceId) => {
+        localStorage.removeItem('arrowClear_userSession_v1');
+        localStorage.setItem('arrowClear_deviceId_v1', `${deviceId || ''}`.trim());
+        document.cookie = 'arrow_uid=; Max-Age=0; path=/';
+    }, tempDeviceId);
     const pageErrors = [];
 
     page.on('pageerror', (error) => {
@@ -176,7 +192,7 @@ async function runUiSmoke(apiReport) {
     await page.goto(`${BASE_URL}/index.html`, { waitUntil: 'domcontentloaded', timeout: 60000 });
     trace('runUiSmoke:index-loaded');
     await page.waitForSelector('#btnSupportAuthor', { timeout: 30000 });
-    await page.waitForSelector('#btnLoginEntry', { timeout: 30000 });
+    await page.waitForSelector('#btnLoginEntry', { state: 'attached', timeout: 30000 });
     await page.waitForSelector('#btnProfileAvatar', { timeout: 30000 });
 
     await page.waitForTimeout(800);
@@ -190,8 +206,11 @@ async function runUiSmoke(apiReport) {
         });
     }
 
+    await page.waitForFunction(() => {
+        const button = document.getElementById('btnLoginEntry');
+        return !!button && !button.classList.contains('hidden');
+    }, { timeout: 30000 });
     const loginVisibleForTemp = await page.$eval('#btnLoginEntry', (element) => !element.classList.contains('hidden'));
-    assert(loginVisibleForTemp, 'temp user login link should be visible');
     const loginLinkPositionOk = await page.$eval('#menuOverlay', (overlay) => {
         const avatar = overlay.querySelector('#btnProfileAvatar');
         const login = overlay.querySelector('#btnLoginEntry');
@@ -212,6 +231,9 @@ async function runUiSmoke(apiReport) {
 
     const counterBefore = parseCounter(await page.$eval('#supportAuthorCount', (element) => element.textContent || ''));
     assert(counterBefore, 'invalid support author counter text before ad');
+    const badgeBefore = Number(
+        await page.$eval('#supportAuthorBadgeCount', (element) => element.textContent || '0')
+    ) || 0;
 
     const watchButtonEnabled = await page.$eval('#btnSupportAuthorWatchAd', (element) => !element.disabled);
     if (watchButtonEnabled) {
@@ -222,8 +244,12 @@ async function runUiSmoke(apiReport) {
 
     const counterAfter = parseCounter(await page.$eval('#supportAuthorCount', (element) => element.textContent || ''));
     assert(counterAfter, 'invalid support author counter text after ad');
+    const badgeAfter = Number(
+        await page.$eval('#supportAuthorBadgeCount', (element) => element.textContent || '0')
+    ) || 0;
     if (watchButtonEnabled) {
         assert(counterAfter.watched === (counterBefore.watched + 1), 'support author counter did not increment');
+        assert(badgeAfter === (badgeBefore + 1), 'support author badge count did not increment');
     }
 
     await page.click('#btnBackFromSupportAuthor', { timeout: 15000 });
@@ -290,7 +316,9 @@ async function runUiSmoke(apiReport) {
         graphicsSettingRemoved: !hasGraphicsButtons && !hasGraphicsTitle,
         watchButtonEnabled,
         counterBefore,
-        counterAfter
+        counterAfter,
+        badgeBefore,
+        badgeAfter
     };
 }
 

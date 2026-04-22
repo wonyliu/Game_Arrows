@@ -1553,6 +1553,7 @@ function buildDefaultProgress() {
         selectedSkinId: 'classic-burrow',
         nextRewardLevelIndex: 1,
         rewardGuideShown: false,
+        supportAuthorBadgeCount: 0,
         supportAds: {
             dayKey: '',
             watchedToday: 0,
@@ -1636,6 +1637,10 @@ function normalizeProgressFromPayload(payload, fallback = null) {
     const selectedSkinId = `${source.selectedSkinId || base.selectedSkinId || 'classic-burrow'}`.trim() || 'classic-burrow';
     const nextRewardLevelIndex = Math.max(1, Math.floor(Number(source.nextRewardLevelIndex ?? base.nextRewardLevelIndex) || 1));
     const rewardGuideShown = source.rewardGuideShown === true || (source.rewardGuideShown !== false && base.rewardGuideShown === true);
+    const supportAuthorBadgeCount = Math.max(
+        0,
+        Math.min(999999, Math.floor(Number(source.supportAuthorBadgeCount ?? base.supportAuthorBadgeCount) || 0))
+    );
     const supportAdsSource = isPlainObject(source.supportAds) ? source.supportAds : {};
     const supportAdsBase = isPlainObject(base.supportAds) ? base.supportAds : {};
     const supportAds = {
@@ -1669,6 +1674,7 @@ function normalizeProgressFromPayload(payload, fallback = null) {
         selectedSkinId,
         nextRewardLevelIndex,
         rewardGuideShown,
+        supportAuthorBadgeCount,
         supportAds
     };
 }
@@ -2200,7 +2206,10 @@ async function handleLeaderboardRequest(req, res, requestUrl) {
     }
     const limit = clampInt(requestUrl.searchParams.get('limit'), 1, 100, 100);
     const currentUserId = sanitizeUserId(requestUrl.searchParams.get('userId'));
-    const rows = (await userCenterStore.listLeaderboard(limit))
+    const mode = `${requestUrl.searchParams.get('mode') || ''}`.trim().toLowerCase() === 'badge'
+        ? 'badge'
+        : 'clear';
+    const rows = (await userCenterStore.listLeaderboard(limit, { mode }))
         .map((row, index) => ({
             rank: index + 1,
             ...row,
@@ -2208,7 +2217,7 @@ async function handleLeaderboardRequest(req, res, requestUrl) {
         }));
     let me = null;
     if (currentUserId && typeof userCenterStore.getLeaderboardEntryForUser === 'function') {
-        const selfEntry = await userCenterStore.getLeaderboardEntryForUser(currentUserId);
+        const selfEntry = await userCenterStore.getLeaderboardEntryForUser(currentUserId, { mode });
         if (selfEntry) {
             me = {
                 ...selfEntry,
@@ -2216,7 +2225,7 @@ async function handleLeaderboardRequest(req, res, requestUrl) {
             };
         }
     }
-    sendJson(res, 200, { ok: true, limit, rows, me });
+    sendJson(res, 200, { ok: true, limit, mode, rows, me });
 }
 
 async function handleAdminResetGameStateRequest(req, res) {

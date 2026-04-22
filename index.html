@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=114">
+    <link rel="stylesheet" href="css/style.css?v=115">
 </head>
 <body>
     <div class="app-container">
@@ -183,6 +183,10 @@
                         <span data-i18n="panel.support.counterLabel">今日支持进度</span>
                         <strong id="supportAuthorCount" class="support-author-count">0/5</strong>
                     </div>
+                    <div class="support-author-badge-wrap">
+                        <span data-i18n="panel.support.badgeLabel">支持奖章</span>
+                        <strong id="supportAuthorBadgeCount" class="support-author-badge-count">0</strong>
+                    </div>
                     <button id="btnSupportAuthorWatchAd" class="btn-popup-primary support-author-watch-btn" type="button" data-i18n="panel.support.watchAd">播放支持广告</button>
                     <p id="supportAuthorStatus" class="empty-state"></p>
                 </div>
@@ -269,6 +273,10 @@
                     <button id="btnBackFromLeaderboard" class="panel-back-btn" type="button" data-i18n="common.back">Back</button>
                 </div>
                 <div class="panel-body">
+                    <div class="leaderboard-mode-switch">
+                        <button id="btnLeaderboardModeClear" class="leaderboard-mode-chip active" type="button" data-i18n="panel.leaderboard.modeClear">通关榜</button>
+                        <button id="btnLeaderboardModeBadge" class="leaderboard-mode-chip" type="button" data-i18n="panel.leaderboard.modeBadge">奖章榜</button>
+                    </div>
                     <ul class="rank-list">
                         <li><span>#1</span><span>---</span><span>---</span></li>
                         <li><span>#2</span><span>---</span><span>---</span></li>
@@ -477,6 +485,6 @@
     </div>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/main.js?v=257"></script>
+    <script type="module" src="js/main.js?v=258"></script>
 </body>
 </html>
