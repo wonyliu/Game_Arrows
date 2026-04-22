@@ -45,6 +45,16 @@ const ALLOWED_PART_NAMES = Object.freeze([
     'snake_tail_tip.png'
 ]);
 const ALLOWED_PART_SET = new Set(ALLOWED_PART_NAMES);
+const RUNTIME_SKIN_ASSET_KEYS = Object.freeze([
+    'snakeHead',
+    'snakeHeadCurious',
+    'snakeHeadSleepy',
+    'snakeHeadSurprised',
+    'snakeSegA',
+    'snakeSegB',
+    'snakeTailBase',
+    'snakeTailTip'
+]);
 const ATLAS_IMPORT_LAYOUT = Object.freeze({
     snakeHead: Object.freeze({ x: 98, y: 80, width: 824, height: 646 }),
     snakeHeadCurious: Object.freeze({ x: 1051, y: 80, width: 827, height: 646 }),
@@ -2521,7 +2531,7 @@ async function collectImageAssetReferences() {
     const referenceMap = new Map();
     for (const filePath of projectFiles) {
         const relativePath = normalizeProjectRelativePath(filePath);
-        if (!shouldCountAssetReferenceSource(relativePath)) {
+        if (!shouldCountPlayerAssetReferenceSource(relativePath)) {
             continue;
         }
         if (relativePath.startsWith('data/generated/')) {
@@ -2538,31 +2548,117 @@ async function collectImageAssetReferences() {
             if (!normalized) {
                 continue;
             }
-            if (!referenceMap.has(normalized)) {
-                referenceMap.set(normalized, new Set());
-            }
-            referenceMap.get(normalized).add(relativePath);
+            addAssetReference(referenceMap, normalized, relativePath);
+        }
+    }
+    const playableSkinRefs = await collectPlayableSkinAssetReferences();
+    for (const [assetPath, referrers] of playableSkinRefs) {
+        for (const referrer of referrers) {
+            addAssetReference(referenceMap, assetPath, referrer);
         }
     }
     return referenceMap;
 }
 
-function shouldCountAssetReferenceSource(relativePath) {
+function shouldCountPlayerAssetReferenceSource(relativePath) {
     const normalized = `${relativePath || ''}`.replace(/\\/g, '/');
     if (!normalized) return false;
-    if (normalized === 'index.html' || normalized === 'admin.html') {
+    if (normalized === 'index.html') {
         return true;
     }
     if (normalized.startsWith('js/')) {
+        if (normalized.startsWith('js/admin-')) {
+            return false;
+        }
+        if (normalized === 'js/skin-fit-tool.js') {
+            return false;
+        }
         return true;
     }
     if (normalized.startsWith('css/')) {
         return true;
     }
-    if (normalized.startsWith('assets/skins/') && normalized.endsWith('/manifest.json')) {
-        return true;
-    }
     return false;
+}
+
+function addAssetReference(referenceMap, assetPath, referrer) {
+    const normalizedAssetPath = normalizeAssetReferencePath(assetPath);
+    const normalizedReferrer = `${referrer || ''}`.replace(/\\/g, '/').trim();
+    if (!normalizedAssetPath || !normalizedReferrer) {
+        return;
+    }
+    if (!referenceMap.has(normalizedAssetPath)) {
+        referenceMap.set(normalizedAssetPath, new Set());
+    }
+    referenceMap.get(normalizedAssetPath).add(normalizedReferrer);
+}
+
+async function collectPlayableSkinAssetReferences() {
+    const skinsRoot = path.join(ROOT_DIR, 'assets', 'skins');
+    const entries = await fs.readdir(skinsRoot, { withFileTypes: true }).catch(() => []);
+    const out = new Map();
+    for (const entry of entries) {
+        if (!entry?.isDirectory?.()) {
+            continue;
+        }
+        const skinId = sanitizeSlug(entry.name, '');
+        if (!skinId || skinId === 'templates') {
+            continue;
+        }
+        const skinDir = path.join(skinsRoot, skinId);
+        const partFiles = [];
+        for (const partName of ALLOWED_PART_NAMES) {
+            const filePath = path.join(skinDir, partName);
+            try {
+                const stat = await fs.stat(filePath);
+                if (stat.isFile()) {
+                    partFiles.push(partName);
+                }
+            } catch {
+                // ignored: part missing
+            }
+        }
+        const manifest = await readJsonFile(path.join(skinDir, 'manifest.json'), null);
+        const isAtlasManifest = isPlainObject(manifest) && `${manifest?.mechanism || ''}`.trim().toLowerCase() === 'atlas-sheet';
+        const manifestAssets = isPlainObject(manifest?.assets) ? manifest.assets : null;
+        const complete = isAtlasManifest ? Boolean(manifestAssets) : partFiles.length === ALLOWED_PART_NAMES.length;
+        if (!complete) {
+            continue;
+        }
+        const referrer = `runtime:skin:${skinId}`;
+        const preview = typeof manifest?.preview === 'string' && manifest.preview.trim()
+            ? manifest.preview.trim()
+            : (partFiles.includes('snake_head.png') ? `/assets/skins/${skinId}/snake_head.png` : '');
+        if (preview) {
+            addAssetReference(out, preview, referrer);
+        }
+        const runtimeAssets = collectRuntimeSkinAssetPaths(skinId, manifestAssets, partFiles);
+        for (const assetPath of runtimeAssets) {
+            addAssetReference(out, assetPath, referrer);
+        }
+    }
+    return out;
+}
+
+function collectRuntimeSkinAssetPaths(skinId, manifestAssets, partFiles) {
+    const fromManifest = [];
+    if (isPlainObject(manifestAssets)) {
+        for (const assetKey of RUNTIME_SKIN_ASSET_KEYS) {
+            const rawAsset = manifestAssets[assetKey];
+            if (typeof rawAsset === 'string' && rawAsset.trim()) {
+                fromManifest.push(rawAsset.trim());
+                continue;
+            }
+            if (isPlainObject(rawAsset) && typeof rawAsset.src === 'string' && rawAsset.src.trim()) {
+                fromManifest.push(rawAsset.src.trim());
+            }
+        }
+    }
+    if (fromManifest.length > 0) {
+        return fromManifest;
+    }
+    const availablePartFiles = Array.isArray(partFiles) ? partFiles : [];
+    return availablePartFiles.map((partName) => `/assets/skins/${skinId}/${partName}`);
 }
 
 function classifyAssetUsage(assetPath, referrers) {
