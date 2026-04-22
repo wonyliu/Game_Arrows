@@ -1964,7 +1964,11 @@ export class UI {
             ? this.game.canClaimDoubleCoinReward()
             : false;
         const gate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
-        this.levelCompleteDoubleCoinButton.disabled = !(canClaim && gate?.ok) || this.rewardedAdPending;
+        const fallbackGate = (!gate?.ok && gate?.reason === 'placement-disabled')
+            ? this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR)
+            : null;
+        const canWatch = gate?.ok || fallbackGate?.ok;
+        this.levelCompleteDoubleCoinButton.disabled = !(canClaim && canWatch) || this.rewardedAdPending;
         this.levelCompleteDoubleCoinButton.classList.toggle('hidden', !canClaim);
     }
 
@@ -1972,7 +1976,17 @@ export class UI {
         if (!this.game || this.rewardedAdPending || typeof this.game.canWatchRewardedAd !== 'function') {
             return { ok: false, reason: 'busy' };
         }
-        const gate = this.game.canWatchRewardedAd(placement);
+        let gate = this.game.canWatchRewardedAd(placement);
+        let playPlacement = placement;
+        if (!gate?.ok
+            && placement === REWARDED_AD_PLACEMENTS.DOUBLE_COIN
+            && gate?.reason === 'placement-disabled') {
+            const fallbackGate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
+            if (fallbackGate?.ok) {
+                gate = fallbackGate;
+                playPlacement = REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR;
+            }
+        }
         if (!gate?.ok) {
             this.refreshSupportAuthorPanel();
             return {
@@ -1985,7 +1999,7 @@ export class UI {
         this.rewardedAdPending = true;
         this.refreshSupportAuthorPanel();
         try {
-            const result = await playRewardedAd(placement);
+            const result = await playRewardedAd(playPlacement);
             if (!result?.rewarded) {
                 return { ok: false, reason: result?.error || 'ad-interrupted' };
             }
@@ -2033,11 +2047,21 @@ export class UI {
     }
 
     async handleDoubleCoinAd() {
+        if (this.levelScoreBonus) {
+            this.levelScoreBonus.classList.add('hidden');
+            this.levelScoreBonus.textContent = '';
+        }
         const result = await this.runRewardedAdFlow(REWARDED_AD_PLACEMENTS.DOUBLE_COIN);
         if (!result?.ok) {
             if (this.levelScoreBonus && result?.reason === 'daily-limit-reached') {
                 this.levelScoreBonus.classList.remove('hidden');
                 this.levelScoreBonus.textContent = this.getLocaleText('\u4eca\u65e5\u5e7f\u544a\u6b21\u6570\u5df2\u8fbe\u4e0a\u9650', 'Daily ad limit reached');
+            } else if (this.levelScoreBonus && result?.reason === 'placement-disabled') {
+                this.levelScoreBonus.classList.remove('hidden');
+                this.levelScoreBonus.textContent = this.getLocaleText('\u53ef\u7528\u5e7f\u544a\u4f4d\u672a\u5f00\u542f\uff0c\u8bf7\u5728\u53c2\u6570\u7ba1\u7406\u5f00\u542f\u3002', 'Ad placement is disabled in config.');
+            } else if (this.levelScoreBonus && result?.reason) {
+                this.levelScoreBonus.classList.remove('hidden');
+                this.levelScoreBonus.textContent = this.getLocaleText('\u5e7f\u544a\u672a\u5b8c\u6210\uff0c\u672a\u83b7\u5f97\u53cc\u500d\u5956\u52b1\u3002', 'Ad not completed. Double reward not granted.');
             }
             return;
         }
