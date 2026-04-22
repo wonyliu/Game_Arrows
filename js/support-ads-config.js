@@ -156,10 +156,20 @@ function normalizeSupportAdsConfig(value, options = {}) {
 function normalizePlacements(rawValue, fallback) {
     const source = isPlainObject(rawValue) ? rawValue : {};
     return {
-        support_author: source.support_author !== false && fallback.support_author !== false,
-        fail_continue: source.fail_continue !== false && fallback.fail_continue !== false,
-        double_coin: source.double_coin !== false && fallback.double_coin !== false
+        support_author: normalizePlacementEnabled(source.support_author, fallback.support_author),
+        fail_continue: normalizePlacementEnabled(source.fail_continue, fallback.fail_continue),
+        double_coin: normalizePlacementEnabled(source.double_coin, fallback.double_coin)
     };
+}
+
+function normalizePlacementEnabled(value, fallback) {
+    if (value === true) {
+        return true;
+    }
+    if (value === false) {
+        return false;
+    }
+    return fallback !== false;
 }
 
 function normalizeAdUnitIds(rawValue, fallback) {

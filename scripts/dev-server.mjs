@@ -2559,6 +2559,9 @@ function shouldCountAssetReferenceSource(relativePath) {
     if (normalized.startsWith('css/')) {
         return true;
     }
+    if (normalized.startsWith('assets/skins/') && normalized.endsWith('/manifest.json')) {
+        return true;
+    }
     return false;
 }
 
