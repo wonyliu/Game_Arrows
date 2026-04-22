@@ -2094,6 +2094,9 @@ export class UI {
             }
             return;
         }
+        const beforeCoins = typeof this.game?.getCoins === 'function'
+            ? Math.max(0, Math.floor(Number(this.game.getCoins()) || 0))
+            : 0;
         const bonus = typeof this.game?.claimDoubleCoinReward === 'function'
             ? this.game.claimDoubleCoinReward()
             : 0;
@@ -2102,6 +2105,13 @@ export class UI {
             const totalCoins = Math.max(0, this.game.getCoins());
             this.setLevelSettleCoinText(earned, totalCoins);
             this.updateCoinDisplays();
+            this.nextLevel();
+            if (totalCoins > beforeCoins) {
+                this.stopCheckinCoinCounter();
+                this.setCoinDisplayOverride(beforeCoins);
+                await this.animateCoinDisplayValue(beforeCoins, totalCoins, 980);
+                this.clearCoinDisplayOverride();
+            }
         }
         this.refreshDoubleCoinAdButton();
     }
