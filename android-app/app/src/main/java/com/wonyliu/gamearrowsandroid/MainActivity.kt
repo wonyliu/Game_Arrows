@@ -15,6 +15,8 @@ import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.rewarded.RewardedAd
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback
 import org.json.JSONObject
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 class MainActivity : ComponentActivity() {
     companion object {
@@ -45,7 +47,7 @@ class MainActivity : ComponentActivity() {
         }
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG)
         setContentView(webView)
-        webView.loadUrl(BuildConfig.GAME_HOME_URL)
+        webView.loadUrl(buildGameLaunchUrl())
     }
 
     override fun onDestroy() {
@@ -145,6 +147,23 @@ class MainActivity : ComponentActivity() {
         return BuildConfig.DEFAULT_REWARDED_AD_UNIT_ID.trim()
     }
 
+    private fun buildGameLaunchUrl(): String {
+        val homeUrl = BuildConfig.GAME_HOME_URL.trim()
+        if (homeUrl.isBlank()) {
+            return "https://wonyliu.github.io/Game_Arrows/index.html"
+        }
+        val apiBase = BuildConfig.GAME_API_BASE_URL.trim()
+        if (apiBase.isBlank()) {
+            return homeUrl
+        }
+        val encoded = URLEncoder.encode(apiBase, StandardCharsets.UTF_8.toString())
+        return if (homeUrl.contains("?")) {
+            "$homeUrl&apiBase=$encoded"
+        } else {
+            "$homeUrl?apiBase=$encoded"
+        }
+    }
+
     private fun emitRewardedAdResult(
         callbackId: String,
         placement: String,
@@ -185,4 +204,3 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-

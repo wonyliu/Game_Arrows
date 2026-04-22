@@ -17,7 +17,8 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
-        buildConfigField("String", "GAME_HOME_URL", "\"https://wonyliu.github.io/Game_Arrows/index.html\"")
+        buildConfigField("String", "GAME_HOME_URL", "\"http://192.168.1.47:4173/index.html\"")
+        buildConfigField("String", "GAME_API_BASE_URL", "\"http://192.168.1.47:4173\"")
         buildConfigField("String", "DEFAULT_REWARDED_AD_UNIT_ID", "\"ca-app-pub-8908200288624350/9845834535\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
