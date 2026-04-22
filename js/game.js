@@ -1204,6 +1204,11 @@ export class Game {
     }
 
     handleTouchEnd(event) {
+        const shouldHandleTouchEnd = this.dragReleaseActive
+            || (this.state === 'PLAYING' && this.grid && !this.externalPauseActive);
+        if (!shouldHandleTouchEnd) {
+            return;
+        }
         if (typeof event?.preventDefault === 'function') {
             event.preventDefault();
         }
