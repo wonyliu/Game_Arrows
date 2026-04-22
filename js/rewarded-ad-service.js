@@ -8,11 +8,17 @@ export const REWARDED_AD_PLACEMENTS = Object.freeze({
 
 const DEFAULT_MOCK_DELAY_MS = 900;
 const wechatAdCache = new Map();
+const androidRewardedCallbackMap = new Map();
+let androidRewardedSeq = 0;
+const ANDROID_REWARDED_TIMEOUT_MS = 35000;
 
 export async function playRewardedAd(placement, options = {}) {
     const normalizedPlacement = normalizePlacement(placement);
     const config = readSupportAdsConfig();
     const adUnitId = `${config?.adUnitIds?.[normalizedPlacement] || ''}`.trim();
+    if (canUseAndroidRewardedAdApi()) {
+        return playAndroidRewardedAd(normalizedPlacement, adUnitId);
+    }
     if (canUseWechatRewardedAdApi() && adUnitId) {
         return playWechatRewardedAd(adUnitId, normalizedPlacement);
     }
@@ -22,6 +28,12 @@ export async function playRewardedAd(placement, options = {}) {
 function canUseWechatRewardedAdApi() {
     return typeof wx !== 'undefined'
         && typeof wx?.createRewardedVideoAd === 'function';
+}
+
+function canUseAndroidRewardedAdApi() {
+    return typeof window !== 'undefined'
+        && !!window.AndroidAdsBridge
+        && typeof window.AndroidAdsBridge.playRewardedAd === 'function';
 }
 
 function normalizePlacement(placement) {
@@ -34,6 +46,92 @@ function normalizePlacement(placement) {
         return text;
     }
     return REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR;
+}
+
+if (typeof window !== 'undefined' && typeof window.__androidRewardedAdResolve !== 'function') {
+    window.__androidRewardedAdResolve = (requestId, payload) => {
+        const key = `${requestId || ''}`.trim();
+        if (!key) {
+            return;
+        }
+        const resolver = androidRewardedCallbackMap.get(key);
+        if (typeof resolver !== 'function') {
+            return;
+        }
+        androidRewardedCallbackMap.delete(key);
+        resolver(payload);
+    };
+}
+
+function playAndroidRewardedAd(placement, adUnitId) {
+    return new Promise((resolve) => {
+        const requestId = `android_rewarded_${Date.now()}_${++androidRewardedSeq}`;
+        let settled = false;
+        const finish = (payload) => {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            const result = normalizeAndroidRewardedPayload(payload, placement);
+            resolve(result);
+        };
+
+        const timeoutTimer = setTimeout(() => {
+            androidRewardedCallbackMap.delete(requestId);
+            finish({
+                ok: false,
+                rewarded: false,
+                provider: 'android',
+                placement,
+                error: 'ad timeout'
+            });
+        }, ANDROID_REWARDED_TIMEOUT_MS);
+
+        androidRewardedCallbackMap.set(requestId, (payload) => {
+            clearTimeout(timeoutTimer);
+            finish(payload);
+        });
+
+        try {
+            window.AndroidAdsBridge.playRewardedAd(placement, `${adUnitId || ''}`.trim(), requestId);
+        } catch (error) {
+            clearTimeout(timeoutTimer);
+            androidRewardedCallbackMap.delete(requestId);
+            finish({
+                ok: false,
+                rewarded: false,
+                provider: 'android',
+                placement,
+                error: `${error?.message || 'android bridge failed'}`
+            });
+        }
+    });
+}
+
+function normalizeAndroidRewardedPayload(payload, placement) {
+    const source = parseAndroidPayload(payload);
+    return {
+        ok: source.ok === true,
+        rewarded: source.rewarded === true,
+        provider: 'android',
+        placement: `${source.placement || placement || ''}`.trim() || placement,
+        error: `${source.error || ''}`.trim()
+    };
+}
+
+function parseAndroidPayload(payload) {
+    if (!payload) {
+        return {};
+    }
+    if (typeof payload === 'string') {
+        try {
+            const parsed = JSON.parse(payload);
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch {
+            return {};
+        }
+    }
+    return payload && typeof payload === 'object' ? payload : {};
 }
 
 function getWechatRewardedAd(adUnitId) {

@@ -21,7 +21,7 @@ import {
     getActiveUserSession,
     openUserLoginDialog
 } from './user-auth.js?v=5';
-import { playRewardedAd, REWARDED_AD_PLACEMENTS } from './rewarded-ad-service.js?v=1';
+import { playRewardedAd, REWARDED_AD_PLACEMENTS } from './rewarded-ad-service.js?v=2';
 
 const MENU_PANEL = Object.freeze({
     HOME: 'HOME',
