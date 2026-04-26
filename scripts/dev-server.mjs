@@ -112,6 +112,50 @@ const ASSET_SCAN_SKIP_DIR_NAMES = new Set([
     'node_modules'
 ]);
 const ASSET_IMAGE_REF_PATTERN = /\/?assets\/[^"'`\s)>\]]+?\.(?:png|jpg|jpeg|webp|svg|gif)(?:\?[^"'`\s)>\]]+)?/gi;
+const ASSET_AUDIT_POLICY_VERSION = 'player-visible-runtime-v2';
+const PLAYER_VISIBLE_UI_ASSET_OWNERS = Object.freeze({
+    home: Object.freeze({
+        homeBgSnakeUp: Object.freeze(['assets/ui/home/components/snake_pose_up.png']),
+        homeBgSnakeDown: Object.freeze(['assets/ui/home/components/snake_pose_down.png'])
+    })
+});
+const ASSET_AUDIT_SELF_CHECK_CASES = Object.freeze([
+    Object.freeze({
+        path: 'assets/ui/shared/icons/icon_shuffle.png',
+        expectedUsed: false,
+        reason: 'Old shuffle icon was replaced by the current tool icon mapping.'
+    }),
+    Object.freeze({
+        path: 'assets/ui/shared/icons/icon_undo.png',
+        expectedUsed: false,
+        reason: 'Old undo icon was replaced by the current tool icon mapping.'
+    }),
+    Object.freeze({
+        path: 'assets/ui/shared/icons/icon_hint.png',
+        expectedUsed: false,
+        reason: 'Old hint icon was replaced by the current tool icon mapping.'
+    }),
+    Object.freeze({
+        path: 'assets/ui/home/components/snake_pose_down.png',
+        expectedUsed: false,
+        reason: 'Home layout marks homeBgSnakeDown as deleted, so its CSS fallback is not player-visible.'
+    }),
+    Object.freeze({
+        path: 'assets/ui/settings/concepts/settings_panel_a.png',
+        expectedUsed: false,
+        reason: 'Settings panel concept art is not part of the runtime settings DOM.'
+    }),
+    Object.freeze({
+        path: 'assets/ui/home/components/btn_settings.png',
+        expectedUsed: true,
+        reason: 'Home settings button is player-visible on the main menu.'
+    }),
+    Object.freeze({
+        path: 'assets/ui/home/components/bg_cave_panel.png',
+        expectedUsed: true,
+        reason: 'Home cave background is player-visible on the main menu.'
+    })
+]);
 const pendingJsonWriteByPath = new Map();
 
 const MIME_TYPES = {
@@ -151,6 +195,18 @@ const MANAGED_STORAGE_KEYS = new Set([
     'ui-layout-config-v1',
     'skin-part-fit-overrides-v1'
 ]);
+
+if (process.argv.includes('--asset-audit-self-check')) {
+    const analysis = await analyzeUnusedImageAssets();
+    const selfCheck = runAssetAuditSelfCheck(analysis);
+    console.log(JSON.stringify({
+        ok: selfCheck.failed.length === 0,
+        policyVersion: ASSET_AUDIT_POLICY_VERSION,
+        failed: selfCheck.failed,
+        checks: selfCheck.checks
+    }, null, 2));
+    process.exit(selfCheck.failed.length === 0 ? 0 : 1);
+}
 
 await fs.mkdir(DATA_DIR, { recursive: true });
 await fs.mkdir(MANAGED_CONFIG_DIR, { recursive: true });
@@ -262,6 +318,11 @@ const server = http.createServer(async (req, res) => {
         if (requestUrl.pathname === '/api/admin/assets/scan') {
             if (!requireAdminAuth(req, res, requestUrl)) return;
             await handleAdminAssetScanRequest(req, res);
+            return;
+        }
+        if (requestUrl.pathname === '/api/admin/assets/self-check') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminAssetSelfCheckRequest(req, res);
             return;
         }
         if (requestUrl.pathname === '/api/admin/assets/delete-unused') {
@@ -2286,9 +2347,26 @@ async function handleAdminAssetScanRequest(req, res) {
     sendJson(res, 200, {
         ok: true,
         scanId: `${Date.now()}`,
+        policyVersion: ASSET_AUDIT_POLICY_VERSION,
         summary: analysis.summary,
         assets: analysis.assets,
         unusedAssets: analysis.unusedAssets
+    });
+}
+
+async function handleAdminAssetSelfCheckRequest(req, res) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const analysis = await analyzeUnusedImageAssets();
+    const selfCheck = runAssetAuditSelfCheck(analysis);
+    sendJson(res, 200, {
+        ok: selfCheck.failed.length === 0,
+        policyVersion: ASSET_AUDIT_POLICY_VERSION,
+        summary: analysis.summary,
+        checks: selfCheck.checks,
+        failed: selfCheck.failed
     });
 }
 
@@ -2463,6 +2541,7 @@ async function analyzeUnusedImageAssets() {
                     : 0,
                 referrers: referrerList,
                 category,
+                classificationReason: buildAssetClassificationReason(row.path, category, referrerList),
                 isArtifactCandidate: category === 'artifact_candidate'
             };
         })
@@ -2491,6 +2570,8 @@ async function analyzeUnusedImageAssets() {
     const artifactCandidates = assets.filter((row) => row.category === 'artifact_candidate');
     return {
         summary: {
+            policyVersion: ASSET_AUDIT_POLICY_VERSION,
+            policyStandard: 'player-visible-runtime-reference',
             totalImageAssets: assets.length,
             totalImageBytes,
             usedImageAssets: usedAssets.length,
@@ -2500,11 +2581,32 @@ async function analyzeUnusedImageAssets() {
             maxUsageCount,
             primaryRuntimeAssets: primaryRuntimeAssets.length,
             fallbackOnlyAssets: fallbackOnlyAssets.length,
-            artifactCandidates: artifactCandidates.length
+            artifactCandidates: artifactCandidates.length,
+            runtimeSourceRules: [
+                'index.html',
+                'js runtime files excluding admin tools',
+                'css runtime declarations only when actually used',
+                'playable skin manifests and complete skin directories'
+            ]
         },
         assets,
         unusedAssets
     };
+}
+
+function buildAssetClassificationReason(assetPath, category, referrers) {
+    const refs = Array.isArray(referrers) ? referrers.filter(Boolean) : [];
+    if (refs.length > 0) {
+        const visibleRefs = refs.slice(0, 4).join(', ');
+        return `Player-visible runtime reference found in: ${visibleRefs}${refs.length > 4 ? ', ...' : ''}`;
+    }
+    if (category === 'artifact_candidate') {
+        return 'No player-visible runtime reference was found; path is in a concept/source-artifact location or uses a source-artifact filename.';
+    }
+    if (category === 'fallback_only') {
+        return 'Only fallback theme code references this asset; it is not a confirmed primary runtime asset.';
+    }
+    return 'No player-visible runtime reference was found by the current audit policy.';
 }
 
 async function collectImageAssetRows() {
@@ -2529,6 +2631,7 @@ async function collectImageAssetRows() {
 async function collectImageAssetReferences() {
     const projectFiles = await walkDirectoryFiles(ROOT_DIR);
     const referenceMap = new Map();
+    const deletedLayoutAssetPaths = await collectDeletedUiLayoutAssetPaths();
     for (const filePath of projectFiles) {
         const relativePath = normalizeProjectRelativePath(filePath);
         if (!shouldCountPlayerAssetReferenceSource(relativePath)) {
@@ -2542,10 +2645,13 @@ async function collectImageAssetReferences() {
             continue;
         }
         const content = await fs.readFile(filePath, 'utf8');
-        const matches = content.match(ASSET_IMAGE_REF_PATTERN) || [];
+        const matches = collectAssetReferenceMatches(content, extension);
         for (const match of matches) {
             const normalized = normalizeAssetReferencePath(match);
             if (!normalized) {
+                continue;
+            }
+            if (!shouldCountImageAssetReference(normalized, relativePath, deletedLayoutAssetPaths)) {
                 continue;
             }
             addAssetReference(referenceMap, normalized, relativePath);
@@ -2558,6 +2664,120 @@ async function collectImageAssetReferences() {
         }
     }
     return referenceMap;
+}
+
+function collectAssetReferenceMatches(content, extension) {
+    const text = `${content || ''}`;
+    if (`${extension || ''}`.toLowerCase() !== '.css') {
+        return text.match(ASSET_IMAGE_REF_PATTERN) || [];
+    }
+    const customProperties = collectCssAssetCustomProperties(text);
+    const out = [];
+    for (const match of text.match(ASSET_IMAGE_REF_PATTERN) || []) {
+        const declarationName = findCssDeclarationNameBefore(text, match);
+        if (!declarationName || !declarationName.startsWith('--')) {
+            out.push(match);
+            continue;
+        }
+        if (isCssCustomPropertyUsed(text, declarationName, customProperties)) {
+            out.push(match);
+        }
+    }
+    return out;
+}
+
+function collectCssAssetCustomProperties(cssText) {
+    const text = `${cssText || ''}`;
+    const out = new Map();
+    const declarationPattern = /(--[a-zA-Z0-9_-]+)\s*:\s*([^;{}]*?assets\/[^;{}]*?\.(?:png|jpg|jpeg|webp|svg|gif)[^;{}]*);/g;
+    let match;
+    while ((match = declarationPattern.exec(text))) {
+        out.set(match[1], match.index);
+    }
+    return out;
+}
+
+function findCssDeclarationNameBefore(cssText, assetMatch) {
+    const text = `${cssText || ''}`;
+    const index = text.indexOf(assetMatch);
+    if (index < 0) {
+        return '';
+    }
+    const colonIndex = text.lastIndexOf(':', index);
+    if (colonIndex < 0) {
+        return '';
+    }
+    const boundary = Math.max(
+        text.lastIndexOf(';', colonIndex),
+        text.lastIndexOf('{', colonIndex),
+        text.lastIndexOf('}', colonIndex)
+    );
+    return text.slice(boundary + 1, colonIndex).trim();
+}
+
+function isCssCustomPropertyUsed(cssText, propertyName, customProperties, visiting = new Set()) {
+    const name = `${propertyName || ''}`.trim();
+    if (!name || visiting.has(name)) {
+        return false;
+    }
+    visiting.add(name);
+    const text = `${cssText || ''}`;
+    const directUsePattern = new RegExp(`var\\(\\s*${escapeRegExp(name)}\\b`, 'g');
+    for (const match of text.matchAll(directUsePattern)) {
+        if (match.index !== customProperties.get(name)) {
+            return true;
+        }
+    }
+    for (const [otherName, declarationIndex] of customProperties) {
+        if (otherName === name) {
+            continue;
+        }
+        const declarationEnd = text.indexOf(';', declarationIndex);
+        const declarationText = text.slice(declarationIndex, declarationEnd >= 0 ? declarationEnd : text.length);
+        if (new RegExp(`var\\(\\s*${escapeRegExp(name)}\\b`).test(declarationText)
+            && isCssCustomPropertyUsed(text, otherName, customProperties, visiting)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function escapeRegExp(value) {
+    return `${value || ''}`.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+async function collectDeletedUiLayoutAssetPaths() {
+    const layoutPath = path.join(ROOT_DIR, 'data', 'managed-config', 'ui-layout-config-v1.json');
+    const layout = await readJsonFile(layoutPath, null);
+    const out = new Set();
+    for (const [screenId, assetOwners] of Object.entries(PLAYER_VISIBLE_UI_ASSET_OWNERS)) {
+        const deleted = Array.isArray(layout?.[screenId]?.deletedElements) ? layout[screenId].deletedElements : [];
+        const deletedSet = new Set(deleted.map((item) => `${item || ''}`.trim()).filter(Boolean));
+        for (const [elementId, assetPaths] of Object.entries(assetOwners)) {
+            if (!deletedSet.has(elementId)) {
+                continue;
+            }
+            for (const assetPath of assetPaths) {
+                const normalized = normalizeAssetReferencePath(assetPath);
+                if (normalized) {
+                    out.add(normalized);
+                }
+            }
+        }
+    }
+    return out;
+}
+
+function shouldCountImageAssetReference(assetPath, referrer, deletedLayoutAssetPaths) {
+    const normalizedAsset = normalizeAssetReferencePath(assetPath);
+    const normalizedReferrer = `${referrer || ''}`.replace(/\\/g, '/').trim();
+    if (!normalizedAsset || !normalizedReferrer) {
+        return false;
+    }
+    if (deletedLayoutAssetPaths?.has?.(normalizedAsset) && normalizedReferrer === 'css/style.css') {
+        return false;
+    }
+    return true;
 }
 
 function shouldCountPlayerAssetReferenceSource(relativePath) {
@@ -2671,6 +2891,31 @@ function classifyAssetUsage(assetPath, referrers) {
         return 'fallback_only';
     }
     return 'primary_runtime';
+}
+
+function runAssetAuditSelfCheck(analysis) {
+    const assets = Array.isArray(analysis?.assets) ? analysis.assets : [];
+    const assetByPath = new Map(assets.map((asset) => [asset.path, asset]));
+    const checks = ASSET_AUDIT_SELF_CHECK_CASES.map((testCase) => {
+        const asset = assetByPath.get(testCase.path);
+        const exists = Boolean(asset);
+        const actualUsed = exists ? asset.used === true : false;
+        const passed = actualUsed === testCase.expectedUsed;
+        return {
+            path: testCase.path,
+            exists,
+            expectedUsed: testCase.expectedUsed,
+            actualUsed,
+            passed,
+            category: asset?.category || (exists ? '' : 'missing'),
+            referrers: Array.isArray(asset?.referrers) ? asset.referrers : [],
+            reason: testCase.reason
+        };
+    });
+    return {
+        checks,
+        failed: checks.filter((check) => !check.passed)
+    };
 }
 
 function isArtifactCandidatePath(assetPath) {

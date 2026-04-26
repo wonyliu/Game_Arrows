@@ -1,16 +1,16 @@
 {
   "version": 1,
-  "updatedAt": "",
+  "updatedAt": "2026-04-22T16:26:38.403Z",
   "defaultDailyLimit": 5,
   "thankYouMessage": "感谢你的支持，这会帮助我们持续更新游戏内容。",
   "enabledPlacements": {
     "support_author": true,
-    "fail_continue": false,
-    "double_coin": false
+    "fail_continue": true,
+    "double_coin": true
   },
   "adUnitIds": {
-    "support_author": "",
-    "fail_continue": "",
-    "double_coin": ""
+    "support_author": "ca-app-pub-8908200288624350/9845834535",
+    "fail_continue": "ca-app-pub-8908200288624350/9845834535",
+    "double_coin": "ca-app-pub-8908200288624350/9845834535"
   }
 }

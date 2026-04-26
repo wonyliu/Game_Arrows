@@ -24,9 +24,9 @@ let previewMeta = {
 function getRewardIconByItemId(itemId) {
     const id = `${itemId || ''}`.trim().toLowerCase();
     if (id === 'coin') return 'assets/ui/checkin/icon_coin_pile.png';
-    if (id === 'hint') return 'assets/ui/shared/icons/icon_hint.png';
-    if (id === 'undo') return 'assets/ui/shared/icons/icon_undo.png';
-    if (id === 'shuffle') return 'assets/ui/shared/icons/icon_shuffle.png';
+    if (id === 'hint') return 'assets/ui/shared/icons/icon_tool_hint.png';
+    if (id === 'undo') return 'assets/ui/shared/icons/icon_tool_manual_release.png';
+    if (id === 'shuffle') return 'assets/ui/shared/icons/icon_tool_freeze_time.png';
     if (id === 'skin_fragment') return 'assets/ui/shared/icons/icon_theme.png';
     if (id === 'skin') return 'assets/ui/shared/icons/icon_theme.png';
     return 'assets/ui/shared/icons/icon_gift.png';

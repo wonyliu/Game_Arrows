@@ -1,4 +1,4 @@
-import { getActiveUserId } from './user-auth.js?v=5';
+﻿import { getActiveUserId } from './user-auth.js?v=6';
 
 const GAME_PROGRESS_FILE = 'game-progress-v1';
 const STORAGE_API_BASE = '/api/storage';

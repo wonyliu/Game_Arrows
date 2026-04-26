@@ -17,6 +17,85 @@ function readBool(value, fallback) {
     return typeof value === 'boolean' ? value : fallback;
 }
 
+function readString(value, fallback = '') {
+    return typeof value === 'string' ? value : fallback;
+}
+
+function createCheckinLayerOrder() {
+    const order = ['backButton', 'notebook', 'ribbon', 'ribbonTitle', 'mascot'];
+    for (let day = 1; day <= 7; day += 1) {
+        order.push(`day${day}-card`);
+        order.push(`day${day}-title`);
+        order.push(`day${day}-icon`);
+        order.push(`day${day}-amount`);
+        order.push(`day${day}-badge`);
+    }
+    order.push('rewardTooltip');
+    order.push('status');
+    return order;
+}
+
+const CHECKIN_LAYER_ORDER = Object.freeze(createCheckinLayerOrder());
+const GAMEPLAY_LAYER_ORDER = Object.freeze([
+    'hudTop',
+    'settingsButton',
+    'settingsIcon',
+    'coinChip',
+    'coinIcon',
+    'coinValue',
+    'center',
+    'lives',
+    'level',
+    'timer',
+    'timerTrack',
+    'timerLabel',
+    'combo',
+    'comboCount',
+    'comboLabel',
+    'scorePulse',
+    'scoreValue',
+    'scoreGain'
+]);
+const HOME_LAYER_ORDER = Object.freeze([
+    'homeBgPanelLarge',
+    'homeBgSnakeUp',
+    'homeBgSnakeDown',
+    'homeBgCavePanel',
+    'homeTitle',
+    'playArea',
+    'startButton',
+    'startButtonText',
+    'levelTag',
+    'levelTagLabel',
+    'levelTagValue',
+    'featurePanel',
+    'featureSettings',
+    'featureSettingsText',
+    'featureLeaderboard',
+    'featureLeaderboardText',
+    'featureSkins',
+    'featureSkinsText',
+    'featureCheckin',
+    'featureCheckinText',
+    'featureExit',
+    'featureExitText',
+    'featureSupportAuthor',
+    'featureSupportAuthorText',
+    'profileEntry',
+    'loginEntry',
+    'loginEntryText',
+    'homeCoinChip',
+    'versionTag',
+    'homeMascot',
+    'onlineRewardDock',
+    'onlineRewardChest',
+    'onlineRewardText'
+]);
+
+function copyLayerOrder(order) {
+    return Array.isArray(order) ? order.slice() : [];
+}
+
 function createDefaultDayLayout(day) {
     const cardMap = {
         1: { x: 267, y: 209, width: 137, height: 154 },
@@ -51,6 +130,8 @@ function createDefaultCheckinLayout() {
         days[day] = createDefaultDayLayout(day);
     }
     return {
+        layerOrder: copyLayerOrder(CHECKIN_LAYER_ORDER),
+        deletedElements: [],
         scene: {
             scaleMultiplier: 1.8
         },
@@ -108,6 +189,8 @@ function createDefaultCheckinLayout() {
 
 function createDefaultGameplayLayout() {
     return {
+        layerOrder: copyLayerOrder(GAMEPLAY_LAYER_ORDER),
+        deletedElements: [],
         hudTop: {
             x: 0,
             y: 24,
@@ -244,11 +327,281 @@ function createDefaultGameplayLayout() {
 
 function createDefaultHomeLayout() {
     return {
-        mascot: {
+        layerOrder: copyLayerOrder(HOME_LAYER_ORDER),
+        deletedElements: [],
+        homeBgPanelLarge: {
+            x: 24,
+            y: 737,
+            width: 198,
+            height: 143,
+            visible: true
+        },
+        homeBgSnakeUp: {
+            x: 156,
+            y: 362,
+            width: 126,
+            height: 44,
+            visible: true
+        },
+        homeBgSnakeDown: {
+            x: 224,
+            y: 274,
+            width: 154,
+            height: 95,
+            visible: true
+        },
+        homeBgCavePanel: {
+            x: 16,
+            y: 42,
+            width: 138,
+            height: 308,
+            visible: true
+        },
+        homeTitle: {
+            x: 79,
+            y: 42,
+            width: 272,
+            height: 96,
+            visible: true
+        },
+        playArea: {
+            x: 116,
+            y: 92,
+            width: 292,
+            height: 192,
+            visible: true
+        },
+        startButton: {
+            x: 1,
+            y: 0,
+            width: 291,
+            height: 108,
+            visible: true
+        },
+        startButtonText: {
             x: 0,
+            y: 0,
+            width: 291,
+            height: 108,
+            fontSize: 34,
+            align: 'center',
+            textZh: '进入游戏',
+            textEn: 'Enter Game',
+            visible: true
+        },
+        levelTag: {
+            x: 160,
             y: 120,
-            width: 854,
-            height: 480,
+            width: 132,
+            height: 66,
+            visible: true
+        },
+        levelTagLabel: {
+            x: 8,
+            y: 12,
+            width: 116,
+            height: 16,
+            fontSize: 9,
+            align: 'center',
+            textZh: '洞穴入口',
+            textEn: 'Burrow',
+            visible: true
+        },
+        levelTagValue: {
+            x: 8,
+            y: 28,
+            width: 116,
+            height: 24,
+            fontSize: 15,
+            align: 'center',
+            textZh: '洞穴 {level}',
+            textEn: 'Burrow {level}',
+            visible: true
+        },
+        featurePanel: {
+            x: 13,
+            y: 566,
+            width: 404,
+            height: 340,
+            visible: true
+        },
+        featureSettings: {
+            x: 8,
+            y: 8,
+            width: 129,
+            height: 162,
+            visible: true
+        },
+        featureSettingsText: {
+            x: 8,
+            y: 105,
+            width: 113,
+            height: 36,
+            fontSize: 24,
+            align: 'center',
+            textZh: '设置',
+            textEn: 'Settings',
+            visible: true
+        },
+        featureLeaderboard: {
+            x: 138,
+            y: 8,
+            width: 129,
+            height: 162,
+            visible: true
+        },
+        featureLeaderboardText: {
+            x: 8,
+            y: 105,
+            width: 113,
+            height: 36,
+            fontSize: 21,
+            align: 'center',
+            textZh: '排行榜',
+            textEn: 'Leaderboard',
+            visible: true
+        },
+        featureSkins: {
+            x: 268,
+            y: 8,
+            width: 129,
+            height: 162,
+            visible: true
+        },
+        featureSkinsText: {
+            x: 8,
+            y: 105,
+            width: 113,
+            height: 36,
+            fontSize: 24,
+            align: 'center',
+            textZh: '皮肤',
+            textEn: 'Skins',
+            visible: true
+        },
+        featureCheckin: {
+            x: 8,
+            y: 176,
+            width: 129,
+            height: 162,
+            visible: true
+        },
+        featureCheckinText: {
+            x: 8,
+            y: 105,
+            width: 113,
+            height: 36,
+            fontSize: 24,
+            align: 'center',
+            textZh: '签到',
+            textEn: 'Check-In',
+            visible: true
+        },
+        featureExit: {
+            x: 138,
+            y: 176,
+            width: 129,
+            height: 162,
+            visible: true
+        },
+        featureExitText: {
+            x: 8,
+            y: 105,
+            width: 113,
+            height: 36,
+            fontSize: 24,
+            align: 'center',
+            textZh: '退出',
+            textEn: 'Exit',
+            visible: true
+        },
+        featureSupportAuthor: {
+            x: 268,
+            y: 176,
+            width: 129,
+            height: 162,
+            visible: true
+        },
+        featureSupportAuthorText: {
+            x: 8,
+            y: 105,
+            width: 113,
+            height: 36,
+            fontSize: 21,
+            align: 'center',
+            textZh: '支持作者',
+            textEn: 'Support Author',
+            visible: true
+        },
+        profileEntry: {
+            x: 18,
+            y: 100,
+            width: 44,
+            height: 44,
+            visible: true
+        },
+        loginEntry: {
+            x: 8,
+            y: 146,
+            width: 64,
+            height: 24,
+            visible: true
+        },
+        loginEntryText: {
+            x: 0,
+            y: 0,
+            width: 64,
+            height: 24,
+            fontSize: 14,
+            align: 'center',
+            textZh: '登录',
+            textEn: 'Login',
+            visible: true
+        },
+        coinChip: {
+            x: 336,
+            y: 24,
+            width: 78,
+            height: 34,
+            visible: true
+        },
+        versionTag: {
+            x: 304,
+            y: 896,
+            width: 112,
+            height: 24,
+            visible: true
+        },
+        mascot: {
+            x: 156,
+            y: 362,
+            width: 126,
+            height: 154,
+            visible: false
+        },
+        onlineRewardDock: {
+            x: 334,
+            y: 392,
+            width: 88,
+            height: 112,
+            visible: true
+        },
+        onlineRewardChest: {
+            x: 0,
+            y: 0,
+            width: 88,
+            height: 88,
+            visible: true
+        },
+        onlineRewardText: {
+            x: 6,
+            y: 76,
+            width: 76,
+            height: 24,
+            fontSize: 12,
+            align: 'center',
+            textZh: '可领取',
+            textEn: 'Claim',
             visible: true
         }
     };
@@ -283,6 +636,20 @@ function mergeText(defaultText, partialText) {
     };
 }
 
+function mergeEditableText(defaultText, partialText) {
+    return {
+        x: readNumber(partialText?.x, defaultText.x),
+        y: readNumber(partialText?.y, defaultText.y),
+        width: readNumber(partialText?.width, defaultText.width),
+        height: readNumber(partialText?.height, defaultText.height),
+        fontSize: readNumber(partialText?.fontSize, defaultText.fontSize),
+        align: `${partialText?.align || defaultText.align || 'center'}`.toLowerCase() === 'left' ? 'left' : 'center',
+        textZh: readString(partialText?.textZh, defaultText.textZh),
+        textEn: readString(partialText?.textEn, defaultText.textEn),
+        visible: readBool(partialText?.visible, defaultText.visible ?? true)
+    };
+}
+
 function mergePointSize(defaultValue, partialValue) {
     return {
         x: readNumber(partialValue?.x, defaultValue.x),
@@ -301,8 +668,54 @@ function mergePointText(defaultValue, partialValue) {
     };
 }
 
+function normalizeLayerOrder(layerOrder, fallbackOrder) {
+    const allowed = new Set(fallbackOrder);
+    const seen = new Set();
+    const normalized = [];
+
+    if (Array.isArray(layerOrder)) {
+        for (const rawId of layerOrder) {
+            const id = `${rawId || ''}`.trim();
+            if (!id || !allowed.has(id) || seen.has(id)) {
+                continue;
+            }
+            seen.add(id);
+            normalized.push(id);
+        }
+    }
+
+    for (const id of fallbackOrder) {
+        if (seen.has(id)) {
+            continue;
+        }
+        seen.add(id);
+        normalized.push(id);
+    }
+
+    return normalized;
+}
+
+function normalizeDeletedElements(deletedElements, fallbackOrder) {
+    const allowed = new Set(fallbackOrder);
+    const seen = new Set();
+    const normalized = [];
+    if (Array.isArray(deletedElements)) {
+        for (const rawId of deletedElements) {
+            const id = `${rawId || ''}`.trim();
+            if (!id || !allowed.has(id) || seen.has(id)) {
+                continue;
+            }
+            seen.add(id);
+            normalized.push(id);
+        }
+    }
+    return normalized;
+}
+
 function normalizeCheckinLayout(layout) {
     const defaults = createDefaultCheckinLayout();
+    const deletedElements = normalizeDeletedElements(layout?.deletedElements, defaults.layerOrder);
+    const activeFallbackOrder = defaults.layerOrder.filter((id) => !deletedElements.includes(id));
     const normalizedDays = {};
     for (let day = 1; day <= 7; day += 1) {
         const fallback = defaults.days[day];
@@ -317,6 +730,8 @@ function normalizeCheckinLayout(layout) {
     }
 
     return {
+        layerOrder: normalizeLayerOrder(layout?.layerOrder, activeFallbackOrder),
+        deletedElements,
         scene: {
             scaleMultiplier: readNumber(layout?.scene?.scaleMultiplier, defaults.scene.scaleMultiplier)
         },
@@ -362,7 +777,11 @@ function normalizeCheckinLayout(layout) {
 
 function normalizeGameplayLayout(layout) {
     const defaults = createDefaultGameplayLayout();
+    const deletedElements = normalizeDeletedElements(layout?.deletedElements, defaults.layerOrder);
+    const activeFallbackOrder = defaults.layerOrder.filter((id) => !deletedElements.includes(id));
     return {
+        layerOrder: normalizeLayerOrder(layout?.layerOrder, activeFallbackOrder),
+        deletedElements,
         hudTop: mergeRect(defaults.hudTop, layout?.hudTop),
         settingsButton: mergeRect(defaults.settingsButton, layout?.settingsButton),
         settingsIcon: mergeRect(defaults.settingsIcon, layout?.settingsIcon),
@@ -441,8 +860,44 @@ function normalizeGameplayLayout(layout) {
 
 function normalizeHomeLayout(layout) {
     const defaults = createDefaultHomeLayout();
+    const deletedElements = normalizeDeletedElements(layout?.deletedElements, defaults.layerOrder);
+    const activeFallbackOrder = defaults.layerOrder.filter((id) => !deletedElements.includes(id));
     return {
-        mascot: mergeRect(defaults.mascot, layout?.mascot)
+        layerOrder: normalizeLayerOrder(layout?.layerOrder, activeFallbackOrder),
+        deletedElements,
+        homeBgPanelLarge: mergeRect(defaults.homeBgPanelLarge, layout?.homeBgPanelLarge),
+        homeBgSnakeUp: mergeRect(defaults.homeBgSnakeUp, layout?.homeBgSnakeUp),
+        homeBgSnakeDown: mergeRect(defaults.homeBgSnakeDown, layout?.homeBgSnakeDown),
+        homeBgCavePanel: mergeRect(defaults.homeBgCavePanel, layout?.homeBgCavePanel),
+        homeTitle: mergeRect(defaults.homeTitle, layout?.homeTitle),
+        playArea: mergeRect(defaults.playArea, layout?.playArea),
+        startButton: mergeRect(defaults.startButton, layout?.startButton),
+        startButtonText: mergeEditableText(defaults.startButtonText, layout?.startButtonText),
+        levelTag: mergeRect(defaults.levelTag, layout?.levelTag),
+        levelTagLabel: mergeEditableText(defaults.levelTagLabel, layout?.levelTagLabel),
+        levelTagValue: mergeEditableText(defaults.levelTagValue, layout?.levelTagValue),
+        featurePanel: mergeRect(defaults.featurePanel, layout?.featurePanel),
+        featureSettings: mergeRect(defaults.featureSettings, layout?.featureSettings),
+        featureSettingsText: mergeEditableText(defaults.featureSettingsText, layout?.featureSettingsText),
+        featureLeaderboard: mergeRect(defaults.featureLeaderboard, layout?.featureLeaderboard),
+        featureLeaderboardText: mergeEditableText(defaults.featureLeaderboardText, layout?.featureLeaderboardText),
+        featureSkins: mergeRect(defaults.featureSkins, layout?.featureSkins),
+        featureSkinsText: mergeEditableText(defaults.featureSkinsText, layout?.featureSkinsText),
+        featureCheckin: mergeRect(defaults.featureCheckin, layout?.featureCheckin),
+        featureCheckinText: mergeEditableText(defaults.featureCheckinText, layout?.featureCheckinText),
+        featureExit: mergeRect(defaults.featureExit, layout?.featureExit),
+        featureExitText: mergeEditableText(defaults.featureExitText, layout?.featureExitText),
+        featureSupportAuthor: mergeRect(defaults.featureSupportAuthor, layout?.featureSupportAuthor),
+        featureSupportAuthorText: mergeEditableText(defaults.featureSupportAuthorText, layout?.featureSupportAuthorText),
+        profileEntry: mergeRect(defaults.profileEntry, layout?.profileEntry),
+        loginEntry: mergeRect(defaults.loginEntry, layout?.loginEntry),
+        loginEntryText: mergeEditableText(defaults.loginEntryText, layout?.loginEntryText),
+        coinChip: mergeRect(defaults.coinChip, layout?.coinChip),
+        versionTag: mergeRect(defaults.versionTag, layout?.versionTag),
+        mascot: mergeRect(defaults.mascot, layout?.mascot),
+        onlineRewardDock: mergeRect(defaults.onlineRewardDock, layout?.onlineRewardDock),
+        onlineRewardChest: mergeRect(defaults.onlineRewardChest, layout?.onlineRewardChest),
+        onlineRewardText: mergeEditableText(defaults.onlineRewardText, layout?.onlineRewardText)
     };
 }
 

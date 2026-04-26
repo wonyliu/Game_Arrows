@@ -4,6 +4,7 @@ const USER_ID_COOKIE_KEY = 'arrow_uid';
 const AUTH_OVERLAY_ID = 'userAuthOverlay';
 const API_BASE = '/api/users';
 const AUTH_REQUEST_TIMEOUT_MS = 8000;
+const OFFLINE_GUEST_NAME = 'Guest';
 
 let activeSession = null;
 
@@ -12,12 +13,23 @@ export function getActiveUserSession() {
 }
 
 export function getActiveUserId() {
+    if (activeSession?.isOfflineOnly === true) {
+        return '';
+    }
     return `${activeSession?.userId || ''}`.trim();
+}
+
+export function isOfflineAuthMode() {
+    return shouldUseOfflineGuestSession();
 }
 
 export function bootstrapUserSessionFromStorage() {
     if (activeSession?.userId) {
         return { ...activeSession };
+    }
+
+    if (shouldUseOfflineGuestSession()) {
+        return ensureOfflineGuestSession();
     }
 
     const stored = readStoredSession();
@@ -41,6 +53,10 @@ export function bootstrapUserSessionFromStorage() {
 export async function ensureUserSession() {
     if (activeSession?.userId) {
         return { ...activeSession };
+    }
+
+    if (shouldUseOfflineGuestSession()) {
+        return ensureOfflineGuestSession();
     }
 
     const deviceId = getOrCreateDeviceId();
@@ -74,6 +90,10 @@ export async function ensureUserSession() {
 }
 
 export async function openUserLoginDialog(options = {}) {
+    if (shouldUseOfflineGuestSession()) {
+        return ensureOfflineGuestSession();
+    }
+
     const deviceId = getOrCreateDeviceId();
     const deviceInfo = collectDeviceInfo();
     const cookieUserId = readCookie(USER_ID_COOKIE_KEY);
@@ -128,12 +148,53 @@ function applySession(user, deviceId) {
         username: `${user?.username || ''}`.trim(),
         avatarUrl: `${user?.avatarUrl || ''}`.trim(),
         isTempUser: user?.isTempUser === true,
+        isOfflineOnly: user?.isOfflineOnly === true,
         deviceId: `${deviceId || getOrCreateDeviceId()}`.trim()
     };
     activeSession = next;
     persistSession(next);
-    writeCookie(USER_ID_COOKIE_KEY, next.userId, 365);
+    if (!next.isOfflineOnly) {
+        writeCookie(USER_ID_COOKIE_KEY, next.userId, 365);
+    }
     return { ...next };
+}
+
+function ensureOfflineGuestSession() {
+    if (activeSession?.userId && activeSession.isOfflineOnly === true) {
+        return { ...activeSession };
+    }
+
+    const deviceId = getOrCreateDeviceId();
+    const stored = readStoredSession();
+    const storedOfflineId = stored?.isOfflineOnly === true ? `${stored.userId || ''}`.trim() : '';
+    const suffix = `${deviceId || 'local'}`.replace(/[^a-z0-9_-]/gi, '').slice(-10) || 'local';
+    return applySession({
+        userId: storedOfflineId || `guest-${suffix}`,
+        username: `${stored?.isOfflineOnly === true ? stored.username : ''}`.trim() || OFFLINE_GUEST_NAME,
+        avatarUrl: `${stored?.isOfflineOnly === true ? stored.avatarUrl : ''}`.trim(),
+        isTempUser: true,
+        isOfflineOnly: true
+    }, deviceId);
+}
+
+function shouldUseOfflineGuestSession() {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    if (window.__FORCE_OFFLINE_GUEST__ === true) {
+        return true;
+    }
+
+    const host = `${window.location?.hostname || ''}`.toLowerCase();
+    if (!host) {
+        return false;
+    }
+
+    return host === 'crazygames.com'
+        || host.endsWith('.crazygames.com')
+        || host === 'crazygames.io'
+        || host.endsWith('.crazygames.io');
 }
 
 async function promptAuthFlow(deviceId, deviceInfo, cookieUserId, options = {}) {

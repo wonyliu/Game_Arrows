@@ -133,16 +133,26 @@ function updateAssetActionState() {
 function getCategoryLabel(category) {
     switch (`${category || ''}`) {
         case 'primary_runtime':
-            return '主路径';
+            return '玩家可见';
         case 'fallback_only':
             return 'Fallback';
         case 'artifact_candidate':
-            return '制作产物';
+            return '制作产物（玩家不可见）';
         case 'unused':
-            return '未使用';
+            return '未使用（玩家不可见）';
         default:
             return '未分类';
     }
+}
+
+function getRuntimeVisibilityLabel(item) {
+    if (item?.used === true) {
+        return 'Runtime';
+    }
+    if (`${item?.category || ''}` === 'artifact_candidate') {
+        return 'Source only';
+    }
+    return 'Unused';
 }
 
 function getCategoryBadgeClass(category) {
@@ -176,6 +186,7 @@ function renderAssetSummary() {
     const unused = Math.max(0, Number(summary.unusedImageAssets) || 0);
     const unusedBytes = Math.max(0, Number(summary.unusedImageBytes) || 0);
     const maxUsageCount = Math.max(0, Number(summary.maxUsageCount) || 0);
+    const policyVersion = `${summary.policyVersion || ''}`.trim();
     el.assetAuditSummary.innerHTML = `
         <div>总图片资源：${total}</div>
         <div>总占用：${formatBytes(totalBytes)}</div>
@@ -184,6 +195,7 @@ function renderAssetSummary() {
         <div>未引用：${unused}</div>
         <div>可回收体积：${formatBytes(unusedBytes)}</div>
         <div>最高使用次数：${maxUsageCount}</div>
+        <div>判定策略：${escapeHtml(policyVersion || '-')}</div>
     `;
 }
 
@@ -269,6 +281,7 @@ function renderUnusedAssetList() {
             <strong>${escapeHtml(item.path)}</strong>
             <span>${formatBytes(item.sizeBytes)} · ${escapeHtml(item.extension || '')}</span>
             <span>${dim.loaded && !dim.failed ? `尺寸 ${dim.width} x ${dim.height}` : '尺寸加载中...'}</span>
+            <span>${escapeHtml(item.classificationReason || '')}</span>
         `;
 
         const badges = document.createElement('div');
@@ -415,7 +428,7 @@ function renderAssetTableLegacy() {
         const pathTd = document.createElement('td');
         pathTd.className = 'asset-table-path';
         pathTd.textContent = item.path;
-        pathTd.title = item.path;
+        pathTd.title = [item.path, item.classificationReason || ''].filter(Boolean).join('\n');
         tr.appendChild(pathTd);
 
         const usedTd = document.createElement('td');
@@ -504,7 +517,7 @@ function renderAssetTable() {
         tr.appendChild(categoryTd);
 
         const usedTd = document.createElement('td');
-        usedTd.innerHTML = `<span class="asset-audit-badge ${canDelete ? 'is-unused' : 'is-used'}">${canDelete ? 'Unused' : 'Runtime'}</span>`;
+        usedTd.innerHTML = `<span class="asset-audit-badge ${canDelete ? 'is-unused' : 'is-used'}">${escapeHtml(getRuntimeVisibilityLabel(item))}</span>`;
         tr.appendChild(usedTd);
 
         const usageCountTd = document.createElement('td');

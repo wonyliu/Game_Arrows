@@ -1,4 +1,4 @@
-import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=8';
+import { detectInitialLocale, persistLocale, resolveLocale, t } from './i18n.js?v=9';
 import {
     BGM_SCENE_KEYS,
     playBgmForScene,
@@ -12,15 +12,16 @@ import {
     stopBgm
 } from './audio.js?v=73';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=31';
-import { cloneUiLayoutConfig, readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=7';
+import { cloneUiLayoutConfig, readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=12';
 import { getUiAsset } from './ui-theme.js?v=2';
 import {
     applySessionFromUser,
     bootstrapUserSessionFromStorage,
     getActiveUserId,
     getActiveUserSession,
+    isOfflineAuthMode,
     openUserLoginDialog
-} from './user-auth.js?v=5';
+} from './user-auth.js?v=6';
 import { playRewardedAd, REWARDED_AD_PLACEMENTS } from './rewarded-ad-service.js?v=2';
 
 const MENU_PANEL = Object.freeze({
@@ -93,6 +94,77 @@ const HOME_MASCOT_VIDEO_CROP_BOTTOM = 26;
 const PERF_GESTURE_PREP_TAPS = 4;
 const HOME_VIDEO_DEBUG_LOG_LIMIT = 80;
 const HOME_VIDEO_DEBUG_DECISION_MIN_INTERVAL_MS = 900;
+
+function buildCheckinUiEditorElementOrder() {
+    const ids = ['backButton', 'notebook', 'ribbon', 'ribbonTitle', 'mascot'];
+    for (let day = 1; day <= 7; day += 1) {
+        ids.push(`day${day}-card`);
+        ids.push(`day${day}-title`);
+        ids.push(`day${day}-icon`);
+        ids.push(`day${day}-amount`);
+        ids.push(`day${day}-badge`);
+    }
+    ids.push('rewardTooltip');
+    ids.push('status');
+    return ids;
+}
+
+const CHECKIN_UI_EDITOR_ELEMENT_ORDER = Object.freeze(buildCheckinUiEditorElementOrder());
+const GAMEPLAY_UI_EDITOR_ELEMENT_ORDER = Object.freeze([
+    'hudTop',
+    'settingsButton',
+    'settingsIcon',
+    'coinChip',
+    'coinIcon',
+    'coinValue',
+    'center',
+    'lives',
+    'level',
+    'timer',
+    'timerTrack',
+    'timerLabel',
+    'combo',
+    'comboCount',
+    'comboLabel',
+    'scorePulse',
+    'scoreValue',
+    'scoreGain'
+]);
+const HOME_UI_EDITOR_ELEMENT_ORDER = Object.freeze([
+    'homeBgPanelLarge',
+    'homeBgSnakeUp',
+    'homeBgSnakeDown',
+    'homeBgCavePanel',
+    'homeTitle',
+    'playArea',
+    'startButton',
+    'startButtonText',
+    'levelTag',
+    'levelTagLabel',
+    'levelTagValue',
+    'featurePanel',
+    'featureSettings',
+    'featureSettingsText',
+    'featureLeaderboard',
+    'featureLeaderboardText',
+    'featureSkins',
+    'featureSkinsText',
+    'featureCheckin',
+    'featureCheckinText',
+    'featureExit',
+    'featureExitText',
+    'featureSupportAuthor',
+    'featureSupportAuthorText',
+    'profileEntry',
+    'loginEntry',
+    'loginEntryText',
+    'homeCoinChip',
+    'versionTag',
+    'homeMascot',
+    'onlineRewardDock',
+    'onlineRewardChest',
+    'onlineRewardText'
+]);
 export class UI {
     constructor(game, options = {}) {
         this.game = game;
@@ -139,6 +211,13 @@ export class UI {
         this.scoreGainAnimation = null;
 
         this.menuOverlay = document.getElementById('menuOverlay');
+        this.homeBgPanelLargeEl = document.getElementById('homeBgPanelLarge');
+        this.homeBgSnakeUpEl = document.getElementById('homeBgSnakeUp');
+        this.homeBgSnakeDownEl = document.getElementById('homeBgSnakeDown');
+        this.homeBgCavePanelEl = document.getElementById('homeBgCavePanel');
+        this.menuHomeTitleEl = this.menuOverlay?.querySelector('.menu-home-title') || null;
+        this.menuPlayAreaEl = this.menuOverlay?.querySelector('.play-area-v2') || null;
+        this.menuBottomZoneEl = this.menuOverlay?.querySelector('.menu-bottom-zone-v2') || null;
         this.settingsOverlay = document.getElementById('settingsOverlay');
         this.leaderboardOverlay = document.getElementById('leaderboardOverlay');
         this.leaderboardListEl = this.leaderboardOverlay?.querySelector('.rank-list') || null;
@@ -186,6 +265,9 @@ export class UI {
         this.levelGrid = document.getElementById('levelGrid');
         this.gameOverReason = document.getElementById('gameOverReason');
         this.levelTag = document.getElementById('btnLevels');
+        this.menuStartButtonEl = document.getElementById('btnPlay');
+        this.menuStartButtonLabelEl = document.getElementById('btnPlayLabel');
+        this.levelTagLabelEl = document.getElementById('menuLevelTagLabel');
         this.levelTagValue = document.getElementById('menuLevelTagValue');
         this.levelSelectCurrent = document.getElementById('levelSelectCurrent');
         this.exitFeedback = document.getElementById('exitFeedback');
@@ -202,9 +284,24 @@ export class UI {
         this.menuCoinValue = document.getElementById('menuCoinValue');
         this.hudCoinValue = document.getElementById('hudCoinValue');
         this.menuCoinDisplay = document.getElementById('menuCoinDisplay');
+        this.menuSettingsButton = document.getElementById('btnSettings');
+        this.menuLeaderboardButton = document.getElementById('btnLeaderboard');
+        this.menuSkinsButton = document.getElementById('btnSkins');
+        this.menuCheckinButton = document.getElementById('btnCheckin');
+        this.menuExitButton = document.getElementById('btnExit');
+        this.menuSupportAuthorButton = document.getElementById('btnSupportAuthor');
+        this.menuFeatureLabelEls = {
+            featureSettingsText: this.menuSettingsButton?.querySelector('.feature-label') || null,
+            featureLeaderboardText: this.menuLeaderboardButton?.querySelector('.feature-label') || null,
+            featureSkinsText: this.menuSkinsButton?.querySelector('.feature-label') || null,
+            featureCheckinText: this.menuCheckinButton?.querySelector('.feature-label') || null,
+            featureExitText: this.menuExitButton?.querySelector('.feature-label') || null,
+            featureSupportAuthorText: this.menuSupportAuthorButton?.querySelector('.feature-label') || null
+        };
         this.menuProfileEntryButton = document.getElementById('btnProfileAvatar');
         this.menuProfileAvatarImage = document.getElementById('menuProfileAvatarImage');
         this.menuLoginEntryButton = document.getElementById('btnLoginEntry');
+        this.menuLoginEntryTextEl = document.getElementById('menuLoginEntryText');
         this.supportAuthorCountEl = document.getElementById('supportAuthorCount');
         this.supportAuthorStatusEl = document.getElementById('supportAuthorStatus');
         this.supportAuthorThankYouEl = document.getElementById('supportAuthorThankYou');
@@ -304,6 +401,7 @@ export class UI {
         this.homeDanceMascotAudioUnlocked = !this.audioEnabled;
         this.uiEditorPreviewOverride = null;
         this.uiEditorGameplayPreviewInitialized = false;
+        this.uiEditorImageTrimCache = new Map();
         this.uiLayoutConfig = readUiLayoutConfig();
         this.releaseUiLayoutSubscription = subscribeUiLayoutConfig((nextConfig) => {
             this.uiLayoutConfig = nextConfig;
@@ -323,11 +421,11 @@ export class UI {
         }
         this.bindGameCallbacks();
         this.applyThemeAssets();
+        this.markUiEditorElements();
         this.applyHomeLayoutConfig();
         this.applyCheckinLayoutConfig();
         this.applyGameplayLayoutConfig();
         this.refreshProfileEntry();
-        this.markUiEditorElements();
         this.setMenuBadges(this.menuBadges);
         this.refreshLiveOpsRedDotsOnPageLoad();
         this.applyLocalizedText();
@@ -441,6 +539,7 @@ export class UI {
         this.homeDanceMascotVideoEl.volume = musicVolume;
         this.homeDanceMascotVideoEl.muted = !this.audioEnabled
             || musicVolume <= 0.0001
+            || this.rewardedAdPending
             || !this.homeDanceMascotAudioUnlocked;
     }
 
@@ -686,9 +785,33 @@ export class UI {
             'LEADERBOARD',
             'SKINS',
             'CHECKIN',
+            'SUPPORT_AUTHOR',
             'EXIT_CONFIRM',
             'RESET_PROGRESS_CONFIRM'
         ].includes(state);
+    }
+
+    shouldRestoreGameplayBgmAfterRewardedAd() {
+        const state = `${this.game?.state || ''}`.trim();
+        return state === 'PLAYING' || state === 'LEVEL_COMPLETE' || state === 'GAME_OVER';
+    }
+
+    restoreGameplayBgmAfterRewardedAd() {
+        if (!this.audioEnabled || !this.game || !this.shouldRestoreGameplayBgmAfterRewardedAd()) {
+            return;
+        }
+        const isRewardStage = this.game.isRewardStage === true;
+        const options = {};
+        if (!isRewardStage) {
+            const startTrackIndex = this.resolveGameplayBgmStartTrackIndex();
+            if (Number.isFinite(startTrackIndex)) {
+                options.startTrackIndex = startTrackIndex;
+            }
+        }
+        playBgmForScene(
+            isRewardStage ? BGM_SCENE_KEYS.REWARD : BGM_SCENE_KEYS.NORMAL,
+            options
+        );
     }
 
     updateHomeDanceMascotPlayback() {
@@ -1232,7 +1355,25 @@ export class UI {
 
         const x = ((clientX - appRect.left) / appRect.width) * 430;
         const y = ((clientY - appRect.top) / appRect.height) * 932;
-        const hit = HOME_START_VISUAL_HITBOX;
+        const layout = this.getHomeLayoutConfig?.() || null;
+        const playArea = layout?.playArea || null;
+        const startButton = layout?.startButton || null;
+        const hasCustomStartRect = playArea
+            && startButton
+            && Number.isFinite(Number(playArea.x))
+            && Number.isFinite(Number(playArea.y))
+            && Number.isFinite(Number(startButton.x))
+            && Number.isFinite(Number(startButton.y))
+            && Number.isFinite(Number(startButton.width))
+            && Number.isFinite(Number(startButton.height));
+        const hit = hasCustomStartRect
+            ? {
+                x: Number(playArea.x) + Number(startButton.x),
+                y: Number(playArea.y) + Number(startButton.y),
+                width: Number(startButton.width),
+                height: Number(startButton.height)
+            }
+            : HOME_START_VISUAL_HITBOX;
         return x >= hit.x && x <= (hit.x + hit.width) && y >= hit.y && y <= (hit.y + hit.height);
     }
 
@@ -1796,7 +1937,7 @@ export class UI {
             };
         }
         if (this.menuLoginEntryButton) {
-            const showLoginLink = session?.isTempUser !== false;
+            const showLoginLink = !isOfflineAuthMode() && session?.isTempUser !== false;
             this.menuLoginEntryButton.classList.toggle('hidden', !showLoginLink);
         }
     }
@@ -1812,12 +1953,21 @@ export class UI {
         }
         if (this.profileNicknameInput) {
             this.profileNicknameInput.value = `${session?.username || ''}`.trim();
+            this.profileNicknameInput.disabled = isOfflineAuthMode();
+            this.profileNicknameInput.closest('label')?.classList.toggle('hidden', isOfflineAuthMode());
         }
         if (this.profilePasswordInput) {
             this.profilePasswordInput.value = '';
+            this.profilePasswordInput.disabled = isOfflineAuthMode();
+            this.profilePasswordInput.closest('label')?.classList.toggle('hidden', isOfflineAuthMode());
         }
         if (this.profilePasswordConfirmInput) {
             this.profilePasswordConfirmInput.value = '';
+            this.profilePasswordConfirmInput.disabled = isOfflineAuthMode();
+            this.profilePasswordConfirmInput.closest('label')?.classList.toggle('hidden', isOfflineAuthMode());
+        }
+        if (this.profileSaveButton) {
+            this.profileSaveButton.classList.toggle('hidden', isOfflineAuthMode());
         }
         this.setProfileStatus('');
     }
@@ -1831,6 +1981,9 @@ export class UI {
     }
 
     async handleLoginEntry() {
+        if (isOfflineAuthMode()) {
+            return;
+        }
         const prevUserId = `${getActiveUserId() || ''}`.trim();
         const session = await openUserLoginDialog({
             allowTemp: false,
@@ -1849,6 +2002,10 @@ export class UI {
     }
 
     async handleProfileSave() {
+        if (isOfflineAuthMode()) {
+            this.setProfileStatus(this.getLocaleText('\u5e73\u53f0\u6a21\u5f0f\u4e0b\u4f7f\u7528\u672c\u5730\u8bbf\u5ba2\u8eab\u4efd\u3002', 'Platform mode uses a local guest profile.'));
+            return;
+        }
         if (this.profileSavePending) {
             return;
         }
@@ -1937,8 +2094,14 @@ export class UI {
             this.supportAuthorBadgeCountEl.textContent = `${badgeCount}`;
         }
         if (this.supportAuthorThankYouEl) {
-            this.supportAuthorThankYouEl.textContent = `${snapshot?.thankYouMessage || ''}`.trim()
-                || this.getLocaleText('\u611f\u8c22\u4f60\u7684\u652f\u6301\uff0c\u8fd9\u4f1a\u5e2e\u52a9\u6211\u4eec\u6301\u7eed\u66f4\u65b0\u6e38\u620f\u5185\u5bb9\u3002', 'Thanks for your support. It helps us keep shipping updates.');
+            const localizedFallback = this.getLocaleText(
+                '\u611f\u8c22\u4f60\u7684\u652f\u6301\uff0c\u8fd9\u4f1a\u5e2e\u52a9\u6211\u4eec\u6301\u7eed\u66f4\u65b0\u6e38\u620f\u5185\u5bb9\u3002',
+                'Thanks for your support. It helps us keep shipping updates.'
+            );
+            const configuredText = `${snapshot?.thankYouMessage || ''}`.trim();
+            this.supportAuthorThankYouEl.textContent = this.locale === 'zh-CN'
+                ? (configuredText || localizedFallback)
+                : localizedFallback;
         }
         const supportGate = this.game.canWatchRewardedAd(REWARDED_AD_PLACEMENTS.SUPPORT_AUTHOR);
         if (this.supportAuthorWatchButton) {
@@ -1986,7 +2149,12 @@ export class UI {
             };
         }
 
+        const shouldRestoreGameplayBgm = this.shouldRestoreGameplayBgmAfterRewardedAd();
         this.rewardedAdPending = true;
+        this.syncHomeDanceMascotMediaAudio();
+        if (this.audioEnabled) {
+            stopBgm();
+        }
         this.refreshSupportAuthorPanel();
         try {
             const result = await playRewardedAd(placement);
@@ -1998,6 +2166,11 @@ export class UI {
             return { ok: true, snapshot };
         } finally {
             this.rewardedAdPending = false;
+            this.syncHomeDanceMascotMediaAudio();
+            if (shouldRestoreGameplayBgm) {
+                this.restoreGameplayBgmAfterRewardedAd();
+            }
+            this.updateHomeDanceMascotPlayback();
             this.refreshSupportAuthorPanel();
         }
     }
@@ -2286,7 +2459,39 @@ export class UI {
     }
 
     markUiEditorElements() {
-        this.homeDanceMascotEl?.setAttribute('data-ui-editor-id', 'mascot');
+        this.homeBgPanelLargeEl?.setAttribute('data-ui-editor-id', 'homeBgPanelLarge');
+        this.homeBgSnakeUpEl?.setAttribute('data-ui-editor-id', 'homeBgSnakeUp');
+        this.homeBgSnakeDownEl?.setAttribute('data-ui-editor-id', 'homeBgSnakeDown');
+        this.homeBgCavePanelEl?.setAttribute('data-ui-editor-id', 'homeBgCavePanel');
+        this.menuHomeTitleEl?.setAttribute('data-ui-editor-id', 'homeTitle');
+        this.menuPlayAreaEl?.setAttribute('data-ui-editor-id', 'playArea');
+        this.menuStartButtonEl?.setAttribute('data-ui-editor-id', 'startButton');
+        this.menuStartButtonLabelEl?.setAttribute('data-ui-editor-id', 'startButtonText');
+        this.levelTag?.setAttribute('data-ui-editor-id', 'levelTag');
+        this.levelTagLabelEl?.setAttribute('data-ui-editor-id', 'levelTagLabel');
+        this.levelTagValue?.setAttribute('data-ui-editor-id', 'levelTagValue');
+        this.menuBottomZoneEl?.setAttribute('data-ui-editor-id', 'featurePanel');
+        this.menuSettingsButton?.setAttribute('data-ui-editor-id', 'featureSettings');
+        this.menuFeatureLabelEls?.featureSettingsText?.setAttribute('data-ui-editor-id', 'featureSettingsText');
+        this.menuLeaderboardButton?.setAttribute('data-ui-editor-id', 'featureLeaderboard');
+        this.menuFeatureLabelEls?.featureLeaderboardText?.setAttribute('data-ui-editor-id', 'featureLeaderboardText');
+        this.menuSkinsButton?.setAttribute('data-ui-editor-id', 'featureSkins');
+        this.menuFeatureLabelEls?.featureSkinsText?.setAttribute('data-ui-editor-id', 'featureSkinsText');
+        this.menuCheckinButton?.setAttribute('data-ui-editor-id', 'featureCheckin');
+        this.menuFeatureLabelEls?.featureCheckinText?.setAttribute('data-ui-editor-id', 'featureCheckinText');
+        this.menuExitButton?.setAttribute('data-ui-editor-id', 'featureExit');
+        this.menuFeatureLabelEls?.featureExitText?.setAttribute('data-ui-editor-id', 'featureExitText');
+        this.menuSupportAuthorButton?.setAttribute('data-ui-editor-id', 'featureSupportAuthor');
+        this.menuFeatureLabelEls?.featureSupportAuthorText?.setAttribute('data-ui-editor-id', 'featureSupportAuthorText');
+        this.menuProfileEntryButton?.setAttribute('data-ui-editor-id', 'profileEntry');
+        this.menuLoginEntryButton?.setAttribute('data-ui-editor-id', 'loginEntry');
+        this.menuLoginEntryTextEl?.setAttribute('data-ui-editor-id', 'loginEntryText');
+        this.menuCoinDisplay?.setAttribute('data-ui-editor-id', 'homeCoinChip');
+        this.buildVersionTagEl?.setAttribute('data-ui-editor-id', 'versionTag');
+        this.homeDanceMascotEl?.setAttribute('data-ui-editor-id', 'homeMascot');
+        this.onlineRewardDockEl?.setAttribute('data-ui-editor-id', 'onlineRewardDock');
+        this.btnOnlineRewardChest?.setAttribute('data-ui-editor-id', 'onlineRewardChest');
+        this.onlineDockTextEl?.setAttribute('data-ui-editor-id', 'onlineRewardText');
         this.checkinBackButtonEl?.setAttribute('data-ui-editor-id', 'backButton');
         this.checkinCardEl?.setAttribute('data-ui-editor-id', 'notebook');
         this.checkinRibbonEl?.setAttribute('data-ui-editor-id', 'ribbon');
@@ -2316,6 +2521,142 @@ export class UI {
         this.hudScorePulseEl?.setAttribute('data-ui-editor-id', 'scorePulse');
         this.hudScoreValueEl?.setAttribute('data-ui-editor-id', 'scoreValue');
         this.hudScoreGainEl?.setAttribute('data-ui-editor-id', 'scoreGain');
+    }
+
+    getSceneLayerOrder(sceneId, fallbackIds = []) {
+        const sceneLayout = this.uiLayoutConfig?.[sceneId];
+        const configured = Array.isArray(sceneLayout?.layerOrder) ? sceneLayout.layerOrder : [];
+        const deletedRaw = Array.isArray(sceneLayout?.deletedElements) ? sceneLayout.deletedElements : [];
+        const allowed = new Set(fallbackIds);
+        const deleted = new Set();
+        for (const rawId of deletedRaw) {
+            const id = `${rawId || ''}`.trim();
+            if (!id || !allowed.has(id)) {
+                continue;
+            }
+            deleted.add(id);
+        }
+        const seen = new Set();
+        const order = [];
+
+        for (const rawId of configured) {
+            const id = `${rawId || ''}`.trim();
+            if (!id || !allowed.has(id) || deleted.has(id) || seen.has(id)) {
+                continue;
+            }
+            seen.add(id);
+            order.push(id);
+        }
+        for (const id of fallbackIds) {
+            if (seen.has(id) || deleted.has(id)) {
+                continue;
+            }
+            seen.add(id);
+            order.push(id);
+        }
+        return order;
+    }
+
+    resolveSceneRoot(sceneId) {
+        if (sceneId === 'home') {
+            return this.menuOverlay;
+        }
+        if (sceneId === 'checkin') {
+            return this.checkinOverlay;
+        }
+        if (sceneId === 'gameplay') {
+            return this.hud;
+        }
+        return document;
+    }
+
+    querySceneEditorNode(sceneId, elementId) {
+        const selector = `[data-ui-editor-id="${elementId}"]`;
+        const root = this.resolveSceneRoot(sceneId);
+        if (root instanceof HTMLElement || root instanceof Document) {
+            const scopedNode = root.querySelector(selector);
+            if (scopedNode instanceof HTMLElement) {
+                return scopedNode;
+            }
+        }
+        const fallbackNode = document.querySelector(selector);
+        return fallbackNode instanceof HTMLElement ? fallbackNode : null;
+    }
+
+    applySceneLayerOrder(sceneId, fallbackIds = []) {
+        if (!Array.isArray(fallbackIds) || fallbackIds.length === 0) {
+            return;
+        }
+        const order = this.getSceneLayerOrder(sceneId, fallbackIds);
+        const baseZ = 20;
+        const sceneIdSet = new Set(fallbackIds);
+        const nodeById = new Map();
+        const desiredZById = new Map();
+        const inheritedZById = new Map();
+        const deletedSet = new Set(
+            Array.isArray(this.uiLayoutConfig?.[sceneId]?.deletedElements)
+                ? this.uiLayoutConfig[sceneId].deletedElements
+                    .map((rawId) => `${rawId || ''}`.trim())
+                    .filter((id) => id && sceneIdSet.has(id))
+                : []
+        );
+
+        order.forEach((elementId, index) => {
+            const desiredZ = baseZ + index;
+            desiredZById.set(elementId, desiredZ);
+        });
+
+        for (const elementId of fallbackIds) {
+            const node = this.querySceneEditorNode(sceneId, elementId);
+            if (node) {
+                nodeById.set(elementId, node);
+            }
+        }
+
+        for (const elementId of fallbackIds) {
+            const node = nodeById.get(elementId);
+            if (node) {
+                node.style.zIndex = '';
+                if (deletedSet.has(elementId)) {
+                    node.style.display = 'none';
+                }
+            }
+        }
+
+        for (const [elementId, node] of nodeById.entries()) {
+            const z = desiredZById.get(elementId);
+            if (!Number.isFinite(z)) {
+                continue;
+            }
+            let parent = node.parentElement;
+            while (parent) {
+                const parentId = `${parent.dataset?.uiEditorId || ''}`.trim();
+                if (parentId && sceneIdSet.has(parentId)) {
+                    const prev = inheritedZById.get(parentId);
+                    if (!Number.isFinite(prev) || z > prev) {
+                        inheritedZById.set(parentId, z);
+                    }
+                    break;
+                }
+                parent = parent.parentElement;
+            }
+        }
+
+        for (const elementId of fallbackIds) {
+            const node = nodeById.get(elementId);
+            if (!node || deletedSet.has(elementId)) {
+                continue;
+            }
+            const ownZ = desiredZById.get(elementId);
+            const inheritedZ = inheritedZById.get(elementId);
+            const finalZ = Math.max(
+                Number.isFinite(ownZ) ? ownZ : Number.NEGATIVE_INFINITY,
+                Number.isFinite(inheritedZ) ? inheritedZ : Number.NEGATIVE_INFINITY
+            );
+            if (Number.isFinite(finalZ)) {
+                node.style.zIndex = `${Math.round(finalZ)}`;
+            }
+        }
     }
 
     applyGameplayChildLayout(layout) {
@@ -2433,15 +2774,114 @@ export class UI {
 
     applyHomeLayoutConfig() {
         const layout = this.getHomeLayoutConfig();
-        if (!this.homeDanceMascotEl || !layout?.mascot) {
+        if (!layout) {
             return;
         }
-        this.homeDanceMascotEl.style.left = `${layout.mascot.x}px`;
-        this.homeDanceMascotEl.style.top = `${layout.mascot.y}px`;
-        this.homeDanceMascotEl.style.width = `${layout.mascot.width}px`;
-        this.homeDanceMascotEl.style.height = `${layout.mascot.height}px`;
-        this.homeDanceMascotEl.style.display = layout.mascot.visible === false ? 'none' : 'block';
+
+        const applyRect = (node, rect, visibleDisplay = 'block') => {
+            if (!(node instanceof HTMLElement) || !rect) {
+                return;
+            }
+            node.style.position = 'absolute';
+            node.style.left = `${rect.x}px`;
+            node.style.top = `${rect.y}px`;
+            node.style.right = 'auto';
+            node.style.bottom = 'auto';
+            node.style.width = `${rect.width}px`;
+            node.style.height = `${rect.height}px`;
+            node.style.display = rect.visible === false ? 'none' : visibleDisplay;
+        };
+        const resolveEditableText = (textConfig, fallback = '', params = {}) => {
+            const raw = this.locale === 'zh-CN' ? textConfig?.textZh : textConfig?.textEn;
+            let text = typeof raw === 'string' && raw.length > 0 ? raw : fallback;
+            for (const [key, value] of Object.entries(params || {})) {
+                text = text.replace(new RegExp(`\\{${key}\\}`, 'g'), `${value}`);
+            }
+            return text;
+        };
+        const applyText = (node, textConfig, fallback = '', params = {}) => {
+            if (!(node instanceof HTMLElement) || !textConfig) {
+                return;
+            }
+            node.style.position = 'absolute';
+            node.style.left = `${textConfig.x}px`;
+            node.style.top = `${textConfig.y}px`;
+            node.style.right = 'auto';
+            node.style.bottom = 'auto';
+            node.style.width = `${textConfig.width}px`;
+            node.style.height = `${textConfig.height}px`;
+            node.style.display = textConfig.visible === false ? 'none' : 'flex';
+            node.style.alignItems = 'center';
+            node.style.justifyContent = textConfig.align === 'left' ? 'flex-start' : 'center';
+            node.style.textAlign = textConfig.align === 'left' ? 'left' : 'center';
+            node.style.fontSize = `${textConfig.fontSize}px`;
+            node.textContent = resolveEditableText(textConfig, fallback, params);
+        };
+
+        applyRect(this.homeBgPanelLargeEl, layout.homeBgPanelLarge, 'block');
+        applyRect(this.homeBgSnakeUpEl, layout.homeBgSnakeUp, 'block');
+        applyRect(this.homeBgSnakeDownEl, layout.homeBgSnakeDown, 'block');
+        applyRect(this.homeBgCavePanelEl, layout.homeBgCavePanel, 'block');
+
+        applyRect(this.menuHomeTitleEl, layout.homeTitle, 'block');
+        if (this.menuHomeTitleEl instanceof HTMLElement) {
+            this.menuHomeTitleEl.style.transform = 'none';
+            this.menuHomeTitleEl.style.margin = '0';
+        }
+
+        applyRect(this.menuPlayAreaEl, layout.playArea, 'flex');
+        if (this.menuPlayAreaEl instanceof HTMLElement) {
+            this.menuPlayAreaEl.style.alignItems = 'flex-end';
+            this.menuPlayAreaEl.style.justifyContent = 'flex-start';
+            this.menuPlayAreaEl.style.gap = '0';
+        }
+        applyRect(this.menuStartButtonEl, layout.startButton, 'block');
+        applyText(this.menuStartButtonLabelEl, layout.startButtonText, t(this.locale, 'home.start'));
+        applyRect(this.levelTag, layout.levelTag, 'inline-flex');
+        applyText(this.levelTagLabelEl, layout.levelTagLabel, t(this.locale, 'home.burrowEntry'));
+        applyText(this.levelTagValue, layout.levelTagValue, t(this.locale, 'common.levelChip', { level: this.getDefaultStartLevel() }), { level: this.getDefaultStartLevel() });
+
+        applyRect(this.menuBottomZoneEl, layout.featurePanel, 'block');
+        applyRect(this.menuSettingsButton, layout.featureSettings, 'block');
+        applyText(this.menuFeatureLabelEls?.featureSettingsText, layout.featureSettingsText, t(this.locale, 'feature.settings'));
+        applyRect(this.menuLeaderboardButton, layout.featureLeaderboard, 'block');
+        applyText(this.menuFeatureLabelEls?.featureLeaderboardText, layout.featureLeaderboardText, t(this.locale, 'feature.leaderboard'));
+        applyRect(this.menuSkinsButton, layout.featureSkins, 'block');
+        applyText(this.menuFeatureLabelEls?.featureSkinsText, layout.featureSkinsText, t(this.locale, 'feature.skins'));
+        applyRect(this.menuCheckinButton, layout.featureCheckin, 'block');
+        applyText(this.menuFeatureLabelEls?.featureCheckinText, layout.featureCheckinText, t(this.locale, 'feature.checkin'));
+        applyRect(this.menuExitButton, layout.featureExit, 'block');
+        applyText(this.menuFeatureLabelEls?.featureExitText, layout.featureExitText, t(this.locale, 'feature.exit'));
+        applyRect(this.menuSupportAuthorButton, layout.featureSupportAuthor, 'block');
+        applyText(this.menuFeatureLabelEls?.featureSupportAuthorText, layout.featureSupportAuthorText, t(this.locale, 'feature.supportAuthor'));
+
+        applyRect(this.menuProfileEntryButton, layout.profileEntry, 'block');
+        applyRect(this.menuLoginEntryButton, layout.loginEntry, 'block');
+        applyText(this.menuLoginEntryTextEl, layout.loginEntryText, t(this.locale, 'home.loginLink'));
+        applyRect(this.menuCoinDisplay, layout.coinChip, 'inline-flex');
+        applyRect(this.buildVersionTagEl, layout.versionTag, 'block');
+
+        applyRect(this.homeDanceMascotEl, layout.mascot, 'block');
         this.syncHomeDanceMascotCanvasSize();
+
+        applyRect(this.onlineRewardDockEl, layout.onlineRewardDock, 'block');
+        if (this.onlineRewardDockEl instanceof HTMLElement) {
+            this.onlineRewardDockEl.style.transform = 'none';
+            this.onlineRewardDockEl.style.flexDirection = 'column';
+            this.onlineRewardDockEl.style.alignItems = 'center';
+            this.onlineRewardDockEl.style.justifyContent = 'flex-start';
+            this.onlineRewardDockEl.style.gap = '0';
+        }
+        applyRect(this.btnOnlineRewardChest, layout.onlineRewardChest, 'block');
+        applyText(this.onlineDockTextEl, layout.onlineRewardText, this.locale === 'zh-CN' ? '可领取' : 'Claim');
+        if (this.onlineDockTextEl instanceof HTMLElement) {
+            this.onlineDockTextEl.style.marginTop = '0';
+            this.onlineDockTextEl.style.marginRight = '0';
+            this.onlineDockTextEl.style.minWidth = '0';
+            this.onlineDockTextEl.style.padding = '2px 6px';
+            this.onlineDockTextEl.style.lineHeight = '1.2';
+        }
+        this.applySceneLayerOrder('home', HOME_UI_EDITOR_ELEMENT_ORDER);
     }
 
     applyCheckinLayoutConfig() {
@@ -2486,6 +2926,7 @@ export class UI {
             this.checkinStatusEl.style.fontSize = `${layout.status.fontSize}px`;
             this.checkinStatusEl.style.display = layout.status.visible === true ? 'block' : 'none';
         }
+        this.applySceneLayerOrder('checkin', CHECKIN_UI_EDITOR_ELEMENT_ORDER);
     }
 
     applyGameplayLayoutConfig() {
@@ -2579,6 +3020,7 @@ export class UI {
             this.hudScoreGainEl.style.fontSize = `${layout.scorePulse.gainFontSize}px`;
         }
         this.applyGameplayChildLayout(layout);
+        this.applySceneLayerOrder('gameplay', GAMEPLAY_UI_EDITOR_ELEMENT_ORDER);
     }
 
     getDefaultStartLevel() {
@@ -2625,15 +3067,31 @@ export class UI {
         return `Level ${level}`;
     }
 
+    resolveHomeEditableText(textConfig, fallback = '', params = {}) {
+        const raw = this.locale === 'zh-CN' ? textConfig?.textZh : textConfig?.textEn;
+        let text = typeof raw === 'string' && raw.length > 0 ? raw : fallback;
+        for (const [key, value] of Object.entries(params || {})) {
+            text = text.replace(new RegExp(`\\{${key}\\}`, 'g'), `${value}`);
+        }
+        return text;
+    }
+
     refreshMenuLevelTag() {
         const level = this.getDefaultStartLevel();
         const valueText = this.formatLevel(level);
         const chipText = t(this.locale, 'common.levelChip', { level });
+        const layout = this.getHomeLayoutConfig();
         if (this.levelTag) {
             this.levelTag.setAttribute('aria-label', valueText);
         }
+        if (this.levelTagLabelEl) {
+            this.levelTagLabelEl.textContent = this.resolveHomeEditableText(
+                layout?.levelTagLabel,
+                t(this.locale, 'home.burrowEntry')
+            );
+        }
         if (this.levelTagValue) {
-            this.levelTagValue.textContent = chipText;
+            this.levelTagValue.textContent = this.resolveHomeEditableText(layout?.levelTagValue, chipText, { level });
         } else if (this.levelTag) {
             this.levelTag.textContent = valueText;
         }
@@ -2695,6 +3153,7 @@ export class UI {
         this.refreshProfileEntry();
         this.refreshSupportAuthorPanel();
         this.refreshCheckinPanel(false);
+        this.applyHomeLayoutConfig();
     }
 
     updateLocaleButtons() {
@@ -2746,6 +3205,15 @@ export class UI {
     }
 
     renderFeatureCards() {
+        const layout = this.getHomeLayoutConfig();
+        const textConfigByFeatureId = {
+            settings: layout?.featureSettingsText,
+            leaderboard: layout?.featureLeaderboardText,
+            skins: layout?.featureSkinsText,
+            checkin: layout?.featureCheckinText,
+            exit: layout?.featureExitText,
+            'support-author': layout?.featureSupportAuthorText
+        };
         for (const feature of FEATURE_CONFIG) {
             const button = document.getElementById(feature.buttonId);
             if (!button) continue;
@@ -2755,7 +3223,10 @@ export class UI {
 
             const label = button.querySelector('.feature-label');
             if (label) {
-                label.textContent = t(this.locale, feature.labelKey);
+                label.textContent = this.resolveHomeEditableText(
+                    textConfigByFeatureId[feature.id],
+                    t(this.locale, feature.labelKey)
+                );
             }
 
             const icon = button.querySelector('.feature-icon');
@@ -2890,9 +3361,9 @@ export class UI {
             return skin?.preview || 'assets/ui/shared/icons/icon_gift.png';
         }
         if (id === 'coin') return 'assets/ui/checkin/icon_coin_pile.png';
-        if (id === 'hint') return 'assets/ui/shared/icons/icon_hint.png';
-        if (id === 'undo') return 'assets/ui/shared/icons/icon_undo.png';
-        if (id === 'shuffle') return 'assets/ui/shared/icons/icon_shuffle.png';
+        if (id === 'hint') return 'assets/ui/shared/icons/icon_tool_hint.png';
+        if (id === 'undo') return 'assets/ui/shared/icons/icon_tool_manual_release.png';
+        if (id === 'shuffle') return 'assets/ui/shared/icons/icon_tool_freeze_time.png';
         if (id === 'skin_fragment') return 'assets/ui/shared/icons/icon_theme.png';
         if (id === 'skin') return 'assets/ui/shared/icons/icon_theme.png';
         return 'assets/ui/shared/icons/icon_gift.png';
@@ -3256,6 +3727,7 @@ export class UI {
                 this.hideCheckinRewardTooltip();
             }
         }
+        this.applySceneLayerOrder('checkin', CHECKIN_UI_EDITOR_ELEMENT_ORDER);
 
     }
 
@@ -3351,6 +3823,228 @@ export class UI {
         };
     }
 
+    isUiEditorNodeVisible(node) {
+        if (!(node instanceof HTMLElement)) {
+            return false;
+        }
+        if (node.classList.contains('hidden')) {
+            return false;
+        }
+        const style = window.getComputedStyle(node);
+        if (!style || style.display === 'none' || style.visibility === 'hidden') {
+            return false;
+        }
+        const opacity = Number(style.opacity);
+        if (Number.isFinite(opacity) && opacity <= 0.01) {
+            return false;
+        }
+        return true;
+    }
+
+    isUiEditorNodeVisual(node) {
+        if (!(node instanceof HTMLElement)) {
+            return false;
+        }
+        const tag = node.tagName;
+        if (tag === 'IMG' || tag === 'CANVAS' || tag === 'VIDEO' || tag === 'SVG') {
+            return true;
+        }
+        const style = window.getComputedStyle(node);
+        if (!style) {
+            return false;
+        }
+        if (style.backgroundImage && style.backgroundImage !== 'none') {
+            return true;
+        }
+        const borderWidth =
+            (Number.parseFloat(style.borderTopWidth) || 0)
+            + (Number.parseFloat(style.borderRightWidth) || 0)
+            + (Number.parseFloat(style.borderBottomWidth) || 0)
+            + (Number.parseFloat(style.borderLeftWidth) || 0);
+        if (borderWidth > 0) {
+            return true;
+        }
+        const text = `${node.textContent || ''}`.trim();
+        return text.length > 0;
+    }
+
+    unionUiEditorRects(a, b) {
+        if (!a) return b;
+        if (!b) return a;
+        const x1 = Math.min(a.x, b.x);
+        const y1 = Math.min(a.y, b.y);
+        const x2 = Math.max(a.x + a.width, b.x + b.width);
+        const y2 = Math.max(a.y + a.height, b.y + b.height);
+        return {
+            x: x1,
+            y: y1,
+            width: Math.max(0, x2 - x1),
+            height: Math.max(0, y2 - y1)
+        };
+    }
+
+    intersectUiEditorRects(a, b) {
+        if (!a || !b) {
+            return null;
+        }
+        const x1 = Math.max(a.x, b.x);
+        const y1 = Math.max(a.y, b.y);
+        const x2 = Math.min(a.x + a.width, b.x + b.width);
+        const y2 = Math.min(a.y + a.height, b.y + b.height);
+        if (x2 <= x1 || y2 <= y1) {
+            return null;
+        }
+        return {
+            x: x1,
+            y: y1,
+            width: x2 - x1,
+            height: y2 - y1
+        };
+    }
+
+    getUiEditorImageTrimRatio(imgEl) {
+        if (!(imgEl instanceof HTMLImageElement)) {
+            return null;
+        }
+        const src = `${imgEl.currentSrc || imgEl.src || ''}`.trim();
+        const naturalWidth = Number(imgEl.naturalWidth) || 0;
+        const naturalHeight = Number(imgEl.naturalHeight) || 0;
+        if (!src || naturalWidth <= 0 || naturalHeight <= 0 || !imgEl.complete) {
+            return null;
+        }
+        const cacheKey = `${src}#${naturalWidth}x${naturalHeight}`;
+        if (this.uiEditorImageTrimCache.has(cacheKey)) {
+            return this.uiEditorImageTrimCache.get(cacheKey);
+        }
+        try {
+            const canvas = document.createElement('canvas');
+            canvas.width = naturalWidth;
+            canvas.height = naturalHeight;
+            const ctx = canvas.getContext('2d', { willReadFrequently: true });
+            if (!ctx) {
+                return null;
+            }
+            ctx.clearRect(0, 0, naturalWidth, naturalHeight);
+            ctx.drawImage(imgEl, 0, 0, naturalWidth, naturalHeight);
+            const data = ctx.getImageData(0, 0, naturalWidth, naturalHeight).data;
+            let minX = naturalWidth;
+            let minY = naturalHeight;
+            let maxX = -1;
+            let maxY = -1;
+            for (let y = 0; y < naturalHeight; y += 1) {
+                const rowOffset = y * naturalWidth * 4;
+                for (let x = 0; x < naturalWidth; x += 1) {
+                    const alpha = data[rowOffset + x * 4 + 3];
+                    if (alpha <= 8) {
+                        continue;
+                    }
+                    if (x < minX) minX = x;
+                    if (y < minY) minY = y;
+                    if (x > maxX) maxX = x;
+                    if (y > maxY) maxY = y;
+                }
+            }
+            if (maxX < minX || maxY < minY) {
+                return null;
+            }
+            const ratio = {
+                left: minX / naturalWidth,
+                top: minY / naturalHeight,
+                right: (naturalWidth - 1 - maxX) / naturalWidth,
+                bottom: (naturalHeight - 1 - maxY) / naturalHeight
+            };
+            this.uiEditorImageTrimCache.set(cacheKey, ratio);
+            return ratio;
+        } catch {
+            return null;
+        }
+    }
+
+    trimUiEditorRectByImageRatio(rect, ratio) {
+        if (!rect || !ratio) {
+            return rect;
+        }
+        const widthScale = 1 - Number(ratio.left || 0) - Number(ratio.right || 0);
+        const heightScale = 1 - Number(ratio.top || 0) - Number(ratio.bottom || 0);
+        if (widthScale <= 0 || heightScale <= 0) {
+            return rect;
+        }
+        return {
+            x: rect.x + rect.width * Number(ratio.left || 0),
+            y: rect.y + rect.height * Number(ratio.top || 0),
+            width: rect.width * widthScale,
+            height: rect.height * heightScale
+        };
+    }
+
+    getUiEditorVisualRect(node) {
+        if (!(node instanceof HTMLElement)) {
+            return null;
+        }
+        const base = node.getBoundingClientRect();
+        if (!Number.isFinite(base.width) || !Number.isFinite(base.height) || base.width <= 0 || base.height <= 0) {
+            return null;
+        }
+        let rect = {
+            x: base.left,
+            y: base.top,
+            width: base.width,
+            height: base.height
+        };
+        if (node instanceof HTMLImageElement) {
+            const ratio = this.getUiEditorImageTrimRatio(node);
+            rect = this.trimUiEditorRectByImageRatio(rect, ratio);
+        }
+        return rect;
+    }
+
+    getUiEditorTightRect(target) {
+        if (!(target instanceof HTMLElement)) {
+            return null;
+        }
+        const baseBounds = target.getBoundingClientRect();
+        if (!Number.isFinite(baseBounds.width) || !Number.isFinite(baseBounds.height) || baseBounds.width <= 0 || baseBounds.height <= 0) {
+            return null;
+        }
+        const baseRect = {
+            x: baseBounds.left,
+            y: baseBounds.top,
+            width: baseBounds.width,
+            height: baseBounds.height
+        };
+        const nodes = [target, ...target.querySelectorAll('*')];
+        let unionRect = null;
+        for (const node of nodes) {
+            if (!(node instanceof HTMLElement)) {
+                continue;
+            }
+            if (!this.isUiEditorNodeVisible(node)) {
+                continue;
+            }
+            if (!this.isUiEditorNodeVisual(node)) {
+                continue;
+            }
+            const rect = this.getUiEditorVisualRect(node);
+            if (!rect || rect.width < 1 || rect.height < 1) {
+                continue;
+            }
+            unionRect = this.unionUiEditorRects(unionRect, rect);
+        }
+        if (!unionRect) {
+            return baseRect;
+        }
+        const clipped = this.intersectUiEditorRects(baseRect, unionRect);
+        if (!clipped || clipped.width < 1 || clipped.height < 1) {
+            return baseRect;
+        }
+        const baseArea = Math.max(1, baseRect.width * baseRect.height);
+        const clippedArea = Math.max(1, clipped.width * clipped.height);
+        if (clippedArea / baseArea > 0.995) {
+            return baseRect;
+        }
+        return clipped;
+    }
+
     getUiEditorElementRect(elementId) {
         if (!elementId) {
             return null;
@@ -3359,10 +4053,10 @@ export class UI {
         if (!(target instanceof HTMLElement)) {
             return null;
         }
-        const rect = target.getBoundingClientRect();
+        const rect = this.getUiEditorTightRect(target) || target.getBoundingClientRect();
         return {
-            x: rect.left,
-            y: rect.top,
+            x: rect.x ?? rect.left,
+            y: rect.y ?? rect.top,
             width: rect.width,
             height: rect.height
         };
@@ -3451,6 +4145,7 @@ export class UI {
         if (!this.onlineDockTextEl) {
             return;
         }
+        const layout = this.getHomeLayoutConfig();
         if (!online.enabled) {
             this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '\u672a\u5f00\u542f' : 'Off';
             return;
@@ -3460,7 +4155,10 @@ export class UI {
             return;
         }
         if (online.canClaim) {
-            this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '\u53ef\u9886\u53d6' : 'Claim';
+            this.onlineDockTextEl.textContent = this.resolveHomeEditableText(
+                layout?.onlineRewardText,
+                this.locale === 'zh-CN' ? '\u53ef\u9886\u53d6' : 'Claim'
+            );
             return;
         }
         const remain = Math.max(0, Math.ceil(Number(online.remainingSeconds) || 0));

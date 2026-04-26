@@ -1,4 +1,4 @@
-﻿import { getActiveUserId } from './user-auth.js?v=5';
+﻿import { getActiveUserId } from './user-auth.js?v=6';
 
 const STORAGE_API_BASE = '/api/storage';
 const USER_API_BASE = '/api/users';

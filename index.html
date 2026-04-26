@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css?v=115">
+    <link rel="stylesheet" href="css/style.css?v=125">
 </head>
 <body>
     <div class="app-container">
@@ -94,6 +94,10 @@
         </div>
 
         <div id="menuOverlay" class="overlay">
+            <div id="homeBgPanelLarge" class="home-bg-layer home-bg-panel-large" aria-hidden="true"></div>
+            <div id="homeBgSnakeUp" class="home-bg-layer home-bg-snake-up" aria-hidden="true"></div>
+            <div id="homeBgSnakeDown" class="home-bg-layer home-bg-snake-down" aria-hidden="true"></div>
+            <div id="homeBgCavePanel" class="home-bg-layer home-bg-cave-panel" aria-hidden="true"></div>
             <div class="menu-content menu-content-v2">
                 <section class="menu-home-hero">
                     <h1 class="menu-home-title" data-i18n="home.menuTitle">蛇蛇大冒险</h1>
@@ -115,10 +119,12 @@
                         ></video>
                     </div>
                     <div class="play-area play-area-v2">
-                        <button id="btnPlay" class="btn-play" type="button" data-i18n="home.start">进入游戏</button>
+                        <button id="btnPlay" class="btn-play" type="button">
+                            <span id="btnPlayLabel" class="start-button-label" data-i18n="home.start">进入游戏</span>
+                        </button>
                         <button id="btnLevels" class="current-level-tag" type="button" aria-label="洞穴入口">
                             <span class="level-tag-icon" aria-hidden="true"></span>
-                            <span class="level-tag-label" data-i18n="home.burrowEntry">洞穴入口</span>
+                            <span id="menuLevelTagLabel" class="level-tag-label" data-i18n="home.burrowEntry">洞穴入口</span>
                             <span id="menuLevelTagValue" class="level-tag-value">洞穴 1</span>
                         </button>
                     </div>
@@ -164,7 +170,9 @@
             <button id="btnProfileAvatar" class="menu-profile-entry" type="button" aria-label="profile">
                 <img id="menuProfileAvatarImage" class="menu-profile-avatar" src="assets/ui/shared/icons/icon_theme.png" alt="profile">
             </button>
-            <button id="btnLoginEntry" class="menu-avatar-login-link hidden" type="button" data-i18n="home.loginLink">登录</button>
+            <button id="btnLoginEntry" class="menu-avatar-login-link hidden" type="button">
+                <span id="menuLoginEntryText" data-i18n="home.loginLink">登录</span>
+            </button>
             <div class="coin-chip menu-coin-chip" id="menuCoinDisplay" aria-label="coins">
                 <img class="coin-chip-icon" src="assets/ui/themes/design-v5/icon_coin.png" alt="coin">
                 <strong id="menuCoinValue" class="coin-chip-value">0</strong>
@@ -485,6 +493,6 @@
     </div>
 
     <script src="js/runtime-api-base.js?v=5"></script>
-    <script type="module" src="js/main.js?v=263"></script>
+    <script type="module" src="js/main.js?v=278"></script>
 </body>
 </html>

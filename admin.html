@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>箭头消消乐管理后台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=79">
+    <link rel="stylesheet" href="css/admin.css?v=80">
 </head>
 <body>
     <main class="admin-hub">
@@ -1038,13 +1038,14 @@
             <div class="ui-editor-shell">
                 <aside class="controls ui-editor-controls">
                     <h2>界面编辑器</h2>
-                    <p class="sub">所见即所得调整界面布局。当前支持签到页和游戏界面，拖拽与数值修改会直接同步到预览。</p>
+                    <p class="sub">所见即所得调整界面布局。当前支持签到页、游戏界面和主界面，拖拽与数值修改会直接同步到预览。</p>
 
                     <div class="field">
                         <span>界面</span>
                         <select id="uiEditorSceneSelect">
                             <option value="checkin">签到页</option>
                             <option value="gameplay">游戏界面</option>
+                            <option value="home">主界面</option>
                         </select>
                     </div>
 
@@ -1071,8 +1072,16 @@
 
                     <div class="field">
                         <span>元素列表</span>
-                        <select id="uiEditorElementSelect" size="14" multiple></select>
+                        <div
+                            id="uiEditorElementList"
+                            class="ui-editor-element-list"
+                            role="listbox"
+                            aria-label="界面元素列表"
+                            aria-multiselectable="true"
+                            tabindex="0"
+                        ></div>
                     </div>
+                    <div id="uiEditorElementSizeInfo" class="ui-editor-size-info">元素尺寸：-</div>
 
                     <div id="uiEditorPropertyGrid" class="ui-editor-property-grid"></div>
 
@@ -1089,6 +1098,7 @@
                     </div>
 
                     <div class="actions">
+                        <button id="btnUiEditorDeleteElement" type="button">删除当前元素</button>
                         <button id="btnUiEditorResetElement" type="button">重置当前元素</button>
                         <button id="btnUiEditorResetScene" type="button">重置整页</button>
                         <button id="btnUiEditorCopyJson" class="primary" type="button">复制布局 JSON</button>
@@ -1108,6 +1118,10 @@
                             <h2 id="uiEditorPreviewTitle">签到页预览</h2>
                             <p id="uiEditorPreviewDesc" class="sub">点击元素选中后可拖拽。方向键移动 1px，Shift + 方向键移动 10px。</p>
                         </div>
+                        <div class="ui-editor-preview-meta">
+                            <span id="uiEditorPreviewCanvasSize" class="ui-editor-preview-chip">画布：430 × 932 px</span>
+                            <span id="uiEditorPreviewSelectionSize" class="ui-editor-preview-chip">元素：-</span>
+                        </div>
                     </div>
                     <div id="uiEditorPreviewViewport" class="ui-editor-preview-viewport" tabindex="0">
                         <div id="uiEditorPreviewStageWrap" class="ui-editor-preview-stage-wrap">
@@ -1118,6 +1132,7 @@
                                 title="界面编辑器预览"
                             ></iframe>
                             <div id="uiEditorOverlay" class="ui-editor-overlay"></div>
+                            <div id="uiEditorAssistLayer" class="ui-editor-assist-layer"></div>
                         </div>
                     </div>
                     <section id="uiEditorFollowMousePanel" class="ui-editor-follow-mouse-panel" hidden>
@@ -1708,8 +1723,8 @@
     <script type="module" src="js/admin-skin-gen.js?v=45"></script>
     <script type="module" src="js/admin-sfx-lab.js?v=36"></script>
     <script type="module" src="js/admin-liveops.js?v=6"></script>
-    <script type="module" src="js/admin-system.js?v=5"></script>
-    <script type="module" src="js/admin-ui-editor.js?v=21"></script>
+    <script type="module" src="js/admin-system.js?v=6"></script>
+    <script type="module" src="js/admin-ui-editor.js?v=32"></script>
     <script type="module" src="js/admin-db.js?v=3"></script>
   </body>
   </html>

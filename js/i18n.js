@@ -190,7 +190,23 @@ export function detectInitialLocale() {
         // Ignore storage access issues.
     }
 
+    if (isCrazyGamesHost()) {
+        return 'en-US';
+    }
+
     return resolveLocale(navigator.language || DEFAULT_LOCALE);
+}
+
+function isCrazyGamesHost() {
+    try {
+        const host = `${window.location.hostname || ''}`.toLowerCase();
+        return host === 'crazygames.com'
+            || host.endsWith('.crazygames.com')
+            || host === 'crazygames.io'
+            || host.endsWith('.crazygames.io');
+    } catch {
+        return false;
+    }
 }
 
 export function persistLocale(locale) {
