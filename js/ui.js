@@ -10,7 +10,7 @@ import {
     playCheckinRewardCoinSound,
     playFinalCountdownTickSound,
     stopBgm
-} from './audio.js?v=73';
+} from './audio.js?v=74';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=31';
 import {
     cloneUiLayoutConfig,
@@ -92,7 +92,7 @@ const CHECKIN_COIN_FLY_COUNT = 6;
 const CHECKIN_COIN_FLY_DURATION_MS = 920;
 const CHECKIN_COIN_COUNTER_DURATION_MS = 1040;
 const REWARD_GUIDE_TEXT = 'Try holding and swiping your finger in reward stages!';
-const HOME_MASCOT_VIDEO_SRC = 'assets/audio/bgm/home_dance_h264_v20260421.mp4?v=20260421c';
+const HOME_MASCOT_VIDEO_SRC = 'assets/audio/bgm/home_dance_v20260421.mp4?v=20260427a';
 const HOME_MASCOT_BLACK_KEY_MIN = 18;
 const HOME_MASCOT_BLACK_KEY_SOFT = 54;
 const HOME_MASCOT_VIDEO_CROP_RIGHT = 70;

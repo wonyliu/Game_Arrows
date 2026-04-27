@@ -10,7 +10,7 @@ import {
     normalizeRecipe
 } from './sfx-storage.js?v=11';
 import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=3';
-import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, refreshBgmStorage } from './bgm-storage.js?v=10';
+import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, refreshBgmStorage } from './bgm-storage.js?v=11';
 
 export { BGM_SCENE_KEYS };
 
@@ -19,7 +19,7 @@ const DEFAULT_AUDIO_MIX = Object.freeze({
     music: 0.65,
     sfx: 0.55
 });
-const DEFAULT_HOME_BGM_SRC = 'assets/audio/bgm/home_dance_h264_v20260421.mp4?v=20260421c';
+const DEFAULT_HOME_BGM_SRC = 'assets/audio/bgm/home_dance_v20260421.mp4?v=20260427a';
 
 let audioCtx = null;
 let initPromise = null;
