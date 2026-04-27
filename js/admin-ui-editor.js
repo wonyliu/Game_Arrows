@@ -1,9 +1,10 @@
 ﻿import {
     initUiLayoutStorage,
     getDefaultUiLayoutConfig,
+    PANEL_LAYOUT_DEFINITIONS,
     readUiLayoutConfig,
     writeUiLayoutConfig
-} from './ui-layout-config.js?v=12';
+} from './ui-layout-config.js?v=14';
 import {
     getLocalDayKey,
     readLiveOpsConfig,
@@ -127,6 +128,21 @@ const HOME_ELEMENTS = [
     { id: 'onlineRewardText', label: 'Online Text' }
 ];
 
+const PANEL_SCENES = Object.freeze(Object.fromEntries(
+    Object.entries(PANEL_LAYOUT_DEFINITIONS).map(([sceneId, definition]) => [
+        sceneId,
+        Object.freeze({
+            label: definition.label || sceneId,
+            previewTitle: definition.previewTitle || `${definition.label || sceneId} Preview`,
+            previewDesc: 'Drag and tune this panel. Text fields support Chinese and English for localization.',
+            frameSrc: `index.html?uiEditorPreview=1&uiEditorPanel=${definition.previewPanel || sceneId}`,
+            defaultElementId: definition.defaultElementId || definition.elements?.[0]?.id || '',
+            showCheckinState: false,
+            elements: (definition.elements || []).map((item) => ({ id: item.id, label: item.label || item.id }))
+        })
+    ])
+));
+
 const SCENES = Object.freeze({
     checkin: Object.freeze({
         label: 'Check-in',
@@ -154,7 +170,8 @@ const SCENES = Object.freeze({
         defaultElementId: 'startButton',
         showCheckinState: false,
         elements: HOME_ELEMENTS
-    })
+    }),
+    ...PANEL_SCENES
 });
 
 function buildElementDescriptors() {
@@ -310,6 +327,13 @@ function getElementTarget(config, elementId) {
     }
     if (state.sceneId === 'gameplay') {
         const scene = config?.gameplay;
+        if (!scene) {
+            return null;
+        }
+        return scene[elementId] || null;
+    }
+    if (PANEL_LAYOUT_DEFINITIONS[state.sceneId]) {
+        const scene = config?.[state.sceneId];
         if (!scene) {
             return null;
         }
@@ -1747,6 +1771,40 @@ function getHomeElementFields(elementId, visibilityField) {
     return [];
 }
 
+function getPanelElementFields(elementId, visibilityField) {
+    const target = getElementTarget(state.config, elementId);
+    if (!target || typeof target !== 'object') {
+        return [];
+    }
+    const fields = [];
+    if (typeof target.x === 'number') {
+        fields.push({ name: 'x', label: 'X', step: 1 });
+    }
+    if (typeof target.y === 'number') {
+        fields.push({ name: 'y', label: 'Y', step: 1 });
+    }
+    if (typeof target.width === 'number') {
+        fields.push({ name: 'width', label: 'Width', step: 1 });
+    }
+    if (typeof target.height === 'number') {
+        fields.push({ name: 'height', label: 'Height', step: 1 });
+    }
+    if (typeof target.fontSize === 'number') {
+        fields.push({ name: 'fontSize', label: 'Font', step: 1 });
+    }
+    if (typeof target.align === 'string') {
+        fields.push({ name: 'align', label: 'Align', type: 'select', options: ['center', 'left'], wide: true });
+    }
+    if (typeof target.textZh === 'string') {
+        fields.push({ name: 'textZh', label: '中文文字', type: 'text', wide: true });
+    }
+    if (typeof target.textEn === 'string') {
+        fields.push({ name: 'textEn', label: 'English Text', type: 'text', wide: true });
+    }
+    fields.push(visibilityField);
+    return fields;
+}
+
 function getElementFields(elementId) {
     const visibilityField = { name: 'visible', label: '鏄剧ず', type: 'checkbox', wide: true };
     if (state.sceneId === 'home') {
@@ -1754,6 +1812,9 @@ function getElementFields(elementId) {
     }
     if (state.sceneId === 'gameplay') {
         return getGameplayElementFields(elementId, visibilityField);
+    }
+    if (PANEL_LAYOUT_DEFINITIONS[state.sceneId]) {
+        return getPanelElementFields(elementId, visibilityField);
     }
     if (elementId === 'backButton') {
         return [
@@ -1955,6 +2016,21 @@ function refreshPropertyValues() {
         }
     }
     updateSizeReadout();
+}
+
+function syncSceneSelectOptions() {
+    if (!el.sceneSelect) {
+        return;
+    }
+    const currentValue = el.sceneSelect.value;
+    el.sceneSelect.innerHTML = '';
+    for (const [sceneId, scene] of Object.entries(SCENES)) {
+        const option = document.createElement('option');
+        option.value = sceneId;
+        option.textContent = scene.label || sceneId;
+        el.sceneSelect.appendChild(option);
+    }
+    el.sceneSelect.value = SCENES[currentValue] ? currentValue : state.sceneId;
 }
 
 function applySceneMeta() {
@@ -2217,6 +2293,7 @@ async function init() {
         console.warn('[admin-ui-editor] ui layout init failed', error);
     });
     state.config = readUiLayoutConfig();
+    syncSceneSelectOptions();
     state.sceneId = SCENES[el.sceneSelect?.value] ? el.sceneSelect.value : 'checkin';
     syncPreviewInputsFromLiveState();
     applySceneMeta();
@@ -2242,3 +2319,5 @@ async function init() {
 }
 
 void init();
+
+

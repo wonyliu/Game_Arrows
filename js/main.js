@@ -1,8 +1,8 @@
 ﻿/**
  * Main - game entry
  */
-import { Game } from './game.js?v=169';
-import { UI } from './ui.js?v=156';
+import { Game } from './game.js?v=170';
+import { UI } from './ui.js?v=160';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,
@@ -15,7 +15,7 @@ import { initProgressStorage } from './progress-storage.js?v=8';
 import { initSkinPartFitStorage } from './skin-fit-storage.js?v=1';
 import { initSfxStorage } from './sfx-storage.js?v=11';
 import { initLiveOpsStorage } from './liveops-storage.js?v=7';
-import { initUiLayoutStorage } from './ui-layout-config.js?v=12';
+import { initUiLayoutStorage } from './ui-layout-config.js?v=14';
 import { initSupportAdsConfig } from './support-ads-config.js?v=1';
 import { isLegacyColorVariantSkinId } from './skins.js?v=31';
 import { ensureUserSession } from './user-auth.js?v=6';
@@ -556,4 +556,8 @@ if (!window.__ARROW_GAME_BOOTSTRAPPED__) {
         }
     });
 }
+
+
+
+
 

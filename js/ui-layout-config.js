@@ -92,6 +92,399 @@ const HOME_LAYER_ORDER = Object.freeze([
     'onlineRewardText'
 ]);
 
+const panelText = (x, y, width, height, fontSize, textZh, textEn, align = 'center') => ({
+    x,
+    y,
+    width,
+    height,
+    fontSize,
+    align,
+    textZh,
+    textEn,
+    visible: true
+});
+
+const panelRect = (x, y, width, height) => ({
+    x,
+    y,
+    width,
+    height,
+    visible: true
+});
+
+export const PANEL_LAYOUT_DEFINITIONS = Object.freeze({
+    levelComplete: Object.freeze({
+        label: 'Level Complete',
+        previewTitle: 'Level Complete Preview',
+        previewPanel: 'levelComplete',
+        defaultElementId: 'levelDoubleCoinButton',
+        elements: Object.freeze([
+            { id: 'levelCompleteBox', label: 'Popup Box' },
+            { id: 'levelCompleteTitle', label: 'Title' },
+            { id: 'levelPerfectStamp', label: 'Perfect Stamp' },
+            { id: 'levelScore', label: 'Score Row' },
+            { id: 'levelScoreLabel', label: 'Score Label' },
+            { id: 'levelScoreValue', label: 'Score Value' },
+            { id: 'levelScoreMultiplier', label: 'Multiplier' },
+            { id: 'levelBestCombo', label: 'Combo Row' },
+            { id: 'levelBestComboLabel', label: 'Combo Label' },
+            { id: 'levelBestComboValue', label: 'Combo Value' },
+            { id: 'levelCoinReward', label: 'Coin Reward' },
+            { id: 'levelCompleteButtons', label: 'Button Group' },
+            { id: 'levelDoubleCoinButton', label: 'Double Coin Button' },
+            { id: 'levelNextButton', label: 'Next Button' }
+        ]),
+        defaults: Object.freeze({
+            levelCompleteBox: panelRect(42, 306, 346, 360),
+            levelCompleteTitle: panelText(52, 30, 170, 54, 34, '\u606d\u559c\u8fc7\u5173', 'Level Clear'),
+            levelPerfectStamp: panelText(214, 20, 120, 64, 28, '\u5b8c\u7f8e', 'PERFECT'),
+            levelScore: panelRect(78, 104, 210, 56),
+            levelScoreLabel: panelText(0, 14, 70, 28, 23, '\u5206\u6570', 'Score'),
+            levelScoreValue: panelText(78, 0, 92, 48, 44, '360', '360'),
+            levelScoreMultiplier: panelText(172, 14, 70, 28, 24, 'x1.50', 'x1.50'),
+            levelBestCombo: panelRect(110, 160, 160, 34),
+            levelBestComboLabel: panelText(0, 4, 100, 24, 18, '\u6700\u9ad8\u8fde\u51fb', 'Best Combo'),
+            levelBestComboValue: panelText(110, 0, 44, 32, 32, '4', '4'),
+            levelCoinReward: panelText(84, 198, 180, 28, 18, '\u91d1\u5e01 +1\uff08\u603b\u8ba1 1\uff09', 'Coins +1 (Total 1)'),
+            levelCompleteButtons: panelRect(28, 228, 290, 116),
+            levelDoubleCoinButton: panelText(0, 0, 290, 52, 22, '\u770b\u5e7f\u544a\u53cc\u500d\u91d1\u5e01', 'Watch Ad for Double Coins'),
+            levelNextButton: panelText(0, 64, 290, 52, 24, '\u4e0b\u4e00\u5173', 'Next')
+        })
+    }),
+    gameOver: Object.freeze({
+        label: 'Game Over',
+        previewTitle: 'Game Over Preview',
+        previewPanel: 'gameOver',
+        defaultElementId: 'gameOverContinueButton',
+        elements: Object.freeze([
+            { id: 'gameOverBox', label: 'Popup Box' },
+            { id: 'gameOverTitle', label: 'Title' },
+            { id: 'gameOverReason', label: 'Reason' },
+            { id: 'gameOverButtons', label: 'Button Group' },
+            { id: 'gameOverContinueButton', label: 'Continue Ad Button' },
+            { id: 'gameOverRetryButton', label: 'Retry Button' },
+            { id: 'gameOverMenuButton', label: 'Menu Button' }
+        ]),
+        defaults: Object.freeze({
+            gameOverBox: panelRect(46, 322, 338, 286),
+            gameOverTitle: panelText(36, 28, 266, 48, 34, '\u5c0f\u86c7\u7d2f\u4e86', 'Snake Is Tired'),
+            gameOverReason: panelText(42, 92, 254, 44, 24, '\u65f6\u95f4\u5230', 'Time is up'),
+            gameOverButtons: panelRect(32, 150, 274, 116),
+            gameOverContinueButton: panelText(0, 0, 274, 48, 22, '\u770b\u5e7f\u544a\u7ee7\u7eed', 'Watch Ad to Continue'),
+            gameOverRetryButton: panelText(0, 58, 132, 48, 22, '\u518d\u8bd5\u4e00\u6b21', 'Retry'),
+            gameOverMenuButton: panelText(142, 58, 132, 48, 20, '\u8fd4\u56de\u83dc\u5355', 'Menu')
+        })
+    }),
+    supportAuthor: Object.freeze({
+        label: 'Support Author',
+        previewTitle: 'Support Author Preview',
+        previewPanel: 'supportAuthor',
+        menuPanel: 'SUPPORT_AUTHOR',
+        defaultElementId: 'supportAuthorWatchButton',
+        elements: Object.freeze([
+            { id: 'supportAuthorShell', label: 'Panel Shell' },
+            { id: 'supportAuthorTitle', label: 'Title' },
+            { id: 'supportAuthorBack', label: 'Back Button' },
+            { id: 'supportAuthorThankYou', label: 'Thank You Text' },
+            { id: 'supportAuthorCounter', label: 'Progress Row' },
+            { id: 'supportAuthorCounterLabel', label: 'Progress Label' },
+            { id: 'supportAuthorCount', label: 'Progress Count' },
+            { id: 'supportAuthorBadge', label: 'Badge Row' },
+            { id: 'supportAuthorBadgeLabel', label: 'Badge Label' },
+            { id: 'supportAuthorBadgeCount', label: 'Badge Count' },
+            { id: 'supportAuthorWatchButton', label: 'Watch Ad Button' },
+            { id: 'supportAuthorStatus', label: 'Status Text' }
+        ]),
+        defaults: Object.freeze({
+            supportAuthorShell: panelRect(39, 138, 352, 430),
+            supportAuthorTitle: panelText(24, 24, 220, 76, 36, '\u652f\u6301\u4f5c\u8005', 'Support Author', 'left'),
+            supportAuthorBack: panelText(252, 38, 76, 48, 22, '\u8fd4\u56de', 'Back'),
+            supportAuthorThankYou: panelText(24, 122, 304, 70, 18, '\u611f\u8c22\u4f60\u7684\u652f\u6301\uff0c\u8fd9\u4f1a\u5e2e\u52a9\u6211\u4eec\u6301\u7eed\u66f4\u65b0\u6e38\u620f\u5185\u5bb9\u3002', 'Thank you for your support. It helps us keep improving the game.', 'left'),
+            supportAuthorCounter: panelRect(24, 202, 304, 56),
+            supportAuthorCounterLabel: panelText(16, 8, 210, 36, 18, '\u4eca\u65e5\u652f\u6301\u8fdb\u5ea6', 'Today Support Progress', 'left'),
+            supportAuthorCount: panelText(236, 6, 52, 40, 28, '0/5', '0/5'),
+            supportAuthorBadge: panelRect(24, 268, 304, 56),
+            supportAuthorBadgeLabel: panelText(16, 8, 210, 36, 18, '\u652f\u6301\u5956\u7ae0', 'Support Badges', 'left'),
+            supportAuthorBadgeCount: panelText(236, 6, 52, 40, 28, '0', '0'),
+            supportAuthorWatchButton: panelText(24, 334, 304, 58, 27, '\u64ad\u653e\u652f\u6301\u5e7f\u544a', 'Watch Support Ad'),
+            supportAuthorStatus: panelText(24, 398, 304, 24, 14, '', '')
+        })
+    }),
+    settings: Object.freeze({
+        label: 'Settings',
+        previewTitle: 'Settings Preview',
+        previewPanel: 'settings',
+        menuPanel: 'SETTINGS',
+        defaultElementId: 'settingsTitle',
+        elements: Object.freeze([
+            { id: 'settingsShell', label: 'Panel Shell' },
+            { id: 'settingsTitle', label: 'Title' },
+            { id: 'settingsBack', label: 'Back Button' },
+            { id: 'settingsBody', label: 'Body' },
+            { id: 'settingsLanguageRow', label: 'Language Row' },
+            { id: 'settingsLanguageTitle', label: 'Language Title' },
+            { id: 'settingsLanguageDesc', label: 'Language Desc' },
+            { id: 'settingsLocaleZh', label: 'Chinese Button' },
+            { id: 'settingsLocaleEn', label: 'English Button' },
+            { id: 'settingsAudioRow', label: 'Audio Row' },
+            { id: 'settingsAudioTitle', label: 'Audio Title' },
+            { id: 'settingsAudioDesc', label: 'Audio Desc' },
+            { id: 'settingsResetRow', label: 'Reset Row' },
+            { id: 'settingsResetButton', label: 'Reset Button' },
+            { id: 'settingsEndRunRow', label: 'End Run Row' },
+            { id: 'settingsEndRunButton', label: 'End Run Button' }
+        ]),
+        defaults: Object.freeze({
+            settingsShell: panelRect(29, 82, 372, 720),
+            settingsTitle: panelText(24, 24, 220, 48, 32, '\u8bbe\u7f6e', 'Settings', 'left'),
+            settingsBack: panelText(276, 28, 72, 42, 20, '\u8fd4\u56de', 'Back'),
+            settingsBody: panelRect(24, 92, 324, 592),
+            settingsLanguageRow: panelRect(0, 0, 324, 132),
+            settingsLanguageTitle: panelText(0, 0, 150, 28, 20, '\u8bed\u8a00', 'Language', 'left'),
+            settingsLanguageDesc: panelText(0, 34, 210, 42, 13, '\u5207\u6362\u754c\u9762\u8bed\u8a00', 'Switch UI language', 'left'),
+            settingsLocaleZh: panelText(216, 12, 96, 38, 15, '\u7b80\u4f53\u4e2d\u6587', 'Chinese'),
+            settingsLocaleEn: panelText(216, 58, 96, 38, 15, 'English', 'English'),
+            settingsAudioRow: panelRect(0, 144, 324, 164),
+            settingsAudioTitle: panelText(0, 0, 150, 28, 20, '\u97f3\u9891', 'Audio', 'left'),
+            settingsAudioDesc: panelText(0, 34, 280, 42, 13, '\u8c03\u6574\u97f3\u4e50\u548c\u97f3\u6548\u97f3\u91cf', 'Adjust music and SFX volume', 'left'),
+            settingsResetRow: panelRect(0, 326, 324, 92),
+            settingsResetButton: panelText(196, 20, 112, 42, 17, '\u91cd\u7f6e', 'Reset'),
+            settingsEndRunRow: panelRect(0, 432, 324, 92),
+            settingsEndRunButton: panelText(196, 20, 112, 42, 17, '\u7ed3\u675f', 'End')
+        })
+    }),
+    leaderboard: Object.freeze({
+        label: 'Leaderboard',
+        previewTitle: 'Leaderboard Preview',
+        previewPanel: 'leaderboard',
+        menuPanel: 'LEADERBOARD',
+        defaultElementId: 'leaderboardList',
+        elements: Object.freeze([
+            { id: 'leaderboardShell', label: 'Panel Shell' },
+            { id: 'leaderboardTitle', label: 'Title' },
+            { id: 'leaderboardBack', label: 'Back Button' },
+            { id: 'leaderboardBody', label: 'Body' },
+            { id: 'leaderboardModeSwitch', label: 'Mode Switch' },
+            { id: 'leaderboardModeClear', label: 'Clear Rank Button' },
+            { id: 'leaderboardModeBadge', label: 'Badge Rank Button' },
+            { id: 'leaderboardList', label: 'Rank List' },
+            { id: 'leaderboardSelfSection', label: 'My Rank Section' },
+            { id: 'leaderboardSelfLabel', label: 'My Rank Label' },
+            { id: 'leaderboardEmptyState', label: 'Empty State' }
+        ]),
+        defaults: Object.freeze({
+            leaderboardShell: panelRect(30, 58, 370, 822),
+            leaderboardTitle: panelText(24, 20, 220, 46, 32, '\u6392\u884c\u699c', 'Leaderboard', 'left'),
+            leaderboardBack: panelText(276, 22, 72, 42, 20, '\u8fd4\u56de', 'Back'),
+            leaderboardBody: panelRect(22, 82, 326, 704),
+            leaderboardModeSwitch: panelRect(0, 0, 326, 54),
+            leaderboardModeClear: panelText(0, 0, 158, 46, 18, '\u901a\u5173\u699c', 'Clear Rank'),
+            leaderboardModeBadge: panelText(168, 0, 158, 46, 18, '\u5956\u7ae0\u699c', 'Badge Rank'),
+            leaderboardList: panelRect(0, 66, 326, 520),
+            leaderboardSelfSection: panelRect(0, 596, 326, 96),
+            leaderboardSelfLabel: panelText(0, 0, 326, 28, 16, '\u6211\u7684\u6392\u540d', 'My Rank', 'left'),
+            leaderboardEmptyState: panelText(0, 260, 326, 42, 16, '\u6682\u65e0\u6570\u636e', 'No data')
+        })
+    }),
+    skins: Object.freeze({
+        label: 'Skins',
+        previewTitle: 'Skins Preview',
+        previewPanel: 'skins',
+        menuPanel: 'SKINS',
+        defaultElementId: 'skinList',
+        elements: Object.freeze([
+            { id: 'skinsShell', label: 'Panel Shell' },
+            { id: 'skinsTitle', label: 'Title' },
+            { id: 'skinsBack', label: 'Back Button' },
+            { id: 'skinsBody', label: 'Body' },
+            { id: 'skinsCoinPill', label: 'Coin Pill' },
+            { id: 'skinsRateValue', label: 'Rate Text' },
+            { id: 'skinList', label: 'Skin Grid' },
+            { id: 'skinCard', label: 'Skin Card Template' },
+            { id: 'skinPreview', label: 'Skin Preview' },
+            { id: 'skinName', label: 'Skin Name' },
+            { id: 'skinDesc', label: 'Skin Description' },
+            { id: 'skinStatus', label: 'Skin Status' },
+            { id: 'skinActionButton', label: 'Skin Action Button' }
+        ]),
+        defaults: Object.freeze({
+            skinsShell: panelRect(30, 70, 370, 800),
+            skinsTitle: panelText(24, 22, 220, 46, 32, '\u76ae\u80a4', 'Skins', 'left'),
+            skinsBack: panelText(276, 24, 72, 42, 20, '\u8fd4\u56de', 'Back'),
+            skinsBody: panelRect(22, 84, 326, 676),
+            skinsCoinPill: panelRect(0, 0, 120, 38),
+            skinsRateValue: panelText(138, 4, 188, 30, 14, '', '', 'left'),
+            skinList: panelRect(0, 52, 326, 612),
+            skinCard: panelRect(0, 0, 308, 90),
+            skinPreview: panelRect(8, 13, 64, 64),
+            skinName: panelText(82, 10, 122, 22, 15, '\u76ae\u80a4\u540d\u79f0', 'Skin Name', 'left'),
+            skinDesc: panelText(82, 32, 122, 34, 11, '\u76ae\u80a4\u63cf\u8ff0', 'Skin description', 'left'),
+            skinStatus: panelText(82, 66, 122, 16, 11, '\u5df2\u89e3\u9501', 'Unlocked', 'left'),
+            skinActionButton: panelText(214, 27, 92, 36, 12, '\u88c5\u5907', 'Use')
+        })
+    }),
+    profile: Object.freeze({
+        label: 'Profile',
+        previewTitle: 'Profile Preview',
+        previewPanel: 'profile',
+        menuPanel: 'PROFILE',
+        defaultElementId: 'profileNicknameField',
+        elements: Object.freeze([
+            { id: 'profileShell', label: 'Panel Shell' },
+            { id: 'profileTitle', label: 'Title' },
+            { id: 'profileBack', label: 'Back Button' },
+            { id: 'profileUserMeta', label: 'User Meta' },
+            { id: 'profileNicknameField', label: 'Nickname Field' },
+            { id: 'profilePasswordField', label: 'Password Field' },
+            { id: 'profilePasswordConfirmField', label: 'Confirm Field' },
+            { id: 'profileSaveButton', label: 'Save Button' },
+            { id: 'profileStatus', label: 'Status Text' }
+        ]),
+        defaults: Object.freeze({
+            profileShell: panelRect(39, 142, 352, 430),
+            profileTitle: panelText(24, 24, 220, 48, 32, '\u4e2a\u4eba\u8d44\u6599', 'Profile', 'left'),
+            profileBack: panelText(252, 28, 76, 42, 20, '\u8fd4\u56de', 'Back'),
+            profileUserMeta: panelText(24, 92, 304, 30, 14, 'ID: -', 'ID: -', 'left'),
+            profileNicknameField: panelRect(24, 132, 304, 58),
+            profilePasswordField: panelRect(24, 202, 304, 58),
+            profilePasswordConfirmField: panelRect(24, 272, 304, 58),
+            profileSaveButton: panelText(24, 346, 304, 54, 22, '\u4fdd\u5b58\u8d44\u6599', 'Save'),
+            profileStatus: panelText(24, 402, 304, 24, 14, '', '')
+        })
+    }),
+    levelSelect: Object.freeze({
+        label: 'Level Select',
+        previewTitle: 'Level Select Preview',
+        previewPanel: 'levelSelect',
+        menuPanel: 'LEVEL_SELECT',
+        defaultElementId: 'levelGrid',
+        elements: Object.freeze([
+            { id: 'levelSelectShell', label: 'Panel Shell' },
+            { id: 'levelSelectTitle', label: 'Title' },
+            { id: 'levelSelectBack', label: 'Back Button' },
+            { id: 'levelSelectBody', label: 'Body' },
+            { id: 'levelSelectMeta', label: 'Meta' },
+            { id: 'levelSelectLabel', label: 'Start Label' },
+            { id: 'levelSelectCurrent', label: 'Current Level' },
+            { id: 'levelSelectTip', label: 'Tip' },
+            { id: 'levelGrid', label: 'Level Grid' }
+        ]),
+        defaults: Object.freeze({
+            levelSelectShell: panelRect(30, 68, 370, 800),
+            levelSelectTitle: panelText(24, 22, 220, 46, 32, '\u9009\u62e9\u5173\u5361', 'Select Level', 'left'),
+            levelSelectBack: panelText(276, 24, 72, 42, 20, '\u8fd4\u56de', 'Back'),
+            levelSelectBody: panelRect(22, 84, 326, 676),
+            levelSelectMeta: panelRect(0, 0, 326, 96),
+            levelSelectLabel: panelText(14, 12, 190, 24, 15, '\u9ed8\u8ba4\u4ece\u4ee5\u4e0b\u5173\u5361\u5f00\u59cb', 'Start from', 'left'),
+            levelSelectCurrent: panelText(214, 8, 96, 32, 20, '\u6d1e\u7a74 1', 'Burrow 1'),
+            levelSelectTip: panelText(14, 50, 296, 32, 13, '\u53ef\u70b9\u51fb\u5df2\u89e3\u9501\u5173\u5361\u76f4\u63a5\u8fdb\u5165\u6e38\u620f\u3002', 'Tap an unlocked level to play.', 'left'),
+            levelGrid: panelRect(0, 112, 326, 544)
+        })
+    }),
+    exitConfirm: Object.freeze({
+        label: 'Exit Confirm',
+        previewTitle: 'Exit Confirm Preview',
+        previewPanel: 'exitConfirm',
+        menuPanel: 'EXIT_CONFIRM',
+        defaultElementId: 'exitConfirmButton',
+        elements: Object.freeze([
+            { id: 'exitShell', label: 'Panel Shell' },
+            { id: 'exitTitle', label: 'Title' },
+            { id: 'exitBack', label: 'Close Button' },
+            { id: 'exitDesc', label: 'Description' },
+            { id: 'exitActions', label: 'Actions' },
+            { id: 'exitConfirmButton', label: 'Confirm Button' },
+            { id: 'exitCancelButton', label: 'Cancel Button' },
+            { id: 'exitFeedback', label: 'Feedback' }
+        ]),
+        defaults: Object.freeze({
+            exitShell: panelRect(39, 218, 352, 310),
+            exitTitle: panelText(24, 24, 220, 46, 32, '\u9000\u51fa\u6e38\u620f', 'Exit Game', 'left'),
+            exitBack: panelText(252, 26, 76, 42, 20, '\u5173\u95ed', 'Close'),
+            exitDesc: panelText(24, 94, 304, 70, 18, '\u73b0\u5728\u9000\u51fa\u5417\uff1f\u8fdb\u5ea6\u5df2\u5728\u672c\u5730\u4fdd\u5b58\u3002', 'Exit now? Progress is saved locally.', 'left'),
+            exitActions: panelRect(24, 178, 304, 58),
+            exitConfirmButton: panelText(0, 0, 146, 52, 20, '\u7acb\u5373\u9000\u51fa', 'Exit Now'),
+            exitCancelButton: panelText(158, 0, 146, 52, 20, '\u53d6\u6d88', 'Cancel'),
+            exitFeedback: panelText(24, 248, 304, 30, 13, '\u591a\u6570\u6d4f\u89c8\u5668\u4e0d\u5141\u8bb8\u76f4\u63a5\u5173\u95ed\u9875\u9762\u3002', 'Most browsers cannot be closed by script.')
+        })
+    }),
+    resetProgress: Object.freeze({
+        label: 'Reset Progress',
+        previewTitle: 'Reset Progress Preview',
+        previewPanel: 'resetProgress',
+        menuPanel: 'RESET_PROGRESS_CONFIRM',
+        defaultElementId: 'resetProgressConfirmButton',
+        elements: Object.freeze([
+            { id: 'resetProgressShell', label: 'Panel Shell' },
+            { id: 'resetProgressTitle', label: 'Title' },
+            { id: 'resetProgressBack', label: 'Close Button' },
+            { id: 'resetProgressDesc', label: 'Description' },
+            { id: 'resetProgressActions', label: 'Actions' },
+            { id: 'resetProgressConfirmButton', label: 'Confirm Button' },
+            { id: 'resetProgressCancelButton', label: 'Cancel Button' }
+        ]),
+        defaults: Object.freeze({
+            resetProgressShell: panelRect(39, 218, 352, 310),
+            resetProgressTitle: panelText(24, 24, 220, 46, 30, '\u91cd\u7f6e\u8fdb\u5ea6', 'Reset Progress', 'left'),
+            resetProgressBack: panelText(252, 26, 76, 42, 20, '\u5173\u95ed', 'Close'),
+            resetProgressDesc: panelText(24, 94, 304, 70, 18, '\u91cd\u7f6e\u5173\u5361\u8fdb\u5ea6\u5e76\u4ece\u7b2c\u4e00\u5173\u5f00\u59cb\uff1f', 'Reset campaign progress and start from level one?', 'left'),
+            resetProgressActions: panelRect(24, 178, 304, 58),
+            resetProgressConfirmButton: panelText(0, 0, 146, 52, 20, '\u786e\u8ba4\u91cd\u7f6e', 'Reset Now'),
+            resetProgressCancelButton: panelText(158, 0, 146, 52, 20, '\u53d6\u6d88', 'Cancel')
+        })
+    }),
+    checkinRewardSettle: Object.freeze({
+        label: 'Check-in Reward',
+        previewTitle: 'Check-in Reward Preview',
+        previewPanel: 'checkinRewardSettle',
+        defaultElementId: 'checkinRewardConfirm',
+        elements: Object.freeze([
+            { id: 'checkinRewardShell', label: 'Panel Shell' },
+            { id: 'checkinRewardTitle', label: 'Title' },
+            { id: 'checkinRewardDesc', label: 'Description' },
+            { id: 'checkinRewardCoinHero', label: 'Coin Hero' },
+            { id: 'checkinRewardList', label: 'Reward List' },
+            { id: 'checkinRewardActions', label: 'Actions' },
+            { id: 'checkinRewardConfirm', label: 'Confirm Button' }
+        ]),
+        defaults: Object.freeze({
+            checkinRewardShell: panelRect(39, 182, 352, 360),
+            checkinRewardTitle: panelText(24, 24, 304, 46, 30, '\u7b7e\u5230\u5956\u52b1', 'Check-in Reward', 'left'),
+            checkinRewardDesc: panelText(24, 84, 304, 42, 18, '\u7b7e\u5230\u6210\u529f\uff0c\u5956\u52b1\u5982\u4e0b\uff1a', 'Claimed rewards:', 'left'),
+            checkinRewardCoinHero: panelRect(84, 134, 184, 70),
+            checkinRewardList: panelRect(24, 214, 304, 58),
+            checkinRewardActions: panelRect(24, 286, 304, 52),
+            checkinRewardConfirm: panelText(60, 0, 184, 52, 22, '\u786e\u5b9a', 'OK')
+        })
+    }),
+    onlineRewardSettle: Object.freeze({
+        label: 'Online Reward',
+        previewTitle: 'Online Reward Preview',
+        previewPanel: 'onlineRewardSettle',
+        defaultElementId: 'onlineRewardSettleClose',
+        elements: Object.freeze([
+            { id: 'onlineRewardShell', label: 'Panel Shell' },
+            { id: 'onlineRewardTitle', label: 'Title' },
+            { id: 'onlineRewardCloseTop', label: 'Top Close' },
+            { id: 'onlineRewardDesc', label: 'Description' },
+            { id: 'onlineRewardList', label: 'Reward List' },
+            { id: 'onlineRewardActions', label: 'Actions' },
+            { id: 'onlineRewardSettleClose', label: 'Close Button' }
+        ]),
+        defaults: Object.freeze({
+            onlineRewardShell: panelRect(39, 192, 352, 340),
+            onlineRewardTitle: panelText(24, 24, 220, 46, 30, '\u5728\u7ebf\u5956\u52b1', 'Online Reward', 'left'),
+            onlineRewardCloseTop: panelText(252, 26, 76, 42, 20, '\u5173\u95ed', 'Close'),
+            onlineRewardDesc: panelText(24, 86, 304, 42, 18, '\u672c\u6b21\u9886\u53d6\uff1a', 'Claimed:', 'left'),
+            onlineRewardList: panelRect(24, 140, 304, 104),
+            onlineRewardActions: panelRect(24, 260, 304, 52),
+            onlineRewardSettleClose: panelText(60, 0, 184, 52, 22, '\u786e\u5b9a', 'OK')
+        })
+    })
+});
+
+export const PANEL_LAYOUT_SCENE_IDS = Object.freeze(Object.keys(PANEL_LAYOUT_DEFINITIONS));
+
 function copyLayerOrder(order) {
     return Array.isArray(order) ? order.slice() : [];
 }
@@ -341,14 +734,14 @@ function createDefaultHomeLayout() {
             y: 362,
             width: 126,
             height: 44,
-            visible: true
+            visible: false
         },
         homeBgSnakeDown: {
             x: 224,
             y: 274,
             width: 154,
             height: 95,
-            visible: true
+            visible: false
         },
         homeBgCavePanel: {
             x: 16,
@@ -611,7 +1004,8 @@ export function getDefaultUiLayoutConfig() {
     return {
         checkin: createDefaultCheckinLayout(),
         gameplay: createDefaultGameplayLayout(),
-        home: createDefaultHomeLayout()
+        home: createDefaultHomeLayout(),
+        ...createDefaultPanelLayouts()
     };
 }
 
@@ -901,11 +1295,91 @@ function normalizeHomeLayout(layout) {
     };
 }
 
+function createDefaultPanelLayout(sceneId) {
+    const definition = PANEL_LAYOUT_DEFINITIONS[sceneId];
+    if (!definition) {
+        return null;
+    }
+    const elementIds = definition.elements.map((item) => item.id);
+    return {
+        layerOrder: copyLayerOrder(elementIds),
+        deletedElements: [],
+        ...clone(definition.defaults || {})
+    };
+}
+
+function createDefaultPanelLayouts() {
+    const layouts = {};
+    for (const sceneId of PANEL_LAYOUT_SCENE_IDS) {
+        layouts[sceneId] = createDefaultPanelLayout(sceneId);
+    }
+    return layouts;
+}
+
+function mergePanelElement(defaultValue, partialValue) {
+    if (!defaultValue || typeof defaultValue !== 'object') {
+        return {};
+    }
+    const base = {
+        x: readNumber(partialValue?.x, defaultValue.x),
+        y: readNumber(partialValue?.y, defaultValue.y),
+        visible: readBool(partialValue?.visible, defaultValue.visible ?? true)
+    };
+    if ('width' in defaultValue) {
+        base.width = readNumber(partialValue?.width, defaultValue.width);
+    }
+    if ('height' in defaultValue) {
+        base.height = readNumber(partialValue?.height, defaultValue.height);
+    }
+    if ('fontSize' in defaultValue) {
+        base.fontSize = readNumber(partialValue?.fontSize, defaultValue.fontSize);
+    }
+    if ('align' in defaultValue || 'textZh' in defaultValue || 'textEn' in defaultValue) {
+        const align = `${partialValue?.align || defaultValue.align || 'center'}`.toLowerCase();
+        base.align = align === 'left' ? 'left' : 'center';
+    }
+    if ('textZh' in defaultValue) {
+        base.textZh = readString(partialValue?.textZh, defaultValue.textZh);
+    }
+    if ('textEn' in defaultValue) {
+        base.textEn = readString(partialValue?.textEn, defaultValue.textEn);
+    }
+    return base;
+}
+
+function normalizePanelLayout(sceneId, layout) {
+    const defaults = createDefaultPanelLayout(sceneId);
+    const definition = PANEL_LAYOUT_DEFINITIONS[sceneId];
+    if (!defaults || !definition) {
+        return null;
+    }
+    const fallbackOrder = definition.elements.map((item) => item.id);
+    const deletedElements = normalizeDeletedElements(layout?.deletedElements, fallbackOrder);
+    const activeFallbackOrder = fallbackOrder.filter((id) => !deletedElements.includes(id));
+    const normalized = {
+        layerOrder: normalizeLayerOrder(layout?.layerOrder, activeFallbackOrder),
+        deletedElements
+    };
+    for (const elementId of fallbackOrder) {
+        normalized[elementId] = mergePanelElement(defaults[elementId], layout?.[elementId]);
+    }
+    return normalized;
+}
+
+function normalizePanelLayouts(config) {
+    const layouts = {};
+    for (const sceneId of PANEL_LAYOUT_SCENE_IDS) {
+        layouts[sceneId] = normalizePanelLayout(sceneId, config?.[sceneId]);
+    }
+    return layouts;
+}
+
 export function normalizeUiLayoutConfig(config) {
     return {
         checkin: normalizeCheckinLayout(config?.checkin),
         gameplay: normalizeGameplayLayout(config?.gameplay),
-        home: normalizeHomeLayout(config?.home)
+        home: normalizeHomeLayout(config?.home),
+        ...normalizePanelLayouts(config)
     };
 }
 

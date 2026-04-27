@@ -806,6 +806,43 @@ button:disabled {
     padding-right: 2px;
 }
 
+.audio-library-table-wrap {
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid rgba(48, 57, 114, 0.12);
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.audio-library-table {
+    min-width: 860px;
+}
+
+.audio-library-table tr {
+    cursor: pointer;
+}
+
+.audio-library-table tr.is-active td {
+    background: rgba(88, 112, 226, 0.12);
+}
+
+.audio-library-sort-btn.is-active {
+    color: #3d55c7;
+}
+
+.audio-library-name-cell {
+    min-width: 190px;
+    max-width: 280px;
+    font-weight: 800;
+    color: #283066;
+    word-break: break-word;
+}
+
+.audio-library-source-cell {
+    min-width: 150px;
+    max-width: 260px;
+    word-break: break-word;
+}
+
 .audio-library-card {
     width: 100%;
     min-height: auto;
@@ -3750,12 +3787,90 @@ button.skin-gen-style-preview:hover {
     background: rgba(143, 35, 55, 0.96);
 }
 
+.font-admin-shell {
+    display: grid;
+    grid-template-columns: 300px minmax(0, 1fr);
+    gap: 18px;
+}
+
+.font-admin-panel {
+    align-self: start;
+    position: sticky;
+    top: 16px;
+}
+
+.font-main-panel {
+    min-width: 0;
+}
+
+.font-admin-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    min-width: min(320px, 100%);
+}
+
+.font-admin-toolbar input {
+    width: 100%;
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1px solid rgba(48, 57, 114, 0.18);
+    border-radius: 12px;
+    color: #24315f;
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.font-table {
+    min-width: 1180px;
+}
+
+.font-name {
+    font-weight: 900;
+    color: #22315f;
+}
+
+.font-tag {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 900;
+    color: #315a28;
+    background: #e6f4df;
+}
+
+.font-tag.is-system {
+    color: #48527d;
+    background: #eef1ff;
+}
+
+.font-tag.is-none {
+    color: #75471f;
+    background: #fff2d8;
+}
+
+.font-code-list,
+.font-usage-list {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.font-code-list code {
+    color: #33447a;
+    white-space: nowrap;
+}
+
 .liveops-item-table tr.is-active {
     background: rgba(93, 119, 230, 0.08);
 }
 
 @media (max-width: 1100px) {
     .assets-admin-shell,
+    .font-admin-shell,
     .events-admin-shell {
         grid-template-columns: 1fr;
     }

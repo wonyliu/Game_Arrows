@@ -858,6 +858,8 @@ function normalizeCustomPresetSample(rawSample) {
     const mimeType = `${rawSample.mimeType || ''}`.trim() || 'audio/wav';
     const fileName = sanitizeDisplayText(rawSample.fileName, 'sample.wav');
     const sourceLabel = sanitizeDisplayText(rawSample.sourceLabel, 'external sample');
+    const rawSizeBytes = Number(rawSample.sizeBytes || rawSample.fileSizeBytes || 0);
+    const sizeBytes = Number.isFinite(rawSizeBytes) && rawSizeBytes > 0 ? Math.round(rawSizeBytes) : 0;
     return {
         dataUrl: dataUrl.startsWith('data:audio/') ? dataUrl : '',
         url,
@@ -865,7 +867,8 @@ function normalizeCustomPresetSample(rawSample) {
         refId: refKind === 'preset-sample' && refId ? refId : '',
         mimeType,
         fileName,
-        sourceLabel
+        sourceLabel,
+        sizeBytes
     };
 }
 
@@ -958,7 +961,8 @@ function compactProjectManagedAudioItem(item) {
                 refId: '',
                 mimeType: item.sample.mimeType || 'audio/mpeg',
                 fileName: item.sample.fileName,
-                sourceLabel: item.sample.sourceLabel
+                sourceLabel: item.sample.sourceLabel,
+                sizeBytes: item.sample.sizeBytes || 0
             }
         };
     }
@@ -976,7 +980,8 @@ function compactProjectManagedAudioItem(item) {
                 refId,
                 mimeType: item.sample.mimeType || 'audio/wav',
                 fileName: item.sample.fileName,
-                sourceLabel: item.sample.sourceLabel
+                sourceLabel: item.sample.sourceLabel,
+                sizeBytes: item.sample.sizeBytes || 0
             }
         };
     }

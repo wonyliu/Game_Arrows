@@ -42,8 +42,8 @@
     --asset-home-btn-checkin: url('../assets/ui/home/components/btn_checkin.png');
     --asset-home-btn-logout: url('../assets/ui/home/components/btn_logout.png');
     --asset-home-btn-support: url('../assets/ui/home/components/btn_support_entry.png');
-    --asset-home-snake-up: url('../assets/ui/home/components/snake_pose_up.png');
-    --asset-home-snake-down: url('../assets/ui/home/components/snake_pose_down.png');
+    --asset-home-snake-up: none;
+    --asset-home-snake-down: none;
 }
 
 html,
@@ -1518,15 +1518,35 @@ textarea {
 }
 
 .leaderboard-panel-body {
+    overflow: hidden;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    touch-action: none;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.leaderboard-panel-body::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+}
+
+#leaderboardOverlay .rank-list:not(.rank-list-self) {
     overflow-y: auto;
     overflow-x: hidden;
     overscroll-behavior: contain;
     touch-action: pan-y;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    cursor: grab;
 }
 
-.leaderboard-panel-body::-webkit-scrollbar {
+#leaderboardOverlay .rank-list:not(.rank-list-self).is-drag-scrolling {
+    cursor: grabbing;
+    user-select: none;
+}
+
+#leaderboardOverlay .rank-list:not(.rank-list-self)::-webkit-scrollbar {
     width: 0;
     height: 0;
 }

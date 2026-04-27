@@ -116,7 +116,7 @@ function bindEvents() {
         }
         loadConfig();
         renderAll();
-        setActivityStatus('妫€娴嬪埌娲诲姩閰嶇疆鍙樻洿锛屽凡鍒锋柊銆?);
+        setActivityStatus('Detected live-ops config changes. Refreshed.');
     });
 }
 
@@ -174,7 +174,7 @@ function renderItemList() {
 
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.textContent = '缂傛牞绶?;
+        btn.textContent = 'Edit';
         btn.addEventListener('click', () => {
             state.selectedItemId = item.id;
             fillItemEditor(item);
@@ -209,11 +209,11 @@ function onSaveItem() {
     const type = normalizeType(el.itemType?.value || 'item');
 
     if (!id) {
-        setItemStatus('閬撳叿 ID 涓嶈兘涓虹┖銆?, true);
+        setItemStatus('Item ID cannot be empty.', true);
         return;
     }
     if (!nameZh) {
-        setItemStatus('涓枃鍚嶄笉鑳戒负绌恒€?, true);
+        setItemStatus('Chinese name cannot be empty.', true);
         return;
     }
 
@@ -249,7 +249,7 @@ function onSaveItem() {
 function onDeleteItem() {
     const id = sanitizeId(el.itemId?.value || '');
     if (!id) {
-        setItemStatus('璇峰厛閫夋嫨瑕佸垹闄ょ殑閬撳叿銆?, true);
+        setItemStatus('Select an item before deleting.', true);
         return;
     }
     const items = [...getItems()];
@@ -463,7 +463,7 @@ function onSaveActivities() {
         .map(([, value]) => value);
 
     if (onlineTiers.length === 0) {
-        setActivityStatus('璇疯嚦灏戦厤缃竴涓湪绾垮鍔辨。浣嶃€?, true);
+        setActivityStatus('Configure at least one online reward slot.', true);
         return;
     }
 
@@ -483,7 +483,7 @@ function onSaveActivities() {
         }
     });
     fillActivitiesFromConfig();
-    setActivityStatus('娲诲姩閰嶇疆宸蹭繚瀛樸€?);
+    setActivityStatus('Activity config saved.');
 }
 
 function onResetActivities() {
@@ -492,12 +492,12 @@ function onResetActivities() {
         activities: DEFAULT_LIVEOPS_CONFIG.activities
     });
     fillActivitiesFromConfig();
-    setActivityStatus('宸叉仮澶嶉粯璁ゆ椿鍔ㄩ厤缃€?);
+    setActivityStatus('Default activity config restored.');
 }
 
 async function resetCheckinState() {
     if (!ensureToolUserSession()) {
-        setToolStatus('鏈娴嬪埌娴嬭瘯鐜╁鐧诲綍鎬併€傝鍏堝湪娓告垙椤电櫥褰曞悓涓€璐﹀彿锛屽啀鍥炲埌鍚庡彴閲嶇疆銆?, true);
+        setToolStatus('No test player session detected. Log in on the game page first, then return here to reset.', true);
         return;
     }
     const player = readLiveOpsPlayerState();
@@ -511,15 +511,15 @@ async function resetCheckinState() {
     const synced = await syncLiveOpsPlayerToServer();
     setToolStatus(
         synced
-            ? '宸查噸缃綋鍓嶆祴璇曠帺瀹剁殑绛惧埌鐘舵€併€?
-            : '绛惧埌鐘舵€佸凡鍦ㄦ湰鍦伴噸缃紝浣嗘湇鍔＄鍚屾澶辫触銆傝纭寮€鍙戞湇鍔″櫒鍜岀櫥褰曟€併€?,
+            ? 'Reset check-in state for the current test player.'
+            : 'Check-in state was reset locally, but server sync failed. Check the dev server and login state.',
         !synced
     );
 }
 
 async function resetOnlineRewardState() {
     if (!ensureToolUserSession()) {
-        setToolStatus('鏈娴嬪埌娴嬭瘯鐜╁鐧诲綍鎬併€傝鍏堝湪娓告垙椤电櫥褰曞悓涓€璐﹀彿锛屽啀鍥炲埌鍚庡彴閲嶇疆銆?, true);
+        setToolStatus('No test player session detected. Log in on the game page first, then return here to reset.', true);
         return;
     }
     const player = readLiveOpsPlayerState();
@@ -534,15 +534,15 @@ async function resetOnlineRewardState() {
     const synced = await syncLiveOpsPlayerToServer();
     setToolStatus(
         synced
-            ? '宸查噸缃綋鍓嶆祴璇曠帺瀹剁殑鍦ㄧ嚎濂栧姳鐘舵€併€?
-            : '鍦ㄧ嚎濂栧姳鐘舵€佸凡鍦ㄦ湰鍦伴噸缃紝浣嗘湇鍔＄鍚屾澶辫触銆傝纭寮€鍙戞湇鍔″櫒鍜岀櫥褰曟€併€?,
+            ? 'Reset online reward state for the current test player.'
+            : 'Online reward state was reset locally, but server sync failed. Check the dev server and login state.',
         !synced
     );
 }
 
 async function resetAllActivityState() {
     if (!ensureToolUserSession()) {
-        setToolStatus('鏈娴嬪埌娴嬭瘯鐜╁鐧诲綍鎬併€傝鍏堝湪娓告垙椤电櫥褰曞悓涓€璐﹀彿锛屽啀鍥炲埌鍚庡彴閲嶇疆銆?, true);
+        setToolStatus('No test player session detected. Log in on the game page first, then return here to reset.', true);
         return;
     }
     writeLiveOpsPlayerState({
@@ -552,8 +552,8 @@ async function resetAllActivityState() {
     const synced = await syncLiveOpsPlayerToServer();
     setToolStatus(
         synced
-            ? '宸查噸缃綋鍓嶆祴璇曠帺瀹剁殑鍏ㄩ儴娲诲姩鐘舵€併€?
-            : '鍏ㄩ儴娲诲姩鐘舵€佸凡鍦ㄦ湰鍦伴噸缃紝浣嗘湇鍔＄鍚屾澶辫触銆傝纭寮€鍙戞湇鍔″櫒鍜岀櫥褰曟€併€?,
+            ? 'Reset all activity state for the current test player.'
+            : 'All activity state was reset locally, but server sync failed. Check the dev server and login state.',
         !synced
     );
 }

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>箭头消消乐管理后台</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23d9d6ea'/%3E%3Cpath d='M14 32h24' stroke='%23191a39' stroke-width='6' stroke-linecap='round'/%3E%3Cpath d='M38 22l12 10-12 10' fill='none' stroke='%23191a39' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
-    <link rel="stylesheet" href="css/admin.css?v=80">
+    <link rel="stylesheet" href="css/admin.css?v=82">
 </head>
 <body>
     <main class="admin-hub">
@@ -21,6 +21,7 @@
                 <button id="tabBtnEvents" class="tab-btn" type="button" data-tab-target="events" role="tab" aria-selected="false">活动管理</button>
                 <button id="tabBtnUiEditor" class="tab-btn" type="button" data-tab-target="ui-editor" role="tab" aria-selected="false">界面编辑器</button>
                 <button id="tabBtnAssets" class="tab-btn" type="button" data-tab-target="assets" role="tab" aria-selected="false">美术资源管理</button>
+                <button id="tabBtnFonts" class="tab-btn" type="button" data-tab-target="fonts" role="tab" aria-selected="false">字体管理</button>
                 <button id="tabBtnTools" class="tab-btn" type="button" data-tab-target="tools" role="tab" aria-selected="false">测试工具</button>
                 <button id="tabBtnDbAdmin" class="tab-btn" type="button" data-tab-target="db-admin" role="tab" aria-selected="false">数据库管理</button>
                 <button id="tabBtnParams" class="tab-btn" type="button" data-tab-target="params" role="tab" aria-selected="false">参数管理</button>
@@ -760,6 +761,14 @@
                                 <span>库内搜索</span>
                                 <input id="audioLibrarySearch" type="text" maxlength="120" placeholder="按名称、关键词、来源搜索">
                             </label>
+                            <label class="field">
+                                <span>素材类型</span>
+                                <select id="audioLibraryTypeFilter">
+                                    <option value="all">全部音乐和音效</option>
+                                    <option value="music">只看音乐</option>
+                                    <option value="sfx">只看音效</option>
+                                </select>
+                            </label>
 
                             <div class="actions sfx-actions">
                                 <button id="btnAudioLibraryRefresh" class="primary" type="button">同步总库</button>
@@ -789,9 +798,14 @@
                             </div>
                             <div id="audioLibraryMeta" class="sfx-audio-library-meta">未选择素材。</div>
                             <audio id="audioLibraryPreviewAudio" controls preload="metadata"></audio>
+                            <label class="field">
+                                <span>压缩比例（30-100，数值越低文件越小）</span>
+                                <input id="audioLibraryCompressRatio" type="number" min="30" max="100" step="5" value="80">
+                            </label>
                             <div class="actions sfx-actions">
                                 <button id="btnAudioLibraryPreview" type="button">试听素材</button>
                                 <button id="btnAudioLibraryImport" type="button">导入到音效工坊</button>
+                                <button id="btnAudioLibraryCompress" type="button">压缩音频文件</button>
                                 <button id="btnAudioLibrarySave" class="primary" type="button">保存修改</button>
                                 <button id="btnAudioLibraryDelete" type="button">删除素材</button>
                             </div>
@@ -803,6 +817,7 @@
                                 <h2>素材列表</h2>
                             </div>
                             <p class="sub">音频库统一保存项目正在调用和备用的音乐/音效。音效可以在皮肤和游戏音效配置中直接绑定，音乐可以在游戏音乐管理中直接选用。</p>
+                            <p id="audioLibraryListSummary" class="status">素材列表加载中...</p>
                             <div id="audioLibraryList" class="audio-library-list"></div>
                         </section>
                     </div>
@@ -1038,7 +1053,7 @@
             <div class="ui-editor-shell">
                 <aside class="controls ui-editor-controls">
                     <h2>界面编辑器</h2>
-                    <p class="sub">所见即所得调整界面布局。当前支持签到页、游戏界面和主界面，拖拽与数值修改会直接同步到预览。</p>
+                    <p class="sub">所见即所得调整界面布局。支持主界面、游戏 HUD、签到页和主要弹窗/面板，拖拽与数值修改会直接同步到预览。</p>
 
                     <div class="field">
                         <span>界面</span>
@@ -1238,6 +1253,64 @@
                             </table>
                         </div>
                     </section>
+                </section>
+            </div>
+        </section>
+
+        <section class="tab-panel" data-tab-panel="fonts" role="tabpanel" aria-labelledby="tabBtnFonts">
+            <div class="font-admin-shell">
+                <section class="controls font-admin-panel">
+                    <h2>字体管理</h2>
+                    <p class="sub">列出游戏与后台实际 CSS 字体栈中出现的字体、授权状态和使用位置。当前扫描未发现项目内分发的字体文件。</p>
+
+                    <div id="fontAdminSummary" class="meta">
+                        <div>字体数量：-</div>
+                        <div>免费商用：-</div>
+                        <div>付费商用：-</div>
+                        <div>系统/通用字体：-</div>
+                    </div>
+
+                    <div class="asset-admin-note">
+                        <div>判定说明：</div>
+                        <div>1. 字体管理基于 CSS 中的 `font-family` / 字体变量使用。</div>
+                        <div>2. “未随包分发”表示包内没有字体文件，最终显示取决于玩家设备或浏览器字体。</div>
+                        <div>3. 商用上线前需要留存字体授权来源截图或 LICENSE 文件。</div>
+                    </div>
+                </section>
+
+                <section class="preview params-json-panel font-main-panel">
+                    <div class="preview-header">
+                        <div>
+                            <h2>字体使用列表</h2>
+                            <p class="sub">用于判断哪些界面依赖哪些字体，以及是否存在授权风险。</p>
+                        </div>
+                        <div class="font-admin-toolbar">
+                            <input id="fontAdminSearch" type="search" placeholder="搜索字体/用途/授权">
+                        </div>
+                    </div>
+
+                    <div class="asset-table-wrap">
+                        <table class="asset-table font-table">
+                            <thead>
+                                <tr>
+                                    <th>字体名称</th>
+                                    <th>范围</th>
+                                    <th>版权情况</th>
+                                    <th>授权/来源</th>
+                                    <th>是否随包分发</th>
+                                    <th>游戏中使用位置</th>
+                                    <th>代码位置</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fontAdminTableBody">
+                                <tr>
+                                    <td colspan="7">
+                                        <div class="db-admin-empty">正在读取字体使用信息。</div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </section>
             </div>
         </section>
@@ -1721,10 +1794,14 @@
     <script type="module" src="js/admin-skin-manager.js?v=11"></script>
     <script type="module" src="js/admin-skin-fit.js?v=15"></script>
     <script type="module" src="js/admin-skin-gen.js?v=45"></script>
-    <script type="module" src="js/admin-sfx-lab.js?v=36"></script>
-    <script type="module" src="js/admin-liveops.js?v=6"></script>
+    <script type="module" src="js/admin-sfx-lab.js?v=40"></script>
+    <script type="module" src="js/admin-liveops.js?v=7"></script>
     <script type="module" src="js/admin-system.js?v=6"></script>
-    <script type="module" src="js/admin-ui-editor.js?v=32"></script>
+    <script type="module" src="js/admin-ui-editor.js?v=35"></script>
+    <script type="module" src="js/admin-fonts.js?v=1"></script>
     <script type="module" src="js/admin-db.js?v=3"></script>
   </body>
   </html>
+
+
+

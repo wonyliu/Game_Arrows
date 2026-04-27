@@ -1,4 +1,4 @@
-import { normalizeRecipe } from './sfx-storage.js?v=11';
+import { normalizeRecipe } from './sfx-storage.js?v=12';
 
 const noiseBufferCache = new Map();
 

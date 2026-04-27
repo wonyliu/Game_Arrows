@@ -425,9 +425,8 @@ export class Game {
             lastPlacement: normalizedPlacement,
             lastWatchedAt: new Date().toISOString()
         };
-        if (normalizedPlacement === 'support_author') {
-            this.supportAuthorBadgeCount = Math.max(0, Math.floor(Number(this.supportAuthorBadgeCount) || 0)) + 1;
-        }
+        // Any completed rewarded ad counts as support, regardless of placement.
+        this.supportAuthorBadgeCount = Math.max(0, Math.floor(Number(this.supportAuthorBadgeCount) || 0)) + 1;
         this.saveProgress();
         return this.getRewardedAdSnapshot();
     }

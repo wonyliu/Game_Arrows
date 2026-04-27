@@ -27,8 +27,8 @@ import {
     writeGameSfxBindings,
     writeSfxLabState,
     writeSkinSfxBindings
-} from './sfx-storage.js?v=11';
-import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=3';
+} from './sfx-storage.js?v=12';
+import { estimateRecipeDuration, synthRecipe } from './sfx-synth.js?v=4';
 import { BGM_SCENE_KEYS, initBgmStorage, readBgmConfig, writeBgmConfig, writeBgmConfigAndSync } from './bgm-storage.js?v=9';
 
 const EXPORT_SAMPLE_RATE = 48_000;
@@ -36,6 +36,8 @@ const PACK_VARIANT_COUNT = 5;
 const DEFAULT_SKIN_ID = 'classic-burrow';
 const GAME_MUSIC_AUTO_SAVE_DELAY_MS = 260;
 const AUDIO_LIBRARY_ASSET_API_BASE = '/api/audio-library/assets';
+const AUDIO_LIBRARY_ASSET_INFO_API = '/api/audio-library/asset-info';
+const AUDIO_LIBRARY_COMPRESS_API = '/api/audio-library/compress';
 
 const paramFieldConfig = [
     { key: 'impact', rangeId: 'sfxImpactRange', numberId: 'sfxImpactNumber' },
@@ -113,20 +115,24 @@ const el = {
     fsPreviewError: document.getElementById('sfxFsPreviewError'),
     fsResults: document.getElementById('sfxFsResults'),
     audioLibrarySearch: document.getElementById('audioLibrarySearch'),
+    audioLibraryTypeFilter: document.getElementById('audioLibraryTypeFilter'),
     btnAudioLibraryRefresh: document.getElementById('btnAudioLibraryRefresh'),
     audioLibraryName: document.getElementById('audioLibraryName'),
     audioLibraryKeywords: document.getElementById('audioLibraryKeywords'),
     audioLibraryVolume: document.getElementById('audioLibraryVolume'),
     audioLibraryTrimStart: document.getElementById('audioLibraryTrimStart'),
     audioLibraryTrimEnd: document.getElementById('audioLibraryTrimEnd'),
+    audioLibraryCompressRatio: document.getElementById('audioLibraryCompressRatio'),
     audioLibraryMeta: document.getElementById('audioLibraryMeta'),
     audioLibraryPreviewAudio: document.getElementById('audioLibraryPreviewAudio'),
     btnAudioLibraryPreview: document.getElementById('btnAudioLibraryPreview'),
     btnAudioLibraryImport: document.getElementById('btnAudioLibraryImport'),
+    btnAudioLibraryCompress: document.getElementById('btnAudioLibraryCompress'),
     btnAudioLibrarySave: document.getElementById('btnAudioLibrarySave'),
     btnAudioLibraryDelete: document.getElementById('btnAudioLibraryDelete'),
     audioLibraryStatus: document.getElementById('audioLibraryStatus'),
     audioLibraryList: document.getElementById('audioLibraryList'),
+    audioLibraryListSummary: document.getElementById('audioLibraryListSummary'),
     aiPrompt: document.getElementById('sfxAiPrompt'),
     aiDuration: document.getElementById('sfxAiDuration'),
     btnAiGenerate: document.getElementById('btnSfxAiGenerate'),
@@ -183,6 +189,9 @@ const state = {
     },
     audioLibrary: [],
     selectedAudioLibraryId: '',
+    audioLibraryTypeFilter: 'all',
+    audioLibrarySortKey: 'name',
+    audioLibrarySortDir: 'asc',
     audioLibraryPreview: {
         itemId: '',
         trimStart: 0,
@@ -367,6 +376,27 @@ function formatAudioClock(seconds) {
     const mins = Math.floor(safe / 60);
     const secs = Math.floor(safe % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+function formatFileSize(bytes) {
+    const safe = Math.max(0, Number(bytes) || 0);
+    if (safe <= 0) {
+        return '未知';
+    }
+    if (safe >= 1024 * 1024) {
+        return `${(safe / 1024 / 1024).toFixed(2)} MB`;
+    }
+    if (safe >= 1024) {
+        return `${(safe / 1024).toFixed(1)} KB`;
+    }
+    return `${Math.round(safe)} B`;
+}
+
+function compareText(left, right) {
+    return `${left || ''}`.localeCompare(`${right || ''}`, 'zh-CN', {
+        numeric: true,
+        sensitivity: 'base'
+    });
 }
 
 function describeAudioElementError(audio) {
@@ -776,6 +806,59 @@ function buildAudioSampleSignature(sample, fallback = '') {
     return `missing:${fallback}`;
 }
 
+function estimateDataUrlSizeBytes(dataUrl = '') {
+    const text = `${dataUrl || ''}`.trim();
+    const commaIndex = text.indexOf(',');
+    if (!text.startsWith('data:audio/') || commaIndex < 0) {
+        return 0;
+    }
+    const payload = text.slice(commaIndex + 1).replace(/\s/g, '');
+    if (!payload) {
+        return 0;
+    }
+    const padding = payload.endsWith('==') ? 2 : (payload.endsWith('=') ? 1 : 0);
+    return Math.max(0, Math.floor(payload.length * 3 / 4) - padding);
+}
+
+function getAudioLibrarySampleSizeBytes(item) {
+    const sample = item?.sample || {};
+    const stored = Number(sample.sizeBytes || sample.fileSizeBytes || 0);
+    if (Number.isFinite(stored) && stored > 0) {
+        return Math.round(stored);
+    }
+    return estimateDataUrlSizeBytes(sample.dataUrl);
+}
+
+function getAudioUrlExtension(sampleUrl = '') {
+    const pathname = `${sampleUrl || ''}`.split('?')[0].trim().toLowerCase();
+    const dotIndex = pathname.lastIndexOf('.');
+    return dotIndex >= 0 ? pathname.slice(dotIndex) : '';
+}
+
+function canCompressAudioLibraryItem(item) {
+    const sampleUrl = normalizeResourceUrl(item?.sample?.url);
+    const ext = getAudioUrlExtension(sampleUrl);
+    return !!sampleUrl
+        && sampleUrl.startsWith('/assets/audio/')
+        && ['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'].includes(ext);
+}
+
+async function fetchAudioAssetInfo(sampleUrl) {
+    const normalizedUrl = normalizeResourceUrl(sampleUrl);
+    if (!normalizedUrl) {
+        return null;
+    }
+    const response = await fetch(`${AUDIO_LIBRARY_ASSET_INFO_API}?url=${encodeURIComponent(normalizedUrl)}`, {
+        method: 'GET',
+        cache: 'no-store'
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.ok) {
+        return null;
+    }
+    return payload;
+}
+
 function getAudioSamplePlayableUrl(sample) {
     if (sample?.dataUrl) {
         return sample.dataUrl;
@@ -860,9 +943,10 @@ async function buildStoredAudioLibrarySample(blob, sampleInfo = {}, itemId = '')
         url: `${uploaded?.url || ''}`.trim(),
         refKind: '',
         refId: '',
-        mimeType,
-        fileName,
-        sourceLabel
+        mimeType: `${uploaded?.mimeType || mimeType}`.trim() || mimeType,
+        fileName: `${uploaded?.fileName || fileName}`.trim() || fileName,
+        sourceLabel,
+        sizeBytes: Math.max(0, Math.round(Number(uploaded?.sizeBytes || blob?.size || 0)))
     };
 }
 
@@ -1203,21 +1287,76 @@ async function syncBgmTracksToAudioLibrary(expectedOriginKeys) {
                 url: track.url,
                 refKind: '',
                 refId: '',
-                mimeType: 'audio/mpeg',
+                mimeType: track.mimeType || 'audio/mpeg',
                 fileName: track.fileName || track.name || formatTrackLabel(track.url),
-                sourceLabel: `游戏音乐：${track.name}`
+                sourceLabel: `游戏音乐：${track.name}`,
+                sizeBytes: Math.max(0, Math.round(Number(track.sizeBytes || 0)))
             },
-            mimeType: 'audio/mpeg'
+            mimeType: track.mimeType || 'audio/mpeg'
         });
     }
+}
+
+async function refreshAudioLibraryFileSizeMetadata(options = {}) {
+    const force = options?.force === true;
+    let changedCount = 0;
+    const rows = readAudioLibrary();
+    for (const item of rows) {
+        if (!item?.sample) {
+            continue;
+        }
+        const sample = item.sample;
+        let nextSample = null;
+        if (sample.dataUrl) {
+            const sizeBytes = estimateDataUrlSizeBytes(sample.dataUrl);
+            if (sizeBytes > 0 && (force || Number(sample.sizeBytes || 0) !== sizeBytes)) {
+                nextSample = { ...sample, sizeBytes };
+            }
+        } else if (normalizeResourceUrl(sample.url)) {
+            const info = await fetchAudioAssetInfo(sample.url).catch(() => null);
+            const sizeBytes = Math.max(0, Math.round(Number(info?.sizeBytes || 0)));
+            if (sizeBytes > 0) {
+                const nextFileName = `${info?.fileName || sample.fileName || ''}`.trim() || sample.fileName;
+                const nextMimeType = `${info?.mimeType || sample.mimeType || ''}`.trim() || sample.mimeType;
+                const nextUrl = `${info?.url || sample.url || ''}`.trim() || sample.url;
+                if (force
+                    || Number(sample.sizeBytes || 0) !== sizeBytes
+                    || nextFileName !== sample.fileName
+                    || nextMimeType !== sample.mimeType
+                    || nextUrl !== sample.url) {
+                    nextSample = {
+                        ...sample,
+                        url: nextUrl,
+                        fileName: nextFileName,
+                        mimeType: nextMimeType,
+                        sizeBytes
+                    };
+                }
+            }
+        }
+        if (nextSample) {
+            upsertAudioLibraryItem({
+                ...item,
+                sample: nextSample
+            }, { enforceUpdateId: item.id });
+            changedCount += 1;
+        }
+    }
+    if (changedCount > 0) {
+        refreshAudioLibraryState(state.selectedAudioLibraryId);
+    }
+    return changedCount;
 }
 
 async function syncProjectAudioLibrary(options = {}) {
     const refreshBgm = options.refreshBgm !== false;
     const expectedOriginKeys = new Set();
     const errors = [];
+    let presetSyncSucceeded = false;
+    let bgmSyncSucceeded = false;
     try {
         await syncPresetSamplesToAudioLibrary(expectedOriginKeys);
+        presetSyncSucceeded = true;
     } catch (error) {
         errors.push(`模板采样同步失败：${error?.message || 'Unknown error'}`);
     }
@@ -1226,19 +1365,25 @@ async function syncProjectAudioLibrary(options = {}) {
             state.bgmTrackLibrary = await fetchBgmTrackLibrary();
         }
         await syncBgmTracksToAudioLibrary(expectedOriginKeys);
+        bgmSyncSucceeded = true;
     } catch (error) {
         errors.push(`项目音乐同步失败：${error?.message || 'Unknown error'}`);
     }
     const current = readAudioLibrary();
     for (const item of current) {
-        if (isProjectManagedAudioItem(item) && !expectedOriginKeys.has(item.originKey)) {
+        const kind = `${item?.sourceKind || ''}`.trim().toLowerCase();
+        const canPruneKind = (kind === 'bgm' && bgmSyncSucceeded)
+            || ((kind === 'preset-sample' || kind === 'preset-render') && presetSyncSucceeded);
+        if (canPruneKind && !expectedOriginKeys.has(item.originKey)) {
             deleteAudioLibraryItem(item.id);
             audioLibraryBufferCache.delete(item.id);
         }
     }
     refreshAudioLibraryState(state.selectedAudioLibraryId);
+    const fileSizeUpdates = await refreshAudioLibraryFileSizeMetadata();
     return {
         total: state.audioLibrary.length,
+        fileSizeUpdates,
         errors
     };
 }
@@ -1275,11 +1420,15 @@ function syncAudioLibraryEditorFromSelection() {
             const keywords = Array.isArray(item.keywords) && item.keywords.length > 0
                 ? item.keywords.join(', ')
                 : '无';
+            const sizeText = formatFileSize(getAudioLibrarySampleSizeBytes(item));
             const projectHint = isProjectManagedAudioItem(item)
                 ? ' | 项目自动汇总资源'
                 : '';
-            el.audioLibraryMeta.textContent = `类型：${getAudioTypeLabel(item.audioType)} | 来源：${item.sourceLabel || '-'} | 时长：${Number(item.durationSeconds || 0).toFixed(2)}s | 关键词：${keywords}${projectHint}`;
+            el.audioLibraryMeta.textContent = `类型：${getAudioTypeLabel(item.audioType)} | 来源：${item.sourceLabel || '-'} | 大小：${sizeText} | 时长：${Number(item.durationSeconds || 0).toFixed(2)}s | 关键词：${keywords}${projectHint}`;
         }
+    }
+    if (el.audioLibraryCompressRatio) {
+        el.audioLibraryCompressRatio.disabled = !hasItem || !canCompressAudioLibraryItem(item);
     }
     if (el.btnAudioLibraryPreview) {
         el.btnAudioLibraryPreview.disabled = !hasItem;
@@ -1293,16 +1442,30 @@ function syncAudioLibraryEditorFromSelection() {
     if (el.btnAudioLibrarySave) {
         el.btnAudioLibrarySave.disabled = !hasItem;
     }
+    if (el.btnAudioLibraryCompress) {
+        el.btnAudioLibraryCompress.disabled = !hasItem || !canCompressAudioLibraryItem(item);
+        el.btnAudioLibraryCompress.title = !hasItem
+            ? ''
+            : (canCompressAudioLibraryItem(item) ? '压缩并替换当前音频文件' : '该素材不是本地音频文件，不能压缩');
+    }
     if (el.btnAudioLibraryDelete) {
-        el.btnAudioLibraryDelete.disabled = !hasItem || isProjectManagedAudioItem(item);
+        el.btnAudioLibraryDelete.disabled = !hasItem;
+        el.btnAudioLibraryDelete.title = !hasItem
+            ? ''
+            : (isProjectManagedAudioItem(item)
+                ? '这是项目自动汇总资源，点击可查看不能直接删除的原因'
+                : '从音频库中删除当前素材');
     }
 }
 
-function renderAudioLibraryList() {
-    if (!el.audioLibraryList) return;
+function getFilteredAudioLibraryRows() {
     const query = `${el.audioLibrarySearch?.value || ''}`.trim().toLowerCase();
-    el.audioLibraryList.innerHTML = '';
-    const rows = state.audioLibrary.filter((item) => {
+    const typeFilter = `${state.audioLibraryTypeFilter || el.audioLibraryTypeFilter?.value || 'all'}`.trim().toLowerCase();
+    return state.audioLibrary.filter((item) => {
+        const audioType = `${item.audioType || 'sfx'}`.trim().toLowerCase() === 'music' ? 'music' : 'sfx';
+        if (typeFilter !== 'all' && audioType !== typeFilter) {
+            return false;
+        }
         if (!query) {
             return true;
         }
@@ -1310,48 +1473,138 @@ function renderAudioLibraryList() {
             item.name,
             getAudioTypeLabel(item.audioType),
             item.audioType,
+            item.sourceKind,
             item.sourceLabel,
             item.description,
+            item.sample?.fileName,
+            item.sample?.url,
             ...(Array.isArray(item.keywords) ? item.keywords : [])
         ].join(' ').toLowerCase();
         return haystack.includes(query);
     });
+}
+
+function getAudioLibrarySortValue(item, key) {
+    if (key === 'type') return getAudioTypeLabel(item.audioType);
+    if (key === 'size') return getAudioLibrarySampleSizeBytes(item);
+    if (key === 'duration') return Number(item.durationSeconds || 0);
+    if (key === 'volume') return Number(item.volume || 0);
+    if (key === 'source') return item.sourceLabel || item.sourceKind || '';
+    if (key === 'updatedAt') return item.updatedAt || item.createdAt || '';
+    return item.name || item.id || '';
+}
+
+function sortAudioLibraryRows(rows) {
+    const key = `${state.audioLibrarySortKey || 'name'}`.trim();
+    const dir = state.audioLibrarySortDir === 'desc' ? -1 : 1;
+    return [...rows].sort((a, b) => {
+        const left = getAudioLibrarySortValue(a, key);
+        const right = getAudioLibrarySortValue(b, key);
+        if (typeof left === 'number' || typeof right === 'number') {
+            const diff = (Number(left) || 0) - (Number(right) || 0);
+            if (diff !== 0) return diff * dir;
+        } else {
+            const diff = compareText(left, right);
+            if (diff !== 0) return diff * dir;
+        }
+        return compareText(a.name || a.id, b.name || b.id);
+    });
+}
+
+function createAudioLibrarySortButton(key, label) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'asset-sort-btn audio-library-sort-btn';
+    const isActive = state.audioLibrarySortKey === key;
+    const arrow = isActive ? (state.audioLibrarySortDir === 'asc' ? ' ↑' : ' ↓') : '';
+    button.textContent = `${label}${arrow}`;
+    button.classList.toggle('is-active', isActive);
+    button.addEventListener('click', () => {
+        if (state.audioLibrarySortKey === key) {
+            state.audioLibrarySortDir = state.audioLibrarySortDir === 'asc' ? 'desc' : 'asc';
+        } else {
+            state.audioLibrarySortKey = key;
+            state.audioLibrarySortDir = ['size', 'duration', 'updatedAt'].includes(key) ? 'desc' : 'asc';
+        }
+        renderAudioLibraryList();
+    });
+    return button;
+}
+
+function appendAudioLibraryCell(row, text, className = '') {
+    const td = document.createElement('td');
+    if (className) td.className = className;
+    td.textContent = text;
+    row.appendChild(td);
+    return td;
+}
+
+function renderAudioLibraryList() {
+    if (!el.audioLibraryList) return;
+    el.audioLibraryList.innerHTML = '';
+    const rows = sortAudioLibraryRows(getFilteredAudioLibraryRows());
+    const total = state.audioLibrary.length;
+    const musicCount = state.audioLibrary.filter((item) => item.audioType === 'music').length;
+    const sfxCount = state.audioLibrary.filter((item) => item.audioType !== 'music').length;
+    if (el.audioLibraryListSummary) {
+        el.audioLibraryListSummary.textContent = `当前显示 ${rows.length}/${total} 条；音乐 ${musicCount} 条，音效 ${sfxCount} 条。`;
+    }
     if (rows.length <= 0) {
         const empty = document.createElement('div');
         empty.className = 'sfx-source-result-item';
-        empty.textContent = query ? '没有匹配的素材。' : '素材库为空。先从音效工坊导入一些音频。';
+        empty.textContent = total > 0 ? '没有匹配当前筛选条件的素材。' : '素材库为空。点击“同步总库”后会汇总项目音乐和音效。';
         el.audioLibraryList.appendChild(empty);
         return;
     }
+
+    const tableWrap = document.createElement('div');
+    tableWrap.className = 'audio-library-table-wrap';
+    const table = document.createElement('table');
+    table.className = 'asset-table audio-library-table';
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    [
+        ['name', '名称'],
+        ['type', '类型'],
+        ['size', '大小'],
+        ['duration', '时长'],
+        ['volume', '音量'],
+        ['source', '来源'],
+        ['updatedAt', '更新时间']
+    ].forEach(([key, label]) => {
+        const th = document.createElement('th');
+        th.appendChild(createAudioLibrarySortButton(key, label));
+        headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
     for (const item of rows) {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'audio-library-card';
-        card.classList.toggle('is-active', item.id === state.selectedAudioLibraryId);
-
-        const title = document.createElement('strong');
-        title.textContent = item.name || item.id;
-        card.appendChild(title);
-
-        const meta = document.createElement('div');
-        meta.className = 'audio-library-card-meta';
-        meta.textContent = `${getAudioTypeLabel(item.audioType)} | ${item.sourceLabel || item.sourceKind || '-'} | ${Number(item.durationSeconds || 0).toFixed(2)}s | 音量 ${Number(item.volume || 1).toFixed(2)}`;
-        card.appendChild(meta);
-
-        const keywordLine = document.createElement('div');
-        keywordLine.className = 'audio-library-card-keywords';
-        keywordLine.textContent = Array.isArray(item.keywords) && item.keywords.length > 0
-            ? item.keywords.map((keyword) => `#${keyword}`).join(' ')
-            : '#无关键词';
-        card.appendChild(keywordLine);
-
-        card.addEventListener('click', () => {
+        const tr = document.createElement('tr');
+        tr.className = 'audio-library-row';
+        tr.classList.toggle('is-active', item.id === state.selectedAudioLibraryId);
+        tr.addEventListener('click', () => {
             state.selectedAudioLibraryId = item.id;
             syncAudioLibraryEditorFromSelection();
             renderAudioLibraryList();
         });
-        el.audioLibraryList.appendChild(card);
+        const nameCell = appendAudioLibraryCell(tr, item.name || item.id, 'audio-library-name-cell');
+        const keywords = Array.isArray(item.keywords) && item.keywords.length > 0
+            ? item.keywords.map((keyword) => `#${keyword}`).join(' ')
+            : '#无关键词';
+        nameCell.title = [item.sample?.fileName || '', item.sample?.url || '', keywords].filter(Boolean).join('\n');
+        appendAudioLibraryCell(tr, getAudioTypeLabel(item.audioType));
+        appendAudioLibraryCell(tr, formatFileSize(getAudioLibrarySampleSizeBytes(item)));
+        appendAudioLibraryCell(tr, `${Number(item.durationSeconds || 0).toFixed(2)}s`);
+        appendAudioLibraryCell(tr, Number(item.volume || 1).toFixed(2));
+        appendAudioLibraryCell(tr, item.sourceLabel || item.sourceKind || '-', 'audio-library-source-cell');
+        appendAudioLibraryCell(tr, item.updatedAt ? new Date(item.updatedAt).toLocaleString('zh-CN') : '-');
+        tbody.appendChild(tr);
     }
+    table.appendChild(tbody);
+    tableWrap.appendChild(table);
+    el.audioLibraryList.appendChild(tableWrap);
 }
 
 function refreshAudioLibraryUi(preferredId = '') {
@@ -1629,6 +1882,69 @@ function saveSelectedAudioLibraryEdits() {
     }
     refreshAudioLibraryUi(saved.id);
     setAudioLibraryStatus(`已保存素材：${saved.name}`);
+}
+
+async function compressSelectedAudioLibraryAsset() {
+    const item = getSelectedAudioLibraryItem();
+    if (!item) {
+        setAudioLibraryStatus('请先选择素材。', true);
+        return;
+    }
+    const draft = buildAudioLibraryDraft(item);
+    const sampleUrl = normalizeResourceUrl(draft?.sample?.url);
+    if (!sampleUrl || !sampleUrl.startsWith('/assets/audio/')) {
+        setAudioLibraryStatus('该素材不是本地音频文件，不能压缩。', true);
+        return;
+    }
+    const qualityPercent = clamp(Math.round(Number(el.audioLibraryCompressRatio?.value || 80)), 30, 100);
+    if (el.audioLibraryCompressRatio) {
+        el.audioLibraryCompressRatio.value = `${qualityPercent}`;
+    }
+    const beforeSize = getAudioLibrarySampleSizeBytes(draft);
+    const confirmed = window.confirm(`将以 ${qualityPercent}% 压缩并替换当前音频文件。\n当前大小：${formatFileSize(beforeSize)}\n建议先确认该素材可重新生成或已纳入 git。是否继续？`);
+    if (!confirmed) {
+        return;
+    }
+    if (el.btnAudioLibraryCompress) {
+        el.btnAudioLibraryCompress.disabled = true;
+    }
+    stopAudioLibraryPreview(true);
+    stopBgmTrackPreview();
+    setAudioLibraryStatus(`正在压缩：${draft.name}...`);
+    const response = await fetch(AUDIO_LIBRARY_COMPRESS_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            url: sampleUrl,
+            qualityPercent
+        })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload?.ok) {
+        throw new Error(payload?.error || `压缩失败 (${response.status})`);
+    }
+    const saved = upsertAudioLibraryItem({
+        ...draft,
+        sample: {
+            ...draft.sample,
+            url: `${payload.url || draft.sample.url}`.trim() || draft.sample.url,
+            fileName: `${payload.fileName || draft.sample.fileName}`.trim() || draft.sample.fileName,
+            mimeType: `${payload.mimeType || draft.sample.mimeType}`.trim() || draft.sample.mimeType,
+            sizeBytes: Math.max(0, Math.round(Number(payload.sizeBytes || 0)))
+        }
+    }, { enforceUpdateId: draft.id });
+    audioLibraryBufferCache.delete(draft.id);
+    stopAudioLibraryPreview(true);
+    refreshAudioLibraryUi(saved?.id || draft.id);
+    const original = Math.max(0, Math.round(Number(payload.originalSizeBytes || beforeSize || 0)));
+    const next = Math.max(0, Math.round(Number(payload.sizeBytes || 0)));
+    const savedBytes = Math.max(0, original - next);
+    const ratioText = original > 0 ? `${Math.round(next * 100 / original)}%` : '-';
+    if (payload.notReplaced) {
+        setAudioLibraryStatus(`压缩后文件没有变小，已保留原文件：${formatFileSize(original)}。`);
+    } else {
+        setAudioLibraryStatus(`压缩完成：${formatFileSize(original)} -> ${formatFileSize(next)}，节省 ${formatFileSize(savedBytes)}，现为原文件 ${ratioText}。`);
+    }
 }
 
 async function deleteSelectedAudioLibraryRecord() {
@@ -3109,7 +3425,9 @@ async function fetchBgmTrackLibrary() {
                 return {
                     url,
                     name: name || fileName || url,
-                    fileName: fileName || name || url
+                    fileName: fileName || name || url,
+                    sizeBytes: Math.max(0, Math.round(Number(track?.sizeBytes || 0))),
+                    mimeType: `${track?.mimeType || ''}`.trim()
                 };
             })
             .filter(Boolean);
@@ -3721,6 +4039,10 @@ function bindEvents() {
     el.audioLibrarySearch?.addEventListener('input', () => {
         renderAudioLibraryList();
     });
+    el.audioLibraryTypeFilter?.addEventListener('change', () => {
+        state.audioLibraryTypeFilter = `${el.audioLibraryTypeFilter?.value || 'all'}`.trim() || 'all';
+        renderAudioLibraryList();
+    });
     el.btnAudioLibraryRefresh?.addEventListener('click', () => {
         void syncProjectAudioLibrary({ refreshBgm: true }).then((result) => {
             refreshAudioLibraryUi(state.selectedAudioLibraryId);
@@ -3749,6 +4071,13 @@ function bindEvents() {
         });
     });
     el.btnAudioLibrarySave?.addEventListener('click', saveSelectedAudioLibraryEdits);
+    el.btnAudioLibraryCompress?.addEventListener('click', () => {
+        void compressSelectedAudioLibraryAsset().catch((error) => {
+            setAudioLibraryStatus(`压缩失败：${error?.message || 'Unknown error'}`, true);
+        }).finally(() => {
+            syncAudioLibraryEditorFromSelection();
+        });
+    });
     el.btnAudioLibraryDelete?.addEventListener('click', deleteSelectedAudioLibraryRecord);
     el.audioLibraryPreviewAudio?.addEventListener('loadedmetadata', () => {
         const audio = el.audioLibraryPreviewAudio;

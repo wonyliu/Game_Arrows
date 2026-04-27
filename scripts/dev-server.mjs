@@ -111,6 +111,42 @@ const ASSET_SCAN_SKIP_DIR_NAMES = new Set([
     '.local-data',
     'node_modules'
 ]);
+const FONT_SCAN_CSS_FILES = Object.freeze([
+    Object.freeze({ relativePath: 'css/style.css', scope: '游戏前台' }),
+    Object.freeze({ relativePath: 'css/admin.css', scope: '管理后台' })
+]);
+const FONT_FILE_EXTENSIONS = new Set(['.ttf', '.otf', '.woff', '.woff2']);
+const FONT_GENERIC_FAMILIES = new Set(['sans-serif', 'serif', 'monospace', 'ui-monospace', 'cursive', 'fantasy', 'system-ui']);
+const FONT_SYSTEM_FAMILIES = new Set([
+    'Microsoft YaHei',
+    'PingFang SC',
+    'Segoe UI',
+    'SFMono-Regular',
+    'Menlo',
+    'Monaco',
+    'Consolas',
+    'Courier New'
+]);
+const FONT_LICENSE_METADATA = Object.freeze({
+    'ZCOOL KuaiLe': Object.freeze({
+        copyright: '免费商用',
+        tagClass: '',
+        source: 'Google Fonts / OFL-1.1',
+        sourceUrl: 'https://github.com/googlefonts/zcool-kuaile'
+    }),
+    Nunito: Object.freeze({
+        copyright: '免费商用',
+        tagClass: '',
+        source: 'Google Fonts / OFL-1.1',
+        sourceUrl: 'https://github.com/googlefonts/nunito'
+    }),
+    'Liberation Mono': Object.freeze({
+        copyright: '免费商用',
+        tagClass: '',
+        source: 'Liberation Fonts open-source font family',
+        sourceUrl: 'https://github.com/liberationfonts/liberation-fonts'
+    })
+});
 const ASSET_IMAGE_REF_PATTERN = /\/?assets\/[^"'`\s)>\]]+?\.(?:png|jpg|jpeg|webp|svg|gif)(?:\?[^"'`\s)>\]]+)?/gi;
 const ASSET_AUDIT_POLICY_VERSION = 'player-visible-runtime-v2';
 const PLAYER_VISIBLE_UI_ASSET_OWNERS = Object.freeze({
@@ -340,6 +376,11 @@ const server = http.createServer(async (req, res) => {
             await handleAdminUpdateImageAssetRequest(req, res);
             return;
         }
+        if (requestUrl.pathname === '/api/admin/fonts/scan') {
+            if (!requireAdminAuth(req, res, requestUrl)) return;
+            await handleAdminFontScanRequest(req, res);
+            return;
+        }
         if (requestUrl.pathname === '/api/admin/db/overview') {
             if (!requireAdminAuth(req, res, requestUrl)) return;
             await handleAdminDbOverviewRequest(req, res);
@@ -393,6 +434,14 @@ const server = http.createServer(async (req, res) => {
         }
         if (requestUrl.pathname.startsWith('/api/audio-library/assets/')) {
             await handleAudioLibraryAssetRequest(req, res, requestUrl);
+            return;
+        }
+        if (requestUrl.pathname === '/api/audio-library/asset-info') {
+            await handleAudioLibraryAssetInfoRequest(req, res, requestUrl);
+            return;
+        }
+        if (requestUrl.pathname === '/api/audio-library/compress') {
+            await handleAudioLibraryCompressRequest(req, res);
             return;
         }
         if (requestUrl.pathname === '/api/sfx/providers') {
@@ -1506,6 +1555,74 @@ function detectAudioAssetExtension(fileName = '', contentType = '') {
     return '.wav';
 }
 
+function detectAudioMimeTypeByExtension(ext = '') {
+    const normalized = `${ext || ''}`.trim().toLowerCase();
+    if (normalized === '.mp3') return 'audio/mpeg';
+    if (normalized === '.wav') return 'audio/wav';
+    if (normalized === '.ogg') return 'audio/ogg';
+    if (normalized === '.m4a') return 'audio/mp4';
+    if (normalized === '.aac') return 'audio/aac';
+    if (normalized === '.flac') return 'audio/flac';
+    return 'application/octet-stream';
+}
+
+function resolveLocalAudioAssetFromUrl(rawUrl = '') {
+    const cleanUrl = `${rawUrl || ''}`.trim().split('?')[0].replace(/\\/g, '/');
+    if (!cleanUrl) {
+        return null;
+    }
+    let pathname = cleanUrl;
+    try {
+        pathname = new URL(cleanUrl, `http://${HOST}:${PORT}`).pathname;
+    } catch {
+        pathname = cleanUrl;
+    }
+    pathname = decodeURIComponent(pathname).replace(/\\/g, '/');
+    if (!pathname.startsWith('/')) {
+        pathname = `/${pathname}`;
+    }
+    if (!pathname.startsWith('/assets/audio/')) {
+        return null;
+    }
+    const relativePath = pathname.slice('/assets/audio/'.length);
+    const resolvedPath = path.resolve(AUDIO_DIR, relativePath);
+    const audioRoot = path.resolve(AUDIO_DIR);
+    if (resolvedPath !== audioRoot && !resolvedPath.startsWith(`${audioRoot}${path.sep}`)) {
+        return null;
+    }
+    const fileName = path.basename(resolvedPath);
+    return {
+        filePath: resolvedPath,
+        url: `/assets/audio/${relativePath.replace(/\\/g, '/')}`,
+        fileName,
+        ext: path.extname(fileName).toLowerCase()
+    };
+}
+
+function buildAudioCompressionArgs(inputPath, outputPath, ext, qualityPercent) {
+    const q = Math.max(30, Math.min(100, Math.round(Number(qualityPercent) || 80)));
+    const bitrateKbps = q >= 95 ? 192 : (q >= 80 ? 128 : (q >= 65 ? 112 : (q >= 50 ? 96 : (q >= 40 ? 80 : 64))));
+    const sampleRate = q >= 90 ? 48000 : (q >= 75 ? 44100 : (q >= 60 ? 32000 : (q >= 45 ? 24000 : 22050)));
+    const base = ['-y', '-hide_banner', '-loglevel', 'error', '-i', inputPath, '-vn'];
+    if (ext === '.mp3') {
+        return [...base, '-codec:a', 'libmp3lame', '-b:a', `${bitrateKbps}k`, outputPath];
+    }
+    if (ext === '.ogg') {
+        const vorbisQuality = Math.max(2, Math.min(8, Math.round(q / 14)));
+        return [...base, '-codec:a', 'libvorbis', '-q:a', `${vorbisQuality}`, outputPath];
+    }
+    if (ext === '.m4a' || ext === '.aac') {
+        return [...base, '-codec:a', 'aac', '-b:a', `${bitrateKbps}k`, outputPath];
+    }
+    if (ext === '.flac') {
+        return [...base, '-codec:a', 'flac', '-compression_level', '8', outputPath];
+    }
+    if (ext === '.wav') {
+        return [...base, '-ar', `${sampleRate}`, '-acodec', 'pcm_s16le', outputPath];
+    }
+    return null;
+}
+
 async function removeAudioLibraryAssetFiles(itemId) {
     const safeId = sanitizeSlug(itemId, '');
     if (!safeId) {
@@ -1561,8 +1678,163 @@ async function handleAudioLibraryAssetRequest(req, res, requestUrl) {
         ok: true,
         itemId,
         fileName: path.basename(filePath),
-        url
+        url,
+        sizeBytes: buffer.length,
+        mimeType: detectAudioMimeTypeByExtension(ext)
     });
+}
+
+async function handleAudioLibraryAssetInfoRequest(req, res, requestUrl) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    const resolved = resolveLocalAudioAssetFromUrl(requestUrl.searchParams.get('url') || '');
+    if (!resolved) {
+        sendJson(res, 400, { ok: false, error: 'invalid local audio asset url' });
+        return;
+    }
+    const stat = await fs.stat(resolved.filePath).catch(() => null);
+    if (!stat?.isFile?.()) {
+        sendJson(res, 404, { ok: false, error: 'audio asset not found' });
+        return;
+    }
+    sendJson(res, 200, {
+        ok: true,
+        url: resolved.url,
+        fileName: resolved.fileName,
+        sizeBytes: stat.size,
+        mimeType: detectAudioMimeTypeByExtension(resolved.ext)
+    });
+}
+
+async function handleAudioLibraryCompressRequest(req, res) {
+    if (req.method !== 'POST') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    let body;
+    try {
+        body = await readRequestJson(req, MAX_SFX_BODY_BYTES);
+    } catch (error) {
+        sendJson(res, 400, { ok: false, error: error?.message || 'invalid json body' });
+        return;
+    }
+    const resolved = resolveLocalAudioAssetFromUrl(body?.url || '');
+    if (!resolved) {
+        sendJson(res, 400, { ok: false, error: 'invalid local audio asset url' });
+        return;
+    }
+    if (!['.mp3', '.wav', '.ogg', '.m4a', '.aac', '.flac'].includes(resolved.ext)) {
+        sendJson(res, 400, { ok: false, error: `unsupported audio extension: ${resolved.ext || '(none)'}` });
+        return;
+    }
+    const originalStat = await fs.stat(resolved.filePath).catch(() => null);
+    if (!originalStat?.isFile?.()) {
+        sendJson(res, 404, { ok: false, error: 'audio asset not found' });
+        return;
+    }
+    const qualityPercent = Math.max(30, Math.min(100, Math.round(Number(body?.qualityPercent || body?.ratio || 80))));
+    const tempPath = path.join(path.dirname(resolved.filePath), `.${path.basename(resolved.filePath)}.compress-${Date.now()}${resolved.ext}`);
+    const args = buildAudioCompressionArgs(resolved.filePath, tempPath, resolved.ext, qualityPercent);
+    if (!args) {
+        sendJson(res, 400, { ok: false, error: 'unsupported audio format' });
+        return;
+    }
+    const result = await runProcess(process.env.FFMPEG_BIN || 'ffmpeg', args, ROOT_DIR);
+    if (result.code !== 0) {
+        await fs.rm(tempPath, { force: true }).catch(() => {});
+        sendJson(res, 500, {
+            ok: false,
+            error: 'ffmpeg compression failed',
+            detail: `${result.logs || ''}`.slice(0, 1000)
+        });
+        return;
+    }
+    const compressedStat = await fs.stat(tempPath).catch(() => null);
+    if (!compressedStat?.isFile?.() || compressedStat.size <= 0) {
+        await fs.rm(tempPath, { force: true }).catch(() => {});
+        sendJson(res, 500, { ok: false, error: 'compressed audio output is empty' });
+        return;
+    }
+    if (compressedStat.size >= originalStat.size) {
+        await fs.rm(tempPath, { force: true }).catch(() => {});
+        sendJson(res, 200, {
+            ok: true,
+            url: resolved.url,
+            fileName: resolved.fileName,
+            mimeType: detectAudioMimeTypeByExtension(resolved.ext),
+            originalSizeBytes: originalStat.size,
+            sizeBytes: originalStat.size,
+            qualityPercent,
+            savedBytes: 0,
+            notReplaced: true
+        });
+        return;
+    }
+    try {
+        await replaceFileWithRetry(tempPath, resolved.filePath);
+    } catch (error) {
+        await fs.rm(tempPath, { force: true }).catch(() => {});
+        sendJson(res, 500, {
+            ok: false,
+            error: 'compressed audio replace failed',
+            detail: `${error?.message || error || ''}`.slice(0, 1000),
+            hint: '如果正在试听这首音频，请先暂停试听或刷新后台后重试。'
+        });
+        return;
+    }
+    sendJson(res, 200, {
+        ok: true,
+        url: resolved.url,
+        fileName: resolved.fileName,
+        mimeType: detectAudioMimeTypeByExtension(resolved.ext),
+        originalSizeBytes: originalStat.size,
+        sizeBytes: compressedStat.size,
+        qualityPercent,
+        savedBytes: Math.max(0, originalStat.size - compressedStat.size)
+    });
+}
+
+async function replaceFileWithRetry(tempPath, targetPath, retries = 5) {
+    let lastError = null;
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+        try {
+            await fs.rename(tempPath, targetPath);
+            return;
+        } catch (error) {
+            lastError = error;
+            if (!isRecoverableWindowsRenameError(error)) {
+                throw error;
+            }
+        }
+        try {
+            await fs.rm(targetPath, { force: true });
+            await fs.rename(tempPath, targetPath);
+            return;
+        } catch (error) {
+            lastError = error;
+            if (!isRecoverableWindowsRenameError(error)) {
+                throw error;
+            }
+        }
+        try {
+            await fs.copyFile(tempPath, targetPath);
+            await fs.rm(tempPath, { force: true });
+            return;
+        } catch (error) {
+            lastError = error;
+            if (!isRecoverableWindowsRenameError(error)) {
+                throw error;
+            }
+        }
+        await delay(120 + attempt * 160);
+    }
+    throw lastError || new Error('replace failed');
+}
+
+function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function sanitizeUserId(raw) {
@@ -2336,6 +2608,188 @@ async function handleAdminResetLeaderboardProgressRequest(req, res) {
     }
     const resetUsers = await userCenterStore.resetLeaderboardProgressForAllUsers();
     sendJson(res, 200, { ok: true, resetUsers });
+}
+
+async function analyzeFontUsage() {
+    const rowsByName = new Map();
+    const sourceFiles = [];
+    for (const entry of FONT_SCAN_CSS_FILES) {
+        const absolutePath = path.join(ROOT_DIR, entry.relativePath);
+        let content = '';
+        try {
+            content = await fs.readFile(absolutePath, 'utf8');
+        } catch {
+            continue;
+        }
+        sourceFiles.push(entry.relativePath);
+        collectFontUsageFromCss(content, entry, rowsByName);
+    }
+
+    const fontFiles = await collectFontFiles();
+    const packagedFontNames = new Set(fontFiles.map((file) => path.basename(file.path, path.extname(file.path))));
+    const rows = Array.from(rowsByName.values()).map((row) => {
+        const metadata = resolveFontMetadata(row.name);
+        const packaged = packagedFontNames.has(row.name)
+            ? '是'
+            : (FONT_GENERIC_FAMILIES.has(row.name) ? '不适用' : '否，当前未随包分发');
+        return {
+            name: row.name,
+            scope: Array.from(row.scopeSet).join(' / '),
+            copyright: metadata.copyright,
+            tagClass: metadata.tagClass,
+            source: metadata.source,
+            sourceUrl: metadata.sourceUrl,
+            packaged,
+            usages: Array.from(row.usageSet).sort(),
+            codeRefs: Array.from(row.codeRefSet).sort()
+        };
+    }).sort((left, right) => left.name.localeCompare(right.name, 'en'));
+
+    return { rows, sourceFiles, fontFiles };
+}
+
+function collectFontUsageFromCss(content, entry, rowsByName) {
+    const lines = `${content || ''}`.split(/\r?\n/);
+    const cssVars = new Map();
+    let selector = '';
+
+    for (let index = 0; index < lines.length; index += 1) {
+        const line = lines[index].trim();
+        if (!line || line.startsWith('/*')) {
+            continue;
+        }
+        const cssVarMatch = line.match(/^(--[\w-]+)\s*:\s*([^;]+);/);
+        if (cssVarMatch) {
+            cssVars.set(cssVarMatch[1], cssVarMatch[2].trim());
+        }
+        if (line.endsWith('{')) {
+            selector = line.slice(0, -1).trim();
+        }
+        if (!line.toLowerCase().includes('font-family')) {
+            continue;
+        }
+        const valueMatch = line.match(/font-family\s*:\s*([^;]+);?/i);
+        if (!valueMatch) {
+            continue;
+        }
+        const rawFontValue = valueMatch[1].trim();
+        const resolvedFontValue = rawFontValue.replace(/var\((--[\w-]+)\)/g, (match, varName) => cssVars.get(varName) || match);
+        const families = parseFontFamilyList(resolvedFontValue).filter((name) => name && name !== 'inherit');
+        for (const family of families) {
+            const row = ensureFontRow(rowsByName, family);
+            row.scopeSet.add(entry.scope);
+            row.usageSet.add(`${entry.scope}: ${selector || '(unknown selector)'}`);
+            row.codeRefSet.add(`${entry.relativePath}:${index + 1} ${selector || ''}`.trim());
+        }
+    }
+}
+
+function parseFontFamilyList(value) {
+    const result = [];
+    let token = '';
+    let quote = '';
+    for (const char of `${value || ''}`) {
+        if ((char === '"' || char === "'") && !quote) {
+            quote = char;
+            continue;
+        }
+        if (char === quote) {
+            quote = '';
+            continue;
+        }
+        if (char === ',' && !quote) {
+            result.push(normalizeFontFamilyName(token));
+            token = '';
+            continue;
+        }
+        token += char;
+    }
+    if (token.trim()) {
+        result.push(normalizeFontFamilyName(token));
+    }
+    return result.filter(Boolean);
+}
+
+function normalizeFontFamilyName(name) {
+    return `${name || ''}`.trim().replace(/^['"]|['"]$/g, '');
+}
+
+function ensureFontRow(rowsByName, fontName) {
+    if (!rowsByName.has(fontName)) {
+        rowsByName.set(fontName, {
+            name: fontName,
+            scopeSet: new Set(),
+            usageSet: new Set(),
+            codeRefSet: new Set()
+        });
+    }
+    return rowsByName.get(fontName);
+}
+
+function resolveFontMetadata(fontName) {
+    if (FONT_LICENSE_METADATA[fontName]) {
+        return FONT_LICENSE_METADATA[fontName];
+    }
+    if (FONT_GENERIC_FAMILIES.has(fontName)) {
+        return {
+            copyright: '通用字体族',
+            tagClass: 'is-system',
+            source: '浏览器通用 fallback，不是具体字体文件',
+            sourceUrl: ''
+        };
+    }
+    if (FONT_SYSTEM_FAMILIES.has(fontName)) {
+        return {
+            copyright: '系统授权',
+            tagClass: 'is-system',
+            source: '操作系统字体，随系统授权使用',
+            sourceUrl: ''
+        };
+    }
+    return {
+        copyright: '需确认',
+        tagClass: 'is-none',
+        source: '未登记授权来源',
+        sourceUrl: ''
+    };
+}
+
+async function collectFontFiles() {
+    const files = await walkDirectoryFiles(ROOT_DIR);
+    const rows = [];
+    for (const absolutePath of files) {
+        const extension = path.extname(absolutePath).toLowerCase();
+        if (!FONT_FILE_EXTENSIONS.has(extension)) {
+            continue;
+        }
+        const stat = await fs.stat(absolutePath);
+        rows.push({
+            path: normalizeProjectRelativePath(absolutePath),
+            sizeBytes: stat.size,
+            extension
+        });
+    }
+    return rows.sort((left, right) => left.path.localeCompare(right.path));
+}
+
+async function handleAdminFontScanRequest(req, res) {
+    if (req.method !== 'GET') {
+        sendJson(res, 405, { ok: false, error: 'method not allowed' });
+        return;
+    }
+    try {
+        const analysis = await analyzeFontUsage();
+        sendJson(res, 200, {
+            ok: true,
+            generatedAt: nowIso(),
+            ...analysis
+        });
+    } catch (error) {
+        sendJson(res, 500, {
+            ok: false,
+            error: error?.message || 'font scan failed'
+        });
+    }
 }
 
 async function handleAdminAssetScanRequest(req, res) {
@@ -3855,11 +4309,15 @@ async function handleBgmListRequest(req, res) {
         if (!['.mp3', '.wav', '.ogg', '.m4a', '.flac', '.aac'].includes(ext)) {
             continue;
         }
+        const filePath = path.join(bgmDir, entry.name);
+        const stat = await fs.stat(filePath).catch(() => null);
         const baseName = path.basename(entry.name, ext);
         tracks.push({
             fileName: entry.name,
             name: baseName,
-            url: `/assets/audio/bgm/${entry.name}`
+            url: `/assets/audio/bgm/${entry.name}`,
+            sizeBytes: stat?.isFile?.() ? stat.size : 0,
+            mimeType: MIME_TYPES[ext] || detectAudioMimeTypeByExtension(ext)
         });
     }
     tracks.sort((a, b) => a.fileName.localeCompare(b.fileName, 'zh-Hans-CN'));

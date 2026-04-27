@@ -492,14 +492,14 @@
     },
     "scoreValue": {
       "x": -29,
-      "y": -37,
+      "y": -47,
       "width": 188,
       "fontSize": 16,
       "visible": true
     },
     "scoreGain": {
-      "x": 67,
-      "y": -81,
+      "x": 65,
+      "y": -51,
       "width": 188,
       "fontSize": 15,
       "visible": true
@@ -572,10 +572,10 @@
       "visible": true
     },
     "homeTitle": {
-      "x": 7,
-      "y": 185,
-      "width": 551,
-      "height": 189,
+      "x": 2,
+      "y": 131,
+      "width": 1074,
+      "height": 350,
       "visible": true
     },
     "playArea": {
@@ -817,6 +817,1326 @@
       "textZh": "可领取",
       "textEn": "Claim",
       "visible": true
+    }
+  },
+  "levelComplete": {
+    "layerOrder": [
+      "levelCompleteBox",
+      "levelCompleteTitle",
+      "levelPerfectStamp",
+      "levelScore",
+      "levelScoreLabel",
+      "levelScoreValue",
+      "levelScoreMultiplier",
+      "levelBestCombo",
+      "levelBestComboLabel",
+      "levelBestComboValue",
+      "levelCoinReward",
+      "levelCompleteButtons",
+      "levelDoubleCoinButton",
+      "levelNextButton"
+    ],
+    "deletedElements": [],
+    "levelCompleteBox": {
+      "x": 42,
+      "y": 306,
+      "visible": true,
+      "width": 346,
+      "height": 360
+    },
+    "levelCompleteTitle": {
+      "x": 29,
+      "y": 19,
+      "visible": true,
+      "width": 288,
+      "height": 54,
+      "fontSize": 47,
+      "align": "center",
+      "textZh": "恭喜过关",
+      "textEn": "Level Clear"
+    },
+    "levelPerfectStamp": {
+      "x": 192,
+      "y": 33,
+      "visible": true,
+      "width": 146,
+      "height": 39,
+      "fontSize": 23,
+      "align": "center",
+      "textZh": "完美",
+      "textEn": "PERFECT"
+    },
+    "levelScore": {
+      "x": 78,
+      "y": 104,
+      "visible": true,
+      "width": 210,
+      "height": 56
+    },
+    "levelScoreLabel": {
+      "x": 3,
+      "y": 18,
+      "visible": true,
+      "width": 70,
+      "height": 28,
+      "fontSize": 23,
+      "align": "center",
+      "textZh": "分数",
+      "textEn": "Score"
+    },
+    "levelScoreValue": {
+      "x": 73,
+      "y": 7,
+      "visible": true,
+      "width": 92,
+      "height": 48,
+      "fontSize": 44,
+      "align": "center",
+      "textZh": "360",
+      "textEn": "360"
+    },
+    "levelScoreMultiplier": {
+      "x": 172,
+      "y": 14,
+      "visible": true,
+      "width": 70,
+      "height": 28,
+      "fontSize": 24,
+      "align": "center",
+      "textZh": "x1.50",
+      "textEn": "x1.50"
+    },
+    "levelBestCombo": {
+      "x": 110,
+      "y": 160,
+      "visible": true,
+      "width": 160,
+      "height": 34
+    },
+    "levelBestComboLabel": {
+      "x": -97,
+      "y": -2,
+      "visible": true,
+      "width": 139,
+      "height": 24,
+      "fontSize": 23,
+      "align": "center",
+      "textZh": "最高连击",
+      "textEn": "Best Combo"
+    },
+    "levelBestComboValue": {
+      "x": 64,
+      "y": -1,
+      "visible": true,
+      "width": 44,
+      "height": 32,
+      "fontSize": 32,
+      "align": "center",
+      "textZh": "4",
+      "textEn": "4"
+    },
+    "levelCoinReward": {
+      "x": 207,
+      "y": 86,
+      "visible": true,
+      "width": 103,
+      "height": 28,
+      "fontSize": 20,
+      "align": "left",
+      "textZh": "金币 +1",
+      "textEn": "Coins    +1 "
+    },
+    "levelCompleteButtons": {
+      "x": 28,
+      "y": 185,
+      "visible": true,
+      "width": 290,
+      "height": 116
+    },
+    "levelDoubleCoinButton": {
+      "x": 0,
+      "y": 4,
+      "visible": true,
+      "width": 290,
+      "height": 52,
+      "fontSize": 22,
+      "align": "center",
+      "textZh": "看广告双倍金币",
+      "textEn": "Watch Ad for Double Coins"
+    },
+    "levelNextButton": {
+      "x": 0,
+      "y": 63,
+      "visible": true,
+      "width": 290,
+      "height": 52,
+      "fontSize": 24,
+      "align": "center",
+      "textZh": "下一关",
+      "textEn": "Next"
+    }
+  },
+  "gameOver": {
+    "layerOrder": [
+      "gameOverBox",
+      "gameOverTitle",
+      "gameOverReason",
+      "gameOverButtons",
+      "gameOverContinueButton",
+      "gameOverRetryButton",
+      "gameOverMenuButton"
+    ],
+    "deletedElements": [],
+    "gameOverBox": {
+      "x": 46,
+      "y": 322,
+      "visible": true,
+      "width": 338,
+      "height": 227
+    },
+    "gameOverTitle": {
+      "x": -3,
+      "y": 37,
+      "visible": true,
+      "width": 336,
+      "height": 48,
+      "fontSize": 44,
+      "align": "center",
+      "textZh": "小蛇累了",
+      "textEn": "Snake Is Tired"
+    },
+    "gameOverReason": {
+      "x": 102,
+      "y": 98,
+      "visible": true,
+      "width": 137,
+      "height": 39,
+      "fontSize": 24,
+      "align": "center",
+      "textZh": "时间到",
+      "textEn": "Time is up"
+    },
+    "gameOverButtons": {
+      "x": 32,
+      "y": 150,
+      "visible": true,
+      "width": 274,
+      "height": 42
+    },
+    "gameOverContinueButton": {
+      "x": 0,
+      "y": -19,
+      "visible": true,
+      "width": 274,
+      "height": 56,
+      "fontSize": 22,
+      "align": "center",
+      "textZh": "看广告继续",
+      "textEn": "Watch Ad to Continue"
+    },
+    "gameOverRetryButton": {
+      "x": 0,
+      "y": 44,
+      "visible": false,
+      "width": 132,
+      "height": 48,
+      "fontSize": 22,
+      "align": "center",
+      "textZh": "再试一次",
+      "textEn": "Retry"
+    },
+    "gameOverMenuButton": {
+      "x": 225,
+      "y": -165,
+      "visible": true,
+      "width": 68,
+      "height": 37,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "返回",
+      "textEn": "Menu"
+    }
+  },
+  "supportAuthor": {
+    "layerOrder": [
+      "supportAuthorShell",
+      "supportAuthorTitle",
+      "supportAuthorBack",
+      "supportAuthorThankYou",
+      "supportAuthorCounter",
+      "supportAuthorCounterLabel",
+      "supportAuthorCount",
+      "supportAuthorBadge",
+      "supportAuthorBadgeLabel",
+      "supportAuthorBadgeCount",
+      "supportAuthorWatchButton",
+      "supportAuthorStatus"
+    ],
+    "deletedElements": [],
+    "supportAuthorShell": {
+      "x": 39,
+      "y": 138,
+      "visible": true,
+      "width": 352,
+      "height": 430
+    },
+    "supportAuthorTitle": {
+      "x": 20,
+      "y": 31,
+      "visible": true,
+      "width": 220,
+      "height": 76,
+      "fontSize": 36,
+      "align": "left",
+      "textZh": "支持作者",
+      "textEn": "Support Author"
+    },
+    "supportAuthorBack": {
+      "x": 266,
+      "y": 4,
+      "visible": true,
+      "width": 76,
+      "height": 48,
+      "fontSize": 22,
+      "align": "center",
+      "textZh": "返回",
+      "textEn": "Back"
+    },
+    "supportAuthorThankYou": {
+      "x": 22,
+      "y": 110,
+      "visible": true,
+      "width": 304,
+      "height": 70,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "感谢你的支持，这会帮助我们持续更新游戏内容。",
+      "textEn": "Thank you for your support. It helps us keep improving the game."
+    },
+    "supportAuthorCounter": {
+      "x": 24,
+      "y": 185,
+      "visible": true,
+      "width": 304,
+      "height": 56
+    },
+    "supportAuthorCounterLabel": {
+      "x": 16,
+      "y": 8,
+      "visible": true,
+      "width": 210,
+      "height": 36,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "今日支持进度",
+      "textEn": "Today Support Progress"
+    },
+    "supportAuthorCount": {
+      "x": 236,
+      "y": 6,
+      "visible": true,
+      "width": 52,
+      "height": 40,
+      "fontSize": 28,
+      "align": "center",
+      "textZh": "0/5",
+      "textEn": "0/5"
+    },
+    "supportAuthorBadge": {
+      "x": 24,
+      "y": 251,
+      "visible": true,
+      "width": 304,
+      "height": 56
+    },
+    "supportAuthorBadgeLabel": {
+      "x": 16,
+      "y": 8,
+      "visible": true,
+      "width": 210,
+      "height": 36,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "支持奖章",
+      "textEn": "Support Badges"
+    },
+    "supportAuthorBadgeCount": {
+      "x": 236,
+      "y": 6,
+      "visible": true,
+      "width": 52,
+      "height": 40,
+      "fontSize": 28,
+      "align": "center",
+      "textZh": "0",
+      "textEn": "0"
+    },
+    "supportAuthorWatchButton": {
+      "x": 24,
+      "y": 334,
+      "visible": true,
+      "width": 304,
+      "height": 58,
+      "fontSize": 27,
+      "align": "center",
+      "textZh": "播放支持广告",
+      "textEn": "Watch Support Ad"
+    },
+    "supportAuthorStatus": {
+      "x": 24,
+      "y": 398,
+      "visible": true,
+      "width": 304,
+      "height": 24,
+      "fontSize": 14,
+      "align": "center",
+      "textZh": "",
+      "textEn": ""
+    }
+  },
+  "settings": {
+    "layerOrder": [
+      "settingsShell",
+      "settingsTitle",
+      "settingsBack",
+      "settingsBody",
+      "settingsLanguageRow",
+      "settingsLanguageTitle",
+      "settingsLanguageDesc",
+      "settingsLocaleZh",
+      "settingsLocaleEn",
+      "settingsAudioRow",
+      "settingsAudioTitle",
+      "settingsAudioDesc",
+      "settingsResetRow",
+      "settingsResetButton",
+      "settingsEndRunRow",
+      "settingsEndRunButton"
+    ],
+    "deletedElements": [],
+    "settingsShell": {
+      "x": 29,
+      "y": 206,
+      "visible": true,
+      "width": 372,
+      "height": 448
+    },
+    "settingsTitle": {
+      "x": 24,
+      "y": 24,
+      "visible": true,
+      "width": 220,
+      "height": 48,
+      "fontSize": 32,
+      "align": "left",
+      "textZh": "设置",
+      "textEn": "Settings"
+    },
+    "settingsBack": {
+      "x": 276,
+      "y": 28,
+      "visible": true,
+      "width": 72,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "返回",
+      "textEn": "Back"
+    },
+    "settingsBody": {
+      "x": 24,
+      "y": 92,
+      "visible": true,
+      "width": 324,
+      "height": 345
+    },
+    "settingsLanguageRow": {
+      "x": 0,
+      "y": 28,
+      "visible": true,
+      "width": 324,
+      "height": 54
+    },
+    "settingsLanguageTitle": {
+      "x": 7,
+      "y": -27,
+      "visible": true,
+      "width": 150,
+      "height": 28,
+      "fontSize": 20,
+      "align": "left",
+      "textZh": "语言",
+      "textEn": "Language"
+    },
+    "settingsLanguageDesc": {
+      "x": 111,
+      "y": -31,
+      "visible": true,
+      "width": 155,
+      "height": 35,
+      "fontSize": 13,
+      "align": "left",
+      "textZh": "切换界面语言",
+      "textEn": "Switch UI language"
+    },
+    "settingsLocaleZh": {
+      "x": 9,
+      "y": 7,
+      "visible": true,
+      "width": 96,
+      "height": 38,
+      "fontSize": 15,
+      "align": "center",
+      "textZh": "简体中文",
+      "textEn": "简体中文"
+    },
+    "settingsLocaleEn": {
+      "x": 111,
+      "y": 7,
+      "visible": true,
+      "width": 96,
+      "height": 38,
+      "fontSize": 15,
+      "align": "center",
+      "textZh": "English",
+      "textEn": "English"
+    },
+    "settingsAudioRow": {
+      "x": 0,
+      "y": 132,
+      "visible": true,
+      "width": 323,
+      "height": 124
+    },
+    "settingsAudioTitle": {
+      "x": 7,
+      "y": -27,
+      "visible": true,
+      "width": 150,
+      "height": 28,
+      "fontSize": 20,
+      "align": "left",
+      "textZh": "音频",
+      "textEn": "Audio"
+    },
+    "settingsAudioDesc": {
+      "x": 72,
+      "y": -36,
+      "visible": true,
+      "width": 250,
+      "height": 44,
+      "fontSize": 13,
+      "align": "left",
+      "textZh": "调整音乐和音效音量",
+      "textEn": "Adjust music and SFX volume"
+    },
+    "settingsResetRow": {
+      "x": 0,
+      "y": 326,
+      "visible": false,
+      "width": 324,
+      "height": 92
+    },
+    "settingsResetButton": {
+      "x": 196,
+      "y": 20,
+      "visible": true,
+      "width": 112,
+      "height": 42,
+      "fontSize": 17,
+      "align": "center",
+      "textZh": "重置",
+      "textEn": "Reset"
+    },
+    "settingsEndRunRow": {
+      "x": 0,
+      "y": 264,
+      "visible": true,
+      "width": 324,
+      "height": 80
+    },
+    "settingsEndRunButton": {
+      "x": 198,
+      "y": 13,
+      "visible": true,
+      "width": 107,
+      "height": 30,
+      "fontSize": 17,
+      "align": "center",
+      "textZh": "结束",
+      "textEn": "End"
+    }
+  },
+  "leaderboard": {
+    "layerOrder": [
+      "leaderboardShell",
+      "leaderboardTitle",
+      "leaderboardBack",
+      "leaderboardBody",
+      "leaderboardModeSwitch",
+      "leaderboardModeClear",
+      "leaderboardModeBadge",
+      "leaderboardList",
+      "leaderboardSelfSection",
+      "leaderboardSelfLabel",
+      "leaderboardEmptyState"
+    ],
+    "deletedElements": [],
+    "leaderboardShell": {
+      "x": 30,
+      "y": 58,
+      "visible": true,
+      "width": 370,
+      "height": 822
+    },
+    "leaderboardTitle": {
+      "x": 24,
+      "y": 20,
+      "visible": true,
+      "width": 220,
+      "height": 46,
+      "fontSize": 32,
+      "align": "left",
+      "textZh": "排行榜",
+      "textEn": "Leaderboard"
+    },
+    "leaderboardBack": {
+      "x": 284,
+      "y": 5,
+      "visible": true,
+      "width": 72,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "返回",
+      "textEn": "Back"
+    },
+    "leaderboardBody": {
+      "x": 22,
+      "y": 82,
+      "visible": true,
+      "width": 326,
+      "height": 704
+    },
+    "leaderboardModeSwitch": {
+      "x": 0,
+      "y": 0,
+      "visible": true,
+      "width": 326,
+      "height": 54
+    },
+    "leaderboardModeClear": {
+      "x": 0,
+      "y": 0,
+      "visible": true,
+      "width": 158,
+      "height": 46,
+      "fontSize": 18,
+      "align": "center",
+      "textZh": "通关榜",
+      "textEn": "Clear Rank"
+    },
+    "leaderboardModeBadge": {
+      "x": 168,
+      "y": 0,
+      "visible": true,
+      "width": 158,
+      "height": 46,
+      "fontSize": 18,
+      "align": "center",
+      "textZh": "奖章榜",
+      "textEn": "Badge Rank"
+    },
+    "leaderboardList": {
+      "x": 0,
+      "y": 66,
+      "visible": true,
+      "width": 326,
+      "height": 664
+    },
+    "leaderboardSelfSection": {
+      "x": 0,
+      "y": 596,
+      "visible": true,
+      "width": 326,
+      "height": 96
+    },
+    "leaderboardSelfLabel": {
+      "x": 0,
+      "y": 0,
+      "visible": true,
+      "width": 326,
+      "height": 28,
+      "fontSize": 16,
+      "align": "left",
+      "textZh": "我的排名",
+      "textEn": "My Rank"
+    },
+    "leaderboardEmptyState": {
+      "x": 0,
+      "y": 28,
+      "visible": true,
+      "width": 326,
+      "height": 42,
+      "fontSize": 16,
+      "align": "center",
+      "textZh": "暂无数据",
+      "textEn": "No data"
+    }
+  },
+  "skins": {
+    "layerOrder": [
+      "skinsShell",
+      "skinsTitle",
+      "skinsBack",
+      "skinsBody",
+      "skinsRateValue",
+      "skinList",
+      "skinsCoinPill",
+      "skinCard",
+      "skinPreview",
+      "skinName",
+      "skinDesc",
+      "skinStatus",
+      "skinActionButton"
+    ],
+    "deletedElements": [],
+    "skinsShell": {
+      "x": 30,
+      "y": 70,
+      "visible": true,
+      "width": 370,
+      "height": 775
+    },
+    "skinsTitle": {
+      "x": 24,
+      "y": 22,
+      "visible": true,
+      "width": 210,
+      "height": 46,
+      "fontSize": 32,
+      "align": "left",
+      "textZh": "皮肤",
+      "textEn": "Skins"
+    },
+    "skinsBack": {
+      "x": 285,
+      "y": 10,
+      "visible": true,
+      "width": 72,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "返回",
+      "textEn": "Back"
+    },
+    "skinsBody": {
+      "x": 30,
+      "y": 75,
+      "visible": true,
+      "width": 326,
+      "height": 676
+    },
+    "skinsCoinPill": {
+      "x": 2,
+      "y": 1,
+      "visible": true,
+      "width": 120,
+      "height": 38
+    },
+    "skinsRateValue": {
+      "x": 3,
+      "y": -1,
+      "visible": true,
+      "width": 119,
+      "height": 30,
+      "fontSize": 14,
+      "align": "left",
+      "textZh": "",
+      "textEn": ""
+    },
+    "skinList": {
+      "x": 0,
+      "y": 50,
+      "visible": true,
+      "width": 326,
+      "height": 612
+    },
+    "skinCard": {
+      "x": 0,
+      "y": 0,
+      "visible": true,
+      "width": 308,
+      "height": 90
+    },
+    "skinPreview": {
+      "x": 8,
+      "y": 13,
+      "visible": true,
+      "width": 64,
+      "height": 64
+    },
+    "skinName": {
+      "x": 83,
+      "y": 11,
+      "visible": true,
+      "width": 158,
+      "height": 22,
+      "fontSize": 15,
+      "align": "left",
+      "textZh": "皮肤名称",
+      "textEn": "Skin Name"
+    },
+    "skinDesc": {
+      "x": 84,
+      "y": 34,
+      "visible": false,
+      "width": 117,
+      "height": 55,
+      "fontSize": 11,
+      "align": "left",
+      "textZh": "皮肤描述",
+      "textEn": "Skin description"
+    },
+    "skinStatus": {
+      "x": 86,
+      "y": 37,
+      "visible": false,
+      "width": 122,
+      "height": 16,
+      "fontSize": 11,
+      "align": "left",
+      "textZh": "已解锁",
+      "textEn": "Unlocked"
+    },
+    "skinActionButton": {
+      "x": 198,
+      "y": 36,
+      "visible": true,
+      "width": 92,
+      "height": 36,
+      "fontSize": 12,
+      "align": "center",
+      "textZh": "装备",
+      "textEn": "Use"
+    }
+  },
+  "profile": {
+    "layerOrder": [
+      "profileShell",
+      "profileTitle",
+      "profileBack",
+      "profileUserMeta",
+      "profileNicknameField",
+      "profilePasswordField",
+      "profilePasswordConfirmField",
+      "profileSaveButton",
+      "profileStatus"
+    ],
+    "deletedElements": [],
+    "profileShell": {
+      "x": 39,
+      "y": 142,
+      "visible": true,
+      "width": 352,
+      "height": 430
+    },
+    "profileTitle": {
+      "x": 24,
+      "y": 24,
+      "visible": true,
+      "width": 220,
+      "height": 48,
+      "fontSize": 32,
+      "align": "left",
+      "textZh": "个人资料",
+      "textEn": "Profile"
+    },
+    "profileBack": {
+      "x": 265,
+      "y": 9,
+      "visible": true,
+      "width": 76,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "返回",
+      "textEn": "Back"
+    },
+    "profileUserMeta": {
+      "x": 22,
+      "y": 76,
+      "visible": true,
+      "width": 304,
+      "height": 38,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "ID: -",
+      "textEn": "ID: -"
+    },
+    "profileNicknameField": {
+      "x": 24,
+      "y": 132,
+      "visible": true,
+      "width": 304,
+      "height": 58
+    },
+    "profilePasswordField": {
+      "x": 24,
+      "y": 202,
+      "visible": true,
+      "width": 304,
+      "height": 58
+    },
+    "profilePasswordConfirmField": {
+      "x": 24,
+      "y": 272,
+      "visible": true,
+      "width": 304,
+      "height": 58
+    },
+    "profileSaveButton": {
+      "x": 24,
+      "y": 346,
+      "visible": true,
+      "width": 304,
+      "height": 54,
+      "fontSize": 22,
+      "align": "center",
+      "textZh": "保存资料",
+      "textEn": "Save"
+    },
+    "profileStatus": {
+      "x": 24,
+      "y": 402,
+      "visible": true,
+      "width": 304,
+      "height": 24,
+      "fontSize": 14,
+      "align": "center",
+      "textZh": "",
+      "textEn": ""
+    }
+  },
+  "levelSelect": {
+    "layerOrder": [
+      "levelSelectShell",
+      "levelSelectTitle",
+      "levelSelectBack",
+      "levelSelectBody",
+      "levelSelectMeta",
+      "levelSelectLabel",
+      "levelSelectCurrent",
+      "levelSelectTip",
+      "levelGrid"
+    ],
+    "deletedElements": [],
+    "levelSelectShell": {
+      "x": 30,
+      "y": 68,
+      "visible": true,
+      "width": 370,
+      "height": 800
+    },
+    "levelSelectTitle": {
+      "x": 24,
+      "y": 22,
+      "visible": true,
+      "width": 220,
+      "height": 46,
+      "fontSize": 32,
+      "align": "left",
+      "textZh": "选择关卡",
+      "textEn": "Select Level"
+    },
+    "levelSelectBack": {
+      "x": 276,
+      "y": 24,
+      "visible": true,
+      "width": 72,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "返回",
+      "textEn": "Back"
+    },
+    "levelSelectBody": {
+      "x": 22,
+      "y": 84,
+      "visible": true,
+      "width": 326,
+      "height": 676
+    },
+    "levelSelectMeta": {
+      "x": 0,
+      "y": 0,
+      "visible": true,
+      "width": 326,
+      "height": 96
+    },
+    "levelSelectLabel": {
+      "x": 14,
+      "y": 12,
+      "visible": true,
+      "width": 190,
+      "height": 24,
+      "fontSize": 15,
+      "align": "left",
+      "textZh": "默认从以下关卡开始",
+      "textEn": "Start from"
+    },
+    "levelSelectCurrent": {
+      "x": 202,
+      "y": 7,
+      "visible": true,
+      "width": 116,
+      "height": 52,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "洞穴 1",
+      "textEn": "Burrow 1"
+    },
+    "levelSelectTip": {
+      "x": 14,
+      "y": 50,
+      "visible": true,
+      "width": 296,
+      "height": 32,
+      "fontSize": 13,
+      "align": "left",
+      "textZh": "可点击已解锁关卡直接进入游戏。",
+      "textEn": "Tap an unlocked level to play."
+    },
+    "levelGrid": {
+      "x": 0,
+      "y": 112,
+      "visible": true,
+      "width": 326,
+      "height": 544
+    }
+  },
+  "exitConfirm": {
+    "layerOrder": [
+      "exitShell",
+      "exitTitle",
+      "exitBack",
+      "exitDesc",
+      "exitActions",
+      "exitConfirmButton",
+      "exitCancelButton",
+      "exitFeedback"
+    ],
+    "deletedElements": [],
+    "exitShell": {
+      "x": 39,
+      "y": 218,
+      "visible": true,
+      "width": 352,
+      "height": 310
+    },
+    "exitTitle": {
+      "x": 24,
+      "y": 24,
+      "visible": true,
+      "width": 220,
+      "height": 46,
+      "fontSize": 32,
+      "align": "left",
+      "textZh": "退出游戏",
+      "textEn": "Exit Game"
+    },
+    "exitBack": {
+      "x": 262,
+      "y": 12,
+      "visible": false,
+      "width": 76,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "关闭",
+      "textEn": "Close"
+    },
+    "exitDesc": {
+      "x": 24,
+      "y": 94,
+      "visible": true,
+      "width": 304,
+      "height": 70,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "现在退出吗？进度已在本地保存。",
+      "textEn": "Exit now? Progress is saved locally."
+    },
+    "exitActions": {
+      "x": 24,
+      "y": 178,
+      "visible": true,
+      "width": 304,
+      "height": 58
+    },
+    "exitConfirmButton": {
+      "x": 0,
+      "y": 0,
+      "visible": true,
+      "width": 146,
+      "height": 52,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "立即退出",
+      "textEn": "Exit Now"
+    },
+    "exitCancelButton": {
+      "x": 158,
+      "y": 0,
+      "visible": true,
+      "width": 146,
+      "height": 52,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "取消",
+      "textEn": "Cancel"
+    },
+    "exitFeedback": {
+      "x": 24,
+      "y": 248,
+      "visible": true,
+      "width": 304,
+      "height": 30,
+      "fontSize": 13,
+      "align": "center",
+      "textZh": "多数浏览器不允许直接关闭页面。",
+      "textEn": "Most browsers cannot be closed by script."
+    }
+  },
+  "resetProgress": {
+    "layerOrder": [
+      "resetProgressShell",
+      "resetProgressTitle",
+      "resetProgressBack",
+      "resetProgressDesc",
+      "resetProgressActions",
+      "resetProgressConfirmButton",
+      "resetProgressCancelButton"
+    ],
+    "deletedElements": [],
+    "resetProgressShell": {
+      "x": 41,
+      "y": 328,
+      "visible": true,
+      "width": 352,
+      "height": 205
+    },
+    "resetProgressTitle": {
+      "x": 24,
+      "y": 24,
+      "visible": true,
+      "width": 306,
+      "height": 46,
+      "fontSize": 30,
+      "align": "left",
+      "textZh": "重置进度",
+      "textEn": "Reset Progress"
+    },
+    "resetProgressBack": {
+      "x": 252,
+      "y": 26,
+      "visible": false,
+      "width": 76,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "关闭",
+      "textEn": "Close"
+    },
+    "resetProgressDesc": {
+      "x": 22,
+      "y": 67,
+      "visible": true,
+      "width": 304,
+      "height": 70,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "重置关卡进度并从第一关开始？",
+      "textEn": "Reset campaign progress and start from level one?"
+    },
+    "resetProgressActions": {
+      "x": 25,
+      "y": 121,
+      "visible": true,
+      "width": 304,
+      "height": 32
+    },
+    "resetProgressConfirmButton": {
+      "x": 3,
+      "y": -6,
+      "visible": true,
+      "width": 146,
+      "height": 52,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "确认重置",
+      "textEn": "Reset Now"
+    },
+    "resetProgressCancelButton": {
+      "x": 160,
+      "y": -5,
+      "visible": true,
+      "width": 146,
+      "height": 52,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "取消",
+      "textEn": "Cancel"
+    }
+  },
+  "checkinRewardSettle": {
+    "layerOrder": [
+      "checkinRewardShell",
+      "checkinRewardTitle",
+      "checkinRewardDesc",
+      "checkinRewardCoinHero",
+      "checkinRewardList",
+      "checkinRewardActions",
+      "checkinRewardConfirm"
+    ],
+    "deletedElements": [],
+    "checkinRewardShell": {
+      "x": 43,
+      "y": 302,
+      "visible": true,
+      "width": 352,
+      "height": 294
+    },
+    "checkinRewardTitle": {
+      "x": 21,
+      "y": 11,
+      "visible": true,
+      "width": 312,
+      "height": 46,
+      "fontSize": 30,
+      "align": "left",
+      "textZh": "签到奖励",
+      "textEn": "Check-in Reward"
+    },
+    "checkinRewardDesc": {
+      "x": 23,
+      "y": 61,
+      "visible": true,
+      "width": 304,
+      "height": 42,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "签到成功，奖励如下：",
+      "textEn": "Claimed rewards:"
+    },
+    "checkinRewardCoinHero": {
+      "x": 25,
+      "y": 105,
+      "visible": true,
+      "width": 294,
+      "height": 70
+    },
+    "checkinRewardList": {
+      "x": 146,
+      "y": 176,
+      "visible": false,
+      "width": 78,
+      "height": 11
+    },
+    "checkinRewardActions": {
+      "x": 16,
+      "y": 226,
+      "visible": true,
+      "width": 304,
+      "height": 52
+    },
+    "checkinRewardConfirm": {
+      "x": 66,
+      "y": -39,
+      "visible": true,
+      "width": 184,
+      "height": 52,
+      "fontSize": 22,
+      "align": "center",
+      "textZh": "确定",
+      "textEn": "OK"
+    }
+  },
+  "onlineRewardSettle": {
+    "layerOrder": [
+      "onlineRewardShell",
+      "onlineRewardTitle",
+      "onlineRewardCloseTop",
+      "onlineRewardDesc",
+      "onlineRewardList",
+      "onlineRewardActions",
+      "onlineRewardSettleClose"
+    ],
+    "deletedElements": [],
+    "onlineRewardShell": {
+      "x": 45,
+      "y": 307,
+      "visible": true,
+      "width": 352,
+      "height": 284
+    },
+    "onlineRewardTitle": {
+      "x": 23,
+      "y": 7,
+      "visible": true,
+      "width": 314,
+      "height": 46,
+      "fontSize": 30,
+      "align": "left",
+      "textZh": "在线奖励",
+      "textEn": "Online Reward"
+    },
+    "onlineRewardCloseTop": {
+      "x": 252,
+      "y": 26,
+      "visible": false,
+      "width": 76,
+      "height": 42,
+      "fontSize": 20,
+      "align": "center",
+      "textZh": "关闭",
+      "textEn": "Close"
+    },
+    "onlineRewardDesc": {
+      "x": 24,
+      "y": 74,
+      "visible": true,
+      "width": 304,
+      "height": 42,
+      "fontSize": 18,
+      "align": "left",
+      "textZh": "本次领取：",
+      "textEn": "Claimed:"
+    },
+    "onlineRewardList": {
+      "x": 24,
+      "y": 115,
+      "visible": true,
+      "width": 304,
+      "height": 104
+    },
+    "onlineRewardActions": {
+      "x": 23,
+      "y": 165,
+      "visible": true,
+      "width": 304,
+      "height": 52
+    },
+    "onlineRewardSettleClose": {
+      "x": 65,
+      "y": 25,
+      "visible": true,
+      "width": 184,
+      "height": 58,
+      "fontSize": 22,
+      "align": "center",
+      "textZh": "确定",
+      "textEn": "OK"
     }
   }
 }

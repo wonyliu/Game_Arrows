@@ -12,7 +12,13 @@ import {
     stopBgm
 } from './audio.js?v=73';
 import { getSkinDescription, getSkinDisplayName } from './skins.js?v=31';
-import { cloneUiLayoutConfig, readUiLayoutConfig, subscribeUiLayoutConfig } from './ui-layout-config.js?v=12';
+import {
+    cloneUiLayoutConfig,
+    PANEL_LAYOUT_DEFINITIONS,
+    PANEL_LAYOUT_SCENE_IDS,
+    readUiLayoutConfig,
+    subscribeUiLayoutConfig
+} from './ui-layout-config.js?v=14';
 import { getUiAsset } from './ui-theme.js?v=2';
 import {
     applySessionFromUser,
@@ -165,6 +171,12 @@ const HOME_UI_EDITOR_ELEMENT_ORDER = Object.freeze([
     'onlineRewardChest',
     'onlineRewardText'
 ]);
+const PANEL_UI_EDITOR_ELEMENT_ORDER = Object.freeze(Object.fromEntries(
+    PANEL_LAYOUT_SCENE_IDS.map((sceneId) => [
+        sceneId,
+        Object.freeze((PANEL_LAYOUT_DEFINITIONS[sceneId]?.elements || []).map((item) => item.id))
+    ])
+));
 export class UI {
     constructor(game, options = {}) {
         this.game = game;
@@ -221,9 +233,7 @@ export class UI {
         this.settingsOverlay = document.getElementById('settingsOverlay');
         this.leaderboardOverlay = document.getElementById('leaderboardOverlay');
         this.leaderboardListEl = this.leaderboardOverlay?.querySelector('.rank-list') || null;
-        this.leaderboardScrollHostEl = this.leaderboardOverlay?.querySelector('.leaderboard-panel-body')
-            || this.leaderboardOverlay?.querySelector('.panel-body')
-            || null;
+        this.leaderboardScrollHostEl = this.leaderboardListEl;
         this.leaderboardSelfSectionEl = document.getElementById('leaderboardSelfSection');
         this.leaderboardSelfLabelEl = document.getElementById('leaderboardSelfLabel');
         this.leaderboardSelfListEl = document.getElementById('leaderboardSelfList');
@@ -396,6 +406,7 @@ export class UI {
         this.leaderboardSelfRow = null;
         this.leaderboardSelfUserId = '';
         this.leaderboardLoadedUserIdSet = new Set();
+        this.leaderboardDragScrollState = null;
         this.uiEditorPreviewOptions = this.options.uiEditorPreview || { enabled: false };
         this.audioEnabled = this.uiEditorPreviewOptions.enabled !== true;
         this.homeDanceMascotAudioUnlocked = !this.audioEnabled;
@@ -408,6 +419,7 @@ export class UI {
             this.applyHomeLayoutConfig();
             this.applyCheckinLayoutConfig();
             this.applyGameplayLayoutConfig();
+            this.applyAllPanelLayoutConfigs();
             this.refreshCheckinPanel(false);
             this.updateCheckinSceneScale();
         });
@@ -425,10 +437,12 @@ export class UI {
         this.applyHomeLayoutConfig();
         this.applyCheckinLayoutConfig();
         this.applyGameplayLayoutConfig();
+        this.applyAllPanelLayoutConfigs();
         this.refreshProfileEntry();
         this.setMenuBadges(this.menuBadges);
         this.refreshLiveOpsRedDotsOnPageLoad();
         this.applyLocalizedText();
+        this.applyAllPanelLayoutConfigs();
         this.refreshCheckinPanel();
         this.updateCheckinSceneScale();
         this.onlineDockTicker = setInterval(() => {
@@ -592,6 +606,7 @@ export class UI {
                 void this.handleLeaderboardScroll();
             }, { passive: true });
         }
+        this.bindLeaderboardDragScroll();
         this.bindButton('btnProfileAvatar', () => this.openMenuPanel(MENU_PANEL.PROFILE));
         this.bindButton('btnProfileSave', () => {
             void this.handleProfileSave();
@@ -1287,6 +1302,63 @@ export class UI {
         this.bindPressAction(element, handler, { audioId: id });
     }
 
+    bindLeaderboardDragScroll() {
+        const host = this.leaderboardScrollHostEl;
+        if (!(host instanceof HTMLElement)) {
+            return;
+        }
+        host.addEventListener('pointerdown', (event) => {
+            if (event.pointerType === 'mouse' && event.button !== 0) {
+                return;
+            }
+            this.leaderboardDragScrollState = {
+                pointerId: event.pointerId,
+                startY: event.clientY,
+                startScrollTop: host.scrollTop,
+                moved: false
+            };
+            host.classList.add('is-drag-scrolling');
+            try {
+                host.setPointerCapture(event.pointerId);
+            } catch {
+                // Pointer capture is optional; drag scrolling still works without it.
+            }
+        });
+        host.addEventListener('pointermove', (event) => {
+            const state = this.leaderboardDragScrollState;
+            if (!state || state.pointerId !== event.pointerId) {
+                return;
+            }
+            const deltaY = event.clientY - state.startY;
+            if (Math.abs(deltaY) > 2) {
+                state.moved = true;
+            }
+            host.scrollTop = state.startScrollTop - deltaY;
+            if (state.moved) {
+                event.preventDefault();
+            }
+        }, { passive: false });
+        const endDrag = (event) => {
+            const state = this.leaderboardDragScrollState;
+            if (!state || state.pointerId !== event.pointerId) {
+                return;
+            }
+            this.leaderboardDragScrollState = null;
+            host.classList.remove('is-drag-scrolling');
+            try {
+                host.releasePointerCapture(event.pointerId);
+            } catch {
+                // Ignore release errors from browsers that already released capture.
+            }
+        };
+        host.addEventListener('pointerup', endDrag);
+        host.addEventListener('pointercancel', endDrag);
+        host.addEventListener('lostpointercapture', () => {
+            this.leaderboardDragScrollState = null;
+            host.classList.remove('is-drag-scrolling');
+        });
+    }
+
     bindPressAction(element, handler, options = {}) {
         if (!element || typeof handler !== 'function') {
             return;
@@ -1621,6 +1693,7 @@ export class UI {
 
         this.menuState = target;
         this.applyLocalizedText();
+        this.applyAllPanelLayoutConfigs();
         this.refreshMenuLevelTag();
         this.renderFeatureCards();
         this.refreshProfileEntry();
@@ -2315,6 +2388,7 @@ export class UI {
         this.locale = resolveLocale(locale);
         persistLocale(this.locale);
         this.applyLocalizedText();
+        this.applyAllPanelLayoutConfigs();
         this.refreshMenuLevelTag();
         this.updateHUD();
         this.updateLocaleButtons();
@@ -2458,6 +2532,137 @@ export class UI {
         this.checkinSceneEl.style.marginBottom = '0px';
     }
 
+    getPanelUiEditorNodeMap() {
+        const settingsBody = this.settingsOverlay?.querySelector('.panel-body') || null;
+        const settingsRows = this.settingsOverlay ? Array.from(this.settingsOverlay.querySelectorAll('.setting-row')) : [];
+        const exitActions = this.exitOverlay?.querySelector('.exit-actions') || null;
+        const resetActions = this.resetProgressOverlay?.querySelector('.exit-actions') || null;
+        const checkinRewardActions = this.checkinRewardSettleOverlay?.querySelector('.exit-actions') || null;
+        const onlineRewardActions = this.onlineRewardSettleOverlay?.querySelector('.exit-actions') || null;
+        return {
+            levelCompleteBox: this.levelCompletePopupBox,
+            levelCompleteTitle: this.levelCompleteTitleEl,
+            levelPerfectStamp: this.levelPerfectStamp,
+            levelScore: this.levelScore,
+            levelScoreLabel: this.levelScoreLabel,
+            levelScoreValue: this.levelScoreValue,
+            levelScoreMultiplier: this.levelScoreMultiplier,
+            levelBestCombo: this.levelBestCombo,
+            levelBestComboLabel: this.levelBestComboLabel,
+            levelBestComboValue: this.levelBestComboValue,
+            levelCoinReward: this.levelCoinReward,
+            levelCompleteButtons: this.levelCompleteButtonsEl,
+            levelDoubleCoinButton: this.levelCompleteDoubleCoinButton,
+            levelNextButton: this.levelCompleteNextButton,
+            gameOverBox: this.gameOverOverlay?.querySelector('.popup-box') || null,
+            gameOverTitle: this.gameOverOverlay?.querySelector('.popup-title') || null,
+            gameOverReason: this.gameOverReason,
+            gameOverButtons: this.gameOverOverlay?.querySelector('.popup-buttons') || null,
+            gameOverContinueButton: this.gameOverContinueByAdButton,
+            gameOverRetryButton: document.getElementById('btnRetry'),
+            gameOverMenuButton: document.getElementById('btnMenuFromOver'),
+            supportAuthorShell: this.supportAuthorOverlay?.querySelector('.panel-shell') || null,
+            supportAuthorTitle: this.supportAuthorOverlay?.querySelector('.panel-title') || null,
+            supportAuthorBack: document.getElementById('btnBackFromSupportAuthor'),
+            supportAuthorThankYou: this.supportAuthorThankYouEl,
+            supportAuthorCounter: this.supportAuthorOverlay?.querySelector('.support-author-counter-wrap') || null,
+            supportAuthorCounterLabel: this.supportAuthorOverlay?.querySelector('.support-author-counter-wrap span') || null,
+            supportAuthorCount: this.supportAuthorCountEl,
+            supportAuthorBadge: this.supportAuthorOverlay?.querySelector('.support-author-badge-wrap') || null,
+            supportAuthorBadgeLabel: this.supportAuthorOverlay?.querySelector('.support-author-badge-wrap span') || null,
+            supportAuthorBadgeCount: this.supportAuthorBadgeCountEl,
+            supportAuthorWatchButton: this.supportAuthorWatchButton,
+            supportAuthorStatus: this.supportAuthorStatusEl,
+            settingsShell: this.settingsOverlay?.querySelector('.panel-shell') || null,
+            settingsTitle: this.settingsOverlay?.querySelector('.panel-title') || null,
+            settingsBack: document.getElementById('btnBackFromSettings'),
+            settingsBody,
+            settingsLanguageRow: settingsRows[0] || null,
+            settingsLanguageTitle: settingsRows[0]?.querySelector('.setting-title') || null,
+            settingsLanguageDesc: settingsRows[0]?.querySelector('.setting-desc') || null,
+            settingsLocaleZh: this.localeZhBtn,
+            settingsLocaleEn: this.localeEnBtn,
+            settingsAudioRow: settingsRows[1] || null,
+            settingsAudioTitle: settingsRows[1]?.querySelector('.setting-title') || null,
+            settingsAudioDesc: settingsRows[1]?.querySelector('.setting-desc') || null,
+            settingsResetRow: this.settingsOverlay?.querySelector('.setting-row-reset') || null,
+            settingsResetButton: document.getElementById('btnResetProgress'),
+            settingsEndRunRow: this.settingsEndRunRow,
+            settingsEndRunButton: document.getElementById('btnEndRun'),
+            leaderboardShell: this.leaderboardOverlay?.querySelector('.panel-shell') || null,
+            leaderboardTitle: this.leaderboardOverlay?.querySelector('.panel-title') || null,
+            leaderboardBack: document.getElementById('btnBackFromLeaderboard'),
+            leaderboardBody: this.leaderboardOverlay?.querySelector('.panel-body') || null,
+            leaderboardModeSwitch: this.leaderboardOverlay?.querySelector('.leaderboard-mode-switch') || null,
+            leaderboardModeClear: this.leaderboardModeClearButton,
+            leaderboardModeBadge: this.leaderboardModeBadgeButton,
+            leaderboardList: this.leaderboardListEl,
+            leaderboardSelfSection: this.leaderboardSelfSectionEl,
+            leaderboardSelfLabel: this.leaderboardSelfLabelEl,
+            leaderboardEmptyState: this.leaderboardEmptyStateEl,
+            skinsShell: this.skinsOverlay?.querySelector('.panel-shell') || null,
+            skinsTitle: this.skinsOverlay?.querySelector('.panel-title') || null,
+            skinsBack: document.getElementById('btnBackFromSkins'),
+            skinsBody: this.skinsOverlay?.querySelector('.panel-body') || null,
+            skinsCoinPill: this.skinsOverlay?.querySelector('.skin-coin-pill') || null,
+            skinsRateValue: document.getElementById('skinsRateValue'),
+            skinList: this.skinList,
+            skinCard: this.skinList?.querySelector('.skin-card') || null,
+            skinPreview: this.skinList?.querySelector('.skin-preview') || null,
+            skinName: this.skinList?.querySelector('.skin-name') || null,
+            skinDesc: this.skinList?.querySelector('.skin-desc') || null,
+            skinStatus: this.skinList?.querySelector('.skin-status') || null,
+            skinActionButton: this.skinList?.querySelector('.skin-action-btn') || null,
+            profileShell: this.profileOverlay?.querySelector('.panel-shell') || null,
+            profileTitle: this.profileOverlay?.querySelector('.panel-title') || null,
+            profileBack: document.getElementById('btnBackFromProfile'),
+            profileUserMeta: this.profileUserMetaEl,
+            profileNicknameField: this.profileNicknameInput?.closest('.field') || null,
+            profilePasswordField: this.profilePasswordInput?.closest('.field') || null,
+            profilePasswordConfirmField: this.profilePasswordConfirmInput?.closest('.field') || null,
+            profileSaveButton: this.profileSaveButton,
+            profileStatus: this.profileStatusEl,
+            levelSelectShell: this.levelSelectOverlay?.querySelector('.panel-shell') || null,
+            levelSelectTitle: this.levelSelectOverlay?.querySelector('.panel-title') || null,
+            levelSelectBack: document.getElementById('btnBackFromSelect'),
+            levelSelectBody: this.levelSelectOverlay?.querySelector('.panel-body') || null,
+            levelSelectMeta: this.levelSelectOverlay?.querySelector('.level-select-meta') || null,
+            levelSelectLabel: this.levelSelectOverlay?.querySelector('.level-select-label') || null,
+            levelSelectCurrent: this.levelSelectCurrent,
+            levelSelectTip: this.levelSelectOverlay?.querySelector('.level-select-tip') || null,
+            levelGrid: this.levelGrid,
+            exitShell: this.exitOverlay?.querySelector('.panel-shell') || null,
+            exitTitle: this.exitOverlay?.querySelector('.panel-title') || null,
+            exitBack: document.getElementById('btnExitCancelTop'),
+            exitDesc: this.exitOverlay?.querySelector('.exit-desc') || null,
+            exitActions,
+            exitConfirmButton: document.getElementById('btnExitConfirm'),
+            exitCancelButton: document.getElementById('btnExitCancel'),
+            exitFeedback: this.exitFeedback,
+            resetProgressShell: this.resetProgressOverlay?.querySelector('.panel-shell') || null,
+            resetProgressTitle: this.settingsConfirmTitleEl,
+            resetProgressBack: document.getElementById('btnResetProgressCancelTop'),
+            resetProgressDesc: this.settingsConfirmDescEl,
+            resetProgressActions: resetActions,
+            resetProgressConfirmButton: this.settingsConfirmActionBtn,
+            resetProgressCancelButton: document.getElementById('btnResetProgressCancel'),
+            checkinRewardShell: this.checkinRewardSettleOverlay?.querySelector('.panel-shell') || null,
+            checkinRewardTitle: this.checkinRewardSettleOverlay?.querySelector('.panel-title') || null,
+            checkinRewardDesc: this.checkinRewardSettleDescEl,
+            checkinRewardCoinHero: this.checkinRewardCoinHeroEl,
+            checkinRewardList: this.checkinRewardSettleListEl,
+            checkinRewardActions,
+            checkinRewardConfirm: this.btnCheckinRewardConfirm,
+            onlineRewardShell: this.onlineRewardSettleOverlay?.querySelector('.panel-shell') || null,
+            onlineRewardTitle: this.onlineRewardSettleOverlay?.querySelector('.panel-title') || null,
+            onlineRewardCloseTop: this.btnOnlineRewardSettleCloseTop,
+            onlineRewardDesc: this.onlineRewardSettleDescEl,
+            onlineRewardList: this.onlineRewardSettleListEl,
+            onlineRewardActions,
+            onlineRewardSettleClose: this.btnOnlineRewardSettleClose
+        };
+    }
+
     markUiEditorElements() {
         this.homeBgPanelLargeEl?.setAttribute('data-ui-editor-id', 'homeBgPanelLarge');
         this.homeBgSnakeUpEl?.setAttribute('data-ui-editor-id', 'homeBgSnakeUp');
@@ -2499,6 +2704,9 @@ export class UI {
         this.checkinMascotEl?.setAttribute('data-ui-editor-id', 'mascot');
         this.checkinRewardTooltipEl?.setAttribute('data-ui-editor-id', 'rewardTooltip');
         this.checkinStatusEl?.setAttribute('data-ui-editor-id', 'status');
+        for (const [elementId, node] of Object.entries(this.getPanelUiEditorNodeMap())) {
+            node?.setAttribute?.('data-ui-editor-id', elementId);
+        }
         this.markGameplayUiEditorElements();
     }
 
@@ -2567,7 +2775,29 @@ export class UI {
         if (sceneId === 'gameplay') {
             return this.hud;
         }
+        const panelRoot = this.getPanelOverlayNode(sceneId);
+        if (panelRoot) {
+            return panelRoot;
+        }
         return document;
+    }
+
+    getPanelOverlayNode(sceneId) {
+        const map = {
+            levelComplete: this.levelCompleteOverlay,
+            gameOver: this.gameOverOverlay,
+            supportAuthor: this.supportAuthorOverlay,
+            settings: this.settingsOverlay,
+            leaderboard: this.leaderboardOverlay,
+            skins: this.skinsOverlay,
+            profile: this.profileOverlay,
+            levelSelect: this.levelSelectOverlay,
+            exitConfirm: this.exitOverlay,
+            resetProgress: this.resetProgressOverlay,
+            checkinRewardSettle: this.checkinRewardSettleOverlay,
+            onlineRewardSettle: this.onlineRewardSettleOverlay
+        };
+        return map[sceneId] || null;
     }
 
     querySceneEditorNode(sceneId, elementId) {
@@ -2770,6 +3000,242 @@ export class UI {
 
     getHomeLayoutConfig() {
         return this.uiLayoutConfig?.home || readUiLayoutConfig().home;
+    }
+
+    getPanelLayoutConfig(sceneId) {
+        return this.uiLayoutConfig?.[sceneId] || readUiLayoutConfig()?.[sceneId] || null;
+    }
+
+    resolvePanelEditableText(textConfig, fallback = '', params = {}) {
+        const raw = this.locale === 'zh-CN' ? textConfig?.textZh : textConfig?.textEn;
+        let text = typeof raw === 'string' && raw.length > 0 ? raw : fallback;
+        for (const [key, value] of Object.entries(params || {})) {
+            text = text.replace(new RegExp(`\\{${key}\\}`, 'g'), `${value}`);
+        }
+        return text;
+    }
+
+    shouldApplyPanelText(sceneId, elementId) {
+        const dynamicIds = new Set([
+            'levelScoreValue',
+            'levelScoreMultiplier',
+            'levelBestComboValue',
+            'levelCoinReward',
+            'gameOverReason',
+            'supportAuthorCount',
+            'supportAuthorBadgeCount',
+            'supportAuthorStatus',
+            'profileUserMeta',
+            'profileStatus',
+            'leaderboardEmptyState',
+            'skinsRateValue',
+            'levelSelectCurrent',
+            'exitFeedback',
+            'checkinRewardDesc',
+            'onlineRewardDesc'
+        ]);
+        return !dynamicIds.has(elementId);
+    }
+
+    applyPanelElementStyle(sceneId, elementId, node, config) {
+        if (!(node instanceof HTMLElement) || !config) {
+            return;
+        }
+        node.style.position = 'absolute';
+        node.style.left = `${Number(config.x) || 0}px`;
+        node.style.top = `${Number(config.y) || 0}px`;
+        node.style.right = 'auto';
+        node.style.bottom = 'auto';
+        if (Number.isFinite(Number(config.width))) {
+            node.style.width = `${Number(config.width)}px`;
+            node.style.maxWidth = `${Number(config.width)}px`;
+        }
+        if (Number.isFinite(Number(config.height))) {
+            node.style.height = `${Number(config.height)}px`;
+            node.style.minHeight = `${Number(config.height)}px`;
+        }
+        if (elementId.endsWith('Shell') || elementId.endsWith('Box')) {
+            node.style.transform = 'none';
+            node.style.margin = '0';
+        }
+        const hasEditableText = typeof config.textZh === 'string' || typeof config.textEn === 'string';
+        const displayValue = config.visible === false ? 'none' : (hasEditableText ? 'flex' : '');
+        if (this.uiEditorPreviewOptions?.enabled && config.visible !== false) {
+            node.classList.remove('hidden');
+        }
+        node.style.display = displayValue;
+        if (Number.isFinite(Number(config.fontSize))) {
+            node.style.fontSize = `${Number(config.fontSize)}px`;
+        }
+        if (hasEditableText) {
+            node.style.alignItems = 'center';
+            node.style.justifyContent = config.align === 'left' ? 'flex-start' : 'center';
+            node.style.textAlign = config.align === 'left' ? 'left' : 'center';
+            node.style.whiteSpace = 'normal';
+            node.style.lineHeight = '1.08';
+            node.style.overflow = 'hidden';
+            const shouldApplyText = this.uiEditorPreviewOptions?.enabled
+                || this.shouldApplyPanelText(sceneId, elementId);
+            if (shouldApplyText) {
+                node.textContent = this.resolvePanelEditableText(config, node.textContent || '');
+            }
+        }
+        if (node.classList.contains('panel-body') || elementId.endsWith('Body')) {
+            node.style.position = 'absolute';
+            node.style.overflow = node.classList.contains('leaderboard-panel-body') ? 'hidden' : '';
+        }
+    }
+
+    applyPanelLayoutConfig(sceneId) {
+        const layout = this.getPanelLayoutConfig(sceneId);
+        const order = PANEL_UI_EDITOR_ELEMENT_ORDER[sceneId];
+        if (!layout || !order) {
+            return;
+        }
+        const nodeMap = this.getPanelUiEditorNodeMap();
+        for (const elementId of order) {
+            const node = nodeMap[elementId];
+            if (sceneId === 'skins' && this.isSkinCardTemplateElement(elementId)) {
+                continue;
+            }
+            this.applyPanelElementStyle(sceneId, elementId, node, layout[elementId]);
+        }
+        if (sceneId === 'skins') {
+            this.applySkinCardTemplateLayout();
+        }
+        this.applySceneLayerOrder(sceneId, order);
+    }
+
+    isSkinCardTemplateElement(elementId) {
+        return [
+            'skinCard',
+            'skinPreview',
+            'skinName',
+            'skinDesc',
+            'skinStatus',
+            'skinActionButton'
+        ].includes(elementId);
+    }
+
+    applySkinCardTemplateLayout() {
+        if (!this.skinList) {
+            return;
+        }
+        const layout = this.getPanelLayoutConfig('skins');
+        if (!layout) {
+            return;
+        }
+        const cardConfig = layout.skinCard || {};
+        const cardWidth = Math.max(1, Number(cardConfig.width) || 308);
+        const cardHeight = Math.max(1, Number(cardConfig.height) || 90);
+        const cardOffsetX = Number(cardConfig.x) || 0;
+        const cardOffsetY = Math.max(0, Number(cardConfig.y) || 0);
+
+        this.skinList.style.display = 'flex';
+        this.skinList.style.flexDirection = 'column';
+        this.skinList.style.gap = '10px';
+        this.skinList.style.paddingTop = `${cardOffsetY}px`;
+
+        const cards = Array.from(this.skinList.querySelectorAll('.skin-card'))
+            .filter((node) => node instanceof HTMLElement);
+        let editorIdsApplied = false;
+        let actionEditorNode = null;
+
+        const applyRect = (node, config, displayValue = 'block') => {
+            if (!(node instanceof HTMLElement) || !config) {
+                return;
+            }
+            node.style.position = 'absolute';
+            node.style.left = `${Number(config.x) || 0}px`;
+            node.style.top = `${Number(config.y) || 0}px`;
+            node.style.width = `${Math.max(1, Number(config.width) || 1)}px`;
+            node.style.height = `${Math.max(1, Number(config.height) || 1)}px`;
+            node.style.display = config.visible === false ? 'none' : displayValue;
+        };
+        const applyTextStyle = (node, config) => {
+            if (!(node instanceof HTMLElement) || !config) {
+                return;
+            }
+            applyRect(node, config, 'flex');
+            node.style.alignItems = 'center';
+            node.style.justifyContent = config.align === 'left' ? 'flex-start' : 'center';
+            node.style.textAlign = config.align === 'left' ? 'left' : 'center';
+            node.style.fontSize = `${Math.max(1, Number(config.fontSize) || 12)}px`;
+            node.style.lineHeight = '1.08';
+            node.style.overflow = 'hidden';
+            node.style.whiteSpace = 'normal';
+        };
+        const clearTemplateIds = (card) => {
+            card.removeAttribute('data-ui-editor-id');
+            card.querySelector('.skin-preview')?.removeAttribute('data-ui-editor-id');
+            card.querySelector('.skin-name')?.removeAttribute('data-ui-editor-id');
+            card.querySelector('.skin-desc')?.removeAttribute('data-ui-editor-id');
+            card.querySelector('.skin-status')?.removeAttribute('data-ui-editor-id');
+            card.querySelector('.skin-action-btn')?.removeAttribute('data-ui-editor-id');
+        };
+
+        for (const card of cards) {
+            clearTemplateIds(card);
+            card.style.position = 'relative';
+            card.style.left = `${cardOffsetX}px`;
+            card.style.top = '0';
+            card.style.width = `${cardWidth}px`;
+            card.style.maxWidth = `${cardWidth}px`;
+            card.style.height = `${cardHeight}px`;
+            card.style.minHeight = `${cardHeight}px`;
+            card.style.display = cardConfig.visible === false ? 'none' : 'block';
+            card.style.padding = '0';
+            card.style.boxSizing = 'border-box';
+            card.style.overflow = 'hidden';
+
+            const preview = card.querySelector('.skin-preview');
+            const name = card.querySelector('.skin-name');
+            const desc = card.querySelector('.skin-desc');
+            const status = card.querySelector('.skin-status');
+            const action = card.querySelector('.skin-action-btn');
+
+            applyRect(preview, layout.skinPreview, 'block');
+            if (preview instanceof HTMLElement) {
+                preview.style.objectFit = 'contain';
+            }
+            applyTextStyle(name, layout.skinName);
+            applyTextStyle(desc, layout.skinDesc);
+            applyTextStyle(status, layout.skinStatus);
+            applyTextStyle(action, layout.skinActionButton);
+            if (action instanceof HTMLElement) {
+                action.style.minWidth = '0';
+                action.style.padding = '0 8px';
+                if (action.dataset.skinActionKind === 'use') {
+                    action.textContent = this.resolvePanelEditableText(
+                        layout.skinActionButton,
+                        this.getLocaleText('\u88c5\u5907', 'Use')
+                    );
+                }
+                if (!actionEditorNode && action.dataset.skinActionKind === 'use') {
+                    actionEditorNode = action;
+                }
+            }
+
+            if (!editorIdsApplied) {
+                card.setAttribute('data-ui-editor-id', 'skinCard');
+                preview?.setAttribute('data-ui-editor-id', 'skinPreview');
+                name?.setAttribute('data-ui-editor-id', 'skinName');
+                desc?.setAttribute('data-ui-editor-id', 'skinDesc');
+                status?.setAttribute('data-ui-editor-id', 'skinStatus');
+                editorIdsApplied = true;
+            }
+        }
+
+        if (!actionEditorNode) {
+            actionEditorNode = this.skinList.querySelector('.skin-action-btn');
+        }
+        actionEditorNode?.setAttribute('data-ui-editor-id', 'skinActionButton');
+    }
+
+    applyAllPanelLayoutConfigs() {
+        for (const sceneId of PANEL_LAYOUT_SCENE_IDS) {
+            this.applyPanelLayoutConfig(sceneId);
+        }
     }
 
     applyHomeLayoutConfig() {
@@ -3731,8 +4197,22 @@ export class UI {
 
     }
 
+    resolveUiEditorPreviewSceneId() {
+        const rawPanel = `${this.uiEditorPreviewOptions.panel || 'checkin'}`.trim();
+        const normalizedPanel = rawPanel.toLowerCase();
+        if (normalizedPanel === 'gameplay') return 'gameplay';
+        if (normalizedPanel === 'home') return 'home';
+        if (normalizedPanel === 'checkin') return 'checkin';
+        for (const sceneId of PANEL_LAYOUT_SCENE_IDS) {
+            if (sceneId === rawPanel || sceneId.toLowerCase() === normalizedPanel) {
+                return sceneId;
+            }
+        }
+        return 'checkin';
+    }
+
     activateUiEditorPreview() {
-        const panel = `${this.uiEditorPreviewOptions.panel || 'checkin'}`.trim().toLowerCase();
+        const panel = this.resolveUiEditorPreviewSceneId();
         if (panel === 'gameplay') {
             this.activateGameplayUiEditorPreview();
             return;
@@ -3742,6 +4222,10 @@ export class UI {
             this.openMenuPanel(MENU_PANEL.HOME);
             return;
         }
+        if (PANEL_LAYOUT_DEFINITIONS[panel]) {
+            this.activatePanelUiEditorPreview(panel);
+            return;
+        }
         this.appContainerEl?.classList.add('menu-mode');
         this.uiEditorPreviewOverride = {
             previewMode: 'claimable',
@@ -3749,6 +4233,59 @@ export class UI {
             nextDay: 1
         };
         this.openMenuPanel(MENU_PANEL.CHECKIN);
+    }
+
+    activatePanelUiEditorPreview(sceneId) {
+        const definition = PANEL_LAYOUT_DEFINITIONS[sceneId];
+        const menuPanelKey = definition?.menuPanel;
+        if (menuPanelKey && MENU_PANEL[menuPanelKey]) {
+            this.appContainerEl?.classList.add('menu-mode');
+            this.openMenuPanel(MENU_PANEL[menuPanelKey]);
+            this.applyPanelLayoutConfig(sceneId);
+            return;
+        }
+
+        this.appContainerEl?.classList.add('menu-mode');
+        this.hideAll();
+        this.hud?.classList.add('hidden');
+        this.setMenuChromeVisible(true);
+        const overlay = this.getPanelOverlayNode(sceneId);
+        overlay?.classList.remove('hidden');
+
+        if (sceneId === 'levelComplete') {
+            this.levelCompletePopupBox?.classList.add('is-perfect');
+            this.levelPerfectStamp?.classList.remove('hidden');
+            this.levelCompleteDoubleCoinButton?.classList.remove('hidden');
+            this.levelCompleteNextButton?.classList.remove('hidden');
+            if (this.levelScoreValue) this.levelScoreValue.textContent = '360';
+            if (this.levelScoreMultiplier) {
+                this.levelScoreMultiplier.textContent = 'x1.50';
+                this.levelScoreMultiplier.classList.remove('hidden');
+            }
+            if (this.levelBestComboValue) this.levelBestComboValue.textContent = '4';
+            if (this.levelCoinReward) {
+                this.levelCoinReward.textContent = this.locale === 'zh-CN'
+                    ? '\u91d1\u5e01 +1\uff08\u603b\u8ba1 1\uff09'
+                    : 'Coins +1 (Total 1)';
+            }
+        } else if (sceneId === 'gameOver') {
+            this.gameOverContinueByAdButton?.classList.remove('hidden');
+            if (this.gameOverReason) {
+                this.gameOverReason.textContent = this.locale === 'zh-CN' ? '\u65f6\u95f4\u5230' : 'Time is up';
+            }
+        } else if (sceneId === 'checkinRewardSettle') {
+            this.checkinRewardCoinHeroEl?.classList.remove('hidden');
+            if (this.checkinRewardCoinHeroAmountEl) this.checkinRewardCoinHeroAmountEl.textContent = '+50';
+            if (this.checkinRewardSettleListEl) {
+                this.checkinRewardSettleListEl.innerHTML = '<div class="online-settle-row"><span>Coin</span><strong>+50</strong></div>';
+            }
+        } else if (sceneId === 'onlineRewardSettle') {
+            if (this.onlineRewardSettleListEl) {
+                this.onlineRewardSettleListEl.innerHTML = '<div class="online-settle-row"><span>Coin</span><strong>+30</strong></div>';
+            }
+        }
+        this.applyLocalizedText();
+        this.applyPanelLayoutConfig(sceneId);
     }
 
     activateGameplayUiEditorPreview() {
@@ -3785,7 +4322,7 @@ export class UI {
         if (!this.uiEditorPreviewOptions.enabled) {
             return;
         }
-        const panel = `${this.uiEditorPreviewOptions.panel || 'checkin'}`.trim().toLowerCase();
+        const panel = this.resolveUiEditorPreviewSceneId();
         if (panel === 'gameplay') {
             this.activateGameplayUiEditorPreview();
             return;
@@ -3793,6 +4330,10 @@ export class UI {
         if (panel === 'home') {
             this.appContainerEl?.classList.add('menu-mode');
             this.openMenuPanel(MENU_PANEL.HOME);
+            return;
+        }
+        if (PANEL_LAYOUT_DEFINITIONS[panel]) {
+            this.activatePanelUiEditorPreview(panel);
             return;
         }
         this.uiEditorPreviewOverride = {
@@ -3812,6 +4353,7 @@ export class UI {
         this.applyHomeLayoutConfig();
         this.applyCheckinLayoutConfig();
         this.applyGameplayLayoutConfig();
+        this.applyAllPanelLayoutConfigs();
         this.refreshCheckinPanel(false);
         this.updateCheckinSceneScale();
     }
@@ -5148,8 +5690,13 @@ export class UI {
             if (selected) {
                 action.textContent = this.getLocaleText('\u5df2\u88c5\u5907', 'Equipped');
                 action.disabled = true;
+                action.dataset.skinActionKind = 'equipped';
             } else if (unlocked) {
-                action.textContent = this.getLocaleText('\u88c5\u5907', 'Use');
+                action.textContent = this.resolvePanelEditableText(
+                    this.getPanelLayoutConfig('skins')?.skinActionButton,
+                    this.getLocaleText('\u88c5\u5907', 'Use')
+                );
+                action.dataset.skinActionKind = 'use';
                 this.bindPressAction(action, () => {
                     if (this.game.selectSkin(skin.id)) {
                         this.renderSkinCenter();
@@ -5161,6 +5708,7 @@ export class UI {
                     `Unlock (${skin.coinCost})`
                 );
                 action.disabled = !canUnlock;
+                action.dataset.skinActionKind = 'unlock';
                 this.bindPressAction(action, () => {
                     const result = this.game.unlockSkin(skin.id);
                     if (result?.ok) {
@@ -5177,6 +5725,7 @@ export class UI {
             card.appendChild(action);
             this.skinList.appendChild(card);
         }
+        this.applySkinCardTemplateLayout();
     }
 
     resolveLevelSettleDuration(deltaScore) {

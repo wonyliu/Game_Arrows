@@ -34,11 +34,12 @@
         "refKind": "",
         "refId": "",
         "mimeType": "audio/wav",
-        "fileName": "candy-crunch.wav",
-        "sourceLabel": "合成预设：Candy Crunch"
+        "fileName": "audio-candy-crunch.wav",
+        "sourceLabel": "合成预设：Candy Crunch",
+        "sizeBytes": 91820
       },
       "createdAt": "2026-04-19T12:53:09.840Z",
-      "updatedAt": "2026-04-26T06:52:55.477Z"
+      "updatedAt": "2026-04-27T06:38:02.103Z"
     },
     {
       "id": "audio-jelly-duang",
@@ -74,11 +75,12 @@
         "refKind": "",
         "refId": "",
         "mimeType": "audio/wav",
-        "fileName": "jelly-duang.wav",
-        "sourceLabel": "合成预设：Jelly Duang"
+        "fileName": "audio-jelly-duang.wav",
+        "sourceLabel": "合成预设：Jelly Duang",
+        "sizeBytes": 201704
       },
       "createdAt": "2026-04-19T12:53:09.856Z",
-      "updatedAt": "2026-04-26T06:52:55.487Z"
+      "updatedAt": "2026-04-27T06:38:02.107Z"
     },
     {
       "id": "audio-syrup-pop",
@@ -114,11 +116,12 @@
         "refKind": "",
         "refId": "",
         "mimeType": "audio/wav",
-        "fileName": "syrup-pop.wav",
-        "sourceLabel": "合成预设：Syrup Pop"
+        "fileName": "audio-syrup-pop.wav",
+        "sourceLabel": "合成预设：Syrup Pop",
+        "sizeBytes": 72776
       },
       "createdAt": "2026-04-19T12:53:09.870Z",
-      "updatedAt": "2026-04-26T06:52:55.492Z"
+      "updatedAt": "2026-04-27T06:38:02.109Z"
     },
     {
       "id": "audio-gummy-stretch",
@@ -154,11 +157,12 @@
         "refKind": "",
         "refId": "",
         "mimeType": "audio/wav",
-        "fileName": "gummy-stretch.wav",
-        "sourceLabel": "合成预设：Gummy Stretch"
+        "fileName": "audio-gummy-stretch.wav",
+        "sourceLabel": "合成预设：Gummy Stretch",
+        "sizeBytes": 249416
       },
       "createdAt": "2026-04-19T12:53:09.892Z",
-      "updatedAt": "2026-04-26T06:52:55.515Z"
+      "updatedAt": "2026-04-27T06:38:02.113Z"
     },
     {
       "id": "audio-fail-plop",
@@ -194,11 +198,12 @@
         "refKind": "",
         "refId": "",
         "mimeType": "audio/wav",
-        "fileName": "fail-plop.wav",
-        "sourceLabel": "合成预设：Fail Plop"
+        "fileName": "audio-fail-plop.wav",
+        "sourceLabel": "合成预设：Fail Plop",
+        "sizeBytes": 109104
       },
       "createdAt": "2026-04-19T12:53:09.920Z",
-      "updatedAt": "2026-04-26T06:52:55.525Z"
+      "updatedAt": "2026-04-27T06:38:02.116Z"
     },
     {
       "id": "audio-duangduang",
@@ -232,10 +237,11 @@
         "refId": "custom-a",
         "mimeType": "audio/wav",
         "fileName": "jelly4-wav.wav",
-        "sourceLabel": "模板采样：DuangDuang"
+        "sourceLabel": "模板采样：DuangDuang",
+        "sizeBytes": 0
       },
       "createdAt": "2026-04-19T12:53:09.945Z",
-      "updatedAt": "2026-04-26T06:52:55.526Z"
+      "updatedAt": "2026-04-27T06:38:02.094Z"
     },
     {
       "id": "audio-ouch",
@@ -269,10 +275,11 @@
         "refId": "custom-ouch",
         "mimeType": "audio/wav",
         "fileName": "ouch.wav",
-        "sourceLabel": "模板采样：Ouch"
+        "sourceLabel": "模板采样：Ouch",
+        "sizeBytes": 0
       },
       "createdAt": "2026-04-19T12:53:09.970Z",
-      "updatedAt": "2026-04-26T06:52:55.527Z"
+      "updatedAt": "2026-04-27T06:38:02.095Z"
     },
     {
       "id": "audio-coinflic6-mp3",
@@ -306,10 +313,11 @@
         "refId": "",
         "mimeType": "audio/wav",
         "fileName": "audio-coinflic6-mp3.wav",
-        "sourceLabel": "legacy game sfx"
+        "sourceLabel": "legacy game sfx",
+        "sizeBytes": 154196
       },
       "createdAt": "",
-      "updatedAt": ""
+      "updatedAt": "2026-04-26T09:04:37.121Z"
     },
     {
       "id": "audio-crowd-cheer-7",
@@ -344,13 +352,14 @@
         "refId": "",
         "mimeType": "audio/wav",
         "fileName": "audio-crowd-cheer-7.wav",
-        "sourceLabel": "legacy game sfx"
+        "sourceLabel": "legacy game sfx",
+        "sizeBytes": 1344044
       },
       "createdAt": "",
-      "updatedAt": ""
+      "updatedAt": "2026-04-26T09:04:37.124Z"
     },
     {
-      "id": "audio-audio-2",
+      "id": "audio-bgm-2",
       "name": "扭扭舞（音乐）",
       "description": "",
       "audioType": "music",
@@ -374,13 +383,14 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "扭扭舞.mp3",
-        "sourceLabel": "游戏音乐：扭扭舞"
+        "sourceLabel": "游戏音乐：扭扭舞",
+        "sizeBytes": 1265325
       },
-      "createdAt": "2026-04-19T15:59:01.713Z",
-      "updatedAt": "2026-04-26T06:52:55.527Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.096Z"
     },
     {
-      "id": "audio-1-2",
+      "id": "audio-bgm-1",
       "name": "小蛇出不去1（音乐）",
       "description": "",
       "audioType": "music",
@@ -404,13 +414,14 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "小蛇出不去1.mp3",
-        "sourceLabel": "游戏音乐：小蛇出不去1"
+        "sourceLabel": "游戏音乐：小蛇出不去1",
+        "sizeBytes": 853012
       },
-      "createdAt": "2026-04-19T15:59:01.766Z",
-      "updatedAt": "2026-04-26T06:52:55.528Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.096Z"
     },
     {
-      "id": "audio-2-2",
+      "id": "audio-bgm-2-2",
       "name": "小蛇出不去2（音乐）",
       "description": "",
       "audioType": "music",
@@ -434,13 +445,14 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "小蛇出不去2.mp3",
-        "sourceLabel": "游戏音乐：小蛇出不去2"
+        "sourceLabel": "游戏音乐：小蛇出不去2",
+        "sizeBytes": 555595
       },
-      "createdAt": "2026-04-19T15:59:01.804Z",
-      "updatedAt": "2026-04-26T06:52:55.528Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.096Z"
     },
     {
-      "id": "audio-3-2",
+      "id": "audio-bgm-3",
       "name": "小蛇出不去3（音乐）",
       "description": "",
       "audioType": "music",
@@ -464,13 +476,14 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "小蛇出不去3.mp3",
-        "sourceLabel": "游戏音乐：小蛇出不去3"
+        "sourceLabel": "游戏音乐：小蛇出不去3",
+        "sizeBytes": 1220844
       },
-      "createdAt": "2026-04-19T15:59:01.966Z",
-      "updatedAt": "2026-04-26T06:52:55.529Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.097Z"
     },
     {
-      "id": "audio-4-2",
+      "id": "audio-bgm-4",
       "name": "小蛇出不去4（音乐）",
       "description": "",
       "audioType": "music",
@@ -494,13 +507,14 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "小蛇出不去4.mp3",
-        "sourceLabel": "游戏音乐：小蛇出不去4"
+        "sourceLabel": "游戏音乐：小蛇出不去4",
+        "sizeBytes": 1220844
       },
-      "createdAt": "2026-04-19T15:59:02.131Z",
-      "updatedAt": "2026-04-26T06:52:55.529Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.097Z"
     },
     {
-      "id": "audio-5-2",
+      "id": "audio-bgm-5",
       "name": "小蛇出不去5（音乐）",
       "description": "",
       "audioType": "music",
@@ -524,13 +538,14 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "小蛇出不去5.mp3",
-        "sourceLabel": "游戏音乐：小蛇出不去5"
+        "sourceLabel": "游戏音乐：小蛇出不去5",
+        "sizeBytes": 1516812
       },
-      "createdAt": "2026-04-19T15:59:02.383Z",
-      "updatedAt": "2026-04-26T06:52:55.530Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.097Z"
     },
     {
-      "id": "audio-6-2",
+      "id": "audio-bgm-6",
       "name": "小蛇出不去6（音乐）",
       "description": "",
       "audioType": "music",
@@ -554,13 +569,14 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "小蛇出不去6.mp3",
-        "sourceLabel": "游戏音乐：小蛇出不去6"
+        "sourceLabel": "游戏音乐：小蛇出不去6",
+        "sizeBytes": 1080443
       },
-      "createdAt": "2026-04-19T15:59:02.537Z",
-      "updatedAt": "2026-04-26T06:52:55.530Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.098Z"
     },
     {
-      "id": "audio-7-2",
+      "id": "audio-bgm-7",
       "name": "小蛇出不去7（音乐）",
       "description": "",
       "audioType": "music",
@@ -584,10 +600,11 @@
         "refId": "",
         "mimeType": "audio/mpeg",
         "fileName": "小蛇出不去7.mp3",
-        "sourceLabel": "游戏音乐：小蛇出不去7"
+        "sourceLabel": "游戏音乐：小蛇出不去7",
+        "sizeBytes": 1372283
       },
-      "createdAt": "2026-04-19T15:59:02.722Z",
-      "updatedAt": "2026-04-26T06:52:55.530Z"
+      "createdAt": "2026-04-26T09:28:00.076Z",
+      "updatedAt": "2026-04-27T06:38:02.098Z"
     }
   ]
 }
