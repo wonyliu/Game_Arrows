@@ -2349,6 +2349,40 @@ textarea {
     pointer-events: none;
 }
 
+.popup-perfect-stamp.is-stamping {
+    transform-origin: 50% 50%;
+    animation: perfect-stamp-impact 520ms cubic-bezier(0.18, 0.9, 0.22, 1.2) both;
+}
+
+@keyframes perfect-stamp-impact {
+    0% {
+        opacity: 0;
+        transform: translate(34px, -64px) rotate(28deg) scale(2.65);
+        filter: blur(1px);
+    }
+    46% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(16deg) scale(0.88);
+        filter: blur(0);
+        box-shadow:
+            0 2px 0 rgba(110, 18, 18, 0.34),
+            0 0 0 12px rgba(191, 26, 26, 0.12),
+            0 12px 26px rgba(107, 18, 18, 0.34);
+    }
+    64% {
+        transform: translate(0, 0) rotate(16deg) scale(1.12);
+    }
+    82% {
+        transform: translate(0, 0) rotate(16deg) scale(1.02);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(16deg) scale(1.06);
+        filter: blur(0);
+        box-shadow: 0 8px 18px rgba(107, 18, 18, 0.24);
+    }
+}
+
 .popup-score {
     display: flex;
     align-items: baseline;
@@ -2374,9 +2408,28 @@ textarea {
 .popup-score-multiplier {
     display: inline-flex;
     align-items: center;
-    font-size: 26px;
-    color: #7b4f27;
-    transform: translateY(-1px);
+    justify-content: center;
+    padding: 2px 9px 3px;
+    min-width: max-content;
+    border: 2px solid rgba(141, 61, 9, 0.52);
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 32% 18%, rgba(255, 255, 255, 0.78), transparent 32%),
+        linear-gradient(180deg, #fff0a6 0%, #ffc14c 48%, #ff7c24 100%);
+    box-shadow:
+        0 4px 0 rgba(126, 54, 9, 0.38),
+        0 8px 14px rgba(223, 93, 18, 0.32),
+        0 0 14px rgba(255, 206, 76, 0.62);
+    color: #7a3000;
+    font-size: 24px;
+    font-weight: 950;
+    line-height: 1;
+    letter-spacing: 0.2px;
+    text-shadow:
+        0 1px 0 rgba(255, 251, 204, 0.9),
+        0 -1px 0 rgba(110, 43, 0, 0.24);
+    white-space: nowrap;
+    transform: translateY(-4px) rotate(-3deg);
     opacity: 0;
 }
 
@@ -2448,10 +2501,16 @@ textarea {
 
 @keyframes settle-multiplier-pop {
     0% {
-        transform: translateY(-1px) scale(0.72);
+        transform: translateY(-4px) rotate(-3deg) scale(0.68);
+        filter: brightness(1.16) saturate(1.2);
+    }
+    56% {
+        transform: translateY(-7px) rotate(-4deg) scale(1.16);
+        filter: brightness(1.22) saturate(1.28);
     }
     100% {
-        transform: translateY(-1px) scale(1);
+        transform: translateY(-4px) rotate(-3deg) scale(1);
+        filter: brightness(1) saturate(1);
     }
 }
 

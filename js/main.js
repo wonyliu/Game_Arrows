@@ -2,7 +2,7 @@
  * Main - game entry
  */
 import { Game } from './game.js?v=170';
-import { UI } from './ui.js?v=161';
+import { UI } from './ui.js?v=171';
 import {
     disposePreloadWorker,
     preloadCurrentPlayableLevels,

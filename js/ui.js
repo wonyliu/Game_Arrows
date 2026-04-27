@@ -92,6 +92,8 @@ const CHECKIN_COIN_FLY_COUNT = 6;
 const CHECKIN_COIN_FLY_DURATION_MS = 920;
 const CHECKIN_COIN_COUNTER_DURATION_MS = 1040;
 const REWARD_GUIDE_TEXT = 'Try holding and swiping your finger in reward stages!';
+const REWARD_UNLOCK_BANNER_ZH_SRC = 'assets/ui/rewards/reward_unlock_banner.png?v=20260420a';
+const REWARD_UNLOCK_BANNER_EN_SRC = 'assets/ui/rewards/reward_unlock_banner_en.png?v=20260427a';
 const HOME_MASCOT_VIDEO_SRC = 'assets/audio/bgm/home_dance_v20260421.mp4?v=20260427a';
 const HOME_MASCOT_BLACK_KEY_MIN = 18;
 const HOME_MASCOT_BLACK_KEY_SOFT = 54;
@@ -1694,6 +1696,9 @@ export class UI {
         this.menuState = target;
         this.applyLocalizedText();
         this.applyAllPanelLayoutConfigs();
+        if (target === MENU_PANEL.RESET_PROGRESS_CONFIRM) {
+            this.updateSettingsConfirmDialogText();
+        }
         this.refreshMenuLevelTag();
         this.renderFeatureCards();
         this.refreshProfileEntry();
@@ -2450,6 +2455,7 @@ export class UI {
             this.rewardFlyLayerEl.innerHTML = '';
         }
         this.hideOnlineRewardPreview();
+        this.setOnlineRewardDockVisible(false);
         this.hideCheckinRewardTooltip();
         this.pendingCheckinRewardPayload = null;
         this.pendingOnlineRewardPayload = null;
@@ -3041,16 +3047,18 @@ export class UI {
         if (!(node instanceof HTMLElement) || !config) {
             return;
         }
+        const usesDynamicScoreWidth = sceneId === 'levelComplete'
+            && (elementId === 'levelScoreValue' || elementId === 'levelScoreMultiplier');
         node.style.position = 'absolute';
         node.style.left = `${Number(config.x) || 0}px`;
         node.style.top = `${Number(config.y) || 0}px`;
         node.style.right = 'auto';
         node.style.bottom = 'auto';
-        if (Number.isFinite(Number(config.width))) {
+        if (Number.isFinite(Number(config.width)) && !usesDynamicScoreWidth) {
             node.style.width = `${Number(config.width)}px`;
             node.style.maxWidth = `${Number(config.width)}px`;
         }
-        if (Number.isFinite(Number(config.height))) {
+        if (Number.isFinite(Number(config.height)) && !usesDynamicScoreWidth) {
             node.style.height = `${Number(config.height)}px`;
             node.style.minHeight = `${Number(config.height)}px`;
         }
@@ -3073,7 +3081,7 @@ export class UI {
             node.style.textAlign = config.align === 'left' ? 'left' : 'center';
             node.style.whiteSpace = 'normal';
             node.style.lineHeight = '1.08';
-            node.style.overflow = 'hidden';
+            node.style.overflow = usesDynamicScoreWidth ? 'visible' : 'hidden';
             const shouldApplyText = this.uiEditorPreviewOptions?.enabled
                 || this.shouldApplyPanelText(sceneId, elementId);
             if (shouldApplyText) {
@@ -3104,6 +3112,9 @@ export class UI {
             this.applySkinCardTemplateLayout();
         }
         this.applySceneLayerOrder(sceneId, order);
+        if (sceneId === 'levelComplete') {
+            this.updateLevelScoreMultiplierPlacement();
+        }
     }
 
     isSkinCardTemplateElement(elementId) {
@@ -4255,6 +4266,7 @@ export class UI {
         if (sceneId === 'levelComplete') {
             this.levelCompletePopupBox?.classList.add('is-perfect');
             this.levelPerfectStamp?.classList.remove('hidden');
+            this.playPerfectStampAnimation();
             this.levelCompleteDoubleCoinButton?.classList.remove('hidden');
             this.levelCompleteNextButton?.classList.remove('hidden');
             if (this.levelScoreValue) this.levelScoreValue.textContent = '360';
@@ -4678,8 +4690,13 @@ export class UI {
     refreshOnlineRewardDock() {
         const settleVisible = !!this.onlineRewardSettleOverlay && !this.onlineRewardSettleOverlay.classList.contains('hidden');
         const checkinSettleVisible = !!this.checkinRewardSettleOverlay && !this.checkinRewardSettleOverlay.classList.contains('hidden');
-        const show = this.menuState === MENU_PANEL.HOME && this.game?.state === 'MENU' && !settleVisible && !checkinSettleVisible;
-        this.onlineRewardDockEl?.classList.toggle('hidden', !show);
+        const layout = this.getHomeLayoutConfig();
+        const show = this.menuState === MENU_PANEL.HOME
+            && this.game?.state === 'MENU'
+            && layout?.onlineRewardDock?.visible !== false
+            && !settleVisible
+            && !checkinSettleVisible;
+        this.setOnlineRewardDockVisible(show);
         if (!show || !this.game || typeof this.game.getOnlineRewardSnapshot !== 'function') {
             return;
         }
@@ -4687,7 +4704,6 @@ export class UI {
         if (!this.onlineDockTextEl) {
             return;
         }
-        const layout = this.getHomeLayoutConfig();
         if (!online.enabled) {
             this.onlineDockTextEl.textContent = this.locale === 'zh-CN' ? '\u672a\u5f00\u542f' : 'Off';
             return;
@@ -4705,6 +4721,15 @@ export class UI {
         }
         const remain = Math.max(0, Math.ceil(Number(online.remainingSeconds) || 0));
         this.onlineDockTextEl.textContent = this.formatCountdown(remain);
+    }
+
+    setOnlineRewardDockVisible(visible) {
+        if (!(this.onlineRewardDockEl instanceof HTMLElement)) {
+            return;
+        }
+        const shouldShow = visible === true;
+        this.onlineRewardDockEl.classList.toggle('hidden', !shouldShow);
+        this.onlineRewardDockEl.style.display = shouldShow ? 'block' : 'none';
     }
 
     formatCountdown(totalSeconds) {
@@ -5356,6 +5381,14 @@ export class UI {
         const imageEl = this.rewardUnlockToastImageEl;
         const textEl = this.rewardUnlockToastTextEl;
         const threshold = Math.max(1, Math.floor(Number(payload?.threshold) || 0));
+        if (imageEl) {
+            imageEl.src = this.locale === 'en-US'
+                ? REWARD_UNLOCK_BANNER_EN_SRC
+                : REWARD_UNLOCK_BANNER_ZH_SRC;
+            imageEl.alt = this.locale === 'en-US'
+                ? 'Bonus level achieved'
+                : '\u5956\u52b1\u5173\u8fbe\u6210';
+        }
         const hasBannerImage = !!(`${imageEl?.getAttribute?.('src') || ''}`.trim());
         if (textEl) {
             textEl.textContent = threshold > 0
@@ -5752,6 +5785,7 @@ export class UI {
         }
         if (this.levelScoreValue) {
             this.levelScoreValue.textContent = `${safeScore}`;
+            this.prepareLevelScoreValueDynamicWidth();
         } else if (this.levelScore) {
             this.levelScore.textContent = this.getLocaleText(
                 `\u5206\u6570 ${safeScore}`,
@@ -5762,9 +5796,65 @@ export class UI {
             this.levelScoreMultiplier.textContent = `${multiplierText}`.trim() || 'x1.00';
             this.levelScoreMultiplier.classList.toggle('hidden', !showMultiplier);
             this.levelScoreMultiplier.classList.toggle('is-visible', showMultiplier);
+            this.updateLevelScoreMultiplierPlacement();
+            if (showMultiplier && typeof requestAnimationFrame === 'function') {
+                requestAnimationFrame(() => this.updateLevelScoreMultiplierPlacement());
+                requestAnimationFrame(() => {
+                    requestAnimationFrame(() => this.updateLevelScoreMultiplierPlacement());
+                });
+            }
         } else if (this.levelScore && showMultiplier && `${multiplierText}`.trim()) {
             this.levelScore.textContent = `${this.levelScore.textContent || ''} ${multiplierText}`.trim();
         }
+    }
+
+    prepareLevelScoreValueDynamicWidth() {
+        if (!(this.levelScoreValue instanceof HTMLElement)) {
+            return;
+        }
+        this.levelScoreValue.dataset.dynamicWidth = 'score-value';
+        this.levelScoreValue.style.setProperty('width', 'max-content', 'important');
+        this.levelScoreValue.style.setProperty('min-width', '0', 'important');
+        this.levelScoreValue.style.setProperty('max-width', 'none', 'important');
+        this.levelScoreValue.style.setProperty('height', 'auto', 'important');
+        this.levelScoreValue.style.setProperty('min-height', '0', 'important');
+        this.levelScoreValue.style.setProperty('display', 'inline-flex', 'important');
+        this.levelScoreValue.style.setProperty('justify-content', 'flex-start', 'important');
+        this.levelScoreValue.style.setProperty('text-align', 'left', 'important');
+        this.levelScoreValue.style.setProperty('white-space', 'nowrap', 'important');
+        this.levelScoreValue.style.setProperty('overflow', 'visible', 'important');
+    }
+
+    updateLevelScoreMultiplierPlacement() {
+        if (!this.levelScore || !this.levelScoreValue || !this.levelScoreMultiplier) {
+            return;
+        }
+        const multiplierEl = this.levelScoreMultiplier;
+        if (multiplierEl.classList.contains('hidden')) {
+            return;
+        }
+        const scoreRect = this.levelScore.getBoundingClientRect();
+        if (!scoreRect.width) {
+            return;
+        }
+        this.prepareLevelScoreValueDynamicWidth();
+        const valueLeft = Number(this.levelScoreValue.offsetLeft);
+        const valueWidth = Math.ceil(Number(this.levelScoreValue.offsetWidth) || 0);
+        if (!Number.isFinite(valueLeft) || valueWidth <= 0) {
+            return;
+        }
+        const gap = 2;
+        const nextLeft = Math.ceil(valueLeft + valueWidth + gap);
+        multiplierEl.dataset.dynamicWidth = 'score-multiplier';
+        multiplierEl.style.setProperty('left', `${nextLeft}px`, 'important');
+        multiplierEl.style.setProperty('right', 'auto', 'important');
+        multiplierEl.style.setProperty('width', 'max-content', 'important');
+        multiplierEl.style.setProperty('max-width', 'none', 'important');
+        multiplierEl.style.setProperty('height', 'auto', 'important');
+        multiplierEl.style.setProperty('min-height', '0', 'important');
+        multiplierEl.style.setProperty('overflow', 'visible', 'important');
+        multiplierEl.style.setProperty('white-space', 'nowrap', 'important');
+        multiplierEl.style.zIndex = `${Number(this.levelScoreValue.style.zIndex || 0) + 1}`;
     }
 
     setLevelSettleComboText(bestCombo) {
@@ -5788,10 +5878,30 @@ export class UI {
         }
         const earned = Math.max(0, Math.floor(Number(earnedCoins) || 0));
         const total = Math.max(0, Math.floor(Number(totalCoins) || 0));
-        this.levelCoinReward.textContent = this.getLocaleText(
+        const config = this.getPanelLayoutConfig('levelComplete')?.levelCoinReward || null;
+        const fallback = this.getLocaleText(
             `\u91d1\u5e01 +${earned}\uff08\u603b\u8ba1 ${total}\uff09`,
             `Coins +${earned} (Total ${total})`
         );
+        const templateText = config
+            ? this.resolvePanelEditableText(config, fallback, { earned, total, coins: earned, totalCoins: total })
+            : fallback;
+        this.levelCoinReward.textContent = this.formatLevelSettleCoinTemplate(templateText, earned, total);
+    }
+
+    formatLevelSettleCoinTemplate(templateText, earnedCoins, totalCoins) {
+        let text = `${templateText || ''}`;
+        const earned = Math.max(0, Math.floor(Number(earnedCoins) || 0));
+        const total = Math.max(0, Math.floor(Number(totalCoins) || 0));
+        if (!text.trim()) {
+            return this.getLocaleText(`\u91d1\u5e01 +${earned}`, `Coins +${earned}`);
+        }
+        if (!/[{](earned|coins|total|totalCoins)[}]/i.test(text)) {
+            text = text.replace(/([+＋]\s*)\d+/, `$1${earned}`);
+            text = text.replace(/(\bTotal\s*)\d+/i, `$1${total}`);
+            text = text.replace(/(\u603b\u8ba1\s*)\d+/, `$1${total}`);
+        }
+        return text;
     }
 
     waitForLevelSettleDelay(durationMs, runId) {
@@ -5940,6 +6050,8 @@ export class UI {
     showLevelCompletePopup() {
         this.stopLevelSettleAnimation();
         const runId = this.levelSettleRunId;
+        this.hideOnlineRewardPreview();
+        this.setOnlineRewardDockVisible(false);
         this.levelCompleteOverlay.classList.remove('hidden');
         this.updateCoinDisplays();
         const settleSummary = typeof this.game.getLastLevelSettleSummary === 'function'
@@ -5993,6 +6105,11 @@ export class UI {
         if (this.levelPerfectStamp) {
             this.levelPerfectStamp.classList.toggle('hidden', !perfectComboClear);
             this.levelPerfectStamp.textContent = this.getLocaleText('\u5b8c\u7f8e', 'PERFECT');
+            if (perfectComboClear) {
+                this.playPerfectStampAnimation();
+            } else {
+                this.levelPerfectStamp.classList.remove('is-stamping');
+            }
         }
         if (this.levelCompletePopupBox) {
             this.levelCompletePopupBox.classList.toggle('is-perfect', perfectComboClear);
@@ -6022,7 +6139,18 @@ export class UI {
         this.refreshDoubleCoinAdButton();
     }
 
+    playPerfectStampAnimation() {
+        if (!(this.levelPerfectStamp instanceof HTMLElement)) {
+            return;
+        }
+        this.levelPerfectStamp.classList.remove('is-stamping');
+        void this.levelPerfectStamp.offsetWidth;
+        this.levelPerfectStamp.classList.add('is-stamping');
+    }
+
     showGameOverPopup(reason) {
+        this.hideOnlineRewardPreview();
+        this.setOnlineRewardDockVisible(false);
         this.gameOverOverlay.classList.remove('hidden');
         if (this.gameOverReason) {
             this.gameOverReason.textContent = reason || t(this.locale, 'panel.over.title');
